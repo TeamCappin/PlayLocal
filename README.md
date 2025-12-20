@@ -100,8 +100,9 @@ This structured database is provided to our stakeholder, Munera Intelligence, fo
 ### Web-Portal Setup
 
 The Web-Portal is a separate application with its own setup. Please refer to the `README.md` files within its directories for instructions:
-- **Frontend**: `Web-Portal/frontend/README.md`
-- **Backend**: `Web-Portal/backend/README.md`
+- **Frontend (React/Next.js)**: `Web-Portal/frontend/README.md`
+- **Backend (Django REST)**: `Web-Portal/backend/README.md`
+- **Backend (SpringBoot)**: `Web-Portal/springboot-backend/README.md` - Alternative Java-based backend
 
 ### Project Structure
 
