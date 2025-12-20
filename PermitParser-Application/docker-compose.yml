@@ -1,0 +1,130 @@
+version: "3.8"
+services:
+  # --- Google Cloud Emulators ---
+  gcp-emulators:
+    image: google/cloud-sdk:emulators
+    command: >
+      sh -c "gcloud beta emulators firestore start --host-port=0.0.0.0:8082 &
+             gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 &
+             wait"
+    ports:
+      - "8082:8082"  # Firestore
+      - "8085:8085"  # Pub/Sub
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-concordia-capstone2026}
+
+  # --- Application Services ---
+  decomposition-service:
+    build:
+      context: .
+      dockerfile: src/services/decomposition_service/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-concordia-capstone2026}
+      - FIRESTORE_EMULATOR_HOST=gcp-emulators:8082
+      - PUBSUB_EMULATOR_HOST=gcp-emulators:8085
+      - STORAGE_EMULATOR_HOST=http://gcs-emulator:4443
+      - LOG_LEVEL=INFO
+      # Disable authentication for emulators
+      - GOOGLE_APPLICATION_CREDENTIALS=
+    depends_on:
+      - gcp-emulators
+      - gcs-emulator
+
+  parser-service:
+    build:
+      context: .
+      dockerfile: src/services/parser_service/Dockerfile
+    ports:
+      - "8083:8080"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-concordia-capstone2026}
+      - FIRESTORE_EMULATOR_HOST=gcp-emulators:8082
+      - PUBSUB_EMULATOR_HOST=gcp-emulators:8085
+      - STORAGE_EMULATOR_HOST=http://gcs-emulator:4443
+      - LOG_LEVEL=INFO
+      - USE_EMULATORS=true
+      # Disable authentication for emulators
+      - GOOGLE_APPLICATION_CREDENTIALS=
+    depends_on:
+      - gcp-emulators
+      - gcs-emulator
+
+  completion-tracker-service:
+    build:
+      context: .
+      dockerfile: src/services/completion_tracker_service/Dockerfile
+    ports:
+      - "8084:8080"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-concordia-capstone2026}
+      - FIRESTORE_EMULATOR_HOST=gcp-emulators:8082
+      - PUBSUB_EMULATOR_HOST=gcp-emulators:8085
+      - DOCUMENT_COMPLETE_TOPIC=document.complete
+      - LOG_LEVEL=INFO
+      # Disable authentication for emulators
+      - GOOGLE_APPLICATION_CREDENTIALS=
+    depends_on:
+      - gcp-emulators
+
+  scraper-service:
+    build:
+      context: .
+      dockerfile: src/services/scraper_service/Dockerfile
+    ports:
+      - "8086:8080"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-concordia-capstone2026}
+      - FIRESTORE_EMULATOR_HOST=gcp-emulators:8082
+      - PUBSUB_EMULATOR_HOST=gcp-emulators:8085
+      - STORAGE_EMULATOR_HOST=http://gcs-emulator:4443
+      - LOG_LEVEL=INFO
+      - USE_EMULATORS=true
+      # Disable authentication for emulators
+      - GOOGLE_APPLICATION_CREDENTIALS=
+    depends_on:
+      - gcp-emulators
+      - gcs-emulator
+
+  # --- GCS Emulator ---
+  gcs-emulator:
+    image: fsouza/fake-gcs-server
+    command: ["-scheme", "http", "-port", "4443", "-external-url", "http://gcs-emulator:4443"]
+    ports:
+      - "4443:4443"
+    volumes:
+      - gcs-data:/data
+
+# --- Django Backend ---
+  backend:
+    build:
+      context: ../Web Portal
+      dockerfile: backend/Dockerfile
+    container_name: permitparser-backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ../Web Portal/backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../Web Portal/backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+
+
+# --- React Frontend ---
+  frontend:
+    build:
+      context: ../Web Portal
+      dockerfile: frontend/Dockerfile
+    container_name: permitparser-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  gcs-data:

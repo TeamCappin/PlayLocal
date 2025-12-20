@@ -1,0 +1,31 @@
+# ===================================================================
+# Web Portal Frontend (Next.js) Specific Gitignore
+#
+# Patterns here apply only to the Web Portal/frontend directory.
+# ===================================================================
+
+# Logs
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node.js dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+dist-ssr/
+.out/
+/build
+
+# TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing
+coverage/
+

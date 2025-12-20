@@ -1,0 +1,107 @@
+Capstone Project Agreement — Intellectual Property, License & Liability (revised version on December 1st 2025)
+
+Agreement between Concordia University’s Capstone Project and Munera Intelligence (the "Company") with respect to Intellectual Property, License & Liability, Code Access, Confidentiality and Return.
+
+## 1. Copyright
+
+All software, code, documentation, inventions, and other work products created by the student(s) during the internship (the "Work Product") shall be the sole and exclusive property of Munera Intelligence. The student(s) hereby irrevocably assign to Munera Intelligence all rights, title, and interest in and to the Work Product, including all intellectual property rights therein, without any additional consideration beyond the internship arrangement.
+
+## 2. License & Liability
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## 3. Code Access, Confidentiality & Return
+
+### 3.1 Definitions
+
+“Code” means all source code, object code, scripts, models, documentation, binaries, APIs, configurations, prompts, and related materials disclosed by the Company.
+
+“Capstone Project” means the project expressly approved in writing by the Company.
+
+### 3.2 Limited, Revocable License
+
+Subject to strict compliance with this clause, the Company grants the Students a limited, non-exclusive, non-transferable, non-sublicensable license to access and use the Code solely to the minimum extent necessary to execute the Capstone Project. Access remains revocable by the Company only in accordance with Section 3.3.1.
+
+### 3.3 Term of Access
+
+Access to the Code will remain available to the Students until May 31, 2027.
+
+For clarity, the Company agrees that it will not suspend or revoke access for convenience and that any suspension or revocation will occur only for the specific grounds listed in Section 3.3.1.
+
+The Company will grant unconditional read access for grading purposes on Github until May 31, 2027.
+
+### 3.3.1 Grounds for Suspension or Revocation
+
+The Company may suspend or revoke access immediately, in whole or in part, only upon the occurrence of any of the following events:
+
+    a. Unauthorized Distribution or Disclosure: Any sharing, copying, uploading, posting, publishing, displaying, forking, or distributing of the Code (or any portion, snippets, screenshots, architecture, binaries, models, or documentation) to any third party or public repository without prior written authorization from the Company.
+
+    b. Security Compromise or Risk: Any actual, suspected, or attempted security incident, misuse, account sharing, breach of credentials, circumvention of technical restrictions, or storage of Code in unauthorized locations (including local personal devices, cloud services, or non-approved repositories).
+
+    c. Modification Causing Harm: Any alteration, deletion, or modification of the Code in a manner reasonably expected to cause damage, corruption, loss of data, operational disruption, or security vulnerabilities.
+
+    d. Violation of Prohibited Acts (Section 3.5): Any breach of the obligations listed under Section 3.5, including reverse engineering, use of the Code for purposes other than the Capstone Project, or incorporation with open-source software that creates licensing exposure.
+
+    e. Breach of Confidentiality Obligations: Any disclosure, mishandling, or unauthorized use of Confidential Information in violation of Section 3.6.
+
+    f. Failure to Cooperate with Compliance or Audit Requirements: Failure to provide information, logs, confirmations, or to cooperate in good faith with a compliance verification requested in accordance with Section 3.7.
+
+    g. Violation of Applicable Law or University Policies: Any use of the Code that violates law, infringes third-party rights, or breaches any University policy relating to academic integrity, research conduct, or cybersecurity.
+
+The Company will provide written notice of the suspension or revocation to the Students and/or the University, together with a brief description of the grounds, unless immediate suspension is required to prevent harm or further breach. In such cases, notice will follow as soon as reasonably practicable.
+
+### 3.4 Scope & Storage
+
+Students must access and store Code only within Company-approved repositories, accounts, and devices; no local, personal, cloud, or external storage (e.g., GitHub personal accounts, Google Drive, Dropbox) is permitted unless otherwise approved by the Company.
+
+### 3.5 Prohibited Acts
+
+Students shall not, except if authorized in writing by the Company, directly or indirectly:
+
+    a. use the Code for any purpose other than the Capstone Project;
+
+    b. retain any Code or Work Product after the end of the authorized period;
+
+    c. modify, adapt, translate, merge, or create derivative works of the Code after the earlier of the internship end or Project completion;
+
+    d. copy, disclose, publish, post, upload, fork, or distribute the Code (or any portion, screenshots, snippets, hashes, or architectural details) to any third party;
+
+    e. use the Code for personal, commercial, or competitive purposes;
+
+    f. reverse engineer, decompile, disassemble, benchmark, or test for vulnerabilities (including scanning, scraping, or data-mining) of the Company’s platform;
+
+    g. train, fine-tune, or otherwise input the Code or any portion of it into AI/ML systems, LLMs, or analytics tools that could retain or learn from it,  unless otherwise approved by the Company;
+
+    h. combine the Code with, or incorporate it into, open-source or third-party software in a way that imposes disclosure, copyleft, or licensing obligations;
+
+    i. remove or alter proprietary notices, watermarks, or access controls;
+
+    j. share credentials, permit account sharing, or circumvent technical restrictions outside of the group members.
+
+### 3.6 Confidentiality
+
+The Code is Confidential Information. Students must protect it with no less than industry-standard safeguards, disclose it only to teammates and faculty expressly authorized in writing by the Company and bound by confidentiality obligations, and use it only as permitted herein.
+
+### 3.7 Security & Audit
+
+Students must:
+
+    a. use multi-factor authentication and strong passwords;
+
+    b. refrain from disabling logs or telemetry;
+
+    c. promptly report suspected compromise or unauthorized access;
+
+    d. on reasonable notice, cooperate with audits limited to verifying compliance (including producing confirmation of authorized storage locations and access logs).
+
+### 3.8 Return/Destruction & Certification
+
+Upon any termination or Company request, Students must immediately cease use, return all tangible materials, and permanently delete or irreversibly destroy all copies, fragments, and derivatives of the Code (including from backups and caches), and provide a written deletion certificate within five (5) days of May 31, 2027.
+
+### 3.9 Injunctive Relief & Remedies
+
+Any breach of this Agreement by the student(s) may cause irreparable harm to the Company. Subject to the indemnification obligations imposed in favor of the University, nothing in this Agreement shall be interpreted as limiting or restricting the Company’s rights and remedies directly against the student(s) in the event of breach, gross fault (faute lourde), fraud, theft, willful misconduct, or any unlawful act, in accordance with article 1474 of the Civil Code of Québec. In such circumstances, the Company shall be entitled to injunctive relief (without bond), specific performance, recovery of damages (including consequential damages to the extent permitted by law), disgorgement of any gains, recovery of attorneys’ fees and costs, and any other remedies available at law or in equity.
+
+### 3.10 Survival
+
+Sections 3.5–3.10 survive termination or expiry of access.

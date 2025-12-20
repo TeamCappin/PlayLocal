@@ -1,0 +1,145 @@
+# Filter Configuration
+# This file defines keywords for filtering construction-related documents
+# Structure: default section for global defaults, municipalities section for overrides
+
+default:
+  # Construction-related keywords (high precision)
+  construction_keywords:
+    en:
+      - "permit"
+      - "construction"
+      - "building"
+      - "development"
+      - "project"
+      - "building permit"
+      - "construction permit"
+      - "development permit"
+      - "architectural"
+      - "blueprint"
+      - "site plan"
+      - "zoning"
+      - "renovation"
+      - "expansion"
+      - "demolition"
+      - "infrastructure"
+    fr:
+      - "permis"
+      - "construction"
+      - "bâtiment"
+      - "développement"
+      - "projet"
+      - "permis de construction"
+      - "permis de bâtiment"
+      - "permis de développement"
+      - "architectural"
+      - "plan d'architecture"
+      - "plan de site"
+      - "zonage"
+      - "rénovation"
+      - "agrandissement"
+      - "démolition"
+      - "infrastructure"
+  
+  # Exclusion keywords (non-construction documents)
+  exclusion_keywords:
+    en:
+      - "tax"
+      - "tax notice"
+      - "tax bill"
+      - "parking"
+      - "parking violation"
+      - "parking ticket"
+      - "license renewal"
+      - "business license"
+      - "violation"
+      - "fine"
+      - "penalty"
+      - "water bill"
+      - "utility"
+      - "garbage"
+      - "waste"
+      - "assessment"
+      - "property tax"
+    fr:
+      - "taxe"
+      - "avis de taxe"
+      - "facture de taxe"
+      - "stationnement"
+      - "contravention de stationnement"
+      - "ticket de stationnement"
+      - "renouvellement"
+      - "permis d'entreprise"
+      - "violation"
+      - "amende"
+      - "pénalité"
+      - "facture d'eau"
+      - "service public"
+      - "ordures"
+      - "déchets"
+      - "évaluation"
+      - "taxe foncière"
+  
+  # Minimum number of construction keyword matches required
+  min_construction_matches: 1
+  # exclusion_match_immediate_skip: true
+
+# Municipality-specific overrides
+# These merge with default configuration
+municipalities:
+  laval:
+    construction_keywords:
+      en:
+        - "real estate project"
+        - "real estate development"
+        - "subdivision"
+        - "land development"
+      fr:
+        - "projet immobilier"
+        - "lotissement"
+        - "développement immobilier"
+    exclusion_keywords:
+      en:
+        - "tax notice"
+        - "tax bill"
+        - "violation"
+        - "ticket"
+        - "parking"
+        - "parking violation"
+      fr:
+        - "avis de taxe"
+        - "facture de taxe"
+        - "contravention"
+        - "ticket"
+        - "stationnement"
+        - "contravention de stationnement"
+    min_construction_matches: 1
+    exclusion_match_immediate_skip: true
+
+  
+  montreal:
+    construction_keywords:
+      en:
+        - "real estate project"
+        - "authorization certificate"
+        - "permit certificate"
+        - "certificate of authorization"
+      fr:
+        - "projet immobilier"
+        - "certificat d'autorisation"
+    exclusion_keywords:
+      en:
+        - "tax notice"
+        - "tax bill"
+        - "violation"
+        - "ticket"
+        - "parking"
+        - "parking violation"
+      fr:
+        - "avis de taxe"
+        - "facture de taxe"
+        - "contravention"
+        - "ticket"
+        - "stationnement"
+        - "contravention de stationnement"
+    min_construction_matches: 1
+    exclusion_match_immediate_skip: true

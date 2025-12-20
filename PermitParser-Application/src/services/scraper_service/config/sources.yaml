@@ -1,0 +1,53 @@
+laval:
+  scrapers:
+    council:
+      base_url: "https://www.laval.ca"
+      start_url_path: "/vie-democratique/hotel-de-ville-personnes-elues/ordre-jour-proces-verbaux-sommaire/"
+      headless: true # or false
+      timeout_ms: 60000
+    donnees_quebec:
+      base_url: "https://www.donneesquebec.ca"
+      # Will be configured when implemented
+      headless: false
+      timeout_ms: 60000
+
+# Configuration for the Montréal role evaluation scraper.  This
+# entry mirrors the structure of other municipal scrapers.  The
+# lot_range controls which lot numbers are searched.  wait.table_ms
+# dictates how long to wait (in milliseconds) for the results table
+# to render after submitting a search.  max_concurrency can be
+# increased if multiple Playwright contexts should be used in
+# parallel.  CURRENT_TAX_YEAR filters out PDF links newer than the
+# specified year.
+montreal:
+  scrapers:
+    role_evaluation:
+      base_url: "https://montreal.ca"
+      start_url_path: "/role-evaluation-fonciere"
+      headless: false
+      timeout_ms: 60000
+      lot_range:
+        start: 1000078
+        end: 1000096
+      wait:
+        table_ms: 30000
+        inter_lot_range_s: [2.0, 4.0] 
+      max_concurrency: 1
+      CURRENT_TAX_YEAR: 2025
+      accept_languages: "fr-CA,fr;q=0.9,en-CA;q=0.8,en;q=0.7"
+      user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+      profile_dir: ".pw-montreal-profile"   # persistent profile on disk
+      base_delay_ms: 1200                   # human-like pacing
+      jitter_ms: 800
+      max_retries: 3
+      rotate_after: 30   
+      cooldown:
+        banners_threshold: 3
+        banners_sleep_range_s: [6.0, 10.0]
+        soft_empty_threshold: 2
+        soft_empty_sleep_range_s: [4.0, 7.0]
+        reload_page: true
+        banner_wait_range_s: [15.0, 20.0]          # enforced wait after ANY banner
+        post_recreate_wait_range_s: [20.0, 30.0]   # wait after recreating browser context
+
+# periodically new page to clear SPA state

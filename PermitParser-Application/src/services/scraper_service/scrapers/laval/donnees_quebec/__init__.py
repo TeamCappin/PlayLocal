@@ -1,0 +1,1 @@
+"""Donnees Quebec scraper package."""

@@ -1,0 +1,1118 @@
+[
+  {
+    "name": "document_id",
+    "mode": "NULLABLE",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "meeting_context",
+    "mode": "NULLABLE",
+    "type": "RECORD",
+    "description": "",
+    "fields": [
+      {
+        "name": "confidence_score",
+        "mode": "NULLABLE",
+        "type": "FLOAT",
+        "description": "Confidence score for the extracted data (0.0 to 1.0).",
+        "fields": []
+      },
+      {
+        "name": "source_snippet",
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "description": "The exact text snippet from which the data was extracted.",
+        "fields": []
+      },
+      {
+        "name": "document_type",
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "description": "The type of document (e.g., 'Ordre du jour', 'Procès-verbal').",
+        "fields": []
+      },
+      {
+        "name": "municipal_body",
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "description": "The name of the municipal body holding the meeting (e.g., 'Conseil d'arrondissement').",
+        "fields": []
+      },
+      {
+        "name": "meeting_date",
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "description": "The date of the meeting in AAAA-MM-JJ format.",
+        "fields": []
+      },
+      {
+        "name": "meeting_type",
+        "mode": "NULLABLE",
+        "type": "STRING",
+        "description": "The type of meeting (e.g., 'Séance ordinaire', 'Séance extraordinaire').",
+        "fields": []
+      }
+    ]
+  },
+  {
+    "name": "agenda_items",
+    "mode": "REPEATED",
+    "type": "RECORD",
+    "description": "",
+    "fields": [
+      {
+        "name": "permit",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "permis",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "A list of all permits found in the document.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "numero_permis",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The unique permit number.",
+                "fields": []
+              },
+              {
+                "name": "numero_demande",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The associated application number.",
+                "fields": []
+              },
+              {
+                "name": "type_permis",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The type of work authorized.",
+                "fields": []
+              },
+              {
+                "name": "date_emission",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The permit's issuance date (AAAA-MM-JJ).",
+                "fields": []
+              },
+              {
+                "name": "date_demande",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The application submission date (AAAA-MM-JJ).",
+                "fields": []
+              },
+              {
+                "name": "description_travaux",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Description of the authorized work.",
+                "fields": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "building_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "categories_principales",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of main building categories (e.g., ['COMMERCIAL', 'RESIDENTIAL']).",
+            "fields": []
+          },
+          {
+            "name": "types_de_batiment",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of detailed building use sub-categories (e.g., ['Retail Trade', 'Multi Housing']).",
+            "fields": []
+          },
+          {
+            "name": "nombre_logements",
+            "mode": "NULLABLE",
+            "type": "INTEGER",
+            "description": "Total number of residential units.",
+            "fields": []
+          },
+          {
+            "name": "nombre_etages",
+            "mode": "NULLABLE",
+            "type": "INTEGER",
+            "description": "Number of above-ground floors.",
+            "fields": []
+          },
+          {
+            "name": "hauteur_details",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "A structured list of height specifications.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "description_partie",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The part of the building this height applies to (e.g., 'Bâtiment principal', 'Basilaire').",
+                "fields": []
+              },
+              {
+                "name": "hauteur",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "The numerical value of the height.",
+                "fields": []
+              },
+              {
+                "name": "unite",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The unit of measurement (e.g., 'mètres', 'étages').",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "parking_details",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured list of all parking facilities.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "type",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Type of parking (e.g., 'véhicule', 'vélo').",
+                "fields": []
+              },
+              {
+                "name": "quantity",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "Number of parking spaces for this type.",
+                "fields": []
+              },
+              {
+                "name": "location",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Location of the parking (e.g., 'intérieur', 'extérieur').",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "logements_accessibles_universellement",
+            "mode": "NULLABLE",
+            "type": "INTEGER",
+            "description": "Number of universally accessible units.",
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "localization_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "adresses",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of complete project addresses.",
+            "fields": []
+          },
+          {
+            "name": "arrondissement",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "Name of the borough or specific sector.",
+            "fields": []
+          },
+          {
+            "name": "numeros_lot",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "Cadastral lot numbers.",
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "zoning_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "zonage_actuel",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "Current zoning designation.",
+            "fields": []
+          },
+          {
+            "name": "zonage_propose",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "Proposed zoning designation or derogation.",
+            "fields": []
+          },
+          {
+            "name": "usages_autorises",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of permitted uses in the zone.",
+            "fields": []
+          },
+          {
+            "name": "coefficient_occupation_sol",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The authorized or proposed Floor Area Ratio (FAR).",
+            "fields": []
+          },
+          {
+            "name": "taux_implantation",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The maximum or actual building footprint percentage.",
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "project_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "type_de_projet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "General nature of the project (e.g., 'New construction', 'Renovation').",
+            "fields": []
+          },
+          {
+            "name": "resume_projet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "Brief description of the project.",
+            "fields": []
+          },
+          {
+            "name": "considerations",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of 'ATTENDU QUE...' clauses that justify the project.",
+            "fields": []
+          },
+          {
+            "name": "parties_prenantes",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "List of all stakeholders involved in the project.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "nom_individu",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The full name of a natural person if mentioned.",
+                "fields": []
+              },
+              {
+                "name": "titre_individu",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The official title or function of the individual.",
+                "fields": []
+              },
+              {
+                "name": "nom_organisation",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The name of the organization, firm, or municipal department.",
+                "fields": []
+              },
+              {
+                "name": "role_dans_projet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The specific role of the stakeholder in the project.",
+                "fields": []
+              },
+              {
+                "name": "action",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The specific action taken by the stakeholder (e.g., 'Signed By', 'Endorsed By').",
+                "fields": []
+              },
+              {
+                "name": "email",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The contact email address of the individual or organization.",
+                "fields": []
+              },
+              {
+                "name": "telephone",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The contact phone number of the individual or organization.",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "materiaux_details",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured list of all specified materials.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "name",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Name of the material (e.g., 'verre double laminé').",
+                "fields": []
+              },
+              {
+                "name": "specifications",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Specific characteristics (e.g., '6 mm', 'couleur gris anthracite').",
+                "fields": []
+              },
+              {
+                "name": "location",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Location where the material is to be used (e.g., 'fenêtres', 'façade').",
+                "fields": []
+              },
+              {
+                "name": "fournisseur",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The name of the supplier or manufacturer, if mentioned.",
+                "fields": []
+              },
+              {
+                "name": "modele_produit",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The specific model or product name/number, if mentioned.",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "greening_details",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured list of all greening requirements.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "type",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Type of greening initiative (e.g., 'toit vert', 'plantation d'arbres').",
+                "fields": []
+              },
+              {
+                "name": "area_sqm",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Surface area in square meters, if applicable.",
+                "fields": []
+              },
+              {
+                "name": "quantity",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "Quantity, if applicable (e.g., number of trees).",
+                "fields": []
+              },
+              {
+                "name": "specifications",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Specific requirements (e.g., 'substrat d'au moins 100 mm').",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "conditions_et_obligations",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured list of all conditions and obligations.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "category",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Category of the condition (e.g., 'Démolition', 'Construction', 'Aménagement paysager').",
+                "fields": []
+              },
+              {
+                "name": "description",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Detailed description of the condition or requirement.",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "phases_projet",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured list describing the project's phases.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "phase_number",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "The sequence number of the phase (e.g., 1, 2).",
+                "fields": []
+              },
+              {
+                "name": "description",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "A detailed description of the work to be performed in this phase.",
+                "fields": []
+              },
+              {
+                "name": "cost",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "The estimated cost specifically for this phase, if mentioned.",
+                "fields": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "regulation_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "resolutions",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "List of all resolutions (decisions) mentioned in the text.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "decision_type",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The specific procedural action taken for this resolution (e.g., 'Adopted', 'Tabled').",
+                "fields": []
+              },
+              {
+                "name": "numero_resolution",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The unique identification number of the resolution.",
+                "fields": []
+              },
+              {
+                "name": "date_resolution",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The date the resolution was adopted (AAAA-MM-JJ).",
+                "fields": []
+              },
+              {
+                "name": "numero_dossier_associe",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "Any file or document number associated with the resolution.",
+                "fields": []
+              },
+              {
+                "name": "description",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "A brief description of the purpose or subject of the resolution.",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "sujet_ppcmoi",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project is subject to a PPCMOI.",
+            "fields": []
+          },
+          {
+            "name": "sujet_piia",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project is subject to a PIIA.",
+            "fields": []
+          },
+          {
+            "name": "lois_reglements_mentionnes",
+            "mode": "REPEATED",
+            "type": "STRING",
+            "description": "List of specific laws or by-laws mentioned.",
+            "fields": []
+          },
+          {
+            "name": "derogations_specifiques",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "A structured list of specific by-law derogations.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "article",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The specific article number of the by-law being derogated.",
+                "fields": []
+              },
+              {
+                "name": "reglement",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The name or number of the by-law.",
+                "fields": []
+              },
+              {
+                "name": "description",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "A description of what the derogation allows.",
+                "fields": []
+              }
+            ]
+          },
+          {
+            "name": "approval_history",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "A chronological list of preliminary recommendations and approvals.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "deciding_body",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The name of the body that made the recommendation or decision (e.g., 'Comité consultatif d'urbanisme').",
+                "fields": []
+              },
+              {
+                "name": "decision_date",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The date of the decision or recommendation in AAAA-MM-JJ format.",
+                "fields": []
+              },
+              {
+                "name": "decision_outcome",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The outcome of the decision (e.g., 'Favorable', 'Défavorable').",
+                "fields": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "financial_info",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "couts_estimes",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Total estimated costs of the work or project.",
+            "fields": []
+          },
+          {
+            "name": "valeur_contrat",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Value of the main awarded contract, if specified.",
+            "fields": []
+          },
+          {
+            "name": "valeur_garantie_financiere",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Monetary amount of a financial guarantee.",
+            "fields": []
+          },
+          {
+            "name": "contribution_pour_fins_de_parcs",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Amount of the financial contribution required for park purposes.",
+            "fields": []
+          },
+          {
+            "name": "taxes_imposed",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured details of any new taxes being imposed.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "tax_name",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The name or purpose of the tax (e.g., 'taxe relative aux services').",
+                "fields": []
+              },
+              {
+                "name": "tax_rate",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The rate of the tax (e.g., '0.0444 $ du 100 $ d'évaluation').",
+                "fields": []
+              },
+              {
+                "name": "tax_base",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The base on which the tax is applied (e.g., 'tous les immeubles imposables').",
+                "fields": []
+              },
+              {
+                "name": "estimated_revenue",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "The total estimated revenue from the tax.",
+                "fields": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "civic_action",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "vote_results",
+            "mode": "REPEATED",
+            "type": "RECORD",
+            "description": "Structured details of any formal vote or referendum.",
+            "fields": [
+              {
+                "name": "confidence_score",
+                "mode": "NULLABLE",
+                "type": "FLOAT",
+                "description": "Confidence score for the extracted data (0.0 to 1.0).",
+                "fields": []
+              },
+              {
+                "name": "source_snippet",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact text snippet from which the data was extracted.",
+                "fields": []
+              },
+              {
+                "name": "question",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The exact question that was put to a vote.",
+                "fields": []
+              },
+              {
+                "name": "votes_for",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "The number of votes in favor ('positifs').",
+                "fields": []
+              },
+              {
+                "name": "votes_against",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "The number of votes against ('négatifs').",
+                "fields": []
+              },
+              {
+                "name": "registered_voters",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "The number of eligible or registered voters.",
+                "fields": []
+              },
+              {
+                "name": "total_votes_cast",
+                "mode": "NULLABLE",
+                "type": "INTEGER",
+                "description": "The total number of valid votes cast.",
+                "fields": []
+              },
+              {
+                "name": "result",
+                "mode": "NULLABLE",
+                "type": "STRING",
+                "description": "The final outcome of the vote (e.g., 'positive', 'négative').",
+                "fields": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "climate_assessment",
+        "mode": "NULLABLE",
+        "type": "RECORD",
+        "description": "",
+        "fields": [
+          {
+            "name": "confidence_score",
+            "mode": "NULLABLE",
+            "type": "FLOAT",
+            "description": "Confidence score for the extracted data (0.0 to 1.0).",
+            "fields": []
+          },
+          {
+            "name": "source_snippet",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The exact text snippet from which the data was extracted.",
+            "fields": []
+          },
+          {
+            "name": "montreal_2030_objective",
+            "mode": "NULLABLE",
+            "type": "STRING",
+            "description": "The specific 'Montréal 2030' objective the project contributes to, if mentioned (e.g., 'objectif 12').",
+            "fields": []
+          },
+          {
+            "name": "reduces_ghg_emissions",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project contributes to reducing greenhouse gas emissions.",
+            "fields": []
+          },
+          {
+            "name": "reduces_climate_vulnerability",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project helps diminish climate vulnerabilities (e.g., heat waves, floods).",
+            "fields": []
+          },
+          {
+            "name": "contributes_to_inclusion",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project contributes to social inclusion commitments.",
+            "fields": []
+          },
+          {
+            "name": "contributes_to_equity",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project contributes to equity commitments.",
+            "fields": []
+          },
+          {
+            "name": "contributes_to_universal_accessibility",
+            "mode": "NULLABLE",
+            "type": "BOOLEAN",
+            "description": "Indicates if the project improves universal accessibility.",
+            "fields": []
+          }
+        ]
+      }
+    ]
+  }
+]

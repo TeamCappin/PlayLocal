@@ -1,0 +1,64 @@
+data/
+tfplan-*
+plan-*.txt
+
+# ===============================
+# Global/Repository-Level .gitignore
+# ===============================
+
+# PermitParser wiki (ignore all wiki files/folders)
+PermitParser.wiki*
+rand.md
+
+# Environment variables
+# Never commit secrets or environment-specific configurations.
+.env
+*.env
+*.env.local
+!/.env.example
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.streamlit/secrets.toml
+*iam-service-account.json*
+
+# System/OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE configuration
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+
+# Python cache and artifacts
+__pycache__/
+*.py[codz]
+*$py.class
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Log and temp files
+*.log
+*.tmp
+
+# Miscellaneous
+*.pem
+
+# Data and build artifacts
+data/
+
+# Terraform
+**/.terraform/*
+*.tfplan
+tfplan-*
+plan-*.txt

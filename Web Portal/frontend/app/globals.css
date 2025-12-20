@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* CSS Variables for Footer and other components */
+:root {
+  --max-w: 1200px;
+  --pad: 24px;
+  --bg: #161818;
+  --fg: #eaeaea;
+  --muted: #9aa1a6;
+  --border: #2a2d2f;
+  --link: #dfe3e6;
+}
+
+.page-layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.site-header,
+.site-footer {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.site-footer {
+  border-top: 1px solid #eee;
+  border-bottom: 0;
+}
+
+.page-main {
+  padding: 1.5rem;
+}
+
+.nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link {
+  text-decoration: none;
+}
+
+.nav-link.active {
+  font-weight: 600;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+#root {
+  max-width: none;
+  padding: 0;
+}
+
+body {
+  background: #f5f5f5;
+  padding-top: 64px; /* Space for fixed header */
+}

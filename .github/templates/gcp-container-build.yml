@@ -1,0 +1,60 @@
+name: Build and Push GCP Container Image
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: 'Name of the container image'
+        required: true
+        type: string
+      image_tag:
+        description: 'Image tag to build and push'
+        required: false
+        default: latest
+        type: string
+      dockerfile_path:
+        description: 'Path to the Dockerfile'
+        required: true
+        default: Dockerfile
+        type: string
+      artifact_host:
+        description: 'GCP Artifact Registry host'
+        required: true
+        type: string
+      artifact_path:
+        description: 'Artifact Registry path' 
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up gcloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ inputs.artifact_host }} --quiet
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.dockerfile_path }}
+          push: true
+          tags: |
+            ${{ inputs.artifact_host }}/${{ inputs.artifact_path }}/${{ inputs.image_name }}:${{ inputs.image_tag }}
