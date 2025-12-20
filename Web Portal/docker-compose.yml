@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  springboot-backend:
+    build:
+      context: ./springboot-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DATABASE_URL=jdbc:h2:mem:playlocal
+      - DB_USERNAME=sa
+      - DB_PASSWORD=
+    networks:
+      - playlocal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://springboot-backend:8080/api/
+    depends_on:
+      - springboot-backend
+    networks:
+      - playlocal-network
+
+networks:
+  playlocal-network:
+    driver: bridge

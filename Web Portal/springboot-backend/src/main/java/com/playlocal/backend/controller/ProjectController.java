@@ -2,6 +2,7 @@ package com.playlocal.backend.controller;
 
 import com.playlocal.backend.model.Project;
 import com.playlocal.backend.service.ProjectService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +48,7 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<Project> createProject(@RequestBody Project project) {
+    public ResponseEntity<Project> createProject(@Valid @RequestBody Project project) {
         Project createdProject = projectService.createProject(project);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
     }
@@ -55,7 +56,7 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<Project> updateProject(
             @PathVariable Long id,
-            @RequestBody Project projectDetails) {
+            @Valid @RequestBody Project projectDetails) {
         try {
             Project updatedProject = projectService.updateProject(id, projectDetails);
             return ResponseEntity.ok(updatedProject);
@@ -66,7 +67,11 @@ public class ProjectController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
-        projectService.deleteProject(id);
-        return ResponseEntity.noContent().build();
+        try {
+            projectService.deleteProject(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
