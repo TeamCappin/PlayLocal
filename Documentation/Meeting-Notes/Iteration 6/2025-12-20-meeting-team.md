@@ -30,6 +30,7 @@
 - **Minh:** Create an organization / new repo (assist Allaye).
 - **Allaye & Minh:** Set new timeline and deadlines.
 - **Minh & Allaye:** Update Discord channels to match the new approach.
+- **Minh:** After approval, invite teacher & TA to repo.
 
 ### General
 - **Allaye:** Ask teacher for details/requirements on self-stakeholding & Project Manager expectations.
@@ -42,7 +43,6 @@
 - **Omar:** Core setup (React, Spring Boot, AWS SQL DB?) + README (run instructions) + Docker.
 - **Adib:** Security & performance plan + cost estimates + financial docs (ads/running costs research).
 - **Younes:** Deployment plan + infrastructure strategy (Alpha/Beta testing).
-- **Minh:** After approval, invite teacher & TA to repo.
 - **Allaye:** Set up GitHub Project Board.
 
 ---
