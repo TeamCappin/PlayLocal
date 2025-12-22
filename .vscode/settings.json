@@ -1,7 +1,0 @@
-{
-    "python.testing.pytestArgs": [
-        "PermitParser-Application/tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
-}
