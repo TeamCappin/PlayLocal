@@ -68,35 +68,28 @@ Use **Staging** (not Dev) to avoid unexpected changes and messy data.
 - Make sure your audio is on
 
 ---
-
-## Release notes plan (GitHub Release)
-### What goes into release notes
-- Short summary of what changed in this release
-- Key features delivered
-- Fixes / improvements
-- Tech/Infra changes
-- Known limitations
-- Link to demo video
-- List of issues closed in the release milestone along with their respective contributors
-
 ### Release notes template
-**Summary**
-- 1–3 sentences on what this release adds.
 
-**Highlights**
-- **Features:** (list of the features implemented)
-- **Fixes/Improvements:** (list important bug fixes / UX improvements)
-- **Tech/Infra:** list important internal changes that aren’t visible as “features” but still matter (e.g., set up CI so tests run automatically)
+**Overall Summary (max 4 sentences)**
+- We describe the main achievements of the release.
 
-**Known Limitations**
-- Anything incomplete or intentionally out of scope.
+**Velocity and Contractor Estimate**
+- Did we accomplish what we thought we would? What slipped? Was anything done early?
+- **Contractor estimate (hypothetical):** if PlayLocal were built for a client, how much we would charge for this release.
+  - Example: (total team hours this release) × (hourly rate), or a flat estimate.
+
+**Retrospective**
+- What went well?
+- What went wrong?
+- What improvements did/will we make?
+
+**Breakdown by individual**
+- List of issues completed along with their respective contributors for the entire release
 
 **Demo**
 - Video demo
 - Staging URL (if public/team-accessible)
 
-**Issues completed (Release milestone)**
-- List of issues completed along with their respective contributors for the entire release
 
 ---
 
