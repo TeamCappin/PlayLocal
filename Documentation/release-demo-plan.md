@@ -37,6 +37,30 @@ We use version tags in the format:
 
 ---
 
+## Release notes template
+
+**Overall Summary (max 4 sentences)**
+- We describe the main achievements of the release.
+
+**Velocity and Contractor Estimate**
+- Did we accomplish what we thought we would? What slipped? Was anything done early?
+- **Contractor estimate (hypothetical):** if PlayLocal were built for a client, how much we would charge for this release.
+  - Example: (total team hours this release) × (hourly rate), or a flat estimate.
+
+**Retrospective**
+- What went well?
+- What went wrong?
+- What improvements did/will we make?
+
+**Breakdown by individual**
+- List of issues completed along with their respective contributors for the entire release
+
+**Demo**
+- Video demo
+- Staging URL (if public/team-accessible)
+
+---
+
 ## Demo video plan
 ### Goal
 Show the main MVP flow end-to-end clearly.
@@ -66,30 +90,6 @@ Use **Staging** (not Dev) to avoid unexpected changes and messy data.
 - You know exactly which screens you’ll show
 - Good screen recording quality, we can read what's actually displayed
 - Make sure your audio is on
-
----
-### Release notes template
-
-**Overall Summary (max 4 sentences)**
-- We describe the main achievements of the release.
-
-**Velocity and Contractor Estimate**
-- Did we accomplish what we thought we would? What slipped? Was anything done early?
-- **Contractor estimate (hypothetical):** if PlayLocal were built for a client, how much we would charge for this release.
-  - Example: (total team hours this release) × (hourly rate), or a flat estimate.
-
-**Retrospective**
-- What went well?
-- What went wrong?
-- What improvements did/will we make?
-
-**Breakdown by individual**
-- List of issues completed along with their respective contributors for the entire release
-
-**Demo**
-- Video demo
-- Staging URL (if public/team-accessible)
-
 
 ---
 
