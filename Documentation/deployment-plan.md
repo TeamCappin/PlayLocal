@@ -21,6 +21,37 @@ This document explains **where PlayLocal runs** and **how we publish updates**.
 
 ---
 
+## Release strategy for users
+
+We do not have an external stakeholder. For this course, our “release audience” is:
+The team itself, course staff (TA/prof), and early users (friends/family).
+
+- **Internal release (team):** deploy to Dev frequently for integration testing.
+- **Demo/Submission release (course staff):** we demo from **Staging** (video). If we choose to provide hands-on access, we create a tagged release and deploy it to the **Production environment** so course staff can try the app independently using a stable link.
+- **Friends & family test:** share a **Production** link to a tagged release so they can try the app like real users (**Staging environment** can be used if we want earlier feedback).
+- **Beta:** share a **Production** link with a larger group of early users (friends/classmates) to test reliability and edge cases with more usage.
+- **Full release (future):** make the Production app publicly available beyond our test group (e.g., public signup and wider distribution), once we’re confident in stability/safety.
+
+---
+
+## Deployment diagram
+```mermaid
+flowchart TB
+  LocalApp["Local app (runs on laptop)"] --> LocalDataDB[("Local DB / emulator (or Dev DB)")]
+
+  DevApp["Dev app (deployed)"] --> DevDB[("Dev DB")]
+  StagingApp["Staging app (deployed)"] --> StagingDB[("Staging DB")]
+  ProdApp["Production app (deployed)"] --> ProdDB[("Production DB")]
+
+  Users["Users / testers"] --> DevApp
+  Users --> StagingApp
+  Users --> ProdApp
+```
+Dev/Staging/Production are deployed environments (online). Local runs on a developer laptop.
+
+---
+
+
 ## Testing
 - **Local:** developers run tests before opening a PR.
 - **Dev/Staging/Production:** We plan to run automated checks (build/tests) in CI for merges/tags once the pipeline is set up.
