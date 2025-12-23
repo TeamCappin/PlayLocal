@@ -1,6 +1,6 @@
 # PlayLocal - Location-based social platform for organizing local pickup sports
 
-## 🎯 Project Overview
+## Project Overview
 
 PlayLocal is a location-based social platform for organizing local pickup sports. The primary
 goal is to foster community and consistent participation by solving the most common problems
@@ -31,9 +31,26 @@ everyone can find a group where they feel comfortable and respected.
 | Allaye Dicko             | 40224071       | @allaye4             |
 | Adib Akkari              | 40216815       | @adssib              |
 
-## 📚 Important Links
+## Release Demos 
+
+### Release 1
+
+Release 1 video: 
+
+Release 1 Presentation: 
+
+### Release 2
+
+### Release 3
+
+## Developer Manual
+
+### Development
+
+### Testing 
 
 
-## 🚀 Getting Started
+## Wiki Table of Contents
+
 
 ```
