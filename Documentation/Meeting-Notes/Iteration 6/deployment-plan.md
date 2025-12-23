@@ -11,6 +11,16 @@ This document explains **where PlayLocal runs** and **how we publish updates**.
 
 ---
 
+## Deployment workflow (summary)
+1. Create a feature branch from `dev`, then build and test the feature in your **local environment** first.
+2. After completing the feature, open a PR to merge the feature branch into `dev`.
+3. Merging into `dev` updates the **Dev environment** (via CI once set up).
+4. When `dev` is stable, open a PR to merge `dev` into `main`.
+5. Deploy **Staging manually** from `main` for demos/final checks to keep the demo environment stable.
+6. When ready, create a version tag on `main` (e.g., `v1.0.0`). This is the version we publish to **Production**.
+
+---
+
 ## Testing
 - **Local:** developers run tests before opening a PR.
 - **Dev/Staging/Production:** We plan to run automated checks (build/tests) in CI for merges/tags once the pipeline is set up.
