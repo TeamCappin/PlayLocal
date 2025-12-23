@@ -52,13 +52,13 @@ We use version tags in the format:
 - What went wrong?
 - What improvements did/will we make?
 
-**Breakdown by individual**
-- List of issues completed along with their respective contributors for the entire release
-
 **Demo**
 - Video demo
 - Staging URL (if public/team-accessible)
 
+**Breakdown by individual**
+- List of issues completed along with their respective contributors for the entire release
+  
 ---
 
 ## Demo video plan
