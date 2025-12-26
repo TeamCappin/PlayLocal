@@ -1,35 +1,36 @@
-# name: CodeCov
+name: CodeCov
 
-# on:
-#   push:
-#     branches: [ "dev" ] 
-#   pull_request:
-#     branches: [ "dev" ]
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
 
-# jobs:
-#   test:
-#     runs-on: ubuntu-latest
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-#       - name: Set up Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: '3.11'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-#       - name: Install dependencies
-#         working-directory: ./PermitParser-Application
-#         run: |
-#           python -m pip install --upgrade pip
-#           pip install pytest pytest-cov
-#           pip install -r ci-requirements.txt
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-#       - name: Run tests with coverage
-#         working-directory: ./PermitParser-Application
-#         run: pytest --cov --cov-branch --cov-report=xml
+      - name: Run tests with coverage
+        working-directory: ./frontend
+        run: npx jest --coverage
 
-#       - name: Upload coverage reports to Codecov
-#         uses: codecov/codecov-action@v5
-#         with:
-#           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          fail_ci_if_error: true
