@@ -45,10 +45,36 @@ Release 1 Presentation:
 
 ## Developer Manual
 
+Make sure you have both `npm` & `mvn` installed
+```sh
+mvn --version
+npm --version
+```
+
 ### Development
 
-### Testing 
+```sh
+cd backend/playlocal/
+mvn clean install
+mvn spring-boot:run
+```
 
+the go to `http://localhost:8080/`
+
+```sh
+cd frontend/playlocal/
+npm install
+npm run dev
+```
+
+then go to `http://localhost:3000`
+
+### Testing 
+```sh
+mvn test
+
+npm test
+```
 
 ## Wiki Table of Contents
 
