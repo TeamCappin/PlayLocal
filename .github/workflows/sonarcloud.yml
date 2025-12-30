@@ -1,25 +1,25 @@
-# name: Sonarcloud
-# on:
-#   push:
-#     branches:
-#       - dev
-#   pull_request:
-#     types: [opened, synchronize, reopened]
-# jobs:
-#   sonarqube:
-#     name: SonarQube
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0 
-#       - name: SonarQube Scan
-#         uses: SonarSource/sonarqube-scan-action@v6
-#         env:
-#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#         with:
-#           args: >
-#             -Dsonar.projectKey=munera-intelligence_permitparser
-#             -Dsonar.organization=munera-intelligence
-#             -Dsonar.host.url=https://sonarcloud.io
-#             -Dsonar.coverage.exclusions=**/*
+name: Sonarcloud
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=TeamCappin_PlayLocal
+            -Dsonar.organization=teamcappin
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.coverage.exclusions=**/*

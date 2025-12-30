@@ -1,5 +1,8 @@
 # PlayLocal - Location-based social platform for organizing local pickup sports
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TeamCappin_PlayLocal&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=TeamCappin_PlayLocal)
+[![codecov](https://codecov.io/gh/TeamCappin/PlayLocal/graph/badge.svg?token=8P22R0Z90L)](https://codecov.io/gh/TeamCappin/PlayLocal)
+
 ## Project Overview
 
 PlayLocal is a location-based social platform for organizing local pickup sports. The primary

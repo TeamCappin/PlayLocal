@@ -1,4 +1,4 @@
-package src.main.java.com.backend.playlocal.controller;
+package com.backend.playlocal.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
