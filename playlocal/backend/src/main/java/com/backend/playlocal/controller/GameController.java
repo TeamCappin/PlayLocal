@@ -1,0 +1,92 @@
+package com.backend.playlocal.controller;
+
+import com.backend.playlocal.model.dto.GameDto;
+import com.backend.playlocal.service.GameService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/games")
+public class GameController {
+
+    private final GameService gameService;
+
+    public GameController(GameService gameService) {
+        this.gameService = gameService;
+    }
+
+    /**
+     * Create a new game.
+     * US-2.1: Create Game
+     */
+    @PostMapping
+    public ResponseEntity<GameDto.GameResponse> createGame(
+            @Valid @RequestBody GameDto.CreateRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.createGame(request, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Get upcoming games.
+     * US-2.3: Discover Games
+     */
+    @GetMapping
+    public ResponseEntity<List<GameDto.GameResponse>> getUpcomingGames() {
+        List<GameDto.GameResponse> games = gameService.getUpcomingGames();
+        return ResponseEntity.ok(games);
+    }
+
+    /**
+     * Get game by ID.
+     * US-2.4: Game Page
+     */
+    @GetMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> getGameById(@PathVariable UUID gameId) {
+        GameDto.GameResponse game = gameService.getGameById(gameId);
+        return ResponseEntity.ok(game);
+    }
+
+    /**
+     * Get game roster (confirmed + waitlisted participants).
+     * US-2.4: Game Page
+     */
+    @GetMapping("/{gameId}/roster")
+    public ResponseEntity<GameDto.RosterResponse> getRoster(@PathVariable UUID gameId) {
+        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+        return ResponseEntity.ok(roster);
+    }
+
+    /**
+     * Join a game (concurrency-safe).
+     * US-2.5: Join/Leave + Waitlist
+     */
+    @PostMapping("/{gameId}/join")
+    public ResponseEntity<GameDto.JoinResponse> joinGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Leave a game.
+     * US-2.5: Join/Leave + Waitlist
+     */
+    @DeleteMapping("/{gameId}/leave")
+    public ResponseEntity<Void> leaveGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        gameService.leaveGame(gameId, userId);
+        return ResponseEntity.noContent().build();
+    }
+}

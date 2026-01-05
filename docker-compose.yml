@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: playlocal-postgres
+    environment:
+      POSTGRES_DB: playlocal
+      POSTGRES_USER: playlocal
+      POSTGRES_PASSWORD: playlocal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U playlocal -d playlocal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - playlocal-net
+
+  backend:
+    build:
+      context: ./playlocal/backend
+      dockerfile: Dockerfile
+    container_name: playlocal-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/playlocal
+      DATABASE_USERNAME: playlocal
+      DATABASE_PASSWORD: playlocal
+      JWT_SECRET: development-secret-key-change-in-production-min-32-chars
+      SPRING_PROFILES_ACTIVE: dev
+      # CORS configuration if needed, or handled in code
+    ports:
+      - "8080:8080"
+    networks:
+      - playlocal-net
+
+  frontend:
+    build:
+      context: ./playlocal/frontend
+      dockerfile: Dockerfile
+    container_name: playlocal-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "3000:3000"
+    networks:
+      - playlocal-net
+
+volumes:
+  postgres_data:
+
+networks:
+  playlocal-net:
+    driver: bridge

@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PlaylocalApplication {
+public class PlayLocalApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(PlaylocalApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(PlayLocalApplication.class, args);
+    }
 
 }
