@@ -1,13 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notificationsApi, NotificationDto } from '@/lib/api';
 
+import { useAuth } from '@/context/AuthContext';
+
 export function useNotifications() {
+    const { isAuthenticated } = useAuth();
     const [notifications, setNotifications] = useState<NotificationDto[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchNotifications = useCallback(async () => {
+        if (!isAuthenticated) return;
+
         setIsLoading(true);
         setError(null);
         try {
@@ -23,11 +28,16 @@ export function useNotifications() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isAuthenticated]);
 
     useEffect(() => {
-        fetchNotifications();
-    }, [fetchNotifications]);
+        if (isAuthenticated) {
+            fetchNotifications();
+        } else {
+            setNotifications([]);
+            setUnreadCount(0);
+        }
+    }, [isAuthenticated, fetchNotifications]);
 
     const markAsRead = async (notificationId: string) => {
         try {
