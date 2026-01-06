@@ -187,7 +187,7 @@ class GameJoinConcurrencyTest {
 
         assertThat(confirmedCount.get())
                 .describedAs("Application-level confirmed count matches expected")
-                .isLessThanOrEqualTo(MAX_PLAYERS - 1); // Minus 1 for organizer
+                .isLessThanOrEqualTo(MAX_PLAYERS); // All slots available (organizer not auto-added)
 
         assertThat(waitlistedCount.get())
                 .describedAs("Remaining users should be waitlisted")
