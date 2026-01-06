@@ -102,7 +102,7 @@ export const RegisterPage: React.FC = () => {
                                 </div>
                             )}
 
-                            <form onSubmit={handleStep1Submit} className="space-y-5">
+                            <form onSubmit={handleStep1Submit} className="space-y-6">
                                 <div>
                                     <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
                                         Display Name
@@ -149,7 +149,7 @@ export const RegisterPage: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="space-y-3 pt-2">
+                                <div className="space-y-4 pt-4">
                                     <label className="flex items-start gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
