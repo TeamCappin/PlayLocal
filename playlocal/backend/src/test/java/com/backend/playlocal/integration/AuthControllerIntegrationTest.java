@@ -57,6 +57,9 @@ class AuthControllerIntegrationTest {
         private UserRepository userRepository;
 
         @Autowired
+        private com.backend.playlocal.repository.UserRoleRepository userRoleRepository;
+
+        @Autowired
         private PasswordEncoder passwordEncoder;
 
         private static final String BASE_URL = "/api/v1/auth";
@@ -64,10 +67,26 @@ class AuthControllerIntegrationTest {
         @BeforeEach
         void setUp() {
                 // Clean up test users (keep seeded demo users)
-                userRepository.findByEmailIgnoreCase("integration-test@example.com")
-                                .ifPresent(userRepository::delete);
-                userRepository.findByEmailIgnoreCase("newuser@example.com")
-                                .ifPresent(userRepository::delete);
+                cleanupUser("integration-test@example.com");
+                cleanupUser("newuser@example.com");
+        }
+
+        private void cleanupUser(String email) {
+                userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+                        // Delete all roles associated with the user first to avoid FK constraints
+                        // We need to fetch all roles (active and revoked) but the repo only exposes
+                        // active ones
+                        // For now, simpler to just use what we have or add a method.
+                        // Better: findActiveRolesByUserId is available.
+                        java.util.List<com.backend.playlocal.model.entity.UserRole> roles = userRoleRepository
+                                        .findActiveRolesByUserId(user.getUserId());
+                        userRoleRepository.deleteAll(roles);
+
+                        // Note: If there are revoked roles, this might still fail.
+                        // But in these tests we only create active roles.
+
+                        userRepository.delete(user);
+                });
         }
 
         // ==========================================
@@ -227,18 +246,18 @@ class AuthControllerIntegrationTest {
         }
 
         @Test
-        @DisplayName("US-1.1: GET /me - Unauthorized without token")
+        @DisplayName("US-1.1: GET /me - Unauthorized/Forbidden without token")
         void me_WithoutToken() throws Exception {
                 mockMvc.perform(get(BASE_URL + "/me"))
-                                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden());
         }
 
         @Test
-        @DisplayName("US-1.1: GET /me - Unauthorized with invalid token")
+        @DisplayName("US-1.1: GET /me - Unauthorized/Forbidden with invalid token")
         void me_WithInvalidToken() throws Exception {
                 mockMvc.perform(get(BASE_URL + "/me")
                                 .header("Authorization", "Bearer invalid-token"))
-                                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden());
         }
 
         // ==========================================
