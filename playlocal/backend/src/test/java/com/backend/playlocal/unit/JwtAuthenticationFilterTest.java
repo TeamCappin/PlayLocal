@@ -4,16 +4,18 @@ import com.backend.playlocal.config.JwtConfig;
 import com.backend.playlocal.security.JwtAuthenticationFilter;
 import com.backend.playlocal.security.JwtService;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,16 +31,12 @@ import static org.mockito.Mockito.*;
 class JwtAuthenticationFilterTest {
 
     @Mock
-    private HttpServletRequest request;
-
-    @Mock
-    private HttpServletResponse response;
-
-    @Mock
     private FilterChain filterChain;
 
     private JwtAuthenticationFilter jwtAuthenticationFilter;
     private JwtService jwtService;
+    private MockHttpServletRequest request;
+    private MockHttpServletResponse response;
     private String validToken;
     private static final UUID TEST_USER_ID = UUID.randomUUID();
 
@@ -52,6 +50,10 @@ class JwtAuthenticationFilterTest {
 
         jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService);
 
+        // Use Spring's MockHttpServletRequest/Response
+        request = new MockHttpServletRequest();
+        response = new MockHttpServletResponse();
+
         // Generate a valid token for testing
         validToken = jwtService.generateToken(TEST_USER_ID, "test@example.com", List.of("user"));
 
@@ -61,10 +63,10 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should set authentication for valid token")
-    void doFilterInternal_ValidToken_SetsAuthentication() throws Exception {
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + validToken);
+    void doFilter_ValidToken_SetsAuthentication() throws ServletException, IOException {
+        request.addHeader("Authorization", "Bearer " + validToken);
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
         assertThat(SecurityContextHolder.getContext().getAuthentication().getName())
@@ -74,10 +76,10 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should continue chain without auth for no token")
-    void doFilterInternal_NoToken_ContinuesChainWithoutAuth() throws Exception {
-        when(request.getHeader("Authorization")).thenReturn(null);
+    void doFilter_NoToken_ContinuesChainWithoutAuth() throws ServletException, IOException {
+        // No Authorization header set
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain).doFilter(request, response);
@@ -85,10 +87,10 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should continue chain without auth for invalid token")
-    void doFilterInternal_InvalidToken_ContinuesChainWithoutAuth() throws Exception {
-        when(request.getHeader("Authorization")).thenReturn("Bearer invalid-token");
+    void doFilter_InvalidToken_ContinuesChainWithoutAuth() throws ServletException, IOException {
+        request.addHeader("Authorization", "Bearer invalid-token");
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain).doFilter(request, response);
@@ -96,10 +98,10 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should continue chain without auth for malformed header")
-    void doFilterInternal_MalformedHeader_ContinuesChainWithoutAuth() throws Exception {
-        when(request.getHeader("Authorization")).thenReturn("NotBearer " + validToken);
+    void doFilter_MalformedHeader_ContinuesChainWithoutAuth() throws ServletException, IOException {
+        request.addHeader("Authorization", "NotBearer " + validToken);
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain).doFilter(request, response);
@@ -107,11 +109,11 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should extract roles as authorities from token")
-    void doFilterInternal_ValidToken_SetsCorrectAuthorities() throws Exception {
+    void doFilter_ValidToken_SetsCorrectAuthorities() throws ServletException, IOException {
         String tokenWithRoles = jwtService.generateToken(TEST_USER_ID, "test@example.com", List.of("user", "admin"));
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + tokenWithRoles);
+        request.addHeader("Authorization", "Bearer " + tokenWithRoles);
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting("authority")
@@ -120,11 +122,11 @@ class JwtAuthenticationFilterTest {
 
     @Test
     @DisplayName("US-1.1: Filter should always continue filter chain even on exception")
-    void doFilterInternal_Exception_StillContinuesChain() throws Exception {
+    void doFilter_EmptyBearer_StillContinuesChain() throws ServletException, IOException {
         // Empty bearer token should not throw but continue
-        when(request.getHeader("Authorization")).thenReturn("Bearer ");
+        request.addHeader("Authorization", "Bearer ");
 
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthenticationFilter.doFilter(request, response, filterChain);
 
         verify(filterChain).doFilter(request, response);
     }
