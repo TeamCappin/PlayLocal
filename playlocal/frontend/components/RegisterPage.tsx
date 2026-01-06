@@ -2,22 +2,9 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Flame, Smile, Zap, Calendar, Clock, Sun, Sunrise, Sunset } from 'lucide-react';
+import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
 
-const INTENSITY_OPTIONS = [
-    { id: 'beginner', label: 'Beginner', description: 'Learning & casual', icon: Zap },
-    { id: 'casual', label: 'Casual', description: 'Fun & relaxed', icon: Smile },
-    { id: 'competitive', label: 'Competitive', description: 'Serious play', icon: Flame },
-];
 
-const AVAILABILITY_OPTIONS = [
-    { id: 'weekdays', label: 'Weekdays', icon: Calendar },
-    { id: 'weekends', label: 'Weekends', icon: Sunrise },
-    { id: 'flexible', label: 'Flexible', icon: Clock },
-    { id: 'mornings', label: 'Mornings', icon: Sunrise },
-    { id: 'evenings', label: 'Evenings', icon: Sunset },
-    { id: 'afternoons', label: 'Afternoons', icon: Sun },
-];
 
 export const RegisterPage: React.FC = () => {
     const [step, setStep] = useState(1);
