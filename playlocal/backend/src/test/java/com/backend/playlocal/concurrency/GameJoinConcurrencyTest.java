@@ -7,6 +7,7 @@ import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.model.entity.Location;
 import com.backend.playlocal.repository.GameParticipationRepository;
 import com.backend.playlocal.repository.GameRepository;
+import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.service.GameService;
@@ -69,6 +70,9 @@ class GameJoinConcurrencyTest {
     @Autowired
     private SportRepository sportRepository;
 
+    @Autowired
+    private GameVisibilityRepository gameVisibilityRepository;
+
     private Game testGame;
     private List<User> testUsers;
     private static final int MAX_PLAYERS = 5;
@@ -80,9 +84,12 @@ class GameJoinConcurrencyTest {
         participationRepository.deleteAll();
         gameRepository.deleteAll();
 
-        // Get existing sport (seeded by migration)
+        // Get existing sport and visibility (seeded by migration)
         Sport basketball = sportRepository.findByNameIgnoreCase("Basketball")
                 .orElseThrow(() -> new RuntimeException("Sport not seeded"));
+
+        var visibility = gameVisibilityRepository.findByCode("public")
+                .orElseThrow(() -> new RuntimeException("GameVisibility 'public' not seeded"));
 
         // Create organizer
         User organizer = User.builder()
@@ -105,6 +112,7 @@ class GameJoinConcurrencyTest {
                 .createdBy(organizer)
                 .sport(basketball)
                 .location(location)
+                .visibility(visibility)
                 .title("Concurrency Test Game")
                 .minPlayers(2)
                 .maxPlayers(MAX_PLAYERS)
