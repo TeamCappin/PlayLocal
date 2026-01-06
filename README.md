@@ -54,7 +54,24 @@ mvn --version
 npm --version
 ```
 
-### Development
+### Docker Development (Recommended)
+
+Run the full stack (Frontend + Backend + Database) with a single command:
+
+```sh
+docker compose up --build
+```
+
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:8080
+- **Database**: localhost:5432
+
+To stop the services:
+```sh
+docker compose down
+```
+
+### Manual Development
 
 ```sh
 cd backend/playlocal/
