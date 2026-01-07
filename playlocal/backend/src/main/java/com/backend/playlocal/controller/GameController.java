@@ -37,20 +37,38 @@ public class GameController {
     /**
      * Get upcoming games.
      * US-2.3: Discover Games
+     * US-1.3: Filters private locations based on auth status
      */
     @GetMapping
-    public ResponseEntity<List<GameDto.GameResponse>> getUpcomingGames() {
-        List<GameDto.GameResponse> games = gameService.getUpcomingGames();
+    public ResponseEntity<List<GameDto.GameResponse>> getUpcomingGames(Authentication authentication) {
+        UUID userId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                userId = UUID.fromString(authentication.getName());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid UUIDs (e.g. anonymousUser)
+            }
+        }
+        List<GameDto.GameResponse> games = gameService.getUpcomingGames(userId);
         return ResponseEntity.ok(games);
     }
 
     /**
      * Get game by ID.
      * US-2.4: Game Page
+     * US-1.3: Hides exact location if user is not confirmed participant
      */
     @GetMapping("/{gameId}")
-    public ResponseEntity<GameDto.GameResponse> getGameById(@PathVariable UUID gameId) {
-        GameDto.GameResponse game = gameService.getGameById(gameId);
+    public ResponseEntity<GameDto.GameResponse> getGameById(@PathVariable UUID gameId, Authentication authentication) {
+        UUID userId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                userId = UUID.fromString(authentication.getName());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid UUIDs (e.g. anonymousUser)
+            }
+        }
+        GameDto.GameResponse game = gameService.getGameById(gameId, userId);
         return ResponseEntity.ok(game);
     }
 

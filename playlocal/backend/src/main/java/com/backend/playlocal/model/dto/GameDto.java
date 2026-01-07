@@ -65,7 +65,10 @@ public class GameDto {
         private String title;
         private String description;
         private String sportName;
+        // US-1.3 Privacy Defaults: `location` (exact) is only visible to confirmed participants.
         private LocationDto location;
+        // US-1.3 Privacy Defaults: `approximateLocation` is visible to all users.
+        private String approximateLocation;
         private String indoorOutdoor;
         private String intensityBand;
         private String skillBand;

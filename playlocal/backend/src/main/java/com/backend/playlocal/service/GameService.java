@@ -93,24 +93,24 @@ public class GameService {
                                 .build();
                 participationRepository.save(organizerParticipation);
 
-                return mapToGameResponse(game);
+                return mapToGameResponse(game, organizerId);
         }
 
         /**
          * Get game by ID. US-2.4
          */
-        public GameDto.GameResponse getGameById(UUID gameId) {
+        public GameDto.GameResponse getGameById(UUID gameId, UUID userId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
-                return mapToGameResponse(game);
+                return mapToGameResponse(game, userId);
         }
 
         /**
          * Get upcoming games. US-2.3
          */
-        public List<GameDto.GameResponse> getUpcomingGames() {
+        public List<GameDto.GameResponse> getUpcomingGames(UUID userId) {
                 return gameRepository.findUpcomingGames(Instant.now()).stream()
-                                .map(this::mapToGameResponse)
+                                .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
         }
 
@@ -266,22 +266,49 @@ public class GameService {
 
         // ================== MAPPERS ==================
 
-        private GameDto.GameResponse mapToGameResponse(Game game) {
+        /**
+         * Mapper with privacy logic. US-1.3
+         * Hides exact location unless user is Organizer or Confirmed Participant.
+         */
+        private GameDto.GameResponse mapToGameResponse(Game game, UUID requestingUserId) {
                 int confirmedCount = participationRepository.countConfirmedParticipants(game.getGameId());
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(game.getGameId());
+
+                boolean showExactLocation = false;
+                // US-1.3: Check if user is authorized to see exact location
+                if (requestingUserId != null) {
+                        if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
+                                showExactLocation = true;
+                        } else {
+                                Optional<GameParticipation> p = participationRepository.findByGameAndUser(game.getGameId(), requestingUserId);
+                                if (p.isPresent() && p.get().getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED) {
+                                        showExactLocation = true;
+                                }
+                        }
+                }
+
+                GameDto.LocationDto exactLocation = null;
+                // US-1.3: Approximate location is always visible (e.g. "Near Montreal")
+                String approximateLocation = "Near " + game.getLocation().getCity();
+
+                if (showExactLocation) {
+                        exactLocation = GameDto.LocationDto.builder()
+                                        .name(game.getLocation().getName())
+                                        .addressLine(game.getLocation().getAddressLine())
+                                        .city(game.getLocation().getCity())
+                                        .latitude(game.getLocation().getLatitude())
+                                        .longitude(game.getLocation().getLongitude())
+                                        .build();
+                        // If authorized, they don't really need the approximate text, but sending both is fine.
+                }
 
                 return GameDto.GameResponse.builder()
                                 .gameId(game.getGameId().toString())
                                 .title(game.getTitle())
                                 .description(game.getDescription())
                                 .sportName(game.getSport().getName())
-                                .location(GameDto.LocationDto.builder()
-                                                .name(game.getLocation().getName())
-                                                .addressLine(game.getLocation().getAddressLine())
-                                                .city(game.getLocation().getCity())
-                                                .latitude(game.getLocation().getLatitude())
-                                                .longitude(game.getLocation().getLongitude())
-                                                .build())
+                                .location(exactLocation)
+                                .approximateLocation(approximateLocation)
                                 .indoorOutdoor(game.getIndoorOutdoor())
                                 .intensityBand(game.getIntensityBand())
                                 .skillBand(game.getSkillBand())
