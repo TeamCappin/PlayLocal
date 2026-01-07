@@ -306,7 +306,12 @@ export function GameRoom() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-900 truncate">{player.displayName}</span>
+                                <Link
+                                  href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, '-') || player.userId}`}
+                                  className="text-gray-900 truncate hover:text-emerald-600 transition-colors"
+                                >
+                                  {player.displayName}
+                                </Link>
                                 {player.role === 'ORGANIZER' && (
                                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded">Host</span>
                                 )}
@@ -336,7 +341,12 @@ export function GameRoom() {
                                   {player.displayName?.[0] || '?'}
                                 </div>
                                 <div>
-                                  <div className="text-gray-900">{player.displayName}</div>
+                                  <Link
+                                    href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, '-') || player.userId}`}
+                                    className="text-gray-900 hover:text-emerald-600 transition-colors"
+                                  >
+                                    {player.displayName}
+                                  </Link>
                                   <div className="text-sm text-gray-600">
                                     Reliability: {player.reliabilityScore}%
                                   </div>
