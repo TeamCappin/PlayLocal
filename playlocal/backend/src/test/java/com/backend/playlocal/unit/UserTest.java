@@ -83,4 +83,49 @@ class UserTest {
         User user = new User();
         assertThat(user).isNotNull();
     }
+
+    @Test
+    @DisplayName("US-1.4: generateSlug should handle null safely")
+    void generateSlug_Null_ReturnsNull() {
+        assertThat(User.generateSlug(null)).isNull();
+    }
+
+    @Test
+    @DisplayName("US-1.4: generateSlug should lowercase and replace spaces")
+    void generateSlug_SimpleName() {
+        assertThat(User.generateSlug("Test User")).isEqualTo("test-user");
+    }
+
+    @Test
+    @DisplayName("US-1.4: generateSlug should remove special chars")
+    void generateSlug_SpecialChars() {
+        assertThat(User.generateSlug("User #1 @ Home!")).isEqualTo("user-1-home");
+    }
+
+    @Test
+    @DisplayName("US-1.4: generateSlug should trim dashes")
+    void generateSlug_TrimDashes() {
+        assertThat(User.generateSlug("-User Name-")).isEqualTo("user-name");
+    }
+
+    @Test
+    @DisplayName("US-1.4: generateSlug should collapse multiple dashes")
+    void generateSlug_CollapseDashes() {
+        assertThat(User.generateSlug("User   Name")).isEqualTo("user-name");
+    }
+
+    @Test
+    @DisplayName("US-1.4: Lifecycle hooks should generate slug")
+    void lifecycleHooks_GenerateSlug() throws Exception {
+        User user = User.builder().displayName("New User").build();
+
+        // Use reflection to invoke protected lifecycle methods
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getSlug()).isEqualTo("new-user");
+        assertThat(user.getCreatedAt()).isNotNull();
+        assertThat(user.getUpdatedAt()).isNotNull();
+    }
 }
