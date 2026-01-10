@@ -228,7 +228,9 @@ export interface GameResponse {
     title: string;
     description?: string;
     sportName: string;
-    location: LocationDto;
+    location?: LocationDto; // Made optional as it might be hidden for privacy [US-1.3]
+    approximateLocation?: string; // New field for privacy [US-1.3]
+    hasExactLocationAccess: boolean; // New field for privacy [US-1.3]
     indoorOutdoor?: string;
     intensityBand?: string;
     skillBand?: string;

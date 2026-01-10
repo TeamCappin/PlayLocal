@@ -15,6 +15,10 @@ export function UserProfile() {
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  
+  // TODO: Implement friendship check via API
+  const isFriend = false; // Placeholder for friendship status
+  const canViewPrivateDetails = isOwnProfile || isFriend; // Privacy setting
 
   // User data - uses AuthContext for own profile, would fetch from API for other profiles
   // TODO: Add API call to fetch other user profiles: GET /api/v1/users/{username}/profile
@@ -296,6 +300,7 @@ export function UserProfile() {
                 {/* Recent Activity */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Recent Activity</h2>
+                  {canViewPrivateDetails ? (
                   <div className="space-y-3">
                     {recentGames.slice(0, 3).map((game) => (
                       <Link
@@ -318,6 +323,11 @@ export function UserProfile() {
                       </Link>
                     ))}
                   </div>
+                  ) : (
+                    <div className="text-gray-500 italic p-4 text-center">
+                      Add {user.name} as a friend to see their recent activity.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -363,7 +373,11 @@ export function UserProfile() {
           {activeTab === 'sports' && (
             <div className="grid lg:grid-cols-2 gap-6">
               {sportProfiles.map((profile) => (
-                <SportProfileCard key={profile.sport} profile={profile} />
+                <SportProfileCard 
+                  key={profile.sport} 
+                  profile={profile} 
+                  showAvailability={canViewPrivateDetails}
+                />
               ))}
             </div>
           )}
@@ -373,6 +387,7 @@ export function UserProfile() {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl text-gray-900">Match History</h2>
               </div>
+              {canViewPrivateDetails ? (
               <div className="divide-y divide-gray-200">
                 {recentGames.map((game) => (
                   <Link
@@ -402,6 +417,15 @@ export function UserProfile() {
                   </Link>
                 ))}
               </div>
+              ) : (
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Match History is Private</h3>
+                  <p className="text-gray-500">You must be friends with {user.name} to view their full match history.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -475,7 +499,7 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
   );
 }
 
-function SportProfileCard({ profile }: { profile: any }) {
+function SportProfileCard({ profile, showAvailability }: { profile: any; showAvailability: boolean }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
@@ -528,6 +552,7 @@ function SportProfileCard({ profile }: { profile: any }) {
           <p className="text-gray-900">{profile.playStyle}</p>
         </div>
 
+        {showAvailability && (
         <div>
           <span className="text-sm text-gray-600">Availability</span>
           <div className="space-y-1 mt-1">
@@ -539,6 +564,7 @@ function SportProfileCard({ profile }: { profile: any }) {
             ))}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

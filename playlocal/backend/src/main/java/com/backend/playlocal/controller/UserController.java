@@ -47,6 +47,7 @@ public class UserController {
     /**
      * Get a user's public profile by ID.
      * GET /api/v1/users/{userId}/profile
+     * Secured: Requires authentication [US-1.3 Privacy Defaults]
      */
     @GetMapping("/{userId}/profile")
     public ResponseEntity<AuthDto.UserDto> getUserProfile(@PathVariable String userId) {
