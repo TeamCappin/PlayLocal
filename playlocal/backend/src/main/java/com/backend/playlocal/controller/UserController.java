@@ -47,6 +47,7 @@ public class UserController {
     /**
      * Get a user's public profile by ID.
      * GET /api/v1/users/{userId}/profile
+     * Secured: Requires authentication [US-1.3 Privacy Defaults]
      */
     @GetMapping("/{userId}/profile")
     public ResponseEntity<AuthDto.UserDto> getUserProfile(@PathVariable String userId) {
@@ -57,6 +58,7 @@ public class UserController {
     /**
      * Get a user's public profile by slug (URL-friendly display name).
      * GET /api/v1/users/slug/{slug}/profile
+     * Secured: Requires authentication [US-1.3 Privacy Defaults]
      */
     @GetMapping("/slug/{slug}/profile")
     public ResponseEntity<AuthDto.UserDto> getProfileBySlug(@PathVariable String slug) {

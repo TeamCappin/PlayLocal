@@ -88,7 +88,7 @@ export interface UserDto {
     userId: string;
     email: string;
     displayName: string;
-    slug: string;
+    slug?: string;  // URL-friendly identifier (e.g., "john-doe")
     avatarUrl?: string;
     defaultIntensity?: string;
     availability?: string;
@@ -150,6 +150,7 @@ export const usersApi = {
     getProfile: (userId: string) =>
         apiFetch<UserDto>(`/users/${userId}/profile`),
 
+    // Slug-based profile lookup (US 1.3 + 1.4 merge)
     getProfileBySlug: (slug: string) =>
         apiFetch<UserDto>(`/users/slug/${slug}/profile`),
 
@@ -232,7 +233,9 @@ export interface GameResponse {
     title: string;
     description?: string;
     sportName: string;
-    location: LocationDto;
+    location: LocationDto | null; // US-1.3: null when hidden for privacy
+    approximateLocation?: string; // New field for privacy [US-1.3]
+    hasExactLocationAccess: boolean; // New field for privacy [US-1.3]
     indoorOutdoor?: string;
     intensityBand?: string;
     skillBand?: string;

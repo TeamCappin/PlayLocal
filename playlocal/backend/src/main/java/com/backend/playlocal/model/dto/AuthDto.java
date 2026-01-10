@@ -62,7 +62,7 @@ public class AuthDto {
         private String userId;
         private String email;
         private String displayName;
-        private String slug;
+        private String slug; // URL-friendly identifier (e.g., "john-doe")
         private String avatarUrl;
         private String defaultIntensity;
         private String availability;

@@ -29,6 +29,7 @@ public class User {
     @Column(name = "display_name")
     private String displayName;
 
+    // URL-friendly slug derived from displayName (e.g., "john-doe")
     @Column(nullable = false)
     private String slug;
 
@@ -94,17 +95,17 @@ public class User {
         ACTIVE, SUSPENDED, DELETED
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = Instant.now();
-        updateSlugIfNeeded();
-    }
-
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
+        this.updatedAt = Instant.now();
+        updateSlugIfNeeded();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
         this.updatedAt = Instant.now();
         updateSlugIfNeeded();
     }

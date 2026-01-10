@@ -1,29 +1,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
-import { usersApi, UserDto } from '@/lib/api';
-
-// Profile data type for display
-interface ProfileData {
-  name: string;
-  username: string;
-  avatar: string;
-  bio: string;
-  location: string;
-  memberSince: string;
-  verified: boolean;
-  userId: string | null;
-  stats: {
-    gamesPlayed: number;
-    gamesHosted: number;
-    reliabilityScore: number;
-    averageRating: number;
-  };
-}
+import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
 
 export function UserProfile() {
   const { username } = useParams();
@@ -31,48 +13,46 @@ export function UserProfile() {
   const { user: currentUser, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [otherUser, setOtherUser] = useState<UserDto | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
 
-  // State for loading other user's profile
-  const [otherUserProfile, setOtherUserProfile] = useState<UserDto | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Check if viewing own profile - also check if usernameStr is their userId
-  const isOwnProfile = !usernameStr ||
-    usernameStr === 'me' ||
-    usernameStr === currentUser?.userId ||
-    usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
-
-  // Fetch other user's profile when not viewing own profile
+  // Check if viewing own profile
+  const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  // Fetch other user's profile if not own profile [US-1.3]
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (isOwnProfile || !usernameStr) {
-        return;
-      }
+    if (!isOwnProfile && usernameStr) {
+      const fetchData = async () => {
+        setLoadingProfile(true);
+        setProfileError(null);  // Reset error on new fetch
+        try {
+          // Try slug-based lookup first (US 1.3 + 1.4 merge)
+          const data = await usersApi.getProfileBySlug(usernameStr);
+          setOtherUser(data);
+        } catch (err) {
+          console.error("Failed to fetch profile", err);
+          // Copilot fix #4: Set error state for user feedback
+          setProfileError("Failed to load profile. Please try again later.");
+        } finally {
+          setLoadingProfile(false);
+        }
+      };
 
-      setLoading(true);
-      setError(null);
+      fetchData();
+    }
+  }, [isOwnProfile, usernameStr]);
 
-      try {
-        // Use slug-based lookup for URL-friendly profile URLs
-        const profile = await usersApi.getProfileBySlug(usernameStr);
-        setOtherUserProfile(profile);
-      } catch (err: any) {
-        console.error('Failed to fetch user profile:', err);
-        setError(err.message || 'Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // TODO: Implement friendship check via API
+  const isFriend = false; // Placeholder for friendship status
+  // Copilot fix #10: Renamed from canViewPrivateDetails to canViewActivityData
+  const canViewActivityData = isOwnProfile || isFriend; // Privacy setting
 
-    fetchProfile();
-  }, [usernameStr, isOwnProfile]);
-
-  // Build user object from the appropriate source
-  const user: ProfileData = isOwnProfile && currentUser ? {
-    name: currentUser.displayName || 'User',
-    username: (currentUser as any).slug || currentUser.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user',
-    avatar: currentUser.displayName?.substring(0, 2).toUpperCase() || '??',
+  // User data - uses AuthContext for own profile, would fetch from API for other profiles
+  // TODO: Add API call to fetch other user profiles: GET /api/v1/users/{username}/profile
+  const user = isOwnProfile && currentUser ? {
+    name: currentUser.displayName,
+    username: currentUser.displayName.toLowerCase().replace(/\s+/g, '-'),
+    avatar: currentUser.displayName.substring(0, 2).toUpperCase(),
     bio: currentUser.bio || 'No bio yet. Click Edit Profile to add one!',
     location: currentUser.location || 'Location not set',
     memberSince: currentUser.createdAt
@@ -86,71 +66,25 @@ export function UserProfile() {
       reliabilityScore: currentUser.reliabilityScore || 100,
       averageRating: (currentUser as any).averageRating || 0,
     },
-  } : otherUserProfile ? {
-    // Use fetched profile data for other users
-    name: otherUserProfile.displayName || 'User',
-    username: otherUserProfile.slug || otherUserProfile.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user',
-    avatar: otherUserProfile.displayName?.substring(0, 2).toUpperCase() || '??',
-    bio: otherUserProfile.bio || 'No bio provided.',
-    location: otherUserProfile.location || 'Location not set',
-    memberSince: otherUserProfile.createdAt
-      ? new Date(otherUserProfile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'Member',
-    verified: false,
-    userId: otherUserProfile.userId,
-    stats: {
-      gamesPlayed: otherUserProfile.gamesCount || 0,
-      gamesHosted: 0,
-      reliabilityScore: otherUserProfile.reliabilityScore || 100,
-      averageRating: 0,
-    },
   } : {
-    // Loading/error fallback
-    name: usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User',
-    username: usernameStr || 'unknown',
-    avatar: usernameStr?.substring(0, 2).toUpperCase() || '??',
-    bio: loading ? 'Loading profile...' : (error || 'Profile not found'),
-    location: loading ? 'Loading...' : '',
-    memberSince: '',
+    // Fallback for viewing other profiles
+    name: otherUser ? otherUser.displayName : (usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User'),
+    username: otherUser ? otherUser.displayName.toLowerCase().replace(/\s+/g, '-') : (usernameStr || 'unknown'),
+    avatar: (otherUser ? otherUser.displayName : (usernameStr || '??')).substring(0, 2).toUpperCase(),
+    bio: otherUser?.bio || 'No bio available',
+    location: otherUser?.location || 'Location not set',
+    memberSince: otherUser?.createdAt
+      ? new Date(otherUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'Recently joined',
     verified: false,
-    userId: null,
+    userId: otherUser?.userId || null,
     stats: {
-      gamesPlayed: 0,
+      gamesPlayed: otherUser?.gamesCount || 0,
       gamesHosted: 0,
-      reliabilityScore: 0,
+      reliabilityScore: otherUser?.reliabilityScore || 0,
       averageRating: 0,
     },
   };
-
-  // Show loading state for other users' profiles
-  if (!isOwnProfile && loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state for other users' profiles
-  if (!isOwnProfile && error && !otherUserProfile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Flag className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Not Found</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Link href="/discover" className="text-emerald-600 hover:underline">
-            Back to Discover
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
 
   const sportProfiles = [
@@ -243,6 +177,29 @@ export function UserProfile() {
     { icon: '⚡', title: 'Reliable', description: '98% attendance rate' },
   ];
 
+  // Copilot fix #4: Show error state
+  if (profileError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-6 h-6" />
+          <span>{profileError}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <span className="text-gray-600">Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Profile Header */}
@@ -291,10 +248,8 @@ export function UserProfile() {
                 </>
               ) : (
                 <button
-                  onClick={() => user.userId ? setShowReportModal(true) : alert('Unable to report: User profile not fully loaded')}
+                  onClick={() => setShowReportModal(true)}
                   className="px-4 py-2 bg-red-500/20 backdrop-blur-sm text-red-200 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
-                  disabled={!user.userId}
-                  title={!user.userId ? 'User profile not fully loaded' : 'Report this user'}
                 >
                   <Flag className="w-5 h-5" />
                   <span>Report</span>
@@ -397,28 +352,34 @@ export function UserProfile() {
                 {/* Recent Activity */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Recent Activity</h2>
-                  <div className="space-y-3">
-                    {recentGames.slice(0, 3).map((game) => (
-                      <Link
-                        key={game.id}
-                        href={`/games/${game.id}/recap`}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div>
-                          <div className="text-gray-900 mb-1">{game.title}</div>
-                          <div className="text-sm text-gray-600">
-                            {game.date} • {game.location}
+                  {canViewActivityData ? (
+                    <div className="space-y-3">
+                      {recentGames.slice(0, 3).map((game) => (
+                        <Link
+                          key={game.id}
+                          href={`/games/${game.id}/recap`}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div>
+                            <div className="text-gray-900 mb-1">{game.title}</div>
+                            <div className="text-sm text-gray-600">
+                              {game.date} • {game.location}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                            {game.result}
+                          <div className="text-right">
+                            <div className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
+                              {game.result}
+                            </div>
+                            <div className="text-sm text-gray-500">{game.score}</div>
                           </div>
-                          <div className="text-sm text-gray-500">{game.score}</div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 italic p-4 text-center">
+                      Add {user.name} as a friend to see their recent activity.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -464,7 +425,11 @@ export function UserProfile() {
           {activeTab === 'sports' && (
             <div className="grid lg:grid-cols-2 gap-6">
               {sportProfiles.map((profile) => (
-                <SportProfileCard key={profile.sport} profile={profile} />
+                <SportProfileCard
+                  key={profile.sport}
+                  profile={profile}
+                  showAvailability={canViewActivityData}
+                />
               ))}
             </div>
           )}
@@ -474,35 +439,45 @@ export function UserProfile() {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl text-gray-900">Match History</h2>
               </div>
-              <div className="divide-y divide-gray-200">
-                {recentGames.map((game) => (
-                  <Link
-                    key={game.id}
-                    href={`/games/${game.id}/recap`}
-                    className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
-                        🏀
-                      </div>
-                      <div>
-                        <div className="text-gray-900 mb-1">{game.title}</div>
-                        <div className="text-sm text-gray-600">
-                          {game.date} • {game.location}
+              {canViewActivityData ? (
+                <div className="divide-y divide-gray-200">
+                  {recentGames.map((game) => (
+                    <Link
+                      key={game.id}
+                      href={`/games/${game.id}/recap`}
+                      className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
+                          🏀
+                        </div>
+                        <div>
+                          <div className="text-gray-900 mb-1">{game.title}</div>
+                          <div className="text-sm text-gray-600">
+                            {game.date} • {game.location}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                        {game.result}
+                      <div className="text-right">
+                        <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
+                          {game.result}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {game.team} • {game.score}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {game.team} • {game.score}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Match History is Private</h3>
+                  <p className="text-gray-500">You must be friends with {user.name} to view their full match history.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -559,7 +534,6 @@ export function UserProfile() {
         onClose={() => setShowReportModal(false)}
         reportedUserId={user.userId || undefined}
         targetName={user.name}
-        reportType="user"
       />
     </div>
   );
@@ -577,7 +551,7 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
   );
 }
 
-function SportProfileCard({ profile }: { profile: any }) {
+function SportProfileCard({ profile, showAvailability }: { profile: any; showAvailability: boolean }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
@@ -630,17 +604,19 @@ function SportProfileCard({ profile }: { profile: any }) {
           <p className="text-gray-900">{profile.playStyle}</p>
         </div>
 
-        <div>
-          <span className="text-sm text-gray-600">Availability</span>
-          <div className="space-y-1 mt-1">
-            {profile.availability.map((time: string) => (
-              <div key={time} className="text-sm text-gray-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {time}
-              </div>
-            ))}
+        {showAvailability && (
+          <div>
+            <span className="text-sm text-gray-600">Availability</span>
+            <div className="space-y-1 mt-1">
+              {profile.availability.map((time: string) => (
+                <div key={time} className="text-sm text-gray-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  {time}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
