@@ -65,6 +65,20 @@ class UserTest {
     }
 
     @Test
+    @DisplayName("US-1.4: PreUpdate should generate slug if missing")
+    void preUpdate_GeneratesSlug() throws Exception {
+        User user = new User();
+        user.setDisplayName("Updated User");
+        // slug is null by default
+
+        java.lang.reflect.Method onUpdate = User.class.getDeclaredMethod("onUpdate");
+        onUpdate.setAccessible(true);
+        onUpdate.invoke(user);
+
+        assertThat(user.getSlug()).isEqualTo("updated-user");
+    }
+
+    @Test
     @DisplayName("US-1.1: User all args constructor should work")
     void allArgsConstructor_Works() {
         UUID userId = UUID.randomUUID();
