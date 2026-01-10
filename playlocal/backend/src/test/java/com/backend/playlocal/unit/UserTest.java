@@ -128,4 +128,31 @@ class UserTest {
         assertThat(user.getCreatedAt()).isNotNull();
         assertThat(user.getUpdatedAt()).isNotNull();
     }
+
+    @Test
+    @DisplayName("US-1.4: Lifecycle hooks should preserve existing slug")
+    void lifecycleHooks_PreserveExistingSlug() throws Exception {
+        User user = User.builder()
+                .displayName("New User")
+                .slug("custom-slug")
+                .build();
+
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getSlug()).isEqualTo("custom-slug");
+    }
+
+    @Test
+    @DisplayName("US-1.4: Lifecycle hooks should not generate slug if display name is null")
+    void lifecycleHooks_NullDisplayName_NoSlug() throws Exception {
+        User user = User.builder().displayName(null).build();
+
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getSlug()).isNull();
+    }
 }
