@@ -12,6 +12,8 @@ const mockGame = {
   title: '5v5 Basketball Pickup',
   sportName: 'Basketball',
   location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal' },
+  hasExactLocationAccess: true, // US-1.3: Mock assumes participant access
+  approximateLocation: 'Montreal, QC',
   startTime: new Date().toISOString(),
   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   confirmedCount: 8,
@@ -166,7 +168,7 @@ export function GameRoom() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                <span>{game.location?.name}</span>
+                <span>{(game as any).hasExactLocationAccess ? game.location?.name : ((game as any).approximateLocation || 'Location Hidden')}</span>
               </div>
             </div>
           </div>
@@ -246,8 +248,17 @@ export function GameRoom() {
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">Location</h3>
                       <div className="p-4 bg-gray-100 rounded-lg">
-                        <p className="text-gray-900 mb-1">{game.location?.name}</p>
-                        <p className="text-gray-600 text-sm mb-3">{game.location?.addressLine || game.location?.city}</p>
+                        {(game as any).hasExactLocationAccess ? (
+                          <>
+                            <p className="text-gray-900 mb-1">{game.location?.name}</p>
+                            <p className="text-gray-600 text-sm mb-3">{game.location?.addressLine || game.location?.city}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-gray-900 mb-1">Location Hidden</p>
+                            <p className="text-gray-600 text-sm mb-3">{(game as any).approximateLocation || 'Join the game to see exact location'}</p>
+                          </>
+                        )}
                         <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
                           <ExternalLink className="w-4 h-4" />
                           <span>Open in Google Maps</span>
