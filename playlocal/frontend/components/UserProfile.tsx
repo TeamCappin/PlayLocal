@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
+import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
 
 export function UserProfile() {
   const { username } = useParams();
@@ -12,10 +13,30 @@ export function UserProfile() {
   const { user: currentUser, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [otherUser, setOtherUser] = useState<UserDto | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
-  
+  // Fetch other user's profile if not own profile [US-1.3]
+  useEffect(() => {
+    if (!isOwnProfile && usernameStr) {
+      const fetchData = async () => {
+        setLoadingProfile(true);
+        try {
+          const data = await usersApi.getProfile(usernameStr);
+          setOtherUser(data);
+        } catch (err) {
+          console.error("Failed to fetch profile", err);
+        } finally {
+          setLoadingProfile(false);
+        }
+      };
+      
+      fetchData();
+    }
+  }, [isOwnProfile, usernameStr]);
+
   // TODO: Implement friendship check via API
   const isFriend = false; // Placeholder for friendship status
   const canViewPrivateDetails = isOwnProfile || isFriend; // Privacy setting
@@ -40,19 +61,21 @@ export function UserProfile() {
       averageRating: (currentUser as any).averageRating || 0,
     },
   } : {
-    // Fallback for viewing other profiles - TODO: Replace with API data
-    name: usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User',
-    username: usernameStr || 'unknown',
-    avatar: usernameStr?.substring(0, 2).toUpperCase() || '??',
-    bio: 'Profile information loading...',
-    location: 'Loading...',
-    memberSince: 'Loading...',
+    // Fallback for viewing other profiles
+    name: otherUser ? otherUser.displayName : (usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User'),
+    username: otherUser ? otherUser.displayName.toLowerCase().replace(/\s+/g, '-') : (usernameStr || 'unknown'),
+    avatar: (otherUser ? otherUser.displayName : (usernameStr || '??')).substring(0, 2).toUpperCase(),
+    bio: otherUser?.bio || 'No bio available',
+    location: otherUser?.location || 'Location not set',
+    memberSince: otherUser?.createdAt 
+      ? new Date(otherUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'Recently joined',
     verified: false,
-    userId: null,
+    userId: otherUser?.userId || null,
     stats: {
-      gamesPlayed: 0,
+      gamesPlayed: otherUser?.gamesCount || 0,
       gamesHosted: 0,
-      reliabilityScore: 0,
+      reliabilityScore: otherUser?.reliabilityScore || 0,
       averageRating: 0,
     },
   };
@@ -147,6 +170,17 @@ export function UserProfile() {
     { icon: '🤝', title: 'Team Player', description: 'Highest teamwork rating' },
     { icon: '⚡', title: 'Reliable', description: '98% attendance rate' },
   ];
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <span className="text-gray-600">Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

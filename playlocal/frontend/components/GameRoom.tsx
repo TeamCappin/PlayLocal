@@ -166,7 +166,7 @@ export function GameRoom() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                <span>{game.location?.name}</span>
+                <span>{game.location?.name || game.approximateLocation || 'Location Hidden'}</span>
               </div>
             </div>
           </div>
