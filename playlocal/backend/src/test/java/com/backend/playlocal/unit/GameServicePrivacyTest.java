@@ -161,4 +161,31 @@ class GameServicePrivacyTest {
                 assertNotNull(response.getApproximateLocation());
                 assertTrue(response.getApproximateLocation().contains("Montreal"));
         }
+
+        @Test
+        void getGameById_NullLocation_ReturnsLocationUnavailable() {
+                // Create game without location
+                Game gameNoLocation = Game.builder()
+                                .gameId(UUID.randomUUID())
+                                .title("Game Without Location")
+                                .createdBy(organizer)
+                                .location(null) // No location set
+                                .sport(Sport.builder().name("Soccer").build())
+                                .indoorOutdoor("Outdoor")
+                                .minPlayers(2).maxPlayers(10)
+                                .allowWaitlist(true)
+                                .status(Game.GameStatus.SCHEDULED)
+                                .startTime(Instant.now().plusSeconds(3600))
+                                .endTime(Instant.now().plusSeconds(7200))
+                                .build();
+
+                when(gameRepository.findById(gameNoLocation.getGameId())).thenReturn(Optional.of(gameNoLocation));
+                when(participationRepository.countConfirmedParticipants(any())).thenReturn(0);
+
+                GameDto.GameResponse response = gameService.getGameById(gameNoLocation.getGameId(),
+                                organizer.getUserId());
+
+                assertNull(response.getLocation(), "Location should be null when game has no location");
+                assertEquals("Location unavailable", response.getApproximateLocation());
+        }
 }
