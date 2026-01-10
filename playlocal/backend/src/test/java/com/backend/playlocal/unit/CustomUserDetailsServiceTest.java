@@ -52,7 +52,7 @@ class CustomUserDetailsServiceTest {
                 .email("active@example.com")
                 .passwordHash("hashedPassword")
                 .displayName("Active User")
-                .slug("active-user")
+                .slug("active-user-" + UUID.randomUUID())
                 .status(User.UserStatus.ACTIVE)
                 .reliabilityScore(100.0f)
                 .build();
@@ -62,7 +62,7 @@ class CustomUserDetailsServiceTest {
                 .email("suspended@example.com")
                 .passwordHash("hashedPassword")
                 .displayName("Suspended User")
-                .slug("suspended-user")
+                .slug("suspended-user-" + UUID.randomUUID())
                 .status(User.UserStatus.SUSPENDED)
                 .reliabilityScore(0.0f)
                 .build();

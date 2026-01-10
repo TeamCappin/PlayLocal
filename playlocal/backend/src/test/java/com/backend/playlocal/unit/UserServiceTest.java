@@ -49,7 +49,7 @@ class UserServiceTest {
                 .userId(UUID.randomUUID())
                 .email("test@example.com")
                 .displayName("Test User")
-                .slug("test-user")
+                .slug("test-user-" + UUID.randomUUID())
                 .status(User.UserStatus.ACTIVE)
                 .reliabilityScore(100.0f)
                 .build();

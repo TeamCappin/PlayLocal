@@ -20,6 +20,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -281,7 +283,7 @@ class AuthControllerIntegrationTest {
                                         .email(email)
                                         .passwordHash(passwordEncoder.encode(password))
                                         .displayName("Test User")
-                                        .slug("test-user")
+                                        .slug("test-user-" + UUID.randomUUID())
                                         .status(User.UserStatus.ACTIVE)
                                         .reliabilityScore(100.0f)
                                         .ageConfirmedAt(java.time.Instant.now())

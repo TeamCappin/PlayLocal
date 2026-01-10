@@ -78,7 +78,7 @@ class ReportServiceTest {
                                 .userId(reporterId)
                                 .email("reporter@example.com")
                                 .displayName("Reporter User")
-                                .slug("reporter-user")
+                                .slug("reporter-user-" + UUID.randomUUID())
                                 .status(User.UserStatus.ACTIVE)
                                 .build();
 
@@ -86,7 +86,7 @@ class ReportServiceTest {
                                 .userId(reportedUserId)
                                 .email("reported@example.com")
                                 .displayName("Reported User")
-                                .slug("reported-user")
+                                .slug("reported-user-" + UUID.randomUUID())
                                 .status(User.UserStatus.ACTIVE)
                                 .build();
 
