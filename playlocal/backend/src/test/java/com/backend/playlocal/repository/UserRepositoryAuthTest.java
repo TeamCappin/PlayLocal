@@ -10,6 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,6 +32,10 @@ class UserRepositoryAuthTest {
     @Autowired
     private TestEntityManager entityManager;
 
+    private String uniqueSlug() {
+        return "test-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
     @Test
     @DisplayName("US-1.1: findByEmailIgnoreCase should find user ignoring case")
     void findByEmailIgnoreCase_Found() {
@@ -38,7 +43,7 @@ class UserRepositoryAuthTest {
                 .email("Test@Example.com")
                 .passwordHash("hashed")
                 .displayName("Test")
-                .slug("test")
+                .slug(uniqueSlug())
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -57,7 +62,7 @@ class UserRepositoryAuthTest {
                 .email("Exists@Example.com")
                 .passwordHash("hashed")
                 .displayName("Test")
-                .slug("test")
+                .slug(uniqueSlug())
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -75,7 +80,7 @@ class UserRepositoryAuthTest {
                 .email("deleted@example.com")
                 .passwordHash("hashed")
                 .displayName("Deleted")
-                .slug("deleted")
+                .slug(uniqueSlug())
                 .status(User.UserStatus.DELETED)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -94,7 +99,7 @@ class UserRepositoryAuthTest {
                 .email("active@example.com")
                 .passwordHash("hashed")
                 .displayName("Active")
-                .slug("active")
+                .slug(uniqueSlug())
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
