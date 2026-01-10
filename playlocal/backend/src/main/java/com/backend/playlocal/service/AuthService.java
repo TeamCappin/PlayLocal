@@ -124,6 +124,7 @@ public class AuthService {
                 .userId(user.getUserId().toString())
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
+                .slug(user.getSlug())
                 .avatarUrl(user.getAvatarUrl())
                 .defaultIntensity(user.getDefaultIntensity())
                 .availability(user.getAvailability())

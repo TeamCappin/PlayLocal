@@ -19,8 +19,8 @@ function transformApiGame(game: GameResponse) {
     id: game.gameId,
     title: game.title,
     sport: game.sportName,
-    location: game.location.name,
-    distance: game.location.city || 'Nearby',
+    location: (game.hasExactLocationAccess && game.location) ? game.location.name : 'Location Hidden', // Privacy-aware location [US-1.3]
+    distance: (game.hasExactLocationAccess && game.location?.city) ? game.location.city : (game.approximateLocation || 'Nearby'), // Use approximate location if exact is hidden
     date: dateStr,
     time: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     duration: game.endTime
@@ -44,6 +44,7 @@ const mockGames: GameResponse[] = [
     title: '5v5 Basketball Pickup',
     sportName: 'Basketball',
     location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal' },
+    hasExactLocationAccess: true,
     startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
     confirmedCount: 8,
@@ -64,6 +65,7 @@ const mockGames: GameResponse[] = [
     title: 'Sunday Soccer Friendly',
     sportName: 'Soccer',
     location: { name: 'Mission Playground', addressLine: '19th & Valencia', city: 'San Francisco' },
+    hasExactLocationAccess: true,
     startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
     confirmedCount: 8,

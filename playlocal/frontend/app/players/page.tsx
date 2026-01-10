@@ -1,7 +1,12 @@
 'use client';
 
 import { PlayerSearch } from '@/components/PlayerSearch';
+import { ProtectedRoute } from '@/components/ProtectedRoute'; 
 
 export default function Page() {
-    return <PlayerSearch />;
+    return (
+        <ProtectedRoute>
+            <PlayerSearch />
+        </ProtectedRoute>
+    );
 }
