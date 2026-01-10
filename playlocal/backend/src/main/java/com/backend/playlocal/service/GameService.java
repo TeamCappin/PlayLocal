@@ -280,26 +280,31 @@ public class GameService {
                         if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
                                 showExactLocation = true;
                         } else {
-                                Optional<GameParticipation> p = participationRepository.findByGameAndUser(game.getGameId(), requestingUserId);
-                                if (p.isPresent() && p.get().getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED) {
+                                Optional<GameParticipation> p = participationRepository
+                                                .findByGameAndUser(game.getGameId(), requestingUserId);
+                                if (p.isPresent()
+                                                && p.get().getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED) {
                                         showExactLocation = true;
                                 }
                         }
                 }
 
+                // US-1.3: Null-safety for location (Copilot fix #1)
+                Location loc = game.getLocation();
                 GameDto.LocationDto exactLocation = null;
                 // US-1.3: Approximate location is always visible (e.g. "Near Montreal")
-                String approximateLocation = "Near " + game.getLocation().getCity();
+                String approximateLocation = (loc != null)
+                                ? "Near " + loc.getCity()
+                                : "Location unavailable";
 
-                if (showExactLocation) {
+                if (showExactLocation && loc != null) {
                         exactLocation = GameDto.LocationDto.builder()
-                                        .name(game.getLocation().getName())
-                                        .addressLine(game.getLocation().getAddressLine())
-                                        .city(game.getLocation().getCity())
-                                        .latitude(game.getLocation().getLatitude())
-                                        .longitude(game.getLocation().getLongitude())
+                                        .name(loc.getName())
+                                        .addressLine(loc.getAddressLine())
+                                        .city(loc.getCity())
+                                        .latitude(loc.getLatitude())
+                                        .longitude(loc.getLongitude())
                                         .build();
-                        // If authorized, they don't really need the approximate text, but sending both is fine.
                 }
 
                 return GameDto.GameResponse.builder()
@@ -309,6 +314,7 @@ public class GameService {
                                 .sportName(game.getSport().getName())
                                 .location(exactLocation)
                                 .approximateLocation(approximateLocation)
+                                .hasExactLocationAccess(showExactLocation)
                                 .indoorOutdoor(game.getIndoorOutdoor())
                                 .intensityBand(game.getIntensityBand())
                                 .skillBand(game.getSkillBand())

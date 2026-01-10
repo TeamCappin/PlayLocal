@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
@@ -15,6 +15,7 @@ export function UserProfile() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -23,23 +24,28 @@ export function UserProfile() {
     if (!isOwnProfile && usernameStr) {
       const fetchData = async () => {
         setLoadingProfile(true);
+        setProfileError(null);  // Reset error on new fetch
         try {
-          const data = await usersApi.getProfile(usernameStr);
+          // Try slug-based lookup first (US 1.3 + 1.4 merge)
+          const data = await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
         } catch (err) {
           console.error("Failed to fetch profile", err);
+          // Copilot fix #4: Set error state for user feedback
+          setProfileError("Failed to load profile. Please try again later.");
         } finally {
           setLoadingProfile(false);
         }
       };
-      
+
       fetchData();
     }
   }, [isOwnProfile, usernameStr]);
 
   // TODO: Implement friendship check via API
   const isFriend = false; // Placeholder for friendship status
-  const canViewPrivateDetails = isOwnProfile || isFriend; // Privacy setting
+  // Copilot fix #10: Renamed from canViewPrivateDetails to canViewActivityData
+  const canViewActivityData = isOwnProfile || isFriend; // Privacy setting
 
   // User data - uses AuthContext for own profile, would fetch from API for other profiles
   // TODO: Add API call to fetch other user profiles: GET /api/v1/users/{username}/profile
@@ -67,7 +73,7 @@ export function UserProfile() {
     avatar: (otherUser ? otherUser.displayName : (usernameStr || '??')).substring(0, 2).toUpperCase(),
     bio: otherUser?.bio || 'No bio available',
     location: otherUser?.location || 'Location not set',
-    memberSince: otherUser?.createdAt 
+    memberSince: otherUser?.createdAt
       ? new Date(otherUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
       : 'Recently joined',
     verified: false,
@@ -170,6 +176,18 @@ export function UserProfile() {
     { icon: '🤝', title: 'Team Player', description: 'Highest teamwork rating' },
     { icon: '⚡', title: 'Reliable', description: '98% attendance rate' },
   ];
+
+  // Copilot fix #4: Show error state
+  if (profileError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-6 h-6" />
+          <span>{profileError}</span>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingProfile) {
     return (
@@ -334,29 +352,29 @@ export function UserProfile() {
                 {/* Recent Activity */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Recent Activity</h2>
-                  {canViewPrivateDetails ? (
-                  <div className="space-y-3">
-                    {recentGames.slice(0, 3).map((game) => (
-                      <Link
-                        key={game.id}
-                        href={`/games/${game.id}/recap`}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div>
-                          <div className="text-gray-900 mb-1">{game.title}</div>
-                          <div className="text-sm text-gray-600">
-                            {game.date} • {game.location}
+                  {canViewActivityData ? (
+                    <div className="space-y-3">
+                      {recentGames.slice(0, 3).map((game) => (
+                        <Link
+                          key={game.id}
+                          href={`/games/${game.id}/recap`}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div>
+                            <div className="text-gray-900 mb-1">{game.title}</div>
+                            <div className="text-sm text-gray-600">
+                              {game.date} • {game.location}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                            {game.result}
+                          <div className="text-right">
+                            <div className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
+                              {game.result}
+                            </div>
+                            <div className="text-sm text-gray-500">{game.score}</div>
                           </div>
-                          <div className="text-sm text-gray-500">{game.score}</div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                        </Link>
+                      ))}
+                    </div>
                   ) : (
                     <div className="text-gray-500 italic p-4 text-center">
                       Add {user.name} as a friend to see their recent activity.
@@ -407,10 +425,10 @@ export function UserProfile() {
           {activeTab === 'sports' && (
             <div className="grid lg:grid-cols-2 gap-6">
               {sportProfiles.map((profile) => (
-                <SportProfileCard 
-                  key={profile.sport} 
-                  profile={profile} 
-                  showAvailability={canViewPrivateDetails}
+                <SportProfileCard
+                  key={profile.sport}
+                  profile={profile}
+                  showAvailability={canViewActivityData}
                 />
               ))}
             </div>
@@ -421,36 +439,36 @@ export function UserProfile() {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl text-gray-900">Match History</h2>
               </div>
-              {canViewPrivateDetails ? (
-              <div className="divide-y divide-gray-200">
-                {recentGames.map((game) => (
-                  <Link
-                    key={game.id}
-                    href={`/games/${game.id}/recap`}
-                    className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
-                        🏀
-                      </div>
-                      <div>
-                        <div className="text-gray-900 mb-1">{game.title}</div>
-                        <div className="text-sm text-gray-600">
-                          {game.date} • {game.location}
+              {canViewActivityData ? (
+                <div className="divide-y divide-gray-200">
+                  {recentGames.map((game) => (
+                    <Link
+                      key={game.id}
+                      href={`/games/${game.id}/recap`}
+                      className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
+                          🏀
+                        </div>
+                        <div>
+                          <div className="text-gray-900 mb-1">{game.title}</div>
+                          <div className="text-sm text-gray-600">
+                            {game.date} • {game.location}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                        {game.result}
+                      <div className="text-right">
+                        <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
+                          {game.result}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {game.team} • {game.score}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {game.team} • {game.score}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    </Link>
+                  ))}
+                </div>
               ) : (
                 <div className="p-12 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -587,17 +605,17 @@ function SportProfileCard({ profile, showAvailability }: { profile: any; showAva
         </div>
 
         {showAvailability && (
-        <div>
-          <span className="text-sm text-gray-600">Availability</span>
-          <div className="space-y-1 mt-1">
-            {profile.availability.map((time: string) => (
-              <div key={time} className="text-sm text-gray-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {time}
-              </div>
-            ))}
+          <div>
+            <span className="text-sm text-gray-600">Availability</span>
+            <div className="space-y-1 mt-1">
+              {profile.availability.map((time: string) => (
+                <div key={time} className="text-sm text-gray-700 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  {time}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </div>

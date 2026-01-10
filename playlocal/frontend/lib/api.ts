@@ -88,6 +88,7 @@ export interface UserDto {
     userId: string;
     email: string;
     displayName: string;
+    slug?: string;  // URL-friendly identifier (e.g., "john-doe")
     avatarUrl?: string;
     defaultIntensity?: string;
     availability?: string;
@@ -148,6 +149,10 @@ export const usersApi = {
 
     getProfile: (userId: string) =>
         apiFetch<UserDto>(`/users/${userId}/profile`),
+
+    // Slug-based profile lookup (US 1.3 + 1.4 merge)
+    getProfileBySlug: (slug: string) =>
+        apiFetch<UserDto>(`/users/slug/${slug}/profile`),
 
     search: (query?: string, page = 0, size = 20) =>
         apiFetch<SearchUsersResponse>(`/users/search?q=${encodeURIComponent(query || '')}&page=${page}&size=${size}`),
@@ -228,7 +233,7 @@ export interface GameResponse {
     title: string;
     description?: string;
     sportName: string;
-    location?: LocationDto; // Made optional as it might be hidden for privacy [US-1.3]
+    location: LocationDto | null; // US-1.3: null when hidden for privacy
     approximateLocation?: string; // New field for privacy [US-1.3]
     hasExactLocationAccess: boolean; // New field for privacy [US-1.3]
     indoorOutdoor?: string;
