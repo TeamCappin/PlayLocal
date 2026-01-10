@@ -169,4 +169,16 @@ class UserTest {
 
         assertThat(user.getSlug()).isNull();
     }
+
+    @Test
+    @DisplayName("US-1.4: PrePersist should set createdAt if null")
+    void prePersist_SetsCreatedAt() throws Exception {
+        User user = User.builder().createdAt(null).build();
+
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getCreatedAt()).isNotNull();
+    }
 }
