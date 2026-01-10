@@ -60,6 +60,9 @@ public class UserService {
         // Update fields if provided
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
+            // Regenerate slug when display name changes
+            String newSlug = User.generateSlug(request.getDisplayName());
+            user.setSlug(ensureUniqueSlug(newSlug, user.getUserId()));
         }
         if (request.getBio() != null) {
             user.setBio(request.getBio());
@@ -90,11 +93,34 @@ public class UserService {
         return mapToUserDto(user);
     }
 
+    /**
+     * Get user profile by slug (URL-friendly display name).
+     */
+    public AuthDto.UserDto getProfileBySlug(String slug) {
+        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return mapToUserDto(user);
+    }
+
+    /**
+     * Ensure slug is unique by appending counter if needed.
+     */
+    private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {
+        String slug = baseSlug;
+        int counter = 1;
+        while (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(slug, excludeUserId)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        return slug;
+    }
+
     private AuthDto.UserDto mapToUserDto(User user) {
         return AuthDto.UserDto.builder()
                 .userId(user.getUserId().toString())
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
+                .slug(user.getSlug())
                 .avatarUrl(user.getAvatarUrl())
                 .defaultIntensity(user.getDefaultIntensity())
                 .availability(user.getAvailability())

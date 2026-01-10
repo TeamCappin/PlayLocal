@@ -49,6 +49,7 @@ class UserServiceTest {
                 .userId(UUID.randomUUID())
                 .email("test@example.com")
                 .displayName("Test User")
+                .slug("test-user")
                 .status(User.UserStatus.ACTIVE)
                 .reliabilityScore(100.0f)
                 .build();

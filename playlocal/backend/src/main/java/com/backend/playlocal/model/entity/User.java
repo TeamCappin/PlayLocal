@@ -29,6 +29,9 @@ public class User {
     @Column(name = "display_name")
     private String displayName;
 
+    @Column(nullable = false)
+    private String slug;
+
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -94,5 +97,30 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
+        updateSlugIfNeeded();
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
+        this.updatedAt = Instant.now();
+        updateSlugIfNeeded();
+    }
+
+    private void updateSlugIfNeeded() {
+        if (this.slug == null && this.displayName != null) {
+            this.slug = generateSlug(this.displayName);
+        }
+    }
+
+    public static String generateSlug(String displayName) {
+        if (displayName == null)
+            return null;
+        return displayName.toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-|-$", "")
+                .replaceAll("-+", "-");
     }
 }

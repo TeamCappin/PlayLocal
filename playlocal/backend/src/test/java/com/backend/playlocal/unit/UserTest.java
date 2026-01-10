@@ -69,7 +69,7 @@ class UserTest {
     void allArgsConstructor_Works() {
         UUID userId = UUID.randomUUID();
         User user = new User(
-                userId, "email", "hash", "name", "url", "phone",
+                userId, "email", "hash", "name", "name-slug", "url", "phone",
                 User.UserStatus.ACTIVE, null, "high", "all", "bio", "loc",
                 100.0f, 0, 0, 0,
                 Instant.now(), Instant.now(), null, null);

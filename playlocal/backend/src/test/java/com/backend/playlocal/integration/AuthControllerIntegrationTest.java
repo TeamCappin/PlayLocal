@@ -281,6 +281,7 @@ class AuthControllerIntegrationTest {
                                         .email(email)
                                         .passwordHash(passwordEncoder.encode(password))
                                         .displayName("Test User")
+                                        .slug("test-user")
                                         .status(User.UserStatus.ACTIVE)
                                         .reliabilityScore(100.0f)
                                         .ageConfirmedAt(java.time.Instant.now())

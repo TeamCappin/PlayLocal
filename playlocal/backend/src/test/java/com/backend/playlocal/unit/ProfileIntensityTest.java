@@ -49,6 +49,7 @@ class ProfileIntensityTest {
                 .userId(userId)
                 .email("test@example.com")
                 .displayName("Test User")
+                .slug("test-user")
                 .status(User.UserStatus.ACTIVE)
                 .reliabilityScore(85.0f)
                 .attendedCount(17)

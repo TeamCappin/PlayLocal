@@ -38,6 +38,7 @@ class UserRepositoryAuthTest {
                 .email("Test@Example.com")
                 .passwordHash("hashed")
                 .displayName("Test")
+                .slug("test")
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -56,6 +57,7 @@ class UserRepositoryAuthTest {
                 .email("Exists@Example.com")
                 .passwordHash("hashed")
                 .displayName("Test")
+                .slug("test")
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -73,6 +75,7 @@ class UserRepositoryAuthTest {
                 .email("deleted@example.com")
                 .passwordHash("hashed")
                 .displayName("Deleted")
+                .slug("deleted")
                 .status(User.UserStatus.DELETED)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -91,6 +94,7 @@ class UserRepositoryAuthTest {
                 .email("active@example.com")
                 .passwordHash("hashed")
                 .displayName("Active")
+                .slug("active")
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();

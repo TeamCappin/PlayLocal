@@ -18,7 +18,7 @@ class UserRoleTest {
     @DisplayName("US-1.1: UserRole builder should construct valid entity")
     void userRoleBuilder_ConstructsValidEntity() {
         UUID id = UUID.randomUUID();
-        User user = User.builder().email("test@example.com").build();
+        User user = User.builder().email("test@example.com").slug("test").build();
         Role role = Role.builder().name("USER").build();
         Instant now = Instant.now();
 

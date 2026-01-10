@@ -88,6 +88,7 @@ export interface UserDto {
     userId: string;
     email: string;
     displayName: string;
+    slug: string;
     avatarUrl?: string;
     defaultIntensity?: string;
     availability?: string;
@@ -148,6 +149,9 @@ export const usersApi = {
 
     getProfile: (userId: string) =>
         apiFetch<UserDto>(`/users/${userId}/profile`),
+
+    getProfileBySlug: (slug: string) =>
+        apiFetch<UserDto>(`/users/slug/${slug}/profile`),
 
     search: (query?: string, page = 0, size = 20) =>
         apiFetch<SearchUsersResponse>(`/users/search?q=${encodeURIComponent(query || '')}&page=${page}&size=${size}`),

@@ -1,9 +1,10 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
+import { ReportModal } from './ReportModal';
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
@@ -56,6 +57,7 @@ export function GameRoom() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Use API data if available, fallback to mock
   const game = apiGame || mockGame;
@@ -478,6 +480,16 @@ export function GameRoom() {
                 <Share2 className="w-5 h-5" />
                 <span>Share Game</span>
               </button>
+
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Flag className="w-5 h-5" />
+                  <span>Report Game</span>
+                </button>
+              )}
             </div>
 
             {/* Host Card */}
@@ -543,6 +555,15 @@ export function GameRoom() {
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        gameId={game.gameId}
+        targetName={game.title}
+        reportType="game"
+      />
     </div>
   );
 }

@@ -96,6 +96,7 @@ class GameJoinConcurrencyTest {
                 .email("organizer-" + UUID.randomUUID() + "@test.com")
                 .passwordHash("hash")
                 .displayName("Organizer")
+                .slug("organizer")
                 .status(User.UserStatus.ACTIVE)
                 .build();
         organizer = userRepository.save(organizer);
@@ -128,6 +129,7 @@ class GameJoinConcurrencyTest {
                     .email("user" + i + "-" + UUID.randomUUID() + "@test.com")
                     .passwordHash("hash")
                     .displayName("User " + i)
+                    .slug("user-" + i)
                     .status(User.UserStatus.ACTIVE)
                     .reliabilityScore(100.0f)
                     .build();

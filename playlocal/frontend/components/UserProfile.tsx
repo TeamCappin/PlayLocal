@@ -1,10 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
+import { usersApi, UserDto } from '@/lib/api';
+
+// Profile data type for display
+interface ProfileData {
+  name: string;
+  username: string;
+  avatar: string;
+  bio: string;
+  location: string;
+  memberSince: string;
+  verified: boolean;
+  userId: string | null;
+  stats: {
+    gamesPlayed: number;
+    gamesHosted: number;
+    reliabilityScore: number;
+    averageRating: number;
+  };
+}
 
 export function UserProfile() {
   const { username } = useParams();
@@ -13,15 +32,47 @@ export function UserProfile() {
   const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
 
-  // Check if viewing own profile
-  const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  // State for loading other user's profile
+  const [otherUserProfile, setOtherUserProfile] = useState<UserDto | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // User data - uses AuthContext for own profile, would fetch from API for other profiles
-  // TODO: Add API call to fetch other user profiles: GET /api/v1/users/{username}/profile
-  const user = isOwnProfile && currentUser ? {
-    name: currentUser.displayName,
-    username: currentUser.displayName.toLowerCase().replace(/\s+/g, '-'),
-    avatar: currentUser.displayName.substring(0, 2).toUpperCase(),
+  // Check if viewing own profile - also check if usernameStr is their userId
+  const isOwnProfile = !usernameStr ||
+    usernameStr === 'me' ||
+    usernameStr === currentUser?.userId ||
+    usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+
+  // Fetch other user's profile when not viewing own profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (isOwnProfile || !usernameStr) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Use slug-based lookup for URL-friendly profile URLs
+        const profile = await usersApi.getProfileBySlug(usernameStr);
+        setOtherUserProfile(profile);
+      } catch (err: any) {
+        console.error('Failed to fetch user profile:', err);
+        setError(err.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [usernameStr, isOwnProfile]);
+
+  // Build user object from the appropriate source
+  const user: ProfileData = isOwnProfile && currentUser ? {
+    name: currentUser.displayName || 'User',
+    username: (currentUser as any).slug || currentUser.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user',
+    avatar: currentUser.displayName?.substring(0, 2).toUpperCase() || '??',
     bio: currentUser.bio || 'No bio yet. Click Edit Profile to add one!',
     location: currentUser.location || 'Location not set',
     memberSince: currentUser.createdAt
@@ -35,14 +86,32 @@ export function UserProfile() {
       reliabilityScore: currentUser.reliabilityScore || 100,
       averageRating: (currentUser as any).averageRating || 0,
     },
+  } : otherUserProfile ? {
+    // Use fetched profile data for other users
+    name: otherUserProfile.displayName || 'User',
+    username: otherUserProfile.slug || otherUserProfile.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user',
+    avatar: otherUserProfile.displayName?.substring(0, 2).toUpperCase() || '??',
+    bio: otherUserProfile.bio || 'No bio provided.',
+    location: otherUserProfile.location || 'Location not set',
+    memberSince: otherUserProfile.createdAt
+      ? new Date(otherUserProfile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'Member',
+    verified: false,
+    userId: otherUserProfile.userId,
+    stats: {
+      gamesPlayed: otherUserProfile.gamesCount || 0,
+      gamesHosted: 0,
+      reliabilityScore: otherUserProfile.reliabilityScore || 100,
+      averageRating: 0,
+    },
   } : {
-    // Fallback for viewing other profiles - TODO: Replace with API data
+    // Loading/error fallback
     name: usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User',
     username: usernameStr || 'unknown',
     avatar: usernameStr?.substring(0, 2).toUpperCase() || '??',
-    bio: 'Profile information loading...',
-    location: 'Loading...',
-    memberSince: 'Loading...',
+    bio: loading ? 'Loading profile...' : (error || 'Profile not found'),
+    location: loading ? 'Loading...' : '',
+    memberSince: '',
     verified: false,
     userId: null,
     stats: {
@@ -52,6 +121,36 @@ export function UserProfile() {
       averageRating: 0,
     },
   };
+
+  // Show loading state for other users' profiles
+  if (!isOwnProfile && loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state for other users' profiles
+  if (!isOwnProfile && error && !otherUserProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Flag className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Not Found</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Link href="/discover" className="text-emerald-600 hover:underline">
+            Back to Discover
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
 
   const sportProfiles = [
@@ -192,8 +291,10 @@ export function UserProfile() {
                 </>
               ) : (
                 <button
-                  onClick={() => setShowReportModal(true)}
+                  onClick={() => user.userId ? setShowReportModal(true) : alert('Unable to report: User profile not fully loaded')}
                   className="px-4 py-2 bg-red-500/20 backdrop-blur-sm text-red-200 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                  disabled={!user.userId}
+                  title={!user.userId ? 'User profile not fully loaded' : 'Report this user'}
                 >
                   <Flag className="w-5 h-5" />
                   <span>Report</span>
@@ -458,6 +559,7 @@ export function UserProfile() {
         onClose={() => setShowReportModal(false)}
         reportedUserId={user.userId || undefined}
         targetName={user.name}
+        reportType="user"
       />
     </div>
   );

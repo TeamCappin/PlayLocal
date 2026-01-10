@@ -73,6 +73,7 @@ class AuthServiceTest {
                 .email("test@example.com")
                 .passwordHash("encodedPassword")
                 .displayName("Test User")
+                .slug("test-user")
                 .status(User.UserStatus.ACTIVE)
                 .build();
     }
