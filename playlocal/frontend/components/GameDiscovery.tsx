@@ -19,8 +19,8 @@ function transformApiGame(game: GameResponse) {
     id: game.gameId,
     title: game.title,
     sport: game.sportName,
-    location: game.location?.name || game.approximateLocation || 'Location hidden',
-    distance: game.location?.city || 'Nearby',
+    location: (game.hasExactLocationAccess && game.location) ? game.location.name : 'Location Hidden', // Privacy-aware location [US-1.3]
+    distance: (game.hasExactLocationAccess && game.location?.city) ? game.location.city : (game.approximateLocation || 'Nearby'), // Use approximate location if exact is hidden
     date: dateStr,
     time: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     duration: game.endTime
