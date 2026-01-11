@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle, Loader2, CheckCircle } from 'lucide-react';
 import { useReportUser } from '@/hooks/useReportUser';
 import { CreateReportRequest } from '@/lib/api';
@@ -9,6 +10,7 @@ export interface ReportModalProps {
     reportedUserId?: string;
     gameId?: string;
     targetName: string;
+    reportType?: 'user' | 'game';  // Explicitly specify what type of report
 }
 
 const REPORT_REASONS: { value: CreateReportRequest['reportType']; label: string }[] = [
@@ -19,14 +21,20 @@ const REPORT_REASONS: { value: CreateReportRequest['reportType']; label: string 
     { value: 'OTHER', label: 'Other' },
 ];
 
-export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetName }: ReportModalProps) {
+export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetName, reportType }: ReportModalProps) {
     const { submitReport, isSubmitting, error: apiError } = useReportUser();
     const [reason, setReason] = useState<CreateReportRequest['reportType'] | ''>('');
     const [details, setDetails] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Don't render on server or if not open
+    if (!mounted || !isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,25 +70,54 @@ export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetNam
     };
 
     if (success) {
-        return (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        return createPortal(
+            <div
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                }}
+            >
                 <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center">
                     <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
                     <h2 className="text-xl text-gray-900 mb-2">Report Submitted</h2>
                     <p className="text-gray-600">Thank you for helping keep our community safe.</p>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    return createPortal(
+        <div
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+            }}
+        >
             <div className="bg-white rounded-xl max-w-md w-full mx-4 overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                     <div className="flex items-center gap-3">
                         <AlertTriangle className="w-6 h-6 text-amber-500" />
-                        <h2 className="text-lg text-gray-900">Report {reportedUserId ? 'User' : 'Game'}</h2>
+                        <h2 className="text-lg font-semibold text-gray-900">
+                            Report {reportType === 'user' ? 'User' : reportType === 'game' ? 'Game' : (gameId && !reportedUserId) ? 'Game' : 'User'}
+                        </h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -151,7 +188,11 @@ export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetNam
                         <button
                             type="submit"
                             disabled={isSubmitting || !reason}
-                            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="flex-1 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            style={{
+                                backgroundColor: isSubmitting || !reason ? '#dc262680' : '#dc2626',
+                                color: 'white',
+                            }}
                         >
                             {isSubmitting ? (
                                 <>
@@ -171,6 +212,7 @@ export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetNam
                     </p>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

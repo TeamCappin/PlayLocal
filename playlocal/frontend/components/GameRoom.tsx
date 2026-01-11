@@ -1,9 +1,10 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
+import { ReportModal } from './ReportModal';
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
@@ -11,6 +12,8 @@ const mockGame = {
   title: '5v5 Basketball Pickup',
   sportName: 'Basketball',
   location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal' },
+  hasExactLocationAccess: true, // US-1.3: Mock assumes participant access
+  approximateLocation: 'Montreal, QC',
   startTime: new Date().toISOString(),
   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   confirmedCount: 8,
@@ -56,6 +59,7 @@ export function GameRoom() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Use API data if available, fallback to mock
   const game = apiGame || mockGame;
@@ -164,7 +168,7 @@ export function GameRoom() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                <span>{game.location?.name}</span>
+                <span>{game.location?.name || game.approximateLocation || 'Location Hidden'}</span>
               </div>
             </div>
           </div>
@@ -244,12 +248,26 @@ export function GameRoom() {
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">Location</h3>
                       <div className="p-4 bg-gray-100 rounded-lg">
-                        <p className="text-gray-900 mb-1">{game.location?.name}</p>
-                        <p className="text-gray-600 text-sm mb-3">{game.location?.addressLine || game.location?.city}</p>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                          <ExternalLink className="w-4 h-4" />
-                          <span>Open in Google Maps</span>
-                        </button>
+                        {game.hasExactLocationAccess && game.location ? (
+                          <>
+                            <p className="text-gray-900 mb-1">{game.location.name}</p>
+                            <p className="text-gray-600 text-sm mb-3">{game.location.addressLine || game.location.city}</p>
+                            <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+                              <ExternalLink className="w-4 h-4" />
+                              <span>Open in Google Maps</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="w-5 h-5 text-gray-400" />
+                              <p className="text-gray-900 font-medium">{game.approximateLocation || 'Location hidden'}</p>
+                            </div>
+                            <p className="text-gray-500 text-sm italic">
+                              {isAuthenticated ? 'Join this game to view the exact location.' : 'Sign in and join to view location.'}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -478,6 +496,16 @@ export function GameRoom() {
                 <Share2 className="w-5 h-5" />
                 <span>Share Game</span>
               </button>
+
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Flag className="w-5 h-5" />
+                  <span>Report Game</span>
+                </button>
+              )}
             </div>
 
             {/* Host Card */}
@@ -543,6 +571,15 @@ export function GameRoom() {
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        gameId={game.gameId}
+        targetName={game.title}
+        reportType="game"
+      />
     </div>
   );
 }

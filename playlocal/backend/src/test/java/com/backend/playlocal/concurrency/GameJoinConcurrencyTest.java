@@ -91,11 +91,12 @@ class GameJoinConcurrencyTest {
         var visibility = gameVisibilityRepository.findByCode("public")
                 .orElseThrow(() -> new RuntimeException("GameVisibility 'public' not seeded"));
 
-        // Create organizer
+        // Create organizer with unique displayName to avoid slug collisions
+        String organizerUuid = UUID.randomUUID().toString().substring(0, 8);
         User organizer = User.builder()
-                .email("organizer-" + UUID.randomUUID() + "@test.com")
+                .email("organizer-" + organizerUuid + "@test.com")
                 .passwordHash("hash")
-                .displayName("Organizer")
+                .displayName("Organizer-" + organizerUuid)
                 .status(User.UserStatus.ACTIVE)
                 .build();
         organizer = userRepository.save(organizer);
@@ -124,10 +125,11 @@ class GameJoinConcurrencyTest {
         // Create test users
         testUsers = new ArrayList<>();
         for (int i = 0; i < CONCURRENT_USERS; i++) {
+            String userUuid = UUID.randomUUID().toString().substring(0, 8);
             User user = User.builder()
-                    .email("user" + i + "-" + UUID.randomUUID() + "@test.com")
+                    .email("user" + i + "-" + userUuid + "@test.com")
                     .passwordHash("hash")
-                    .displayName("User " + i)
+                    .displayName("User-" + i + "-" + userUuid) // Unique displayName for unique slug
                     .status(User.UserStatus.ACTIVE)
                     .reliabilityScore(100.0f)
                     .build();

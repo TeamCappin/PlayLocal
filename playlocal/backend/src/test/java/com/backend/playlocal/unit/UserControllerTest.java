@@ -36,81 +36,97 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-    @Mock
-    private UserService userService;
+        @Mock
+        private UserService userService;
 
-    @InjectMocks
-    private UserController userController;
+        @InjectMocks
+        private UserController userController;
 
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper = new ObjectMapper();
+        private MockMvc mockMvc;
+        private ObjectMapper objectMapper = new ObjectMapper();
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+        @BeforeEach
+        void setUp() {
+                mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
 
-        // Mock security context for profile update
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("test-user-id", "password"));
-    }
+                // Mock security context for profile update
+                SecurityContextHolder.getContext().setAuthentication(
+                                new UsernamePasswordAuthenticationToken("test-user-id", "password"));
+        }
 
-    @Test
-    @DisplayName("US-1.1: GET /search should return search results")
-    void searchUsers_ReturnsResults() throws Exception {
-        UserDto.SearchResponse response = UserDto.SearchResponse.builder()
-                .users(List.of())
-                .totalElements(0)
-                .build();
+        @Test
+        @DisplayName("US-1.1: GET /search should return search results")
+        void searchUsers_ReturnsResults() throws Exception {
+                UserDto.SearchResponse response = UserDto.SearchResponse.builder()
+                                .users(List.of())
+                                .totalElements(0)
+                                .build();
 
-        when(userService.searchUsers(eq("query"), any(Integer.class), any(Integer.class))).thenReturn(response);
+                when(userService.searchUsers(eq("query"), any(Integer.class), any(Integer.class))).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/users/search")
-                .param("q", "query"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(0));
-    }
+                mockMvc.perform(get("/api/v1/users/search")
+                                .param("q", "query"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.totalElements").value(0));
+        }
 
-    @Test
-    @DisplayName("US-1.1: PUT /profile should update and return profile")
-    void updateProfile_ReturnsUpdatedProfile() throws Exception {
-        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("Updated")
-                .build();
+        @Test
+        @DisplayName("US-1.1: PUT /profile should update and return profile")
+        void updateProfile_ReturnsUpdatedProfile() throws Exception {
+                UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
+                                .displayName("Updated")
+                                .build();
 
-        AuthDto.UserDto response = AuthDto.UserDto.builder()
-                .displayName("Updated")
-                .build();
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .displayName("Updated")
+                                .build();
 
-        // Note: Authentication principal is mocked above, but standalone setup skips
-        // security filters.
-        // The controller gets authentication injected by argument resolver, which
-        // standalone mockMvc handles if principal is set?
-        // Actually standalone setup might need setCustomArgumentResolvers for
-        // Authentication if not using full context.
-        // However, Spring's PrincipalMethodArgumentResolver is usually registered by
-        // default.
+                // Note: Authentication principal is mocked above, but standalone setup skips
+                // security filters.
+                // The controller gets authentication injected by argument resolver, which
+                // standalone mockMvc handles if principal is set?
+                // Actually standalone setup might need setCustomArgumentResolvers for
+                // Authentication if not using full context.
+                // However, Spring's PrincipalMethodArgumentResolver is usually registered by
+                // default.
 
-        when(userService.updateProfile(any(), any())).thenReturn(response);
+                when(userService.updateProfile(any(), any())).thenReturn(response);
 
-        mockMvc.perform(put("/api/v1/users/profile")
-                .principal(new UsernamePasswordAuthenticationToken("test-user-id", "pw"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.displayName").value("Updated"));
-    }
+                mockMvc.perform(put("/api/v1/users/profile")
+                                .principal(new UsernamePasswordAuthenticationToken("test-user-id", "pw"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.displayName").value("Updated"));
+        }
 
-    @Test
-    @DisplayName("US-1.1: GET /profile/{userId} should return user profile")
-    void getUserProfile_ReturnsProfile() throws Exception {
-        AuthDto.UserDto response = AuthDto.UserDto.builder()
-                .email("test@example.com")
-                .build();
+        @Test
+        @DisplayName("US-1.1: GET /profile/{userId} should return user profile")
+        void getUserProfile_ReturnsProfile() throws Exception {
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .email("test@example.com")
+                                .build();
 
-        when(userService.getUserProfile("test-id")).thenReturn(response);
+                when(userService.getUserProfile("test-id")).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/users/test-id/profile"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"));
-    }
+                mockMvc.perform(get("/api/v1/users/test-id/profile"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.email").value("test@example.com"));
+        }
+
+        @Test
+        @DisplayName("US-1.4: GET /slug/{slug}/profile should return user profile")
+        void getProfileBySlug_ReturnsProfile() throws Exception {
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .displayName("Slug User")
+                                .slug("slug-user")
+                                .build();
+
+                when(userService.getProfileBySlug("slug-user")).thenReturn(response);
+
+                mockMvc.perform(get("/api/v1/users/slug/slug-user/profile"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.displayName").value("Slug User"))
+                                .andExpect(jsonPath("$.slug").value("slug-user"));
+        }
 }
