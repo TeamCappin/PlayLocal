@@ -4,6 +4,21 @@ import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
 
+// Helper to get image by sport (US 2.2)
+function getSportImage(sport: string) {
+  const images: Record<string, string> = {
+    'Basketball': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
+    'Soccer': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
+    'Tennis': 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
+    'Volleyball': 'https://images.unsplash.com/photo-1592656094267-364d649ed10c?auto=format&fit=crop&q=80&w=1080',
+    'Badminton': 'https://images.unsplash.com/photo-1626224583764-8478ab2e2349?auto=format&fit=crop&q=80&w=1080',
+    'Baseball': 'https://images.unsplash.com/photo-1529768257384-d92ee92cd030?auto=format&fit=crop&q=80&w=1080',
+    'Hockey': 'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
+    'Ultimate Frisbee': 'https://images.unsplash.com/photo-1627632617650-8b4d89a691b1?auto=format&fit=crop&q=80&w=1080',
+  };
+  return images[sport] || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080';
+}
+
 // Transform API response to display format
 function transformApiGame(game: GameResponse) {
   const startDate = new Date(game.startTime);
@@ -32,7 +47,7 @@ function transformApiGame(game: GameResponse) {
     indoor: game.indoorOutdoor === 'indoor',
     weather: null,
     host: game.organizer.displayName || 'Host',
-    image: 'https://images.unsplash.com/photo-1709552899537-8f0a171aaf40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBvdXRkb29yfGVufDF8fHx8MTc2NjE2MTQzMnww&ixlib=rb-4.1.0&q=80&w=1080',
+    image: getSportImage(game.sportName),
     status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
   };
 }
@@ -40,10 +55,10 @@ function transformApiGame(game: GameResponse) {
 // Mock data for fallback
 const mockGames: GameResponse[] = [
   {
-    gameId: '1',
+    gameId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     title: '5v5 Basketball Pickup',
     sportName: 'Basketball',
-    location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal' },
+    location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal', latitude: 45.5312, longitude: -73.6205 },
     hasExactLocationAccess: true,
     startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
@@ -54,17 +69,17 @@ const mockGames: GameResponse[] = [
     intensityBand: 'High',
     indoorOutdoor: 'outdoor',
     description: 'Competitive 5v5 full court.',
-    organizer: { userId: '1', displayName: 'Minh H.', reliabilityScore: 98 },
+    organizer: { userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh H.', reliabilityScore: 98 },
     status: 'OPEN',
     allowWaitlist: true,
     waitlistCount: 0,
     createdAt: new Date().toISOString(),
   },
   {
-    gameId: '2',
+    gameId: 'b2c3d4e5-f6a7-8901-bcde-f23456789012',
     title: 'Sunday Soccer Friendly',
     sportName: 'Soccer',
-    location: { name: 'Mission Playground', addressLine: '19th & Valencia', city: 'San Francisco' },
+    location: { name: 'Mission Playground', addressLine: '19th & Valencia', city: 'San Francisco', latitude: 37.7605, longitude: -122.4212 },
     hasExactLocationAccess: true,
     startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
@@ -75,7 +90,7 @@ const mockGames: GameResponse[] = [
     intensityBand: 'Casual',
     indoorOutdoor: 'outdoor',
     description: 'Casual 7v7 game.',
-    organizer: { userId: '2', displayName: 'Sarah K.', reliabilityScore: 95 },
+    organizer: { userId: 'c3d4e5f6-a7b8-9012-cdef-234567890123', displayName: 'Sarah K.', reliabilityScore: 95 },
     status: 'OPEN',
     allowWaitlist: true,
     waitlistCount: 0,
