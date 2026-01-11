@@ -10,11 +10,14 @@ function getSportImage(sport: string) {
     'Basketball': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
     'Soccer': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
     'Tennis': 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
-    'Volleyball': 'https://images.unsplash.com/photo-1592656094267-364d649ed10c?auto=format&fit=crop&q=80&w=1080',
-    'Badminton': 'https://images.unsplash.com/photo-1626224583764-8478ab2e2349?auto=format&fit=crop&q=80&w=1080',
+    'Volleyball': 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
+    'Badminton': 'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
     'Baseball': 'https://images.unsplash.com/photo-1529768257384-d92ee92cd030?auto=format&fit=crop&q=80&w=1080',
     'Hockey': 'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
-    'Ultimate Frisbee': 'https://images.unsplash.com/photo-1627632617650-8b4d89a691b1?auto=format&fit=crop&q=80&w=1080',
+    'Ultimate Frisbee': 'https://images.unsplash.com/photo-1544698310-4f8b88b6e0b1?auto=format&fit=crop&q=80&w=1080',
+    'Flag Football': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
+    'Softball': 'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
+    'Pickleball': 'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
   };
   return images[sport] || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080';
 }
@@ -54,9 +57,12 @@ export function CreateGame() {
     'Soccer',
     'Volleyball',
     'Tennis',
-    'Ultimate Frisbee',
     'Badminton',
+    'Ultimate Frisbee',
+    'Flag Football',
+    'Softball',
     'Baseball',
+    'Pickleball',
     'Hockey',
   ];
 
@@ -659,49 +665,17 @@ export function CreateGame() {
                   Continue
                 </button>
               ) : (
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    className="px-6 py-3 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors flex items-center gap-2"
-                  >
-                    <Eye className="w-5 h-5" />
-                    <span>Preview</span>
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                  >
-                    Create Game
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Create Game
+                </button>
               )}
             </div>
           </div>
         </form>
 
-        {/* Templates */}
-        {step === 1 && (
-          <div className="mt-8">
-            <h3 className="text-lg text-gray-900 mb-4">Or start from a template</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <TemplateCard
-                title="Weekly Basketball"
-                description="Your usual 5v5 game at Parc Jarry"
-                icon="🏀"
-              />
-              <TemplateCard
-                title="Soccer Pickup"
-                description="11v11 at Claude-Robillard"
-                icon="⚽"
-              />
-              <TemplateCard
-                title="Beach Volleyball"
-                description="Sunday fun at Jean-Doré Beach"
-                icon="🏐"
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -749,15 +723,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TemplateCard({ title, description, icon }: { title: string; description: string; icon: string }) {
-  return (
-    <button className="p-4 bg-white border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md transition-all text-left">
-      <div className="text-3xl mb-2">{icon}</div>
-      <div className="text-gray-900 mb-1">{title}</div>
-      <div className="text-sm text-gray-600">{description}</div>
-    </button>
-  );
-}
+
 
 // Helper for step validation
 function isValidStep(step: number, formData: any): boolean {
