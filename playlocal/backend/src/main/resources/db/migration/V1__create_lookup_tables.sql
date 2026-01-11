@@ -114,6 +114,7 @@ INSERT INTO sport (name, category, supports_positions) VALUES
     ('Ultimate Frisbee', 'Team Sports', TRUE),
     ('Flag Football', 'Team Sports', TRUE),
     ('Softball', 'Team Sports', TRUE),
+    ('Baseball', 'Team Sports', TRUE),
     ('Pickleball', 'Racquet Sports', FALSE),
     ('Hockey', 'Team Sports', TRUE);
 
