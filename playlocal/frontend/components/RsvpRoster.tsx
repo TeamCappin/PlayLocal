@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from './ui/button';
-import { CircleCheckBig, CircleX, TriangleAlert } from 'lucide-react';
+import { CircleCheckBig, CircleX, TriangleAlert, CircleAlert } from 'lucide-react';
 
 export function RsvpRoster() {
 
@@ -30,9 +30,24 @@ export function RsvpRoster() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-8">
+
+          <div className="flex bg-amber-50 rounded-xl border border-gray-200 px-6 py-3 mb-8 gap-4 items-center">
+            <div>
+              <CircleAlert className='text-red-600 w-8 h-8' />
+            </div>
+            <div className='flex-col'>
+              <div className="text-xl text-gray-900 mb-2">
+                Confirm Player Attendance
+              </div>
+              <div>
+                Please mark each player's attendance status. Once submitted, this record will be locked and cannot be changed without admin approval. This helps maintain accurate attendance records and reputation scores.
+              </div>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-4 mb-8">
 
-            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-2 gap-4 items-center'>
+            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-3 gap-4 items-center'>
               <div>
                 <CircleCheckBig className="w-10 h-10 text-emerald-600" />
               </div>
@@ -46,7 +61,7 @@ export function RsvpRoster() {
               </div>
             </div>
 
-            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-2 gap-4 items-center'>
+            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-3 gap-4 items-center'>
               <div>
                 <CircleX className="w-10 h-10 text-red-600" />
               </div>
@@ -60,7 +75,7 @@ export function RsvpRoster() {
               </div>
             </div>
 
-            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-2 gap-4 items-center'>
+            <div className='flex bg-white rounded-xl border border-gray-200 px-6 py-3 gap-4 items-center'>
               <div>
                 <TriangleAlert className="w-10 h-10 text-gray-500" />
               </div>
@@ -148,6 +163,29 @@ export function RsvpRoster() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="flex bg-amber-50 rounded-xl border border-gray-200 px-6 py-3 mt-8 gap-4 items-center">
+            <div>
+              <CircleAlert className='text-red-600 w-8 h-8' />
+            </div>
+            <div className='flex-col'>
+              <div className="text-xl text-gray-900 mb-2">
+                You must mark all players before submitting
+              </div>
+              <div>
+                {rsvpRosterInfo.uiParticipantsCountLeftToMark} players still need to be marked.
+              </div>
+            </div>
+          </div>
+
+          <div className='flex justify-between mt-8'>
+            <button className="px-8 py-4 bg-red-500 rounded-lg items-center justify-center text-white">
+              Cancel
+            </button>
+            <button className="px-8 py-4 bg-emerald-500 rounded-lg items-center justify-center text-white">
+              Submit Attendance
+            </button>
           </div>
         </div>
       </div>
