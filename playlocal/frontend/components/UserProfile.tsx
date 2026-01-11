@@ -5,6 +5,7 @@ import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Se
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
+import { ActionsRequired } from './sub-components/ActionsRequired';
 
 export function UserProfile() {
   const { username } = useParams();
@@ -253,6 +254,10 @@ export function UserProfile() {
               Stats & Analytics
             </button>
           </div>
+        </div>
+
+        <div className="py-8">
+          <ActionsRequired />
         </div>
 
         <div className="py-8">
