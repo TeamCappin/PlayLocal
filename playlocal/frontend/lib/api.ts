@@ -226,6 +226,7 @@ export interface CreateGameRequest {
     minReliabilityRequired?: number;
     startTime: string;
     endTime?: string;
+    visibility?: string; // US 2.2: public/friends/invite
 }
 
 export interface GameResponse {
