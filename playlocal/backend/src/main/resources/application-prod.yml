@@ -1,29 +1,28 @@
 spring:
+  main:
+    lazy-initialization: true
+
   application:
     name: playlocal-backend
-
-  # Production Database (Neon DB) - read from env variable
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
-      ddl-auto: none          # Do NOT validate schema, accept new columns/enums
-    show-sql: false            # Disable SQL logging to speed up startup
+      ddl-auto: none
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
-    open-in-view: false         # Prevent queries during view rendering
-
+    open-in-view: false
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    validate-on-migrate: false  # Skip checksum validation, always accept migrations
+    validate-on-migrate: false
 
 server:
   port: ${PORT:8080}           # Render automatically sets $PORT
