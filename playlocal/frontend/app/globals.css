@@ -514,6 +514,10 @@
     position: sticky;
   }
 
+  .fixed {
+    position: fixed;
+  }
+
   .inset-0 {
     inset: calc(var(--spacing) * 0);
   }
@@ -1099,6 +1103,16 @@
   @supports (color: color-mix(in lab, red, red)) {
     .bg-black\/20 {
       background-color: color-mix(in oklab, var(--color-black) 20%, transparent);
+    }
+  }
+
+  .bg-black\/50 {
+    background-color: #00000080;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-black\/50 {
+      background-color: color-mix(in oklab, var(--color-black) 50%, transparent);
     }
   }
 
