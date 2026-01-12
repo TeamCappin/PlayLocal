@@ -1,13 +1,62 @@
+'use client';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { CircleCheckBig, CircleX, TriangleAlert, CircleAlert } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
 
 export function RsvpRoster() {
+  const navigate = useRouter();
+  const { gameId } = useParams();
+  // TODO MEL delete later
+  console.log('RsvpRoster component loaded for gameId:', gameId);
+
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) {
+    navigate.push('/login');
+    return;
+  }
+
+  type RsvpRosterInfo = {
+    // Game
+    gameId: string;
+    gameTitle: string;
+    gameStartTime: string;
+    gameStatus: 'COMPLETED' | 'CANCELLED' | 'UPCOMING';
+
+    // Sport / metadata
+    sportName: string;
+    gameSkillBand: string;
+    gameIntensityBand: string;
+
+    // Location
+    gameLocationId: string;
+    locationName: string;
+
+    // UI counters (derived)
+    uiPlayerCountAttended: number;
+    uiPlayerCountNoShows: number;
+    uiPlayerCountTotal: number;
+    uiParticipantsCountLeftToMark: number;
+
+    // Participants (inline object, not separate type)
+    participants: {
+      participationId: string;
+      userId: string;
+      displayName: string;
+      positionRole: string;
+      defaultIntensity: string;
+      attendanceStatus: 'ATTENDED' | 'NO_SHOW' | 'UNKNOWN';
+    }[];
+  };
 
 
+  const rsvpRosterInfoList: RsvpRosterInfo[] = []; // TODO MEL fetch based on gameId
 
   const rsvpRosterInfo = {
-    gameId: 'bbbb1111-bbbb-bbbb-bbbb-bbbbbbbbbbbb', //game
+    gameId: gameId, //game
     sportName: 'Basketball', //sport
     gameSkillBand: 'Intermediate',
     gameIntensityBand: 'High Intensity',
@@ -101,36 +150,6 @@ export function RsvpRoster() {
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg transition-colors">
-
-                  <div className='flex gap-2'>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
-                      <p>MR</p>
-                    </div>
-                    <div>
-                      <div className="text-gray-900 mb-1">{rsvpRosterInfo.gameTitle}</div>
-                      <div className="text-sm text-gray-600">
-                        {rsvpRosterInfo.participantPositionRole} • {rsvpRosterInfo.participantDefaultIntensity}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className='flex gap-2'>
-                      <div>
-                        <Button className='border-2 hover:bg-emerald-200 transition-colors'>
-                          <CircleCheckBig />
-                          Attended
-                        </Button>
-                      </div>
-                      <div>
-                        <Button className='border-2 hover:bg-gray-200 transition-colors'>
-                          <CircleX />
-                          No show
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg transition-colors">
 
                   <div className='flex gap-2'>
