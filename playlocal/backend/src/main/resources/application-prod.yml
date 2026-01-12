@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: playlocal-backend
+
+  # Production Database (Neon DB) - read from env variable
+  datasource:
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Validate schema only, do not auto-create/drop in prod
+    show-sql: false        # Disable SQL logging in prod
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${PORT:8080}  # Render automatically sets $PORT
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+rate-limit:
+  login:
+    max-attempts: 5
+    window-minutes: 15
+  report:
+    max-per-hour: 20
+  general:
+    requests-per-minute: 100
+
+logging:
+  level:
+    com.backend.playlocal: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
