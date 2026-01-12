@@ -41,580 +41,609 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GameServiceJoinLeaveTest {
 
-    @Mock
-    private GameRepository gameRepository;
+        @Mock
+        private GameRepository gameRepository;
 
-    @Mock
-    private GameParticipationRepository participationRepository;
+        @Mock
+        private GameParticipationRepository participationRepository;
 
-    @Mock
-    private UserRepository userRepository;
+        @Mock
+        private UserRepository userRepository;
 
-    @Mock
-    private SportRepository sportRepository;
+        @Mock
+        private SportRepository sportRepository;
 
-    @Mock
-    private LocationRepository locationRepository;
+        @Mock
+        private LocationRepository locationRepository;
 
-    @Mock
-    private GameVisibilityRepository gameVisibilityRepository;
+        @Mock
+        private GameVisibilityRepository gameVisibilityRepository;
 
-    @InjectMocks
-    private GameService gameService;
+        @InjectMocks
+        private GameService gameService;
 
-    private UUID gameId;
-    private UUID userId;
-    private UUID organizerId;
-    private User testUser;
-    private User organizer;
-    private Game testGame;
-    private Sport testSport;
+        private UUID gameId;
+        private UUID userId;
+        private UUID organizerId;
+        private User testUser;
+        private User organizer;
+        private Game testGame;
+        private Sport testSport;
 
-    @BeforeEach
-    void setUp() {
-        gameId = UUID.randomUUID();
-        userId = UUID.randomUUID();
-        organizerId = UUID.randomUUID();
+        @BeforeEach
+        void setUp() {
+                gameId = UUID.randomUUID();
+                userId = UUID.randomUUID();
+                organizerId = UUID.randomUUID();
 
-        testUser = User.builder()
-                .userId(userId)
-                .displayName("Test User")
-                .email("test@example.com")
-                .reliabilityScore(85.0f)
-                .build();
+                testUser = User.builder()
+                                .userId(userId)
+                                .displayName("Test User")
+                                .email("test@example.com")
+                                .reliabilityScore(85.0f)
+                                .build();
 
-        organizer = User.builder()
-                .userId(organizerId)
-                .displayName("Organizer")
-                .email("organizer@example.com")
-                .reliabilityScore(95.0f)
-                .build();
+                organizer = User.builder()
+                                .userId(organizerId)
+                                .displayName("Organizer")
+                                .email("organizer@example.com")
+                                .reliabilityScore(95.0f)
+                                .build();
 
-        testSport = Sport.builder()
-                .sportId(UUID.randomUUID())
-                .name("Basketball")
-                .build();
+                testSport = Sport.builder()
+                                .sportId(UUID.randomUUID())
+                                .name("Basketball")
+                                .build();
 
-        testGame = Game.builder()
-                .gameId(gameId)
-                .createdBy(organizer)
-                .sport(testSport)
-                .title("Test Game")
-                .status(Game.GameStatus.SCHEDULED)
-                .maxPlayers(10)
-                .minPlayers(2)
-                .allowWaitlist(true)
-                .startTime(Instant.now().plusSeconds(3600))
-                .build();
-    }
-
-    // =========================================================================
-    // US 2.5 AC1: If capacity is available, user joins and appears in confirmed
-    // =========================================================================
-    @Nested
-    @DisplayName("US 2.5 AC1: Join with available capacity")
-    class JoinWithCapacity {
-
-        @Test
-        @DisplayName("Should join as CONFIRMED when capacity is available")
-        void joinGame_WhenCapacityAvailable_ShouldReturnConfirmed() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5); // 5/10 spots taken
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> {
-                        GameParticipation p = inv.getArgument(0);
-                        p.setParticipationId(UUID.randomUUID());
-                        return p;
-                    });
-
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
-
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
-            assertThat(response.getWaitlistPosition()).isNull();
-            assertThat(response.getMessage()).contains("Successfully joined");
-
-            // Verify participation was saved with correct status
-            ArgumentCaptor<GameParticipation> captor = ArgumentCaptor.forClass(GameParticipation.class);
-            verify(participationRepository).save(captor.capture());
-            assertThat(captor.getValue().getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+                testGame = Game.builder()
+                                .gameId(gameId)
+                                .createdBy(organizer)
+                                .sport(testSport)
+                                .title("Test Game")
+                                .status(Game.GameStatus.SCHEDULED)
+                                .maxPlayers(10)
+                                .minPlayers(2)
+                                .allowWaitlist(true)
+                                .startTime(Instant.now().plusSeconds(3600))
+                                .build();
         }
 
-        @Test
-        @DisplayName("Should join as CONFIRMED when exactly at capacity - 1")
-        void joinGame_WhenOneSpotLeft_ShouldReturnConfirmed() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(9); // 9/10 spots taken
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> {
-                        GameParticipation p = inv.getArgument(0);
-                        p.setParticipationId(UUID.randomUUID());
-                        return p;
-                    });
+        // =========================================================================
+        // US 2.5 AC1: If capacity is available, user joins and appears in confirmed
+        // =========================================================================
+        @Nested
+        @DisplayName("US 2.5 AC1: Join with available capacity")
+        class JoinWithCapacity {
 
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+                @Test
+                @DisplayName("Should join as CONFIRMED when capacity is available")
+                void joinGame_WhenCapacityAvailable_ShouldReturnConfirmed() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5); // 5/10 spots
+                                                                                                        // taken
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> {
+                                                GameParticipation p = inv.getArgument(0);
+                                                p.setParticipationId(UUID.randomUUID());
+                                                return p;
+                                        });
 
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
-        }
-    }
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-    // =========================================================================
-    // US 2.5 AC2: If full, user is added to waitlist with position
-    // =========================================================================
-    @Nested
-    @DisplayName("US 2.5 AC2: Join when game is full (waitlist)")
-    class JoinToWaitlist {
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
+                        assertThat(response.getWaitlistPosition()).isNull();
+                        assertThat(response.getMessage()).contains("Successfully joined");
 
-        @Test
-        @DisplayName("Should join WAITLIST when game is full")
-        void joinGame_WhenFull_ShouldAddToWaitlist() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10); // FULL
-            when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(1);
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> {
-                        GameParticipation p = inv.getArgument(0);
-                        p.setParticipationId(UUID.randomUUID());
-                        return p;
-                    });
+                        // Verify participation was saved with correct status
+                        ArgumentCaptor<GameParticipation> captor = ArgumentCaptor.forClass(GameParticipation.class);
+                        verify(participationRepository).save(captor.capture());
+                        assertThat(captor.getValue().getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+                }
 
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+                @Test
+                @DisplayName("Should join as CONFIRMED when exactly at capacity - 1")
+                void joinGame_WhenOneSpotLeft_ShouldReturnConfirmed() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(9); // 9/10 spots
+                                                                                                        // taken
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> {
+                                                GameParticipation p = inv.getArgument(0);
+                                                p.setParticipationId(UUID.randomUUID());
+                                                return p;
+                                        });
 
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("WAITLISTED");
-            assertThat(response.getWaitlistPosition()).isEqualTo(1);
-            assertThat(response.getMessage()).contains("waitlist");
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-            // Verify participation was saved with correct status
-            ArgumentCaptor<GameParticipation> captor = ArgumentCaptor.forClass(GameParticipation.class);
-            verify(participationRepository).save(captor.capture());
-            assertThat(captor.getValue().getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.WAITLISTED);
-            assertThat(captor.getValue().getWaitlistPosition()).isEqualTo(1);
-        }
-
-        @Test
-        @DisplayName("Should assign correct waitlist position (3rd in line)")
-        void joinGame_WhenWaitlistHasUsers_ShouldGetCorrectPosition() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10);
-            when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(3); // 2 already waiting
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> {
-                        GameParticipation p = inv.getArgument(0);
-                        p.setParticipationId(UUID.randomUUID());
-                        return p;
-                    });
-
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
-
-            // Then
-            assertThat(response.getWaitlistPosition()).isEqualTo(3);
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
+                }
         }
 
-        @Test
-        @DisplayName("Should throw CapacityExceededException when full and waitlist disabled")
-        void joinGame_WhenFullAndNoWaitlist_ShouldThrowException() {
-            // Given
-            testGame.setAllowWaitlist(false);
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10);
+        // =========================================================================
+        // US 2.5 AC2: If full, user is added to waitlist with position
+        // =========================================================================
+        @Nested
+        @DisplayName("US 2.5 AC2: Join when game is full (waitlist)")
+        class JoinToWaitlist {
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
-                    .isInstanceOf(CapacityExceededException.class)
-                    .hasMessageContaining("full");
-        }
-    }
+                @Test
+                @DisplayName("Should join WAITLIST when game is full")
+                void joinGame_WhenFull_ShouldAddToWaitlist() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10); // FULL
+                        when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(1);
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> {
+                                                GameParticipation p = inv.getArgument(0);
+                                                p.setParticipationId(UUID.randomUUID());
+                                                return p;
+                                        });
 
-    // =========================================================================
-    // US 2.5 AC3: When confirmed player leaves, waitlisted user is promoted
-    // =========================================================================
-    @Nested
-    @DisplayName("US 2.5 AC3: Leave game and auto-promote waitlisted")
-    class LeaveAndPromote {
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-        @Test
-        @DisplayName("Should promote first waitlisted user when confirmed player leaves")
-        void leaveGame_WhenConfirmedLeaves_ShouldPromoteWaitlisted() {
-            // Given
-            GameParticipation confirmedParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .build();
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("WAITLISTED");
+                        assertThat(response.getWaitlistPosition()).isEqualTo(1);
+                        assertThat(response.getMessage()).contains("waitlist");
 
-            User waitlistedUser = User.builder()
-                    .userId(UUID.randomUUID())
-                    .displayName("Waitlisted User")
-                    .build();
+                        // Verify participation was saved with correct status
+                        ArgumentCaptor<GameParticipation> captor = ArgumentCaptor.forClass(GameParticipation.class);
+                        verify(participationRepository).save(captor.capture());
+                        assertThat(captor.getValue().getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.WAITLISTED);
+                        assertThat(captor.getValue().getWaitlistPosition()).isEqualTo(1);
+                }
 
-            GameParticipation waitlistedParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(waitlistedUser)
-                    .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
-                    .waitlistPosition(1)
-                    .build();
+                @Test
+                @DisplayName("Should assign correct waitlist position (3rd in line)")
+                void joinGame_WhenWaitlistHasUsers_ShouldGetCorrectPosition() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10);
+                        when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(3); // 2 already
+                                                                                                     // waiting
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> {
+                                                GameParticipation p = inv.getArgument(0);
+                                                p.setParticipationId(UUID.randomUUID());
+                                                return p;
+                                        });
 
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(confirmedParticipation));
-            when(participationRepository.findFirstWaitlisted(gameId))
-                    .thenReturn(List.of(waitlistedParticipation));
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-            // When
-            gameService.leaveGame(gameId, userId);
+                        // Then
+                        assertThat(response.getWaitlistPosition()).isEqualTo(3);
+                }
 
-            // Then
-            // Verify the leaving user was cancelled
-            assertThat(confirmedParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
-            assertThat(confirmedParticipation.getLeftAt()).isNotNull();
+                @Test
+                @DisplayName("Should throw CapacityExceededException when full and waitlist disabled")
+                void joinGame_WhenFullAndNoWaitlist_ShouldThrowException() {
+                        // Given
+                        testGame.setAllowWaitlist(false);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10);
 
-            // Verify waitlisted user was promoted
-            assertThat(waitlistedParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
-            assertThat(waitlistedParticipation.getWaitlistPosition()).isNull();
-
-            // Verify remaining waitlist positions were decremented
-            verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 1);
-        }
-
-        @Test
-        @DisplayName("Should not promote anyone when no waitlist exists")
-        void leaveGame_WhenNoWaitlist_ShouldNotPromote() {
-            // Given
-            GameParticipation confirmedParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .build();
-
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(confirmedParticipation));
-            when(participationRepository.findFirstWaitlisted(gameId))
-                    .thenReturn(Collections.emptyList());
-
-            // When
-            gameService.leaveGame(gameId, userId);
-
-            // Then
-            assertThat(confirmedParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
-            verify(participationRepository, never()).decrementWaitlistPositionsAfter(any(), anyInt());
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(CapacityExceededException.class)
+                                        .hasMessageContaining("full");
+                }
         }
 
-        @Test
-        @DisplayName("Should decrement waitlist positions when waitlisted user leaves")
-        void leaveGame_WhenWaitlistedLeaves_ShouldDecrementPositions() {
-            // Given
-            GameParticipation waitlistedParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
-                    .waitlistPosition(2)
-                    .build();
+        // =========================================================================
+        // US 2.5 AC3: When confirmed player leaves, waitlisted user is promoted
+        // =========================================================================
+        @Nested
+        @DisplayName("US 2.5 AC3: Leave game and auto-promote waitlisted")
+        class LeaveAndPromote {
 
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(waitlistedParticipation));
+                @Test
+                @DisplayName("Should promote first waitlisted user when confirmed player leaves")
+                void leaveGame_WhenConfirmedLeaves_ShouldPromoteWaitlisted() {
+                        // Given
+                        GameParticipation confirmedParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .build();
 
-            // When
-            gameService.leaveGame(gameId, userId);
+                        User waitlistedUser = User.builder()
+                                        .userId(UUID.randomUUID())
+                                        .displayName("Waitlisted User")
+                                        .build();
 
-            // Then
-            assertThat(waitlistedParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
-            verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 2);
+                        GameParticipation waitlistedParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(waitlistedUser)
+                                        .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                                        .waitlistPosition(1)
+                                        .build();
+
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(confirmedParticipation));
+                        when(participationRepository.findFirstWaitlisted(gameId))
+                                        .thenReturn(List.of(waitlistedParticipation));
+
+                        // When
+                        gameService.leaveGame(gameId, userId);
+
+                        // Then
+                        // Verify the leaving user was cancelled
+                        assertThat(confirmedParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+                        assertThat(confirmedParticipation.getLeftAt()).isNotNull();
+
+                        // Verify waitlisted user was promoted
+                        assertThat(waitlistedParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+                        assertThat(waitlistedParticipation.getWaitlistPosition()).isNull();
+
+                        // Verify remaining waitlist positions were decremented
+                        verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 1);
+                }
+
+                @Test
+                @DisplayName("Should not promote anyone when no waitlist exists")
+                void leaveGame_WhenNoWaitlist_ShouldNotPromote() {
+                        // Given
+                        GameParticipation confirmedParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .build();
+
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(confirmedParticipation));
+                        when(participationRepository.findFirstWaitlisted(gameId))
+                                        .thenReturn(Collections.emptyList());
+
+                        // When
+                        gameService.leaveGame(gameId, userId);
+
+                        // Then
+                        assertThat(confirmedParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+                        verify(participationRepository, never()).decrementWaitlistPositionsAfter(any(), anyInt());
+                }
+
+                @Test
+                @DisplayName("Should decrement waitlist positions when waitlisted user leaves")
+                void leaveGame_WhenWaitlistedLeaves_ShouldDecrementPositions() {
+                        // Given
+                        GameParticipation waitlistedParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                                        .waitlistPosition(2)
+                                        .build();
+
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(waitlistedParticipation));
+
+                        // When
+                        gameService.leaveGame(gameId, userId);
+
+                        // Then
+                        assertThat(waitlistedParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+                        verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 2);
+                }
+
+                @Test
+                @DisplayName("Organizer should NOT be able to leave their own game")
+                void leaveGame_WhenOrganizer_ShouldThrowException() {
+                        // Given
+                        GameParticipation organizerParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(organizer)
+                                        .participationRole(GameParticipation.ParticipationRole.ORGANIZER)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .build();
+
+                        when(participationRepository.findByGameAndUser(gameId, organizerId))
+                                        .thenReturn(Optional.of(organizerParticipation));
+
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.leaveGame(gameId, organizerId))
+                                        .isInstanceOf(IllegalStateException.class)
+                                        .hasMessageContaining("Organizer cannot leave");
+                }
         }
 
-        @Test
-        @DisplayName("Organizer should NOT be able to leave their own game")
-        void leaveGame_WhenOrganizer_ShouldThrowException() {
-            // Given
-            GameParticipation organizerParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(organizer)
-                    .participationRole(GameParticipation.ParticipationRole.ORGANIZER)
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .build();
+        // =========================================================================
+        // Edge Cases & Error Handling
+        // =========================================================================
+        @Nested
+        @DisplayName("Edge Cases & Error Handling")
+        class EdgeCases {
 
-            when(participationRepository.findByGameAndUser(gameId, organizerId))
-                    .thenReturn(Optional.of(organizerParticipation));
+                @Test
+                @DisplayName("Should be idempotent - return existing participation if already joined")
+                void joinGame_WhenAlreadyJoined_ShouldReturnExisting() {
+                        // Given
+                        GameParticipation existingParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .build();
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.leaveGame(gameId, organizerId))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Organizer cannot leave");
-        }
-    }
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(existingParticipation));
 
-    // =========================================================================
-    // Edge Cases & Error Handling
-    // =========================================================================
-    @Nested
-    @DisplayName("Edge Cases & Error Handling")
-    class EdgeCases {
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-        @Test
-        @DisplayName("Should be idempotent - return existing participation if already joined")
-        void joinGame_WhenAlreadyJoined_ShouldReturnExisting() {
-            // Given
-            GameParticipation existingParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .build();
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
+                        assertThat(response.getMessage()).contains("Already joined");
+                        verify(participationRepository, never()).save(any());
+                }
 
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(existingParticipation));
+                @Test
+                @DisplayName("Should allow re-join after cancellation - to CONFIRMED if spots available")
+                void joinGame_WhenRejoinAfterCancel_AndCapacityAvailable_ShouldConfirm() {
+                        // Given
+                        GameParticipation cancelledParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.CANCELLED)
+                                        .leftAt(Instant.now().minusSeconds(3600))
+                                        .build();
 
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(cancelledParticipation));
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5);
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> inv.getArgument(0));
 
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
-            assertThat(response.getMessage()).contains("Already joined");
-            verify(participationRepository, never()).save(any());
-        }
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-        @Test
-        @DisplayName("Should allow re-join after cancellation - to CONFIRMED if spots available")
-        void joinGame_WhenRejoinAfterCancel_AndCapacityAvailable_ShouldConfirm() {
-            // Given
-            GameParticipation cancelledParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .joinStatus(GameParticipation.JoinStatus.CANCELLED)
-                    .leftAt(Instant.now().minusSeconds(3600))
-                    .build();
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
+                        assertThat(cancelledParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+                        assertThat(cancelledParticipation.getLeftAt()).isNull();
+                }
 
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(cancelledParticipation));
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5);
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
+                @Test
+                @DisplayName("Should allow re-join after cancellation - to WAITLIST if full")
+                void joinGame_WhenRejoinAfterCancel_AndFull_ShouldWaitlist() {
+                        // Given
+                        GameParticipation cancelledParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.CANCELLED)
+                                        .leftAt(Instant.now().minusSeconds(3600))
+                                        .build();
 
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(cancelledParticipation));
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10); // FULL
+                        when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(2);
+                        when(participationRepository.save(any(GameParticipation.class)))
+                                        .thenAnswer(inv -> inv.getArgument(0));
 
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
-            assertThat(cancelledParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
-            assertThat(cancelledParticipation.getLeftAt()).isNull();
-        }
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
 
-        @Test
-        @DisplayName("Should allow re-join after cancellation - to WAITLIST if full")
-        void joinGame_WhenRejoinAfterCancel_AndFull_ShouldWaitlist() {
-            // Given
-            GameParticipation cancelledParticipation = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .joinStatus(GameParticipation.JoinStatus.CANCELLED)
-                    .leftAt(Instant.now().minusSeconds(3600))
-                    .build();
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("WAITLISTED");
+                        assertThat(response.getWaitlistPosition()).isEqualTo(2);
+                        assertThat(cancelledParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.WAITLISTED);
+                }
 
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.of(cancelledParticipation));
-            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10); // FULL
-            when(participationRepository.getNextWaitlistPosition(gameId)).thenReturn(2);
-            when(participationRepository.save(any(GameParticipation.class)))
-                    .thenAnswer(inv -> inv.getArgument(0));
+                @Test
+                @DisplayName("Should throw CapacityExceededException when re-joining full game with waitlist disabled")
+                void joinGame_WhenRejoinAfterCancel_AndFullNoWaitlist_ShouldThrow() {
+                        // Given - This covers line 170 in GameService (re-join path)
+                        testGame.setAllowWaitlist(false);
+                        GameParticipation cancelledParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.CANCELLED)
+                                        .leftAt(Instant.now().minusSeconds(3600))
+                                        .build();
 
-            // When
-            GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(cancelledParticipation));
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(10); // FULL
 
-            // Then
-            assertThat(response.getJoinStatus()).isEqualTo("WAITLISTED");
-            assertThat(response.getWaitlistPosition()).isEqualTo(2);
-            assertThat(cancelledParticipation.getJoinStatus())
-                    .isEqualTo(GameParticipation.JoinStatus.WAITLISTED);
-        }
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(CapacityExceededException.class)
+                                        .hasMessageContaining("full");
+                }
 
-        @Test
-        @DisplayName("Should throw when game not found")
-        void joinGame_WhenGameNotFound_ShouldThrow() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.empty());
+                @Test
+                @DisplayName("Should throw when game not found")
+                void joinGame_WhenGameNotFound_ShouldThrow() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.empty());
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Game not found");
-        }
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(ResourceNotFoundException.class)
+                                        .hasMessageContaining("Game not found");
+                }
 
-        @Test
-        @DisplayName("Should throw when user not found")
-        void joinGame_WhenUserNotFound_ShouldThrow() {
-            // Given
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
+                @Test
+                @DisplayName("Should throw when user not found")
+                void joinGame_WhenUserNotFound_ShouldThrow() {
+                        // Given
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("User not found");
-        }
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(ResourceNotFoundException.class)
+                                        .hasMessageContaining("User not found");
+                }
 
-        @Test
-        @DisplayName("Should throw when game is not SCHEDULED")
-        void joinGame_WhenGameNotScheduled_ShouldThrow() {
-            // Given
-            testGame.setStatus(Game.GameStatus.COMPLETED);
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                @Test
+                @DisplayName("Should throw when game is not SCHEDULED")
+                void joinGame_WhenGameNotScheduled_ShouldThrow() {
+                        // Given
+                        testGame.setStatus(Game.GameStatus.COMPLETED);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("not scheduled");
-        }
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(IllegalStateException.class)
+                                        .hasMessageContaining("not scheduled");
+                }
 
-        @Test
-        @DisplayName("Should throw AccessDeniedException when reliability too low")
-        void joinGame_WhenReliabilityTooLow_ShouldThrow() {
-            // Given
-            testGame.setMinReliabilityRequired(90.0f);
-            testUser.setReliabilityScore(70.0f); // Below requirement
+                @Test
+                @DisplayName("Should throw AccessDeniedException when reliability too low")
+                void joinGame_WhenReliabilityTooLow_ShouldThrow() {
+                        // Given
+                        testGame.setMinReliabilityRequired(90.0f);
+                        testUser.setReliabilityScore(70.0f); // Below requirement
 
-            when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-            when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
-                    .isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("reliability");
-        }
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(AccessDeniedException.class)
+                                        .hasMessageContaining("reliability");
+                }
 
-        @Test
-        @DisplayName("Should throw when trying to leave non-existent participation")
-        void leaveGame_WhenNotParticipant_ShouldThrow() {
-            // Given
-            when(participationRepository.findByGameAndUser(gameId, userId))
-                    .thenReturn(Optional.empty());
+                @Test
+                @DisplayName("Should throw when trying to leave non-existent participation")
+                void leaveGame_WhenNotParticipant_ShouldThrow() {
+                        // Given
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.empty());
 
-            // When/Then
-            assertThatThrownBy(() -> gameService.leaveGame(gameId, userId))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Participation not found");
-        }
-    }
-
-    // =========================================================================
-    // Roster Response Tests
-    // =========================================================================
-    @Nested
-    @DisplayName("US 2.5 AC5: Get Roster (confirmed + waitlisted)")
-    class GetRoster {
-
-        @Test
-        @DisplayName("Should return separate confirmed and waitlisted lists")
-        void getRoster_ShouldReturnBothLists() {
-            // Given
-            GameParticipation confirmed = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(testUser)
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .joinedAt(Instant.now())
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .build();
-
-            User waitlistedUser = User.builder()
-                    .userId(UUID.randomUUID())
-                    .displayName("Waitlisted")
-                    .build();
-
-            GameParticipation waitlisted = GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(waitlistedUser)
-                    .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
-                    .waitlistPosition(1)
-                    .joinedAt(Instant.now())
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .build();
-
-            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findConfirmedByGame(gameId)).thenReturn(List.of(confirmed));
-            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of(waitlisted));
-
-            // When
-            GameDto.RosterResponse roster = gameService.getRoster(gameId);
-
-            // Then
-            assertThat(roster.getConfirmed()).hasSize(1);
-            assertThat(roster.getWaitlisted()).hasSize(1);
-            assertThat(roster.getMaxPlayers()).isEqualTo(10);
-            assertThat(roster.getSpotsAvailable()).isEqualTo(9); // 10 - 1 confirmed
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.leaveGame(gameId, userId))
+                                        .isInstanceOf(ResourceNotFoundException.class)
+                                        .hasMessageContaining("Participation not found");
+                }
         }
 
-        @Test
-        @DisplayName("Should calculate spots available correctly")
-        void getRoster_ShouldCalculateSpotsCorrectly() {
-            // Given
-            testGame.setMaxPlayers(5);
+        // =========================================================================
+        // Roster Response Tests
+        // =========================================================================
+        @Nested
+        @DisplayName("US 2.5 AC5: Get Roster (confirmed + waitlisted)")
+        class GetRoster {
 
-            List<GameParticipation> confirmedList = List.of(
-                    createConfirmedParticipation(),
-                    createConfirmedParticipation(),
-                    createConfirmedParticipation());
+                @Test
+                @DisplayName("Should return separate confirmed and waitlisted lists")
+                void getRoster_ShouldReturnBothLists() {
+                        // Given
+                        GameParticipation confirmed = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .joinedAt(Instant.now())
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .build();
 
-            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
-            when(participationRepository.findConfirmedByGame(gameId)).thenReturn(confirmedList);
-            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(Collections.emptyList());
+                        User waitlistedUser = User.builder()
+                                        .userId(UUID.randomUUID())
+                                        .displayName("Waitlisted")
+                                        .build();
 
-            // When
-            GameDto.RosterResponse roster = gameService.getRoster(gameId);
+                        GameParticipation waitlisted = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(waitlistedUser)
+                                        .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                                        .waitlistPosition(1)
+                                        .joinedAt(Instant.now())
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .build();
 
-            // Then
-            assertThat(roster.getSpotsAvailable()).isEqualTo(2); // 5 - 3 = 2
+                        when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findConfirmedByGame(gameId)).thenReturn(List.of(confirmed));
+                        when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of(waitlisted));
+
+                        // When
+                        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+
+                        // Then
+                        assertThat(roster.getConfirmed()).hasSize(1);
+                        assertThat(roster.getWaitlisted()).hasSize(1);
+                        assertThat(roster.getMaxPlayers()).isEqualTo(10);
+                        assertThat(roster.getSpotsAvailable()).isEqualTo(9); // 10 - 1 confirmed
+                }
+
+                @Test
+                @DisplayName("Should calculate spots available correctly")
+                void getRoster_ShouldCalculateSpotsCorrectly() {
+                        // Given
+                        testGame.setMaxPlayers(5);
+
+                        List<GameParticipation> confirmedList = List.of(
+                                        createConfirmedParticipation(),
+                                        createConfirmedParticipation(),
+                                        createConfirmedParticipation());
+
+                        when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findConfirmedByGame(gameId)).thenReturn(confirmedList);
+                        when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(Collections.emptyList());
+
+                        // When
+                        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+
+                        // Then
+                        assertThat(roster.getSpotsAvailable()).isEqualTo(2); // 5 - 3 = 2
+                }
+
+                private GameParticipation createConfirmedParticipation() {
+                        return GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(User.builder().userId(UUID.randomUUID()).displayName("Player").build())
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .joinedAt(Instant.now())
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .build();
+                }
         }
-
-        private GameParticipation createConfirmedParticipation() {
-            return GameParticipation.builder()
-                    .participationId(UUID.randomUUID())
-                    .game(testGame)
-                    .user(User.builder().userId(UUID.randomUUID()).displayName("Player").build())
-                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                    .joinedAt(Instant.now())
-                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
-                    .build();
-        }
-    }
 }
