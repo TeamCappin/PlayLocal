@@ -256,7 +256,7 @@ export function UserProfile() {
           </div>
         </div>
 
-        <div className="py-8">
+        <div>
           <ActionsRequired />
         </div>
 
