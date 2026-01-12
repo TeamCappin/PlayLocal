@@ -5,8 +5,10 @@ spring:
   # Production Database (Neon DB) - read from env variable
   datasource:
     url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: validate   # Validate schema only, do not auto-create/drop in prod
