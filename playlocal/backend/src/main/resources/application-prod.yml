@@ -11,7 +11,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate   # Validate schema only, do not auto-create/drop in prod
+      ddl-auto: update
     show-sql: false        # Disable SQL logging in prod
     properties:
       hibernate:
