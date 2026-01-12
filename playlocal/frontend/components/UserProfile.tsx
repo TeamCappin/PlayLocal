@@ -6,12 +6,16 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
+import { ScoreHistoryList } from './ScoreHistoryList'; 
+import { ScoreHistoryEntry } from '@/lib/api';           
+
+
 
 export function UserProfile() {
   const { username } = useParams();
   const usernameStr = Array.isArray(username) ? username[0] : username;
   const { user: currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats' | 'score-history'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -308,6 +312,15 @@ export function UserProfile() {
             >
               Stats & Analytics
             </button>
+            <button
+              onClick={() => setActiveTab('score-history')}
+              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'score-history'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              Score History
+            </button>
           </div>
         </div>
 
@@ -523,6 +536,15 @@ export function UserProfile() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'score-history' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
+              <ScoreHistoryList 
+                userId={isOwnProfile ? undefined : user.userId || undefined}
+              />
             </div>
           )}
         </div>
