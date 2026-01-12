@@ -154,10 +154,35 @@ public class GameService {
                                                 .build();
                         }
                         // User previously cancelled - allow re-join
-                        participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
+                        // Must check capacity to determine CONFIRMED vs WAITLISTED
+                        int confirmedCount = participationRepository.countConfirmedParticipants(gameId);
+                        
+                        if (confirmedCount < game.getMaxPlayers()) {
+                                // Capacity available - rejoin as CONFIRMED
+                                participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
+                                participation.setWaitlistPosition(null);
+                        } else if (game.getAllowWaitlist()) {
+                                // Game full - rejoin to waitlist
+                                int nextPosition = participationRepository.getNextWaitlistPosition(gameId);
+                                participation.setJoinStatus(GameParticipation.JoinStatus.WAITLISTED);
+                                participation.setWaitlistPosition(nextPosition);
+                        } else {
+                                throw new CapacityExceededException("Game is full and waitlist is not enabled");
+                        }
+                        
                         participation.setLeftAt(null);
                         participation.setJoinedAt(Instant.now());
-                        participationRepository.save(participation);
+                        participation = participationRepository.save(participation);
+                        
+                        // Return immediately - don't fall through to create new participation
+                        return GameDto.JoinResponse.builder()
+                                        .participationId(participation.getParticipationId().toString())
+                                        .joinStatus(participation.getJoinStatus().name())
+                                        .waitlistPosition(participation.getWaitlistPosition())
+                                        .message(participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
+                                                        ? "Successfully rejoined the game"
+                                                        : "Rejoined waitlist at position " + participation.getWaitlistPosition())
+                                        .build();
                 }
 
                 // Count current confirmed participants
