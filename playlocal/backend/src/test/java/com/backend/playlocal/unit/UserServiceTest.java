@@ -49,6 +49,7 @@ class UserServiceTest {
                 .userId(UUID.randomUUID())
                 .email("test@example.com")
                 .displayName("Test User")
+                .slug("test-user-" + UUID.randomUUID())
                 .status(User.UserStatus.ACTIVE)
                 .reliabilityScore(100.0f)
                 .build();
@@ -116,5 +117,64 @@ class UserServiceTest {
 
         assertThat(response.getUsers()).hasSize(1);
         verify(userRepository).findAllActive(any(PageRequest.class));
+    }
+
+    @Test
+    @DisplayName("US-1.4: getProfileBySlug should return profile when found")
+    void getProfileBySlug_Success() {
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-user-slug")).thenReturn(Optional.of(user));
+
+        AuthDto.UserDto result = userService.getProfileBySlug("test-user-slug");
+
+        assertThat(result.getEmail()).isEqualTo("test@example.com");
+    }
+
+    @Test
+    @DisplayName("US-1.4: getProfileBySlug should throw exception when not found")
+    void getProfileBySlug_NotFound() {
+        when(userRepository.findBySlugAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getProfileBySlug("unknown"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User not found");
+    }
+
+    @Test
+    @DisplayName("US-1.4: updateProfile should regenerate slug when display name changes")
+    void updateProfile_RegeneratesSlug() {
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(anyString(), any(UUID.class))).thenReturn(false);
+
+        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
+                .displayName("New Display Name")
+                .build();
+
+        AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
+
+        assertThat(result.getDisplayName()).isEqualTo("New Display Name");
+        assertThat(result.getSlug()).isEqualTo("new-display-name");
+    }
+
+    @Test
+    @DisplayName("US-1.4: updateProfile handles slug collision by appending counter")
+    void updateProfile_HandlesSlugCollision() {
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Mock collision for base slug "collision-user"
+        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user", user.getUserId()))
+                .thenReturn(true);
+        // Mock no collision for "collision-user-1"
+        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user-1", user.getUserId()))
+                .thenReturn(false);
+
+        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
+                .displayName("Collision User")
+                .build();
+
+        AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
+
+        assertThat(result.getSlug()).isEqualTo("collision-user-1");
     }
 }

@@ -39,6 +39,7 @@ class UserServiceAdditionalTest {
         User user = User.builder()
                 .userId(UUID.randomUUID())
                 .displayName("Test User")
+                .slug("test-user-" + UUID.randomUUID())
                 .createdAt(Instant.now())
                 .build();
         Page<User> page = new PageImpl<>(List.of(user));
@@ -61,6 +62,7 @@ class UserServiceAdditionalTest {
         User existingUser = User.builder()
                 .userId(userId)
                 .displayName("Original Name")
+                .slug("original-name-" + UUID.randomUUID())
                 .bio("Original Bio")
                 .build();
 

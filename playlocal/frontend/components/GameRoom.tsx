@@ -1,16 +1,37 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
+import { ReportModal } from './ReportModal';
+
+// Helper to get image by sport (US 2.2)
+function getSportImage(sport: string) {
+  const images: Record<string, string> = {
+    'Basketball': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
+    'Soccer': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
+    'Tennis': 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
+    'Volleyball': 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
+    'Badminton': 'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
+    'Baseball': '/images/sports/baseball.jpg',
+    'Hockey': 'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
+    'Ultimate Frisbee': '/images/sports/ultimate-frisbee.jpg',
+    'Flag Football': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
+    'Softball': 'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
+    'Pickleball': 'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
+  };
+  return images[sport] || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080';
+}
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
-  gameId: '1',
+  gameId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   title: '5v5 Basketball Pickup',
   sportName: 'Basketball',
-  location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal' },
+  location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal', latitude: 45.5312, longitude: -73.6205 },
+  hasExactLocationAccess: true, // US-1.3: Mock assumes participant access
+  approximateLocation: 'Montreal, QC',
   startTime: new Date().toISOString(),
   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   confirmedCount: 8,
@@ -20,24 +41,24 @@ const mockGame = {
   intensityBand: 'High',
   indoorOutdoor: 'outdoor',
   description: 'Looking for some competitive basketball! We\'ll do team balancing based on skill levels. Bring water and good vibes.',
-  organizer: { userId: '1', displayName: 'Minh H.', reliabilityScore: 98 },
+  organizer: { userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh H.', reliabilityScore: 98 },
   status: 'SCHEDULED',
 };
 
 const mockRoster = {
   confirmed: [
-    { participationId: '1', userId: '1', displayName: 'Minh Huynh', role: 'ORGANIZER', joinStatus: 'CONFIRMED', reliabilityScore: 98, joinedAt: new Date().toISOString() },
-    { participationId: '2', userId: '2', displayName: 'Omar Elmasaoudi', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 95, joinedAt: new Date().toISOString() },
-    { participationId: '3', userId: '3', displayName: 'Asif Ali Khan', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 92, joinedAt: new Date().toISOString() },
-    { participationId: '4', userId: '4', displayName: 'Melissa Rahman', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 88, joinedAt: new Date().toISOString() },
-    { participationId: '5', userId: '5', displayName: 'Younes Bouhaba', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 97, joinedAt: new Date().toISOString() },
-    { participationId: '6', userId: '6', displayName: 'Alexander El Ghaoui', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 90, joinedAt: new Date().toISOString() },
-    { participationId: '7', userId: '7', displayName: 'David Onwionoko', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 85, joinedAt: new Date().toISOString() },
-    { participationId: '8', userId: '8', displayName: 'Steven Zrihen', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 93, joinedAt: new Date().toISOString() },
+    { participationId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh Huynh', role: 'ORGANIZER', joinStatus: 'CONFIRMED', reliabilityScore: 98, joinedAt: new Date().toISOString() },
+    { participationId: 'd4e5f6a7-b890-1234-def0-234567890123', userId: 'd4e5f6a7-b890-1234-def0-234567890124', displayName: 'Omar Elmasaoudi', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 95, joinedAt: new Date().toISOString() },
+    { participationId: 'e5f6a7b8-9012-3456-ef01-345678901234', userId: 'e5f6a7b8-9012-3456-ef01-345678901235', displayName: 'Asif Ali Khan', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 92, joinedAt: new Date().toISOString() },
+    { participationId: 'f6a7b890-1234-5678-f012-456789012345', userId: 'f6a7b890-1234-5678-f012-456789012346', displayName: 'Melissa Rahman', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 88, joinedAt: new Date().toISOString() },
+    { participationId: 'a7b89012-3456-789a-0123-567890123456', userId: 'a7b89012-3456-789a-0123-567890123457', displayName: 'Younes Bouhaba', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 97, joinedAt: new Date().toISOString() },
+    { participationId: 'b8901234-5678-9abc-1234-678901234567', userId: 'b8901234-5678-9abc-1234-678901234568', displayName: 'Alexander El Ghaoui', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 90, joinedAt: new Date().toISOString() },
+    { participationId: 'c9012345-6789-abcd-2345-789012345678', userId: 'c9012345-6789-abcd-2345-789012345679', displayName: 'David Onwionoko', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 85, joinedAt: new Date().toISOString() },
+    { participationId: 'd0123456-789a-bcde-3456-890123456789', userId: 'd0123456-789a-bcde-3456-890123456780', displayName: 'Steven Zrihen', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 93, joinedAt: new Date().toISOString() },
   ],
   waitlisted: [
-    { participationId: '9', userId: '9', displayName: 'Youssef Yacoub', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 1, reliabilityScore: 87, joinedAt: new Date().toISOString() },
-    { participationId: '10', userId: '10', displayName: 'Hudson Lu', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 2, reliabilityScore: 82, joinedAt: new Date().toISOString() },
+    { participationId: 'e1234567-89ab-cdef-4567-901234567890', userId: 'e1234567-89ab-cdef-4567-901234567891', displayName: 'Youssef Yacoub', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 1, reliabilityScore: 87, joinedAt: new Date().toISOString() },
+    { participationId: 'f2345678-9abc-def0-5678-012345678901', userId: 'f2345678-9abc-def0-5678-012345678902', displayName: 'Hudson Lu', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 2, reliabilityScore: 82, joinedAt: new Date().toISOString() },
   ],
   maxPlayers: 10,
   spotsAvailable: 2,
@@ -56,6 +77,7 @@ export function GameRoom() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Use API data if available, fallback to mock
   const game = apiGame || mockGame;
@@ -138,7 +160,7 @@ export function GameRoom() {
       {/* Hero Image */}
       <div className="relative h-64 bg-gradient-to-br from-gray-900 to-gray-700">
         <img
-          src="https://images.unsplash.com/photo-1709552899537-8f0a171aaf40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBvdXRkb29yfGVufDF8fHx8MTc2NjE2MTQzMnww&ixlib=rb-4.1.0&q=80&w=1080"
+          src={getSportImage(game.sportName)}
           alt={game.title}
           className="w-full h-full object-cover opacity-60"
         />
@@ -164,7 +186,7 @@ export function GameRoom() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                <span>{game.location?.name}</span>
+                <span>{game.location?.name || game.approximateLocation || 'Location Hidden'}</span>
               </div>
             </div>
           </div>
@@ -244,12 +266,34 @@ export function GameRoom() {
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">Location</h3>
                       <div className="p-4 bg-gray-100 rounded-lg">
-                        <p className="text-gray-900 mb-1">{game.location?.name}</p>
-                        <p className="text-gray-600 text-sm mb-3">{game.location?.addressLine || game.location?.city}</p>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                          <ExternalLink className="w-4 h-4" />
-                          <span>Open in Google Maps</span>
-                        </button>
+                        {game.hasExactLocationAccess && game.location ? (
+                          <>
+                            <p className="text-gray-900 mb-1">{game.location.name}</p>
+                            <p className="text-gray-600 text-sm mb-3">{game.location.addressLine || game.location.city}</p>
+                            <a
+                              href={game.location.latitude && game.location.longitude
+                                ? `https://www.google.com/maps/search/?api=1&query=${game.location.latitude},${game.location.longitude}`
+                                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location.addressLine || game.location.name || game.location.city || '')}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              <span>Open in Google Maps</span>
+                            </a>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="w-5 h-5 text-gray-400" />
+                              <p className="text-gray-900 font-medium">{game.approximateLocation || 'Location hidden'}</p>
+                            </div>
+                            <p className="text-gray-500 text-sm italic">
+                              {isAuthenticated ? 'Join this game to view the exact location.' : 'Sign in and join to view location.'}
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -478,6 +522,16 @@ export function GameRoom() {
                 <Share2 className="w-5 h-5" />
                 <span>Share Game</span>
               </button>
+
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Flag className="w-5 h-5" />
+                  <span>Report Game</span>
+                </button>
+              )}
             </div>
 
             {/* Host Card */}
@@ -543,6 +597,15 @@ export function GameRoom() {
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        gameId={game.gameId}
+        targetName={game.title}
+        reportType="game"
+      />
     </div>
   );
 }
