@@ -1,0 +1,21 @@
+name: Deploy Full Stack on Release
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Trigger Render Backend Deploy
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_URL }}"
+
+      - name: Trigger Netlify Frontend Deploy
+        run: |
+          curl -X POST "${{ secrets.NETLIFY_DEPLOY_HOOK }}"
