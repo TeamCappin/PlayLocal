@@ -11,34 +11,32 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false        # Disable SQL logging in prod
+      ddl-auto: none          # Do NOT validate schema, accept new columns/enums
+    show-sql: false            # Disable SQL logging to speed up startup
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
+    open-in-view: false         # Prevent queries during view rendering
 
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    validate-on-migrate: false
+    validate-on-migrate: false  # Skip checksum validation, always accept migrations
 
 server:
-  port: ${PORT:8080}  # Render automatically sets $PORT
+  port: ${PORT:8080}           # Render automatically sets $PORT
 
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
-rate-limit:
-  login:
-    max-attempts: 5
-    window-minutes: 15
-  report:
-    max-per-hour: 20
-  general:
-    requests-per-minute: 100
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health         # Only expose /actuator/health to reduce overhead
 
 logging:
   level:
