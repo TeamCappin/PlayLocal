@@ -5,13 +5,20 @@ import { CircleCheckBig, CircleX, TriangleAlert, CircleAlert } from 'lucide-reac
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useGame } from '@/hooks/useGames';
+import { useAttendance } from '@/hooks/useAttendance';
+import { format } from 'date-fns';
+import { RosterHeader } from './sub-components/RosterHeader';
 
 
 export function RsvpRoster() {
   const navigate = useRouter();
-  const { gameId } = useParams();
+  const params = useParams();
+  const gameId = params?.gameId as string;
   // TODO MEL delete later
   console.log('RsvpRoster component loaded for gameId:', gameId);
+  const { game, error, refetch } = useGame(gameId);
+  const { pendingAttendance, isLoading, isSubmitting, error: attendanceError, fetchPending, confirmAttendance } = useAttendance(gameId);
 
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) {
@@ -57,13 +64,13 @@ export function RsvpRoster() {
 
   const rsvpRosterInfo = {
     gameId: gameId, //game
-    sportName: 'Basketball', //sport
-    gameSkillBand: 'Intermediate',
-    gameIntensityBand: 'High Intensity',
-    gameStatus: 'COMPLETED',
-    gameTitle: '5v5 Basketball Pickup',
-    gameStartTime: new Date().toISOString(),
-    gameLocationId: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    sportName: game?.sportName, //sport
+    gameSkillBand: game?.skillBand,
+    gameIntensityBand: game?.intensityBand,
+    gameStatus: game?.status,
+    gameTitle: game?.title, //game
+    gameStartTime: game?.startTime ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : 'Date Template',
+    locationName: game?.location?.name, //location
     locationName: 'Parc Jary Courts', //location
     uiPlayerCountAttended: 0,
     uiPlayerCountNoShows: 0,
@@ -77,6 +84,7 @@ export function RsvpRoster() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <RosterHeader game={game} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-8">
 

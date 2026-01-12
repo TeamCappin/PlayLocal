@@ -155,12 +155,19 @@ public class ReliabilityService {
         }
 
         return participationRepository.findForAttendanceConfirmation(gameId).stream()
-                .filter(p -> p.getAttendanceStatus() == GameParticipation.AttendanceStatus.UNKNOWN)
+        List<AttendanceDto.AttendanceEntry> pendingEntries = participationRepository
+                .findForAttendanceConfirmation(gameId).stream()
+                .filter(p -> p.getAttendanceStatus() != GameParticipation.AttendanceStatus.UNKNOWN)
                 .map(p -> AttendanceDto.AttendanceEntry.builder()
                         .participationId(p.getParticipationId().toString())
                         .attendanceStatus("UNKNOWN")
+                        .userId(p.getUser().getUserId().toString())
+                        .sportId(p.getSport().getSportId().toString())
+                        // TODO fetch actual position role - figure out the position role table
+                        .requestedPositionRoleId("HARD CODED POSITION ROLE")
                         .build())
                 .collect(Collectors.toList());
+        return pendingEntries;
     }
 
     /**
