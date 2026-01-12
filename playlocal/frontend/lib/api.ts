@@ -301,6 +301,8 @@ export const gamesApi = {
         }),
 
     getUpcoming: () => apiFetch<GameResponse[]>('/games'),
+    
+    getPastByUser: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserId/${userId}`),
 
     getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 

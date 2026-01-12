@@ -54,6 +54,28 @@ public class GameController {
     }
 
     /**
+     * Get previous games created by a user.
+     * US-2.6: Get Past Games
+     */ 
+    @GetMapping ("/pastByUserId/{userId}")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGames(
+            @PathVariable UUID userId,
+            Authentication authentication) {
+        UUID authenticatedUserId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                authenticatedUserId = UUID.fromString(authentication.getName());
+                System.out.println("User ID received from Frontend" + userId);
+                // TODO MEL - Figure out what auth needs to be done here
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid UUIDs (e.g. anonymousUser)
+            }
+        }
+        List<GameDto.GameResponse> games = gameService.getPastGamesForUser(userId);
+        return ResponseEntity.ok(games);
+    }
+
+    /**
      * Get game by ID.
      * US-2.4: Game Page
      * US-1.3: Hides exact location if user is not confirmed participant

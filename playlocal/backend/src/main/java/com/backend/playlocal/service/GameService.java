@@ -115,6 +115,17 @@ public class GameService {
         }
 
         /**
+         * 
+         * Get past games created by user. US-2.6
+         */
+        public List<GameDto.GameResponse> getPastGamesForUser(UUID userId) {
+                return gameRepository.findPastGamesForUser(userId).stream()
+                                .map(game -> mapToGameResponse(game, userId))
+                                .collect(Collectors.toList());
+        }
+
+
+        /**
          * CRITICAL: Concurrency-safe join. US-2.5
          * Uses SELECT FOR UPDATE to prevent overbooking.
          */
