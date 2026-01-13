@@ -15,27 +15,6 @@ export function ActionsRequired() {
   const { games, isLoading, error, refetch } = usePastGamesByUser(user?.userId || '');
   console.log('Past games fetched from API:', games);
   const actionsRequired = games.length;
-  // const gamesLeftToMarkAttendanceFor = [
-  //   {
-  //     id: '1',
-  //     createdBy: 'user123',
-  //     title: '5v5 Basketball Pickup',
-  //     sport: 'Basketball',
-  //     date: 'Dec 18, 2024',
-  //   },
-  //   {
-  //     id: '2',
-  //     title: 'Friendly Soccer Match',
-  //     sport: 'Soccer',
-  //     date: 'Dec 15, 2024',
-  //   },
-  //   {
-  //     id: '3',
-  //     title: 'Ultimate Frisbee Pickup',
-  //     sport: 'Ultimate Frisbee',
-  //     date: 'Dec 10, 2024',
-  //   },
-  // ];
 
   const handleClickConfirmAttendance = () => {
     if (!isAuthenticated) {

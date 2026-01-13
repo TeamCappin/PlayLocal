@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { Button } from './ui/button';
 import { CircleCheckBig, CircleX, TriangleAlert, CircleAlert } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -9,78 +8,76 @@ import { useGame } from '@/hooks/useGames';
 import { useAttendance } from '@/hooks/useAttendance';
 import { format } from 'date-fns';
 import { RosterHeader } from './sub-components/RosterHeader';
+import { RosterList } from './sub-components/RosterList';
+import { useState } from 'react';
 
+type Status = 'ATTENDED' | 'NO_SHOW' | 'UNKNOWN';
 
 export function RsvpRoster() {
   const navigate = useRouter();
   const params = useParams();
   const gameId = params?.gameId as string;
-  // TODO MEL delete later
-  console.log('RsvpRoster component loaded for gameId:', gameId);
   const { game, error, refetch } = useGame(gameId);
   const { pendingAttendance, isLoading, isSubmitting, error: attendanceError, fetchPending, confirmAttendance } = useAttendance(gameId);
+
+  const [attendanceStatuses, setAttendanceStatuses] = useState<Record<string, {
+    status: Status;
+    participationId: string;
+  }>>({});
+
+  const uiPlayerCountAttended = Object.values(attendanceStatuses).filter(s => s.status === 'ATTENDED').length;
+  const uiPlayerCountNoShows = Object.values(attendanceStatuses).filter(s => s.status === 'NO_SHOW').length;
+  const uiParticipantsCountLeftToMark = pendingAttendance.length - uiPlayerCountAttended - uiPlayerCountNoShows;
+
+
+  const uiPlayerCountTotal = pendingAttendance.length;
+
+  const handleAttendanceChange = (participationId: string, status: Status) => {
+    setAttendanceStatuses(prev => ({
+      ...prev,
+      [participationId]: {
+        status,
+        participationId,
+      }
+    }));
+  };
+
+  // Submit attendance to backend
+  const handleSubmit = async () => {
+    // Populate AttendanceEntry array with all required fields
+    const attendances = Object.values(attendanceStatuses).map(entry => {
+      const participant = pendingAttendance.find(p => p.participationId === entry.participationId);
+      return {
+        participationId: entry.participationId,
+        attendanceStatus: entry.status as 'ATTENDED' | 'NO_SHOW',
+        userId: participant?.userId || '',
+        sportId: participant?.sportId || '',
+        requestedPositionRoleId: participant?.requestedPositionRoleId || '',
+      };
+    });
+
+    if (attendances.length !== pendingAttendance.length) {
+      alert('Please mark all players before submitting');
+      return;
+    }
+
+    try {
+      console.log('Submitting attendance:', attendances);
+      const response = await confirmAttendance(attendances);
+      console.log('Attendance submitted successfully:', response);
+      navigate.push('/profile');
+    } catch (err) {
+      console.error('Failed to submit attendance:', err);
+      alert('Failed to submit attendance. Please try again.');
+    }
+  };
+
 
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) {
     navigate.push('/login');
     return;
   }
-
-  type RsvpRosterInfo = {
-    // Game
-    gameId: string;
-    gameTitle: string;
-    gameStartTime: string;
-    gameStatus: 'COMPLETED' | 'CANCELLED' | 'UPCOMING';
-
-    // Sport / metadata
-    sportName: string;
-    gameSkillBand: string;
-    gameIntensityBand: string;
-
-    // Location
-    gameLocationId: string;
-    locationName: string;
-
-    // UI counters (derived)
-    uiPlayerCountAttended: number;
-    uiPlayerCountNoShows: number;
-    uiPlayerCountTotal: number;
-    uiParticipantsCountLeftToMark: number;
-
-    // Participants (inline object, not separate type)
-    participants: {
-      participationId: string;
-      userId: string;
-      displayName: string;
-      positionRole: string;
-      defaultIntensity: string;
-      attendanceStatus: 'ATTENDED' | 'NO_SHOW' | 'UNKNOWN';
-    }[];
-  };
-
-
-  const rsvpRosterInfoList: RsvpRosterInfo[] = []; // TODO MEL fetch based on gameId
-
-  const rsvpRosterInfo = {
-    gameId: gameId, //game
-    sportName: game?.sportName, //sport
-    gameSkillBand: game?.skillBand,
-    gameIntensityBand: game?.intensityBand,
-    gameStatus: game?.status,
-    gameTitle: game?.title, //game
-    gameStartTime: game?.startTime ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : 'Date Template',
-    locationName: game?.location?.name, //location
-    locationName: 'Parc Jary Courts', //location
-    uiPlayerCountAttended: 0,
-    uiPlayerCountNoShows: 0,
-    uiPlayerCountTotal: 8,
-    participantsList: ['get participants ids based on gameId', 'get name based on participation_id -> user_id -> display_name', 'get game role based on sport_id + requested_position_role_id -> name'], //game_participation
-    participantPositionRole: 'Guard',
-    participantDefaultIntensity: 'Intermediate', //'game_participation_id -> user_id -> default_intensity',
-    uiParticipantsCountLeftToMark: 0,
-  };
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,7 +107,7 @@ export function RsvpRoster() {
               </div>
               <div className='flex-col'>
                 <div className="text-3xl text-gray-900">
-                  {rsvpRosterInfo.uiPlayerCountAttended}
+                  {uiPlayerCountAttended}
                 </div>
                 <div className='text-gray-600'>
                   Attended
@@ -124,7 +121,7 @@ export function RsvpRoster() {
               </div>
               <div className='flex-col'>
                 <div className="text-3xl text-gray-900">
-                  {rsvpRosterInfo.uiPlayerCountNoShows}
+                  {uiPlayerCountNoShows}
                 </div>
                 <div className='text-gray-600'>
                   No Shows
@@ -138,7 +135,7 @@ export function RsvpRoster() {
               </div>
               <div className='flex-col'>
                 <div className="text-3xl text-gray-900">
-                  {rsvpRosterInfo.uiParticipantsCountLeftToMark}
+                  {uiParticipantsCountLeftToMark}
                 </div>
                 <div className='text-gray-600'>
                   Not Marked
@@ -151,67 +148,52 @@ export function RsvpRoster() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex-col">
                 <div className='text-3xl text-gray-900 mb-2'>
-                  RSVP Roster ({rsvpRosterInfo.uiPlayerCountTotal} players)
+                  RSVP Roster ({uiPlayerCountTotal} players)
                 </div>
                 <div className='text-gray-600 pb-6'>
                   Mark each player as attended or no-show
                 </div>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg transition-colors">
+              {pendingAttendance.map((p) => (
+                <RosterList
+                  key={p.participationId}
+                  userId={p.userId}
+                  participationId={p.participationId}
+                  currentStatus={attendanceStatuses[p.participationId]?.status || 'UNKNOWN'}
+                  onStatusChange={handleAttendanceChange}
+                />
+              ))}
+            </div>
+          </div>
 
-                  <div className='flex gap-2'>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
-                      <p>MR</p>
-                    </div>
-                    <div>
-                      <div className="text-gray-900 mb-1">{rsvpRosterInfo.gameTitle}</div>
-                      <div className="text-sm text-gray-600">
-                        {rsvpRosterInfo.participantPositionRole} • {rsvpRosterInfo.participantDefaultIntensity}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className='flex gap-2'>
-                      <div>
-                        <Button className='border-2 hover:bg-emerald-200 transition-colors'>
-                          <CircleCheckBig />
-                          Attended
-                        </Button>
-                      </div>
-                      <div>
-                        <Button className='border-2 hover:bg-gray-200 transition-colors'>
-                          <CircleX />
-                          No show
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+          {uiParticipantsCountLeftToMark != 0 && (
+            <div className="flex bg-amber-50 rounded-xl border border-gray-200 px-6 py-3 mt-8 gap-4 items-center">
+              <div>
+                <CircleAlert className='text-red-600 w-8 h-8' />
+              </div>
+              <div className='flex-col'>
+                <div className="text-xl text-gray-900 mb-2">
+                  You must mark all players before submitting
+                </div>
+                <div>
+                  {uiParticipantsCountLeftToMark} players still need to be marked.
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="flex bg-amber-50 rounded-xl border border-gray-200 px-6 py-3 mt-8 gap-4 items-center">
-            <div>
-              <CircleAlert className='text-red-600 w-8 h-8' />
-            </div>
-            <div className='flex-col'>
-              <div className="text-xl text-gray-900 mb-2">
-                You must mark all players before submitting
-              </div>
-              <div>
-                {rsvpRosterInfo.uiParticipantsCountLeftToMark} players still need to be marked.
-              </div>
-            </div>
-          </div>
+            </div>)}
 
           <div className='flex justify-between mt-8'>
-            <button className="px-8 py-4 bg-red-500 rounded-lg items-center justify-center text-white">
+            <button 
+              onClick={() => navigate.push('/profile')}
+              className="px-8 py-4 bg-red-500 rounded-lg items-center justify-center text-white hover:bg-red-600 transition-colors"
+            >
               Cancel
             </button>
-            <button className="px-8 py-4 bg-emerald-500 rounded-lg items-center justify-center text-white">
-              Submit Attendance
+            <button
+              onClick={handleSubmit}
+              disabled={uiParticipantsCountLeftToMark > 0 || isSubmitting}
+              className="px-8 py-4 bg-emerald-500 rounded-lg items-center justify-center text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Attendance'}
             </button>
           </div>
         </div>
