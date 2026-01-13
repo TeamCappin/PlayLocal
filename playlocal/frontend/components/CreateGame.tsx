@@ -66,6 +66,8 @@ export function CreateGame() {
     'Hockey',
   ];
 
+  const [isSubmittingCooldown, setIsSubmittingCooldown] = useState(false);
+
   // Address search debounce
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -197,12 +199,27 @@ export function CreateGame() {
     if (validateStep(step)) {
       setStep(step + 1);
       setError(null);
+      // Set cooldown to prevent accidental double-click submission on next step
+      setIsSubmittingCooldown(true);
+      setTimeout(() => setIsSubmittingCooldown(false), 1000);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent submission during cooldown
+    if (isSubmittingCooldown) {
+      return;
+    }
+
     setError(null);
+
+    // If not on the last step, treat "Enter" or submit as "Continue"
+    if (step < 3) {
+      handleContinue();
+      return;
+    }
 
     if (!isAuthenticated) {
       navigate.push('/login');
