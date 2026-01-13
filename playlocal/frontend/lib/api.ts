@@ -322,6 +322,9 @@ export const gamesApi = {
 export interface AttendanceEntry {
     participationId: string;
     attendanceStatus: 'ATTENDED' | 'NO_SHOW';
+    userId: string;
+    sportId: string;
+    requestedPositionRoleId: string;
 }
 
 export interface AttendanceResponse {
