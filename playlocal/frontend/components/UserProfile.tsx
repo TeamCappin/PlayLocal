@@ -7,7 +7,6 @@ import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
 import { ScoreHistoryList } from './ScoreHistoryList'; 
-import { ScoreHistoryEntry } from '@/lib/api';           
 
 
 
@@ -20,6 +19,10 @@ export function UserProfile() {
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
+  const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
+  const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
+
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -544,6 +547,12 @@ export function UserProfile() {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
               <ScoreHistoryList 
                 userId={isOwnProfile ? undefined : user.userId || undefined}
+                onDisputeClick={(entry) => {
+                  setDisputeGameId(entry.gameId || undefined);
+                  setDisputeGameTitle(entry.gameTitle || undefined);
+                  setDisputeScoreHistoryId(entry.scoreHistoryId);
+                  setShowReportModal(true);
+                }}
               />
             </div>
           )}
@@ -553,9 +562,18 @@ export function UserProfile() {
       {/* Report Modal */}
       <ReportModal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => {
+          setShowReportModal(false);
+          setDisputeGameId(undefined);
+          setDisputeGameTitle(undefined);
+          setDisputeScoreHistoryId(undefined);
+        }}
         reportedUserId={user.userId || undefined}
+        gameId={disputeGameId}
         targetName={user.name}
+        reportType={disputeScoreHistoryId ? 'attendance_dispute' : 'user'}
+        gameTitle={disputeGameTitle}
+        scoreHistoryId={disputeScoreHistoryId}
       />
     </div>
   );
