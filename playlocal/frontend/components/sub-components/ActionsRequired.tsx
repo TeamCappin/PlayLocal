@@ -5,8 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
 import { usePastGamesByUser } from '@/hooks/useGames';
-import { tr } from 'date-fns/locale';
-import { useState } from 'react';
+import { format } from "date-fns/format";
 
 export function ActionsRequired() {
   const navigate = useRouter();
@@ -25,7 +24,6 @@ export function ActionsRequired() {
   }
 
   return (
-
     <div>
       {actionsRequired != 0 && (
         <div className="pt-8">
@@ -44,7 +42,7 @@ export function ActionsRequired() {
                     <div>
                       <div className="text-gray-900">{game.title}</div>
                       <div className="text-sm text-gray-600">
-                        {game.startTime}
+                        {game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : ''}
                       </div>
                     </div>
                   </div>
