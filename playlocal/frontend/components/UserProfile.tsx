@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
+import { ActionsRequired } from './sub-components/ActionsRequired';
 
 export function UserProfile() {
   const { username } = useParams();
@@ -309,6 +310,10 @@ export function UserProfile() {
               Stats & Analytics
             </button>
           </div>
+        </div>
+
+        <div>
+          <ActionsRequired />
         </div>
 
         <div className="py-8">

@@ -301,6 +301,8 @@ export const gamesApi = {
         }),
 
     getUpcoming: () => apiFetch<GameResponse[]>('/games'),
+    
+    getPastByUser: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserId/${userId}`),
 
     getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
@@ -320,6 +322,9 @@ export const gamesApi = {
 export interface AttendanceEntry {
     participationId: string;
     attendanceStatus: 'ATTENDED' | 'NO_SHOW';
+    userId: string;
+    sportId: string;
+    requestedPositionRoleId: string;
 }
 
 export interface AttendanceResponse {

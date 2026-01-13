@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { attendanceApi, AttendanceEntry, AttendanceResponse } from '@/lib/api';
 
 export function useAttendance(gameId: string | undefined) {
@@ -22,6 +22,10 @@ export function useAttendance(gameId: string | undefined) {
             setIsLoading(false);
         }
     }, [gameId]);
+
+    useEffect(() => {
+        fetchPending();
+    }, [fetchPending]);
 
     const confirmAttendance = async (attendances: AttendanceEntry[]): Promise<AttendanceResponse> => {
         if (!gameId) throw new Error('Game ID required');
