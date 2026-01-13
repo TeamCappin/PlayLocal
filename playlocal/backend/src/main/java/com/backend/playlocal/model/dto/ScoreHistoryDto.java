@@ -15,7 +15,7 @@ public class ScoreHistoryDto {
     @AllArgsConstructor
     public static class ScoreHistoryEntry {
         private String scoreHistoryId;
-        private String oduserId;
+        private String userId;
         private String gameId;
         private String gameTitle;  // denormalized for display
         private float previousScore;

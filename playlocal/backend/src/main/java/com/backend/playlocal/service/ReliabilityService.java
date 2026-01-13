@@ -235,7 +235,7 @@ public class ReliabilityService {
     private ScoreHistoryDto.ScoreHistoryEntry toHistoryEntry(ScoreHistory history) {
         return ScoreHistoryDto.ScoreHistoryEntry.builder()
                 .scoreHistoryId(history.getScoreHistoryId().toString())
-                .oduserId(history.getUser().getUserId().toString())
+                .userId(history.getUser().getUserId().toString())
                 .gameId(history.getGame() != null ? history.getGame().getGameId().toString() : null)
                 .gameTitle(history.getGame() != null ? history.getGame().getTitle() : null)
                 .previousScore(history.getPreviousScore())
