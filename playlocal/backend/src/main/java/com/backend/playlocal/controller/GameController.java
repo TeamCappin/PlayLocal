@@ -107,4 +107,17 @@ public class GameController {
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Cancel a game (organizer only).
+     * US-2.4: Game Page - Organizer controls to cancel the game
+     */
+    @DeleteMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> cancelGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.cancelGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
 }

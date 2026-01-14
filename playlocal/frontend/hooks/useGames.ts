@@ -70,7 +70,14 @@ export function useGame(gameId: string | undefined) {
         await fetchGame(); // Refresh data
     };
 
-    return { game, roster, isLoading, error, refetch: fetchGame, joinGame, leaveGame };
+    const cancelGame = async (): Promise<GameResponse> => {
+        if (!gameId) throw new Error('Game ID required');
+        const response = await gamesApi.cancel(gameId);
+        await fetchGame(); // Refresh data
+        return response;
+    };
+
+    return { game, roster, isLoading, error, refetch: fetchGame, joinGame, leaveGame, cancelGame };
 }
 
 export function useCreateGame() {

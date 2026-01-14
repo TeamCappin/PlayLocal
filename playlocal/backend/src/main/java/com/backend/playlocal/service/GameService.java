@@ -156,7 +156,7 @@ public class GameService {
                         // User previously cancelled - allow re-join
                         // Must check capacity to determine CONFIRMED vs WAITLISTED
                         int confirmedCount = participationRepository.countConfirmedParticipants(gameId);
-                        
+
                         if (confirmedCount < game.getMaxPlayers()) {
                                 // Capacity available - rejoin as CONFIRMED
                                 participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
@@ -169,11 +169,11 @@ public class GameService {
                         } else {
                                 throw new CapacityExceededException("Game is full and waitlist is not enabled");
                         }
-                        
+
                         participation.setLeftAt(null);
                         participation.setJoinedAt(Instant.now());
                         participation = participationRepository.save(participation);
-                        
+
                         // Return immediately - don't fall through to create new participation
                         return GameDto.JoinResponse.builder()
                                         .participationId(participation.getParticipationId().toString())
@@ -181,7 +181,8 @@ public class GameService {
                                         .waitlistPosition(participation.getWaitlistPosition())
                                         .message(participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
                                                         ? "Successfully rejoined the game"
-                                                        : "Rejoined waitlist at position " + participation.getWaitlistPosition())
+                                                        : "Rejoined waitlist at position "
+                                                                        + participation.getWaitlistPosition())
                                         .build();
                 }
 
@@ -275,7 +276,6 @@ public class GameService {
         public GameDto.RosterResponse getRoster(UUID gameId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
-
                 List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
 
@@ -287,6 +287,35 @@ public class GameService {
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
                                 .build();
+        }
+
+        /**
+         * Cancel a game. US-2.4 (Organizer cancellation control)
+         * Only the organizer can cancel. Game must be in SCHEDULED status.
+         */
+        @Transactional
+        public GameDto.GameResponse cancelGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                // Verify the requester is the organizer
+                if (!game.getCreatedBy().getUserId().equals(userId)) {
+                        throw new AccessDeniedException("Only the organizer can cancel this game");
+                }
+
+                // Verify game is in SCHEDULED status (cannot cancel in-progress or completed
+                // games)
+                if (game.getStatus() != Game.GameStatus.SCHEDULED) {
+                        throw new IllegalStateException(
+                                        "Cannot cancel a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                // Update game status to CANCELLED
+                game.setStatus(Game.GameStatus.CANCELLED);
+                game.setCancelledAt(Instant.now());
+                game = gameRepository.save(game);
+
+                return mapToGameResponse(game, userId);
         }
 
         // ================== MAPPERS ==================
