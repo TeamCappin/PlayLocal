@@ -42,9 +42,20 @@ export function GameRoom() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
-  // Require real data - no mock fallback (BUG-2.2 fix)
-  // Show error state if game not found
-  if (!isLoading && (!apiGame || !apiRoster)) {
+  // CRITICAL: Check loading state FIRST before accessing any data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <span className="text-gray-600">Loading game...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // BUG-2.2 fix: Show error state if game not found (after loading completes)
+  if (!apiGame || !apiRoster) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center px-4">
@@ -62,8 +73,9 @@ export function GameRoom() {
     );
   }
 
-  const game = apiGame!;
-  const roster = apiRoster!;
+  // Now it's safe to access game and roster
+  const game = apiGame;
+  const roster = apiRoster;
 
   // Check if current user is in the game
   const currentUserParticipation = roster.confirmed.find(p => p.userId === user?.userId)
@@ -149,17 +161,6 @@ export function GameRoom() {
       setTimeout(() => setShareSuccess(false), 2000);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <span className="text-gray-600">Loading game...</span>
-        </div>
-      </div>
-    );
-  }
 
   const chatMessages = [
     { id: '1', user: 'Minh H.', avatar: 'MH', message: 'Hey everyone! Looking forward to the game!', time: '2:30 PM', isHost: true },
@@ -559,17 +560,18 @@ export function GameRoom() {
                       <p className="text-red-700 text-sm">Are you sure you want to cancel this game? This action cannot be undone.</p>
                       <div className="flex gap-2">
                         <button
-                          onClick={handleCancel}
-                          disabled={isCancelling}
-                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                        >
-                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
-                        </button>
-                        <button
                           onClick={() => setShowCancelConfirm(false)}
-                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
                         >
                           No, Keep
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          disabled={isCancelling}
+                          className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                          style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                        >
+                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
                         </button>
                       </div>
                     </div>
