@@ -41,7 +41,9 @@ INSERT INTO game_participation (participation_id, game_id, user_id, sport_id, pa
 ON CONFLICT (participation_id) DO NOTHING;
 
 -- Friendships
-INSERT INTO friendship (user_id, friend_user_id, status, created_at) VALUES
-    ('11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333', 'ACCEPTED', NOW() - INTERVAL '3 months'),
-    ('22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444', 'ACCEPTED', NOW() - INTERVAL '1 month')
-ON CONFLICT DO NOTHING;
+INSERT INTO friendship (friendship_id, requester_user_id, addressee_user_id, user_low_id, user_high_id, status, created_at, responded_at) VALUES
+    ('dddd1111-dddd-dddd-dddd-dddddddddddd', '33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 
+     '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333', 'ACCEPTED', NOW() - INTERVAL '3 months', NOW() - INTERVAL '3 months'),
+    ('dddd2222-dddd-dddd-dddd-dddddddddddd', '44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222',
+     '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444', 'ACCEPTED', NOW() - INTERVAL '1 month', NOW() - INTERVAL '1 month')
+ON CONFLICT (friendship_id) DO NOTHING;
