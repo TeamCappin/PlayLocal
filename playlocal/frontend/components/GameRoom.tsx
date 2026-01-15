@@ -1,5 +1,6 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import Link from 'next/link';
 import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
@@ -406,48 +407,15 @@ export function GameRoom() {
                 )}
 
                 {activeTab === 'chat' && (
-                  <div className="space-y-4">
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
-                      Chat is a demo. Real-time messaging coming in Phase 2.
-                    </div>
-
-                    {/* Chat Messages */}
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {chatMessages.map((msg) => (
-                        <div key={msg.id} className="flex gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                            {msg.avatar}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-gray-900">{msg.user}</span>
-                              {msg.isHost && (
-                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded">
-                                  Host
-                                </span>
-                              )}
-                              <span className="text-xs text-gray-500">{msg.time}</span>
-                            </div>
-                            <p className="text-gray-700">{msg.message}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Message Input */}
-                    <div className="flex gap-2 pt-4 border-t border-gray-200">
-                      <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      />
-                      <button className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                        Send
-                      </button>
-                    </div>
-                  </div>
+                  <ChatPanel
+                    gameId={id}
+                    me={{
+                      id: user?.userId || "anonymous",
+                      name: user?.displayName || user?.displayName || "Unknown",
+                    }}
+                    hostUserId={game.organizer?.userId}
+                    canChat={Boolean(isOrganizer || (currentUserParticipation?.joinStatus === "CONFIRMED"))}
+                  />
                 )}
               </div>
             </div>

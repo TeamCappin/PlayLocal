@@ -3,7 +3,7 @@ spring:
     name: playlocal-backend
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/playlocal}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/playlocal}
     username: ${DATABASE_USERNAME:playlocal}
     password: ${DATABASE_PASSWORD:playlocal}
     driver-class-name: org.postgresql.Driver
@@ -40,9 +40,20 @@ rate-limit:
   general:
     requests-per-minute: 60
 
+# Chat
+  data:
+    mongodb:
+      username: alibou
+      password: alibou
+      host: localhost
+      port: 27017
+      database: chat_app
+      authentication-database: admin
+
 # Logging
 logging:
   level:
     com.backend.playlocal: DEBUG
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
+

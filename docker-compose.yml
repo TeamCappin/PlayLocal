@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: playlocal
       POSTGRES_PASSWORD: playlocal
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,6 +18,37 @@ services:
     networks:
       - playlocal-net
 
+  mongodb:
+    image: mongo:7
+    container_name: playlocal-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: alibou
+      MONGO_INITDB_ROOT_PASSWORD: alibou
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - playlocal-net
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: playlocal-mongo-express
+    restart: always
+    depends_on:
+      - mongodb
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: alibou
+      ME_CONFIG_MONGODB_ADMINPASSWORD: alibou
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      # optional:
+      ME_CONFIG_BASICAUTH: "false"
+    networks:
+      - playlocal-net
+      
+
   backend:
     build:
       context: ./playlocal/backend
@@ -27,11 +58,12 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/playlocal
+      DATABASE_URL: jdbc:postgresql://postgres:5433/playlocal
       DATABASE_USERNAME: playlocal
       DATABASE_PASSWORD: playlocal
       JWT_SECRET: development-secret-key-change-in-production-min-32-chars
       SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_MONGODB_URI: mongodb://alibou:alibou@mongodb:27017/chat_app?authSource=admin
       # CORS configuration if needed, or handled in code
     ports:
       - "8080:8080"
@@ -47,6 +79,7 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+      NEXT_PUBLIC_WS_URL: http://localhost:8080/ws
     ports:
       - "3000:3000"
     networks:
@@ -54,6 +87,7 @@ services:
 
 volumes:
   postgres_data:
+  mongo_data:
 
 networks:
   playlocal-net:
