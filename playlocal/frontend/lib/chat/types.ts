@@ -9,27 +9,26 @@ export type ChatMessage = {
   senderId: string;
   senderName: string;
   content: string;
-  createdAt: string; // ISO string
+  createdAt: string; // ISO
 };
 
-export type ChatInbound = Partial<{
-  id: string;
-  gameId: string;
+// What you might receive from backend (kept flexible on purpose)
+export type ChatInbound = {
+  id?: string;
+  gameId?: string;
 
-  // possible backend fields
-  senderId: string;
-  senderName: string;
+  senderId?: string;
+  userId?: string;
+  sender?: string;
 
-  // fallbacks some payloads might use
-  userId: string;
-  fullName: string;
-  username: string;
-  sender: string;
+  senderName?: string;
+  fullName?: string;
+  username?: string;
 
-  content: string;
-  messageText: string;
-  text: string;
+  content?: string;
+  messageText?: string;
+  text?: string;
 
-  createdAt: string;
-  timestamp: string | number;
-}>;
+  createdAt?: string;
+  timestamp?: number | string;
+};

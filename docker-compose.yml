@@ -16,38 +16,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - playlocal-net
-
-  mongodb:
-    image: mongo:7
-    container_name: playlocal-mongo
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: alibou
-      MONGO_INITDB_ROOT_PASSWORD: alibou
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - playlocal-net
-
-  mongo-express:
-    image: mongo-express:1.0.2
-    container_name: playlocal-mongo-express
-    restart: always
-    depends_on:
-      - mongodb
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: alibou
-      ME_CONFIG_MONGODB_ADMINPASSWORD: alibou
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      # optional:
-      ME_CONFIG_BASICAUTH: "false"
-    networks:
-      - playlocal-net
-      
+      - playlocal-net  
 
   backend:
     build:
@@ -63,7 +32,6 @@ services:
       DATABASE_PASSWORD: playlocal
       JWT_SECRET: development-secret-key-change-in-production-min-32-chars
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATA_MONGODB_URI: mongodb://alibou:alibou@mongodb:27017/chat_app?authSource=admin
       # CORS configuration if needed, or handled in code
     ports:
       - "8080:8080"
@@ -87,7 +55,6 @@ services:
 
 volumes:
   postgres_data:
-  mongo_data:
 
 networks:
   playlocal-net:

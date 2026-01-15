@@ -1,5 +1,6 @@
 package com.backend.playlocal.service;
 
+import com.backend.playlocal.chat.ChatRoomService;
 import com.backend.playlocal.exception.CapacityExceededException;
 import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
@@ -25,16 +26,18 @@ public class GameService {
         private final SportRepository sportRepository;
         private final LocationRepository locationRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
+        private final ChatRoomService chatRoomService;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
-                        UserRepository userRepository, SportRepository sportRepository,
-                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository) {
+                           UserRepository userRepository, SportRepository sportRepository,
+                           LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository, ChatRoomService chatRoomService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
                 this.sportRepository = sportRepository;
                 this.locationRepository = locationRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
+                this.chatRoomService = chatRoomService;
         }
 
         /**
@@ -92,6 +95,8 @@ public class GameService {
                                 .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
                                 .build();
                 participationRepository.save(organizerParticipation);
+
+                chatRoomService.getOrCreate(game.getGameId().toString());
 
                 return mapToGameResponse(game, organizerId);
         }
