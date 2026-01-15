@@ -250,7 +250,7 @@ export function GameRoom() {
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-6 flex flex-col min-w-0">
                 {activeTab === 'details' && (
                   <div className="space-y-6">
                     <div>
@@ -407,17 +407,26 @@ export function GameRoom() {
                   </div>
                 )}
 
-                {activeTab === 'chat' && (
-                  <ChatPanel
-                    gameId={id}
-                    me={{
-                      id: user?.userId || "anonymous",
-                      name: user?.displayName || user?.displayName || "Unknown",
-                    }}
-                    hostUserId={game.organizer?.userId}
-                    canChat={Boolean(isOrganizer || (currentUserParticipation?.joinStatus === "CONFIRMED"))}
-                  />
-                )}
+                {activeTab === "chat" && (
+  <div className="w-full min-w-0">
+    {/* forces ChatPanel to take full width and stack vertically */}
+    <div className="w-full min-w-0 flex flex-col">
+      <ChatPanel
+        gameId={id}
+        me={{
+          id: user?.userId || "anonymous",
+          name: user?.displayName || "Unknown",
+        }}
+        hostUserId={game.organizer?.userId}
+        canChat={Boolean(
+          isOrganizer || currentUserParticipation?.joinStatus === "CONFIRMED"
+        )}
+      />
+    </div>
+  </div>
+)}
+
+
               </div>
             </div>
           </div>

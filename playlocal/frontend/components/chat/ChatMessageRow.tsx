@@ -26,9 +26,7 @@ export function ChatMessageRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-gray-900 font-medium truncate">
-            {msg.senderName}
-          </span>
+          <span className="text-gray-900 font-medium truncate">{msg.senderName}</span>
 
           {isHost && (
             <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs">
@@ -36,12 +34,10 @@ export function ChatMessageRow({
             </span>
           )}
 
-          <span className="text-xs text-gray-500">
-            {formatChatTimestamp(msg.createdAt)}
-          </span>
+          <span className="text-xs text-gray-500">{formatChatTimestamp(msg.createdAt)}</span>
         </div>
 
-        <div className="text-gray-700 whitespace-pre-wrap break-words">
+        <div className="whitespace-pre-wrap break-words" style={{ overflowWrap: "anywhere" }}>
           {msg.content}
         </div>
       </div>
