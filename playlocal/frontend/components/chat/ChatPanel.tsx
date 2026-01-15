@@ -117,8 +117,8 @@ export function ChatPanel({
           // This is the IMPORTANT part:
           // It limits the chat area height so the page doesn't grow infinitely.
           // Adjust if you want bigger/smaller.
-          height: 520,
-          minHeight: 520,
+          height: 630,
+          minHeight: 630,
         }}
       >
         {/* Banner (never scrolls) */}
@@ -184,17 +184,32 @@ export function ChatPanel({
             </div>
 
             {showJump && (
-              <button
-                onClick={() => {
-                  setIsNearBottom(true);
-                  setShowJump(false);
-                  scrollToBottom(true);
-                }}
-                className="absolute bottom-3 right-3 px-3 py-2 text-sm rounded-full bg-emerald-600 text-white shadow hover:bg-emerald-700"
-              >
-                Jump to latest
-              </button>
-            )}
+  <button
+    onClick={() => {
+      setIsNearBottom(true);
+      setShowJump(false);
+      scrollToBottom(true);
+    }}
+    className="
+      absolute right-3
+      bottom-[64px]
+      px-3 py-1.5
+      text-xs font-medium
+      rounded-full
+      bg-white/95 text-emerald-700
+      border border-emerald-200
+      shadow-md
+      hover:bg-white hover:border-emerald-300
+      active:scale-[0.98]
+      transition
+      backdrop-blur
+    "
+    style={{ zIndex: 30 }}
+  >
+    Jump to latest
+  </button>
+)}
+
           </div>
 
           {/* Input (always at bottom, never scrolls) */}
