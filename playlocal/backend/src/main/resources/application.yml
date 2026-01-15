@@ -40,16 +40,6 @@ rate-limit:
   general:
     requests-per-minute: 60
 
-# Chat
-  data:
-    mongodb:
-      username: alibou
-      password: alibou
-      host: localhost
-      port: 27017
-      database: chat_app
-      authentication-database: admin
-
 # Logging
 logging:
   level:

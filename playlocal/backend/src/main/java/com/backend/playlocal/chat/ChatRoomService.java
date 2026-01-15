@@ -1,16 +1,23 @@
 package com.backend.playlocal.chat;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class ChatRoomService {
 
     private final ChatRoomRepository repo;
 
+    public ChatRoomService(ChatRoomRepository repo) {
+        this.repo = repo;
+    }
+
+    @Transactional
     public ChatRoom getOrCreate(String gameId) {
-        return repo.findByGameId(gameId)
+        UUID gid = UUID.fromString(gameId);
+        return repo.findByGameId(gid)
                 .orElseGet(() -> repo.save(ChatRoom.create(gameId)));
     }
 }

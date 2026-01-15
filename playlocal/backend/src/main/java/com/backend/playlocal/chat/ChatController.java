@@ -1,6 +1,5 @@
 package com.backend.playlocal.chat;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -8,17 +7,24 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
-@RequiredArgsConstructor
 public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatRoomService chatRoomService;
     private final ChatMessageRepository chatMessageRepository;
+
+    public ChatController(SimpMessagingTemplate messagingTemplate,
+                          ChatRoomService chatRoomService,
+                          ChatMessageRepository chatMessageRepository) {
+        this.messagingTemplate = messagingTemplate;
+        this.chatRoomService = chatRoomService;
+        this.chatMessageRepository = chatMessageRepository;
+    }
 
     @MessageMapping("/game.send")
     public void sendToGameRoom(@Payload GameRoomMessage msg) {
@@ -28,15 +34,12 @@ public class ChatController {
 
         ChatRoom room = chatRoomService.getOrCreate(msg.getGameId());
 
-        // avoid Instant issues by converting safely
-        Date createdAt = (msg.getCreatedAt() != null)
-                ? Date.from(msg.getCreatedAt())
-                : new Date();
+        Instant createdAt = (msg.getCreatedAt() != null) ? msg.getCreatedAt() : Instant.now();
 
         ChatMessage saved = ChatMessage.builder()
                 .roomId(room.getRoomId())
-                .gameId(room.getGameId())
-                .senderId(msg.getSenderId())
+                .gameId(UUID.fromString(room.getGameId().toString()))
+                .senderId(UUID.fromString(msg.getSenderId()))
                 .senderName(msg.getSenderName())
                 .messageText(msg.getContent())
                 .createdAt(createdAt)

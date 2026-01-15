@@ -1,36 +1,42 @@
 package com.backend.playlocal.chat;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
+import lombok.*;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.UUID;
 
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-@Document(collection = "chat_room")
+@Entity
+@Table(name = "chat_room",
+        uniqueConstraints = @UniqueConstraint(name = "uq_chat_room_game", columnNames = "game_id"))
 public class ChatRoom {
 
     @Id
-    private String roomId; // PK
+    @Column(name = "room_id", nullable = false)
+    private UUID roomId;
 
-    @Indexed(unique = true)
-    private String gameId; // FK, UK (1 room per game)
+    @Column(name = "game_id", nullable = false, unique = true)
+    private UUID gameId;
 
-    private Date createdAt;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @PrePersist
+    void prePersist() {
+        if (roomId == null) roomId = UUID.randomUUID();
+        if (createdAt == null) createdAt = Instant.now();
+    }
 
     public static ChatRoom create(String gameId) {
         return ChatRoom.builder()
-                .roomId(UUID.randomUUID().toString())
-                .gameId(gameId)
-                .createdAt(new Date())
+                .roomId(UUID.randomUUID())
+                .gameId(UUID.fromString(gameId))
+                .createdAt(Instant.now())
                 .build();
     }
 }

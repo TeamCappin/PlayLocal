@@ -2,61 +2,66 @@ package com.backend.playlocal.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
+import lombok.*;
 
-import java.util.Date;
+import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Document(collection = "chat_message")
+@Entity
+@Table(name = "chat_message", indexes = {
+        @Index(name = "idx_chat_message_room_created", columnList = "room_id, created_at")
+})
 public class ChatMessage {
 
     @Id
-    private String messageId;          // Mongo _id
+    @Column(name = "message_id", nullable = false)
+    private UUID messageId;
 
-    private String roomId;             // FK -> chat_room.roomId
-    private String gameId;             // useful for filtering
-    private String senderId;
+    @Column(name = "room_id", nullable = false)
+    private UUID roomId;
 
+    @Column(name = "game_id", nullable = false)
+    private UUID gameId;
+
+    @Column(name = "sender_id", nullable = false)
+    private UUID senderId;
+
+    @Column(name = "sender_name")
     private String senderName;
 
-    // Stored field
-    private String messageText;        // stored content
-    private Date createdAt;
-    private Date deletedAt;            // null normally
+    // Stored field (same concept as your messageText)
+    @Column(name = "message_text", nullable = false, columnDefinition = "text")
+    private String messageText;
 
-    // -----------------------------
-    // JSON shape for frontend
-    // -----------------------------
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
 
-    /**
-     * Frontend expects `id`.
-     * We expose `messageId` as `id` without changing the DB field name.
-     */
-    @JsonProperty("id")
-    public String getId() {
-        return messageId;
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @PrePersist
+    void prePersist() {
+        if (messageId == null) messageId = UUID.randomUUID();
+        if (createdAt == null) createdAt = Instant.now();
     }
 
-    /**
-     * Frontend expects `content`.
-     * We expose `messageText` as `content`.
-     */
+    // ---- JSON shape for frontend (same as your current class) ----
+
+    @JsonProperty("id")
+    public String getId() {
+        return messageId != null ? messageId.toString() : null;
+    }
+
     @JsonProperty("content")
     public String getContent() {
         return messageText;
     }
 
-    /**
-     * Prevent duplicate JSON field if you don't want `messageText` appearing too.
-     */
     @JsonIgnore
     public String getMessageText() {
         return messageText;

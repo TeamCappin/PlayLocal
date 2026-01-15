@@ -96,7 +96,7 @@ public class GameService {
                                 .build();
                 participationRepository.save(organizerParticipation);
 
-                chatRoomService.getOrCreate(game.getGameId().toString());
+//                chatRoomService.getOrCreate(game.getGameId().toString());
 
                 return mapToGameResponse(game, organizerId);
         }
