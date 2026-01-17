@@ -107,4 +107,40 @@ public class GameController {
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Cancel a game (organizer only).
+     */
+    @PostMapping("/{gameId}/cancel")
+    public ResponseEntity<GameDto.GameResponse> cancelGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.cancelGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Mark a game as completed (organizer only).
+     */
+    @PostMapping("/{gameId}/complete")
+    public ResponseEntity<GameDto.GameResponse> completeGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.completeGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Archive a game (organizer only).
+     */
+    @PostMapping("/{gameId}/archive")
+    public ResponseEntity<GameDto.GameResponse> archiveGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.archiveGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
 }

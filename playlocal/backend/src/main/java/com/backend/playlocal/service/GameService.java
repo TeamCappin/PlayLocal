@@ -11,8 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,16 +28,19 @@ public class GameService {
         private final SportRepository sportRepository;
         private final LocationRepository locationRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
+        private final NotificationService notificationService;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
-                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository) {
+                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository,
+                        NotificationService notificationService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
                 this.sportRepository = sportRepository;
                 this.locationRepository = locationRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
+                this.notificationService = notificationService;
         }
 
         /**
@@ -235,6 +241,7 @@ public class GameService {
                 GameParticipation participation = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Participation not found"));
 
+                ensureNotArchived(participation.getGame());
                 if (participation.getParticipationRole() == GameParticipation.ParticipationRole.ORGANIZER) {
                         throw new IllegalStateException(
                                         "Organizer cannot leave their own game. Cancel the game instead.");
@@ -287,6 +294,79 @@ public class GameService {
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
                                 .build();
+        }
+
+        /**
+         * Cancel a scheduled game. Only the organizer can cancel.
+         */
+        @Transactional
+        public GameDto.GameResponse cancelGame(UUID gameId, UUID organizerId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, organizerId);
+
+                if (game.getStatus() == Game.GameStatus.CANCELLED) {
+                        return mapToGameResponse(game, organizerId);
+                }
+                if (game.getStatus() == Game.GameStatus.COMPLETED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Cannot cancel a game that is already completed or archived");
+                }
+
+                game.setStatus(Game.GameStatus.CANCELLED);
+                game.setCancelledAt(Instant.now());
+                game = gameRepository.save(game);
+
+                notifyCancellation(game);
+                return mapToGameResponse(game, organizerId);
+        }
+
+        /**
+         * Mark a game as completed. Only the organizer can complete.
+         */
+        @Transactional
+        public GameDto.GameResponse completeGame(UUID gameId, UUID organizerId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, organizerId);
+
+                if (game.getStatus() == Game.GameStatus.COMPLETED) {
+                        return mapToGameResponse(game, organizerId);
+                }
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Cannot complete a game that is cancelled or archived");
+                }
+
+                game.setStatus(Game.GameStatus.COMPLETED);
+                game = gameRepository.save(game);
+
+                return mapToGameResponse(game, organizerId);
+        }
+
+        /**
+         * Archive a completed or cancelled game. Only the organizer can archive.
+         */
+        @Transactional
+        public GameDto.GameResponse archiveGame(UUID gameId, UUID organizerId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, organizerId);
+
+                if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        return mapToGameResponse(game, organizerId);
+                }
+                if (game.getStatus() != Game.GameStatus.COMPLETED
+                                && game.getStatus() != Game.GameStatus.CANCELLED) {
+                        throw new IllegalStateException(
+                                        "Only completed or cancelled games can be archived");
+                }
+
+                game.setStatus(Game.GameStatus.ARCHIVED);
+                game = gameRepository.save(game);
+
+                return mapToGameResponse(game, organizerId);
         }
 
         // ================== MAPPERS ==================
@@ -373,5 +453,46 @@ public class GameService {
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
                                 .build();
+        }
+
+        private void assertOrganizer(Game game, UUID organizerId) {
+                if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+                        throw new AccessDeniedException("Only the organizer can modify this game");
+                }
+        }
+
+        private void ensureNotArchived(Game game) {
+                if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Archived games are read-only");
+                }
+        }
+
+        private void notifyCancellation(Game game) {
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(game.getGameId());
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(game.getGameId());
+                Set<UUID> notified = new HashSet<>();
+
+                Map<String, Object> payload = Map.of(
+                                "gameId", game.getGameId().toString(),
+                                "gameTitle", game.getTitle(),
+                                "status", game.getStatus().name(),
+                                "message", "Game cancelled: " + game.getTitle());
+
+                for (GameParticipation participation : confirmed) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+                for (GameParticipation participation : waitlisted) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+        }
+
+        private void addCancellationNotification(GameParticipation participation, Game game,
+                        Map<String, Object> payload, Set<UUID> notified) {
+                UUID userId = participation.getUser().getUserId();
+                if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
+                        return;
+                }
+                notificationService.createInAppNotification(userId, "game_cancelled", payload);
+                notified.add(userId);
         }
 }
