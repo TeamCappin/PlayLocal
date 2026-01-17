@@ -311,6 +311,15 @@ export const gamesApi = {
 
     leave: (gameId: string) =>
         apiFetch<void>(`/games/${gameId}/leave`, { method: 'DELETE' }),
+
+    cancel: (gameId: string) =>
+        apiFetch<GameResponse>(`/games/${gameId}/cancel`, { method: 'POST' }),
+
+    complete: (gameId: string) =>
+        apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: 'POST' }),
+
+    archive: (gameId: string) =>
+        apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: 'POST' }),
 };
 
 // ============================================
