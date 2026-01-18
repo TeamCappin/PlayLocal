@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/v1/games/**").permitAll()
                         // Profiles require authentication to view [US-1.3 Privacy Defaults]
                         .requestMatchers("/api/v1/users/*/profile").authenticated()

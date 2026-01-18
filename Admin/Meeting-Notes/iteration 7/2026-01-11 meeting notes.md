@@ -46,8 +46,3 @@
 - **Team:** Clarify deployment workflow.
 - **Team:** Add deployment instructions to the README.
 - **Team:** Share ideas for a **new logo** in the general chat.
-
-
-
-
-
