@@ -106,10 +106,38 @@ public class GameService {
         }
 
         /**
-         * Get upcoming games. US-2.3
+         * Get upcoming games with optional filters. US-2.3
          */
-        public List<GameDto.GameResponse> getUpcomingGames(UUID userId) {
-                return gameRepository.findUpcomingGames(Instant.now()).stream()
+        public List<GameDto.GameResponse> getUpcomingGames(
+                        String sportName, String skillLevel, String locationType, 
+                        String intensity, UUID userId) {
+                List<Game> games = gameRepository.findUpcomingGamesWithFilters(
+                                Instant.now(), sportName, skillLevel, locationType, intensity);
+                return games.stream()
+                                .map(game -> mapToGameResponse(game, userId))
+                                .collect(Collectors.toList());
+        }
+
+        /**
+         * Find nearby games with geospatial filtering. US-2.3
+         */
+        public List<GameDto.GameResponse> findNearbyGames(
+                        Float userLat, Float userLon, Double radiusKm,
+                        String sportName, String skillLevel, String locationType,
+                        String intensity, UUID userId) {
+                // Get game IDs ordered by distance
+                List<UUID> gameIds = gameRepository.findNearbyGameIdsWithFilters(
+                                Instant.now(), userLat, userLon, radiusKm,
+                                sportName, skillLevel, locationType, intensity);
+                
+                // Fetch full Game entities maintaining the distance order
+                List<Game> games = gameIds.stream()
+                                .map(gameId -> gameRepository.findById(gameId))
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collect(Collectors.toList());
+                
+                return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
         }
