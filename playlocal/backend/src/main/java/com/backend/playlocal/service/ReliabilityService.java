@@ -154,7 +154,6 @@ public class ReliabilityService {
             throw new AccessDeniedException("Only the organizer can view attendance");
         }
 
-        return participationRepository.findForAttendanceConfirmation(gameId).stream()
         List<AttendanceDto.AttendanceEntry> pendingEntries = participationRepository
                 .findForAttendanceConfirmation(gameId).stream()
                 .filter(p -> p.getAttendanceStatus() != GameParticipation.AttendanceStatus.UNKNOWN)
