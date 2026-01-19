@@ -9,7 +9,7 @@ import { useAttendance } from '@/hooks/useAttendance';
 import { format } from 'date-fns';
 import { RosterHeader } from './sub-components/RosterHeader';
 import { RosterList } from './sub-components/RosterList';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type Status = 'ATTENDED' | 'NO_SHOW' | 'UNKNOWN';
 
@@ -20,10 +20,32 @@ export function RsvpRoster() {
   const { game, error, refetch } = useGame(gameId);
   const { pendingAttendance, isLoading, isSubmitting, error: attendanceError, fetchPending, confirmAttendance } = useAttendance(gameId);
 
+  // console.log('pendingAttendance', pendingAttendance);
+
   const [attendanceStatuses, setAttendanceStatuses] = useState<Record<string, {
     status: Status;
     participationId: string;
   }>>({});
+
+  const hasInitialized = useRef(false);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (pendingAttendance.length > 0 && !hasInitialized.current) {
+      const initialStatuses = Object.fromEntries(
+        pendingAttendance.map(item => [
+          item.participationId,
+          {
+            status: item.attendanceStatus as Status,
+            participationId: item.participationId,
+          }
+        ])
+      );
+      setAttendanceStatuses(initialStatuses);
+      hasInitialized.current = true;
+    }
+  }, [pendingAttendance]);
+  // console.log('attendanceStatuses', attendanceStatuses);
 
   const uiPlayerCountAttended = Object.values(attendanceStatuses).filter(s => s.status === 'ATTENDED').length;
   const uiPlayerCountNoShows = Object.values(attendanceStatuses).filter(s => s.status === 'NO_SHOW').length;
@@ -182,7 +204,7 @@ export function RsvpRoster() {
             </div>)}
 
           <div className='flex justify-between mt-8'>
-            <button 
+            <button
               onClick={() => navigate.push('/profile')}
               className="px-8 py-4 bg-red-500 rounded-lg items-center justify-center text-white hover:bg-red-600 transition-colors"
             >
