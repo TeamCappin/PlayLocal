@@ -34,6 +34,7 @@ public class EndorsementService {
         this.participationRepository = participationRepository;
     }
 
+    // US 3.3 Organizer Endorsments
     @Transactional
     public EndorsementDto.Response createEndorsement(UUID endorserId, EndorsementDto.CreateRequest request) {
         User endorser = userRepository.findActiveById(endorserId)
@@ -75,6 +76,7 @@ public class EndorsementService {
         return mapToResponse(endorsement);
     }
 
+    // US 3.3 Organizer Endorsments
     public List<EndorsementDto.Response> getUserEndorsements(UUID userId) {
         return endorsementRepository.findByEndorsedUser_UserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::mapToResponse)
@@ -88,6 +90,7 @@ public class EndorsementService {
                 .endorserName(e.getEndorser().getDisplayName())
                 .endorsedUserId(e.getEndorsedUser().getUserId())
                 .gameId(e.getGame().getGameId())
+                .gameTitle(e.getGame().getTitle())
                 .gameDate(e.getGame().getStartTime())
                 .label(e.getLabel())
                 .createdAt(e.getCreatedAt())

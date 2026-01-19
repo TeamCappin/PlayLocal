@@ -121,6 +121,7 @@ public class GameDto {
         private String avatarUrl;
         private String role;
         private String joinStatus;
+        private String attendanceStatus;
         private Integer waitlistPosition;
         private Float reliabilityScore;
         private Instant joinedAt;

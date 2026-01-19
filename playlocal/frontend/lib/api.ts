@@ -288,6 +288,7 @@ export interface ParticipantDto {
     avatarUrl?: string;
     role: string;
     joinStatus: string;
+    attendanceStatus: string; // UNKNOWN, ATTENDED, NO_SHOW
     waitlistPosition?: number;
     reliabilityScore: number;
     joinedAt: string;
@@ -405,6 +406,40 @@ export const notificationsApi = {
 };
 
 // ============================================
+// ENDORSEMENTS API
+// ============================================
+
+export interface EndorsementRequest {
+    endorsedUserId: string;
+    gameId: string;
+}
+
+// US 3.3 Organizer Endorsments
+export interface EndorsementResponse {
+    endorsementId: string;
+    endorserId: string;
+    endorserName: string;
+    endorsedUserId: string;
+    gameId: string;
+    gameTitle: string;
+    gameDate: string;
+    label: string;
+    createdAt: string;
+}
+
+// US 3.3 Organizer Endorsments
+export const endorsementsApi = {
+    create: (data: EndorsementRequest) =>
+        apiFetch<EndorsementResponse>('/endorsements', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    getUserEndorsements: (userId: string) =>
+        apiFetch<EndorsementResponse[]>(`/users/${userId}/endorsements`),
+};
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 
@@ -418,5 +453,6 @@ export default {
     attendance: attendanceApi,
     reports: reportsApi,
     notifications: notificationsApi,
+    endorsements: endorsementsApi,
     health: healthApi,
 };

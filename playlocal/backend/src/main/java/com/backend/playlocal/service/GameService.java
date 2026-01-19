@@ -369,6 +369,7 @@ public class GameService {
                                 .avatarUrl(p.getUser().getAvatarUrl())
                                 .role(p.getParticipationRole().name())
                                 .joinStatus(p.getJoinStatus().name())
+                                .attendanceStatus(p.getAttendanceStatus().name())
                                 .waitlistPosition(p.getWaitlistPosition())
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())

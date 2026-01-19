@@ -25,12 +25,14 @@ public class EndorsementDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    // US 3.3 Organizer Endorsments
     public static class Response {
         private UUID endorsementId;
         private UUID endorserId;
         private String endorserName;
         private UUID endorsedUserId;
         private UUID gameId;
+        private String gameTitle;
         private Instant gameDate;
         private String label;
         private Instant createdAt;

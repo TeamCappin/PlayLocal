@@ -3,9 +3,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag, Medal } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
+import { endorsementsApi } from '@/lib/api';
 import { ReportModal } from './ReportModal';
 
 // Helper to get image by sport (US 2.2)
@@ -49,18 +50,18 @@ const mockGame = {
 
 const mockRoster = {
   confirmed: [
-    { participationId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh Huynh', role: 'ORGANIZER', joinStatus: 'CONFIRMED', reliabilityScore: 98, joinedAt: new Date().toISOString() },
-    { participationId: 'd4e5f6a7-b890-1234-def0-234567890123', userId: 'd4e5f6a7-b890-1234-def0-234567890124', displayName: 'Omar Elmasaoudi', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 95, joinedAt: new Date().toISOString() },
-    { participationId: 'e5f6a7b8-9012-3456-ef01-345678901234', userId: 'e5f6a7b8-9012-3456-ef01-345678901235', displayName: 'Asif Ali Khan', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 92, joinedAt: new Date().toISOString() },
-    { participationId: 'f6a7b890-1234-5678-f012-456789012345', userId: 'f6a7b890-1234-5678-f012-456789012346', displayName: 'Melissa Rahman', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 88, joinedAt: new Date().toISOString() },
-    { participationId: 'a7b89012-3456-789a-0123-567890123456', userId: 'a7b89012-3456-789a-0123-567890123457', displayName: 'Younes Bouhaba', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 97, joinedAt: new Date().toISOString() },
-    { participationId: 'b8901234-5678-9abc-1234-678901234567', userId: 'b8901234-5678-9abc-1234-678901234568', displayName: 'Alexander El Ghaoui', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 90, joinedAt: new Date().toISOString() },
-    { participationId: 'c9012345-6789-abcd-2345-789012345678', userId: 'c9012345-6789-abcd-2345-789012345679', displayName: 'David Onwionoko', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 85, joinedAt: new Date().toISOString() },
-    { participationId: 'd0123456-789a-bcde-3456-890123456789', userId: 'd0123456-789a-bcde-3456-890123456780', displayName: 'Steven Zrihen', role: 'PLAYER', joinStatus: 'CONFIRMED', reliabilityScore: 93, joinedAt: new Date().toISOString() },
+    { participationId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh Huynh', role: 'ORGANIZER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 98, joinedAt: new Date().toISOString() },
+    { participationId: 'd4e5f6a7-b890-1234-def0-234567890123', userId: 'd4e5f6a7-b890-1234-def0-234567890124', displayName: 'Omar Elmasaoudi', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 95, joinedAt: new Date().toISOString() },
+    { participationId: 'e5f6a7b8-9012-3456-ef01-345678901234', userId: 'e5f6a7b8-9012-3456-ef01-345678901235', displayName: 'Asif Ali Khan', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 92, joinedAt: new Date().toISOString() },
+    { participationId: 'f6a7b890-1234-5678-f012-456789012345', userId: 'f6a7b890-1234-5678-f012-456789012346', displayName: 'Melissa Rahman', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 88, joinedAt: new Date().toISOString() },
+    { participationId: 'a7b89012-3456-789a-0123-567890123456', userId: 'a7b89012-3456-789a-0123-567890123457', displayName: 'Younes Bouhaba', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 97, joinedAt: new Date().toISOString() },
+    { participationId: 'b8901234-5678-9abc-1234-678901234567', userId: 'b8901234-5678-9abc-1234-678901234568', displayName: 'Alexander El Ghaoui', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 90, joinedAt: new Date().toISOString() },
+    { participationId: 'c9012345-6789-abcd-2345-789012345678', userId: 'c9012345-6789-abcd-2345-789012345679', displayName: 'David Onwionoko', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 85, joinedAt: new Date().toISOString() },
+    { participationId: 'd0123456-789a-bcde-3456-890123456789', userId: 'd0123456-789a-bcde-3456-890123456780', displayName: 'Steven Zrihen', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 93, joinedAt: new Date().toISOString() },
   ],
   waitlisted: [
-    { participationId: 'e1234567-89ab-cdef-4567-901234567890', userId: 'e1234567-89ab-cdef-4567-901234567891', displayName: 'Youssef Yacoub', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 1, reliabilityScore: 87, joinedAt: new Date().toISOString() },
-    { participationId: 'f2345678-9abc-def0-5678-012345678901', userId: 'f2345678-9abc-def0-5678-012345678902', displayName: 'Hudson Lu', role: 'PLAYER', joinStatus: 'WAITLISTED', waitlistPosition: 2, reliabilityScore: 82, joinedAt: new Date().toISOString() },
+    { participationId: 'e1234567-89ab-cdef-4567-901234567890', userId: 'e1234567-89ab-cdef-4567-901234567891', displayName: 'Youssef Yacoub', role: 'PLAYER', joinStatus: 'WAITLISTED', attendanceStatus: 'UNKNOWN', waitlistPosition: 1, reliabilityScore: 87, joinedAt: new Date().toISOString() },
+    { participationId: 'f2345678-9abc-def0-5678-012345678901', userId: 'f2345678-9abc-def0-5678-012345678902', displayName: 'Hudson Lu', role: 'PLAYER', joinStatus: 'WAITLISTED', attendanceStatus: 'UNKNOWN', waitlistPosition: 2, reliabilityScore: 82, joinedAt: new Date().toISOString() },
   ],
   maxPlayers: 10,
   spotsAvailable: 2,
@@ -84,6 +85,17 @@ export function GameRoom() {
   // Use API data if available, fallback to mock
   const game = apiGame || mockGame;
   const roster = apiRoster || mockRoster;
+
+  const handleEndorse = async (userId: string) => {
+    try {
+      await endorsementsApi.create({ endorsedUserId: userId, gameId: id });
+      setActionSuccess('Player endorsed successfully!');
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to endorse player');
+      setTimeout(() => setActionError(null), 3000);
+    }
+  };
 
   // Check if current user is in the game
   const currentUserParticipation = roster.confirmed.find(p => p.userId === user?.userId)
@@ -366,6 +378,18 @@ export function GameRoom() {
                                 <span className="text-gray-600">Reliability: {player.reliabilityScore}%</span>
                               </div>
                             </div>
+                            
+                            {/* Endorsement UI - US 3.3 Organizer Endorsments */}
+                            {isOrganizer && player.attendanceStatus === 'ATTENDED' && player.userId !== user?.userId && (
+                              <button
+                                onClick={() => handleEndorse(player.userId)}
+                                className="p-2 text-gray-400 hover:text-yellow-500 transition-colors"
+                                title="Endorse as Organizer's Pick"
+                              >
+                                <Medal className="w-5 h-5" />
+                              </button>
+                            )}
+
                             <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                           </div>
                         ))}
