@@ -293,6 +293,16 @@ export interface ParticipantDto {
     joinedAt: string;
 }
 
+export interface GameFilters {
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
+    sportName?: string;
+    skillLevel?: string;
+    locationType?: string;
+    intensity?: string;
+}
+
 export const gamesApi = {
     create: (data: CreateGameRequest) =>
         apiFetch<GameResponse>('/games', {
@@ -300,7 +310,19 @@ export const gamesApi = {
             body: JSON.stringify(data),
         }),
 
-    getUpcoming: () => apiFetch<GameResponse[]>('/games'),
+    getUpcoming: (filters?: GameFilters) => {
+        const params = new URLSearchParams();
+        if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+        if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
+        if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+        if (filters?.sportName) params.append('sportName', filters.sportName);
+        if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+        if (filters?.locationType) params.append('locationType', filters.locationType);
+        if (filters?.intensity) params.append('intensity', filters.intensity);
+        
+        const queryString = params.toString();
+        return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+    },
 
     getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 

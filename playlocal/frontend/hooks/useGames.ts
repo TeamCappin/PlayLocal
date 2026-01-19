@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { gamesApi, GameResponse, RosterResponse, JoinResponse } from '@/lib/api';
+import { gamesApi, GameResponse, RosterResponse, JoinResponse, GameFilters } from '@/lib/api';
 
-export function useGames() {
+export function useGames(filters?: GameFilters) {
     const [games, setGames] = useState<GameResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -10,7 +10,7 @@ export function useGames() {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await gamesApi.getUpcoming();
+            const data = await gamesApi.getUpcoming(filters);
             setGames(data);
         } catch (err) {
             setError('Failed to load games');
@@ -18,7 +18,7 @@ export function useGames() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [filters]);
 
     useEffect(() => {
         fetchGames();
