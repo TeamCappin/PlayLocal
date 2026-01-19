@@ -224,6 +224,7 @@ interface FilterState {
 export function GameDiscovery() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     sportName: '',
     distance: 'any distance',
@@ -238,69 +239,80 @@ export function GameDiscovery() {
     locationType: 'any',
     intensity: 'any',
   });
-  const { games: apiGames, isLoading, error } = useGames();
 
-  // Use API data only - no mock fallback
-  // Transform games
-  const allGames = (apiGames.length > 0 ? apiGames : mockGames).map(transformApiGame);
-
-  // Apply filters to games
-  const displayGames = useMemo(() => {
-    return allGames.filter((game) => {
-      if (appliedFilters.sportName.trim()) {
-        const sportNameLower = appliedFilters.sportName.toLowerCase().trim();
-        if (!game.sport.toLowerCase().includes(sportNameLower)) {
-          return false;
+  // Get user location on mount (optional)
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log('Geolocation error:', error);
+          // Continue without location - distance filtering won't work
         }
+      );
+    }
+  }, []);
+
+  // Convert filter state to API format
+  const apiFilters = useMemo(() => {
+    const apiFilter: any = {};
+
+    if (appliedFilters.sportName.trim()) {
+      apiFilter.sportName = appliedFilters.sportName.trim();
+    }
+
+    if (appliedFilters.skillLevel !== 'any') {
+      // Map to database format: Beginner, Intermediate, Advanced (capitalized)
+      const skillLevelMap: Record<string, string> = {
+        'beginner': 'Beginner',
+        'intermediate': 'Intermediate',
+        'advanced': 'Advanced',
+      };
+      apiFilter.skillLevel = skillLevelMap[appliedFilters.skillLevel.toLowerCase()] || appliedFilters.skillLevel;
+    }
+
+    if (appliedFilters.locationType !== 'any') {
+      apiFilter.locationType = appliedFilters.locationType.toLowerCase();
+    }
+
+    if (appliedFilters.intensity !== 'any') {
+      // Map to database format: Casual, High, Competitive (capitalized)
+      const intensityMap: Record<string, string> = {
+        'casual': 'Casual',
+        'high': 'High',
+        'competitive': 'Competitive',
+      };
+      apiFilter.intensity = intensityMap[appliedFilters.intensity.toLowerCase()] || appliedFilters.intensity;
+    }
+
+    // Distance filter - convert to radiusKm
+    if (appliedFilters.distance !== 'any distance' && userLocation) {
+      apiFilter.lat = userLocation.lat;
+      apiFilter.lon = userLocation.lon;
+
+      const distanceMap: Record<string, number> = {
+        'within 5km': 5,
+        'within 10km': 10,
+        'within 20km': 20,
+      };
+      const radius = distanceMap[appliedFilters.distance.toLowerCase()];
+      if (radius) {
+        apiFilter.radiusKm = radius;
       }
+    }
 
-      // Skill level filter
-      if (appliedFilters.skillLevel !== 'any') {
-        // If game is "All Levels", it matches any filter and allows through, otherwise check exact match (case-insensitive)
-        if (game.skillLevel === 'All Levels') {
-        } else {
-          const gameLevelLower = game.skillLevel.toLowerCase();
-          const filterLevelLower = appliedFilters.skillLevel.toLowerCase();
-          if (gameLevelLower !== filterLevelLower) {
-            return false;
-          }
-        }
-      }
+    return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
+  }, [appliedFilters, userLocation]);
 
-      // Location type filter 
-      if (appliedFilters.locationType !== 'any') {
-        const isIndoor = appliedFilters.locationType.toLowerCase() === 'indoor';
-        if (game.indoor !== isIndoor) {
-          return false;
-        }
-      }
+  const { games: apiGames, isLoading, error } = useGames(apiFilters);
 
-      // Intensity filter
-      if (appliedFilters.intensity !== 'any') {
-        const gameIntensityLower = game.intensity.toLowerCase();
-        const filterIntensityLower = appliedFilters.intensity.toLowerCase();
-        
-        if (filterIntensityLower === 'casual') {
-          if (!gameIntensityLower.includes('casual') && !gameIntensityLower.includes('low')) {
-            return false;
-          }
-        } else if (filterIntensityLower === 'high') {
-          if (!gameIntensityLower.includes('high') && !gameIntensityLower.includes('competitive')) {
-            return false;
-          }
-        } else if (filterIntensityLower === 'competitive') {
-          if (!gameIntensityLower.includes('competitive') && !gameIntensityLower.includes('high')) {
-            return false;
-          }
-        }
-      }
-
-      // Distance filter will be implemented later on here 
-      
-
-      return true;
-    });
-  }, [allGames, appliedFilters]);
+  // Transform games - backend already filters, so just transform
+  const displayGames = (apiGames.length > 0 ? apiGames : mockGames).map(transformApiGame);
 
   return (
     <div className="min-h-screen bg-gray-50">
