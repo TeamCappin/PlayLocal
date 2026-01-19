@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
@@ -52,12 +53,14 @@ class GameControllerAuthTest {
     @Test
     @DisplayName("getUpcomingGames with null authentication calls service with null userId")
     void getUpcomingGames_NullAuth_PassesNullUserId() {
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(null);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, null);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test
@@ -66,12 +69,14 @@ class GameControllerAuthTest {
         UUID userId = UUID.randomUUID();
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn(userId.toString());
-        when(gameService.getUpcomingGames(userId)).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), eq(userId)))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(userId);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), eq(userId));
     }
 
     @Test
@@ -80,24 +85,28 @@ class GameControllerAuthTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("anonymousUser"); // Not a valid UUID
 
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test
     @DisplayName("getUpcomingGames with unauthenticated calls service with null userId")
     void getUpcomingGames_NotAuthenticated_PassesNullUserId() {
         when(authentication.isAuthenticated()).thenReturn(false);
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test
