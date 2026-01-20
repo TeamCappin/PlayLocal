@@ -1,7 +1,28 @@
 import Link from "next/link";
 import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star } from 'lucide-react';
+import { format } from "date-fns/format";
 
-export function MatchHistoryList() {
+type MatchHistoryListProps = {
+  game: {
+    gameId: string;
+    title: string;
+    startTime: string;
+    location: {
+      name: string
+    };
+
+    // todo: get game.score
+    // todo: get the game.team from participation table
+    // todo: get game.result- won or loss participation table or some other table
+    // todo: game.participation role from the participation table. 
+    // todo: get attendance confirm/no show/confirm attendance/attendance pending from game participation table
+  } | null;
+}
+
+export function MatchHistoryList({ game }: MatchHistoryListProps) {
+
+  const gameDate = game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : '';
+
   return (
     // {/* instead of the div, use the link. */ }
 
@@ -18,24 +39,24 @@ export function MatchHistoryList() {
           </div>
           <div>
             <div className="flex mb-1 items-center gap-1">
-              <div className="text-gray-900">GAME.TITLE</div>
+              <div className="text-gray-900 text-lg">{game?.title}</div>
               <div className="text-xs text-gray-600 bg-gray-200 rounded-md px-2">GAME.PARTICIPATION_ROLE</div>
             </div>
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <div>
-                  clockLogo
+                  <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  GAME.DATE
+                  {gameDate}
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <div>
-                  MapPinLogo
+                  <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  GAME.LOCATION
+                  {game?.location.name}
                 </div>
               </div>
             </div>

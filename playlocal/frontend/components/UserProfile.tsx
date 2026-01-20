@@ -8,6 +8,7 @@ import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
+import { usePastGamesByUser } from '@/hooks/useGames';
 
 export function UserProfile() {
   const { username } = useParams();
@@ -18,6 +19,7 @@ export function UserProfile() {
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  const { games: pastGames, isLoading, error, refetch } = usePastGamesByUser(currentUser?.userId || '');
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -449,7 +451,12 @@ export function UserProfile() {
                 //Adding a temporary div to fix layout shift while MatchHistoryList is being updated 
                 <div>
                   <div className='space-y-3'>
-                    <MatchHistoryList />
+                    {pastGames.map((game) => (
+                      <MatchHistoryList
+                        key={game.gameId}
+                        game={game}
+                      />
+                    ))}
                   </div>
                   <div className="divide-y divide-gray-200">
                     {recentGames.map((game) => (
