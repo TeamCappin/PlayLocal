@@ -96,6 +96,7 @@ export interface UserDto {
     location?: string;
     reliabilityScore: number;
     gamesCount: number;
+    endorsementsCount?: number; // New field for endorsements count [US-3.3]
     createdAt?: string;
 }
 

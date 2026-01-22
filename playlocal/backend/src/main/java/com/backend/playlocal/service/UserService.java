@@ -4,6 +4,7 @@ import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.repository.EndorsementRepository; // Import EndorsementRepository for endorsements count [US-3.3]
 import com.backend.playlocal.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,9 +20,11 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final EndorsementRepository endorsementRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository) {
         this.userRepository = userRepository;
+        this.endorsementRepository = endorsementRepository;
     }
 
     /**
@@ -128,6 +131,7 @@ public class UserService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
+                .endorsementsCount((int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId()))
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .build();
     }

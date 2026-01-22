@@ -70,6 +70,7 @@ public class AuthDto {
         private String location;
         private Float reliabilityScore;
         private Integer gamesCount;
+        private Integer endorsementsCount; // New field for endorsements count [US-3.3]
         private String createdAt;
     }
 }

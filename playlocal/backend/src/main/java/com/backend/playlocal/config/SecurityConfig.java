@@ -3,6 +3,7 @@ package com.backend.playlocal.config;
 import com.backend.playlocal.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -43,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
                         .requestMatchers("/ws/**").permitAll()
+                        // For attendance confirmation testing [US-3.3]
+                        .requestMatchers(HttpMethod.POST, "/api/v1/games/*/attendance").authenticated()
                         .requestMatchers("/api/v1/games/**").permitAll()
                         // Profiles require authentication to view [US-1.3 Privacy Defaults]
                         .requestMatchers("/api/v1/users/*/profile").authenticated()
