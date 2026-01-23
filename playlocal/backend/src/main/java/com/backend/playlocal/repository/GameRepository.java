@@ -22,8 +22,8 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now ORDER BY g.startTime ASC")
     List<Game> findUpcomingGames(Instant now);
 
-    @Query("SELECT DISTINCT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status = 'COMPLETED' AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' ORDER BY g.endTime ASC")
-    List<Game> findPastGamesForUser(UUID userId);
+    @Query("SELECT DISTINCT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status = 'SCHEDULED' AND g.startTime < :now AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' ORDER BY g.endTime ASC")
+    List<Game> findPastGamesForUser(UUID userId, Instant now);
 
     @Query("SELECT g FROM Game g WHERE g.sport.sportId = :sportId AND g.status = 'SCHEDULED' AND g.startTime > :now")
     List<Game> findBySportAndUpcoming(UUID sportId, Instant now);
