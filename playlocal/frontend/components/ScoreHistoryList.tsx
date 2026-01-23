@@ -101,6 +101,14 @@ export function ScoreHistoryList({
                             <div
                                 className="p-4 cursor-pointer hover:bg-gray-50"
                                 onClick={() => setExpandedId(isExpanded ? null : entry.scoreHistoryId)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setExpandedId(isExpanded ? null : entry.scoreHistoryId);
+                                    }
+                                }}
+                                role="button"
+                                tabIndex={0}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
