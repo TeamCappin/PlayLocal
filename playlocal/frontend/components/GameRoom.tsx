@@ -3,7 +3,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag, Archive, XCircle } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
@@ -71,12 +71,15 @@ export function GameRoom() {
   const id = params?.id as string;
   const navigate = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { game: apiGame, roster: apiRoster, isLoading, error, joinGame, leaveGame, refetch } = useGame(id);
+  const { game: apiGame, roster: apiRoster, isLoading, error, joinGame, leaveGame, cancelGame, completeGame, archiveGame, refetch } = useGame(id);
 
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'lineup'>('details');
   const [message, setMessage] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -84,6 +87,42 @@ export function GameRoom() {
   // Use API data if available, fallback to mock
   const game = apiGame || mockGame;
   const roster = apiRoster || mockRoster;
+
+  const statusKey = (game.status || 'SCHEDULED').toUpperCase();
+  const statusMeta: Record<string, { label: string; pillClass: string; bannerClass?: string; bannerText?: string }> = {
+    SCHEDULED: { label: 'Scheduled', pillClass: 'bg-emerald-600 text-white' },
+    IN_PROGRESS: {
+      label: 'In Progress',
+      pillClass: 'bg-amber-600 text-white',
+      bannerClass: 'bg-amber-50 border-amber-200 text-amber-700',
+      bannerText: 'Game is in progress.',
+    },
+    COMPLETED: {
+      label: 'Completed',
+      pillClass: 'bg-gray-700 text-white',
+      bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+      bannerText: 'Game completed.',
+    },
+    CANCELLED: {
+      label: 'Cancelled',
+      pillClass: 'bg-red-600 text-white',
+      bannerClass: 'bg-red-50 border-red-200 text-red-700',
+      bannerText: 'Game cancelled by organizer.',
+    },
+    ARCHIVED: {
+      label: 'Archived',
+      pillClass: 'bg-gray-600 text-white',
+      bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+      bannerText: 'Game archived and read-only.',
+    },
+  };
+  const currentStatus = statusMeta[statusKey] || {
+    label: statusKey,
+    pillClass: 'bg-gray-600 text-white',
+    bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+    bannerText: `Game status: ${statusKey}`,
+  };
+  const isScheduled = statusKey === 'SCHEDULED';
 
   // Check if current user is in the game
   const currentUserParticipation = roster.confirmed.find(p => p.userId === user?.userId)
@@ -107,6 +146,7 @@ export function GameRoom() {
     }
 
     setActionError(null);
+    setActionSuccess(null);
     setIsJoining(true);
     try {
       const result = await joinGame();
@@ -124,6 +164,7 @@ export function GameRoom() {
 
   const handleLeave = async () => {
     setActionError(null);
+    setActionSuccess(null);
     setIsLeaving(true);
     try {
       await leaveGame();
@@ -132,6 +173,48 @@ export function GameRoom() {
       setActionError(err.message || 'Failed to leave game');
     } finally {
       setIsLeaving(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsCancelling(true);
+    try {
+      await cancelGame();
+      setActionSuccess('Game cancelled. Participants have been notified.');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to cancel game');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsCompleting(true);
+    try {
+      await completeGame();
+      setActionSuccess('Game marked as completed.');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to complete game');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsArchiving(true);
+    try {
+      await archiveGame();
+      setActionSuccess('Game archived.');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to archive game');
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -179,6 +262,9 @@ export function GameRoom() {
               <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-sm">
                 {game.intensityBand || 'Medium'} Intensity
               </span>
+              <span className={`px-3 py-1 rounded-full text-sm ${currentStatus.pillClass}`}>
+                {currentStatus.label}
+              </span>
             </div>
             <h1 className="text-4xl text-white mb-2">{game.title}</h1>
             <div className="flex items-center gap-4 text-white/90">
@@ -210,6 +296,12 @@ export function GameRoom() {
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 {actionError}
+              </div>
+            )}
+            {currentStatus.bannerText && (
+              <div className={`p-4 border rounded-lg flex items-center gap-2 ${currentStatus.bannerClass}`}>
+                <AlertCircle className="w-5 h-5" />
+                <span>{currentStatus.bannerText}</span>
               </div>
             )}
 
@@ -462,7 +554,7 @@ export function GameRoom() {
                       </span>
                     </div>
                   </div>
-                  {!isOrganizer && (
+                  {!isOrganizer && isScheduled && (
                     <button
                       onClick={handleLeave}
                       disabled={isLeaving}
@@ -473,7 +565,7 @@ export function GameRoom() {
                     </button>
                   )}
                 </>
-              ) : (
+              ) : isScheduled ? (
                 <>
                   {!isAuthenticated ? (
                     <button
@@ -494,6 +586,47 @@ export function GameRoom() {
                     </button>
                   )}
                 </>
+              ) : (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>This game is no longer accepting players.</span>
+                </div>
+              )}
+
+              {isOrganizer && (
+                <div className="mt-4 border-t border-gray-200 pt-4 space-y-2">
+                  <p className="text-sm text-gray-500">Organizer actions</p>
+                  {statusKey === 'SCHEDULED' && (
+                    <button
+                      onClick={handleCancel}
+                      disabled={isCancelling}
+                      className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
+                      <span>Cancel Game</span>
+                    </button>
+                  )}
+                  {(statusKey === 'SCHEDULED' || statusKey === 'IN_PROGRESS') && (
+                    <button
+                      onClick={handleComplete}
+                      disabled={isCompleting}
+                      className="w-full px-6 py-3 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isCompleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                      <span>Mark Completed</span>
+                    </button>
+                  )}
+                  {(statusKey === 'COMPLETED' || statusKey === 'CANCELLED') && (
+                    <button
+                      onClick={handleArchive}
+                      disabled={isArchiving}
+                      className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isArchiving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Archive className="w-5 h-5" />}
+                      <span>Archive Game</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               <button className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
