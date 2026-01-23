@@ -118,8 +118,8 @@ public class GameService {
          * 
          * Get past games created by user. US-2.6
          */
-        public List<GameDto.GameResponse> getPastGamesForUser(UUID userId) {
-                return gameRepository.findPastGamesForUser(userId, Instant.now()).stream()
+        public List<GameDto.GameResponse> getPastGamesForUserNeedingAttendanceUpdate(UUID userId) {
+                return gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now()).stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
         }

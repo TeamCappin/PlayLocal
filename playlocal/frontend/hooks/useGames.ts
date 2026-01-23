@@ -27,7 +27,7 @@ export function useGames() {
     return { games, isLoading, error, refetch: fetchGames };
 }
 
-export function usePastGamesByUser(userId: string){
+export function usePastGamesByUserNeedingAttendanceUpdate(userId: string){
     const [games, setGames] = useState<GameResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function usePastGamesByUser(userId: string){
         setIsLoading(true);
         setError(null);
         try {
-            const data = await gamesApi.getPastByUser(userId);
+            const data = await gamesApi.getPastByUserNeedingAttendanceUpdate(userId);
             setGames(data);
         } catch (err) {
             setError('Failed to load past games');

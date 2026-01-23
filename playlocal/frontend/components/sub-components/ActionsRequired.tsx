@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
-import { usePastGamesByUser } from '@/hooks/useGames';
+import { usePastGamesByUserNeedingAttendanceUpdate } from '@/hooks/useGames';
 import { format } from "date-fns/format";
 
 export function ActionsRequired() {
   const navigate = useRouter();
   const { isAuthenticated, user } = useAuth();
 
-  const { games, isLoading, error, refetch } = usePastGamesByUser(user?.userId || '');
+  const { games, isLoading, error, refetch } = usePastGamesByUserNeedingAttendanceUpdate(user?.userId || '');
   console.log('Past games fetched from API:', games);
   const actionsRequired = games.length;
 

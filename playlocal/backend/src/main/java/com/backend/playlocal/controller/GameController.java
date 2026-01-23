@@ -57,7 +57,7 @@ public class GameController {
      * Get previous games created by a user.
      * US-2.6: Get Past Games
      */ 
-    @GetMapping ("/pastByUserId/{userId}")
+    @GetMapping ("/pastByUserIdNeedingAttendanceUpdate/{userId}")
     public ResponseEntity<List<GameDto.GameResponse>> getPastGames(
             @PathVariable UUID userId,
             Authentication authentication) {
@@ -71,7 +71,7 @@ public class GameController {
                 // Ignore invalid UUIDs (e.g. anonymousUser)
             }
         }
-        List<GameDto.GameResponse> games = gameService.getPastGamesForUser(userId);
+        List<GameDto.GameResponse> games = gameService.getPastGamesForUserNeedingAttendanceUpdate(userId);
         return ResponseEntity.ok(games);
     }
 
