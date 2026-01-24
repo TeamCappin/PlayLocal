@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star } from 'lucide-react';
 import { format } from "date-fns/format";
+import { gamesApi, ParticipantDto } from "@/lib/api";
+import { useEffect, useState } from "react";
 
 type MatchHistoryListProps = {
   game: {
@@ -17,9 +19,27 @@ type MatchHistoryListProps = {
     // todo: game.participation role from the participation table. 
     // todo: get attendance confirm/no show/confirm attendance/attendance pending from game participation table
   } | null;
+  userId: string;
 }
 
-export function MatchHistoryList({ game }: MatchHistoryListProps) {
+export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
+
+  const [gameParticipation, setGameParticipation] = useState<ParticipantDto | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (game) {
+          const data = await gamesApi.getGameParticipation(game.gameId, userId);
+          setGameParticipation(data);
+          console.log('MatchHistoryList - fetched participation data:', data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch game participation", err);
+      }
+    };
+    fetchData();
+  }, [game, userId]);
 
   const gameDate = game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : '';
 

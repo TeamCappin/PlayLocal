@@ -8,7 +8,7 @@ import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
-import { usePastGamesByUserNeedingAttendanceUpdate } from '@/hooks/useGames';
+import { usePastGamesByUser } from '@/hooks/useGames';
 
 export function UserProfile() {
   const { username } = useParams();
@@ -19,7 +19,7 @@ export function UserProfile() {
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
-  const { games: pastGames, isLoading, error, refetch } = usePastGamesByUserNeedingAttendanceUpdate(currentUser?.userId || '');
+  const { games: pastGames, isLoading, error, refetch } = usePastGamesByUser(currentUser?.userId || '');
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -455,6 +455,7 @@ export function UserProfile() {
                       <MatchHistoryList
                         key={game.gameId}
                         game={game}
+                        userId={currentUser?.userId || ''}
                       />
                     ))}
                   </div>

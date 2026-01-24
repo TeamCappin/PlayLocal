@@ -54,10 +54,32 @@ public class GameController {
     }
 
     /**
-     * Get previous games of a user for which join status has been confirmed and game not cancelled.
+     * Get game participation for a specific userId and gameID.
+     * US-2.6: Get Game Participation
+     */
+    @GetMapping("/gameParticipation/{gameId}/{userId}")
+    public ResponseEntity<GameDto.ParticipantDto> getGameParticipation(
+            @PathVariable UUID gameId,
+            @PathVariable UUID userId,
+            Authentication authentication) {
+        UUID authenticatedUserId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                authenticatedUserId = UUID.fromString(authentication.getName());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid UUIDs
+            }
+        }
+        GameDto.ParticipantDto participation = gameService.getGameParticipation(gameId, userId);
+        return ResponseEntity.ok(participation);
+    }
+
+    /**
+     * Get previous games of a user for which join status has been confirmed and
+     * game not cancelled.
      * US-2.6: Get Past Games
-     */ 
-    @GetMapping ("/pastByUserId/{userId}")
+     */
+    @GetMapping("/pastByUserId/{userId}")
     public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUser(
             @PathVariable UUID userId,
             Authentication authentication) {
@@ -75,10 +97,11 @@ public class GameController {
     }
 
     /**
-     * Get previous games created by a user for which the rsvp roster needs to be updated.
+     * Get previous games created by a user for which the rsvp roster needs to be
+     * updated.
      * US-2.6: Get Past Games Needing Attendance Update
-     */ 
-    @GetMapping ("/pastByUserIdNeedingAttendanceUpdate/{userId}")
+     */
+    @GetMapping("/pastByUserIdNeedingAttendanceUpdate/{userId}")
     public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUserNeedingAttendanceUpdate(
             @PathVariable UUID userId,
             Authentication authentication) {

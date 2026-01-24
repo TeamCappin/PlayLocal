@@ -144,7 +144,7 @@ public class ReliabilityService {
     }
 
     /**
-     * Get participants awaiting attendance confirmation.
+     * Get participants awaiting attendance confirmation. US-2.6
      */
     public List<AttendanceDto.AttendanceEntry> getPendingAttendance(UUID gameId, UUID organizerId) {
         Game game = gameRepository.findById(gameId)

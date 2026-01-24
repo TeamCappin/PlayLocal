@@ -291,6 +291,7 @@ export interface ParticipantDto {
     waitlistPosition?: number;
     reliabilityScore: number;
     joinedAt: string;
+    attendanceStatus?: string;
 }
 
 export const gamesApi = {
@@ -301,7 +302,10 @@ export const gamesApi = {
         }),
 
     getUpcoming: () => apiFetch<GameResponse[]>('/games'),
-    
+
+    getGameParticipation: (gameId: string, userId: string) =>
+        apiFetch<ParticipantDto>(`/games/gameParticipation/${gameId}/${userId}`),
+
     getPastByUserId: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserId/${userId}`),
 
     getPastByUserNeedingAttendanceUpdate: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate/${userId}`),
