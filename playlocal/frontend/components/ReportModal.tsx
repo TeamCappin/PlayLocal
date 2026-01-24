@@ -9,8 +9,9 @@ export interface ReportModalProps {
     onClose: () => void;
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     targetName: string;
-    reportType?: 'user' | 'game';  // Explicitly specify what type of report
+    reportType?: 'user' | 'game' | 'endorsement';  // Explicitly specify what type of report
 }
 
 const REPORT_REASONS: { value: CreateReportRequest['reportType']; label: string }[] = [
@@ -21,7 +22,7 @@ const REPORT_REASONS: { value: CreateReportRequest['reportType']; label: string 
     { value: 'OTHER', label: 'Other' },
 ];
 
-export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetName, reportType }: ReportModalProps) {
+export function ReportModal({ isOpen, onClose, reportedUserId, gameId, endorsementId, targetName, reportType }: ReportModalProps) {
     const { submitReport, isSubmitting, error: apiError } = useReportUser();
     const [reason, setReason] = useState<CreateReportRequest['reportType'] | ''>('');
     const [details, setDetails] = useState('');
@@ -54,6 +55,7 @@ export function ReportModal({ isOpen, onClose, reportedUserId, gameId, targetNam
             await submitReport({
                 reportedUserId,
                 gameId,
+                endorsementId,
                 reportType: reason,
                 details: details.trim(),
             });

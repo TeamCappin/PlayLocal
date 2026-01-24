@@ -19,6 +19,7 @@ export function UserProfile() {
   // US 3.3 Organizer Endorsments
   const [endorsements, setEndorsements] = useState<EndorsementResponse[]>([]);
   const [loadingEndorsements, setLoadingEndorsements] = useState(false);
+  const [endorsementToReport, setEndorsementToReport] = useState<EndorsementResponse | null>(null);
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -421,11 +422,11 @@ export function UserProfile() {
                   ) : endorsements.length > 0 ? (
                     <div className="space-y-3">
                       {endorsements.slice(0, 5).map((endorsement) => (
-                        <div key={endorsement.endorsementId} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div key={endorsement.endorsementId} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg group">
                           <div className="bg-white p-2 rounded-full shadow-sm text-emerald-500">
                              <Medal className="w-5 h-5" />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <div className="text-gray-900 font-medium">Organizer Pick</div>
                             <div className="text-sm text-gray-600">
                               by {endorsement.endorserName}
@@ -434,6 +435,13 @@ export function UserProfile() {
                               {new Date(endorsement.gameDate).toLocaleDateString()} • {endorsement.gameTitle}
                             </div>
                           </div>
+                          <button 
+                             onClick={() => setEndorsementToReport(endorsement)}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 rounded"
+                             title="Report Endorsement"
+                          >
+                             <Flag className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                       {endorsements.length > 5 && (
@@ -602,6 +610,16 @@ export function UserProfile() {
         onClose={() => setShowReportModal(false)}
         reportedUserId={user.userId || undefined}
         targetName={user.name}
+        reportType="user"
+      />
+
+      {/* Endorsement Report Modal */}
+      <ReportModal
+        isOpen={!!endorsementToReport}
+        onClose={() => setEndorsementToReport(null)}
+        endorsementId={endorsementToReport?.endorsementId}
+        targetName="Endorsement"
+        reportType="endorsement"
       />
     </div>
   );

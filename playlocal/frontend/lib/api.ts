@@ -357,6 +357,7 @@ export const attendanceApi = {
 export interface CreateReportRequest {
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     reportType: 'HARASSMENT' | 'SPORTSMANSHIP' | 'SAFETY' | 'SPAM' | 'OTHER';
     details: string;
 }
@@ -366,6 +367,7 @@ export interface ReportResponse {
     reporterUserId: string;
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     reportType: string;
     details: string;
     status: string;
