@@ -5,6 +5,8 @@ import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +23,7 @@ public interface EndorsementRepository extends JpaRepository<Endorsement, UUID> 
     List<Endorsement> findByEndorsedUser_UserId(UUID endorsedUserId, Pageable pageable);
     
     long countByEndorsedUser_UserId(UUID endorsedUserId);
+
+    @Query("SELECT e.endorsedUser.userId, COUNT(e) FROM Endorsement e WHERE e.endorsedUser.userId IN :userIds GROUP BY e.endorsedUser.userId")
+    List<Object[]> countEndorsementsByUserIds(@Param("userIds") List<UUID> userIds);
 }

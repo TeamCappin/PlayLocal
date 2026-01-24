@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -104,11 +105,17 @@ class UserServiceTest {
     void searchUsers_WithQuery() {
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.searchByDisplayNameOrEmail(eq("query"), any(PageRequest.class))).thenReturn(page);
+        List<Object[]> batchCounts = new ArrayList<>();
+        batchCounts.add(new Object[]{user.getUserId(), 10L});
+        when(endorsementRepository.countEndorsementsByUserIds(anyList()))
+                .thenReturn(batchCounts);
 
         UserDto.SearchResponse response = userService.searchUsers("query", 0, 10);
 
         assertThat(response.getUsers()).hasSize(1);
+        assertThat(response.getUsers().get(0).getEndorsementsCount()).isEqualTo(10);
         verify(userRepository).searchByDisplayNameOrEmail(eq("query"), any(PageRequest.class));
+        verify(endorsementRepository).countEndorsementsByUserIds(anyList());
     }
 
     @Test
@@ -116,11 +123,17 @@ class UserServiceTest {
     void searchUsers_NoQuery() {
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
+        List<Object[]> batchCounts = new ArrayList<>();
+        batchCounts.add(new Object[]{user.getUserId(), 5L});
+        when(endorsementRepository.countEndorsementsByUserIds(anyList()))
+                .thenReturn(batchCounts);
 
         UserDto.SearchResponse response = userService.searchUsers(null, 0, 10);
 
         assertThat(response.getUsers()).hasSize(1);
+        assertThat(response.getUsers().get(0).getEndorsementsCount()).isEqualTo(5);
         verify(userRepository).findAllActive(any(PageRequest.class));
+        verify(endorsementRepository).countEndorsementsByUserIds(anyList());
     }
 
     @Test

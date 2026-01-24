@@ -12,7 +12,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,8 +42,20 @@ public class UserService {
             usersPage = userRepository.findAllActive(pageRequest);
         }
 
+        List<UUID> userIds = usersPage.getContent().stream()
+                .map(User::getUserId)
+                .collect(Collectors.toList());
+
+        Map<UUID, Integer> endorsementCounts = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<Object[]> counts = endorsementRepository.countEndorsementsByUserIds(userIds);
+            for (Object[] row : counts) {
+                endorsementCounts.put((UUID) row[0], ((Number) row[1]).intValue());
+            }
+        }
+
         List<AuthDto.UserDto> users = usersPage.getContent().stream()
-                .map(this::mapToUserDto)
+                .map(user -> mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0)))
                 .collect(Collectors.toList());
 
         return UserDto.SearchResponse.builder()
@@ -119,6 +133,14 @@ public class UserService {
     }
 
     private AuthDto.UserDto mapToUserDto(User user) {
+        return mapToUserDto(user, null);
+    }
+
+    private AuthDto.UserDto mapToUserDto(User user, Integer preCalculatedCount) {
+        int count = (preCalculatedCount != null) 
+                ? preCalculatedCount 
+                : (int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId());
+
         return AuthDto.UserDto.builder()
                 .userId(user.getUserId().toString())
                 .email(user.getEmail())
@@ -131,7 +153,7 @@ public class UserService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
-                .endorsementsCount((int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId()))
+                .endorsementsCount(count)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .build();
     }
