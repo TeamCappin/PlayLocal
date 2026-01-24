@@ -293,6 +293,7 @@ export interface ParticipantDto {
     waitlistPosition?: number;
     reliabilityScore: number;
     joinedAt: string;
+    isEndorsedByOrganizer?: boolean;
 }
 
 export const gamesApi = {
@@ -417,7 +418,7 @@ export interface EndorsementRequest {
     gameId: string;
 }
 
-// US 3.3 Organizer Endorsments
+// US 3.3 Organizer Endorsements
 export interface EndorsementResponse {
     endorsementId: string;
     endorserId: string;

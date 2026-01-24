@@ -90,8 +90,14 @@ export function GameRoom() {
     try {
       await endorsementsApi.create({ endorsedUserId: userId, gameId: id });
       setActionSuccess('Player endorsed successfully!');
+      refetch();
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
+      // If validation says duplicate, refresh to show the endorsement
+      if (err.message && (err.message.toLowerCase().includes("duplicate") || err.message.toLowerCase().includes("exists"))) {
+        refetch();
+        return;
+      }
       setActionError(err.message || 'Failed to endorse player');
       setTimeout(() => setActionError(null), 3000);
     }
@@ -379,15 +385,24 @@ export function GameRoom() {
                               </div>
                             </div>
                             
-                            {/* Endorsement UI - US 3.3 Organizer Endorsments */}
+                            {/* Endorsement UI - US 3.3 Organizer Endorsements */}
                             {isOrganizer && player.attendanceStatus === 'ATTENDED' && player.userId !== user?.userId && (
-                              <button
-                                onClick={() => handleEndorse(player.userId)}
-                                className="p-2 text-gray-400 hover:text-yellow-500 transition-colors"
-                                title="Endorse as Organizer's Pick"
-                              >
-                                <Medal className="w-5 h-5" />
-                              </button>
+                              player.isEndorsedByOrganizer ? (
+                                <div 
+                                  className="p-2 text-yellow-500" 
+                                  title="Organizer's Pick (Endorsed)"
+                                >
+                                  <Medal className="w-5 h-5 fill-current" />
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleEndorse(player.userId)}
+                                  className="p-2 text-gray-400 hover:text-yellow-500 transition-colors"
+                                  title="Endorse as Organizer's Pick"
+                                >
+                                  <Medal className="w-5 h-5" />
+                                </button>
+                              )
                             )}
 
                             <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />

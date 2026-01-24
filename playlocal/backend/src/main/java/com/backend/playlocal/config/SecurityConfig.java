@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -42,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        // Endorsements require authentication
+                        .requestMatchers("/api/v1/endorsements/**").authenticated()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
                         .requestMatchers("/ws/**").permitAll()
                         // For attendance confirmation testing [US-3.3]
@@ -51,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/*/profile").authenticated()
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

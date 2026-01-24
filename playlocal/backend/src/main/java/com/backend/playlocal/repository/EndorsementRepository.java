@@ -17,6 +17,8 @@ public interface EndorsementRepository extends JpaRepository<Endorsement, UUID> 
 
     boolean existsByEndorserAndEndorsedUserAndGame(User endorser, User endorsedUser, Game game);
 
+    List<Endorsement> findByGameAndEndorser(Game game, User endorser);
+
     List<Endorsement> findByEndorsedUser_UserIdOrderByCreatedAtDesc(UUID endorsedUserId);
     
     // For limiting results (e.g. top 5), we can use Pageable or custom queries

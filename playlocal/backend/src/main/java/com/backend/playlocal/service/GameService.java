@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,16 +26,19 @@ public class GameService {
         private final SportRepository sportRepository;
         private final LocationRepository locationRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
+        private final EndorsementRepository endorsementRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
-                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository) {
+                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository,
+                        EndorsementRepository endorsementRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
                 this.sportRepository = sportRepository;
                 this.locationRepository = locationRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
+                this.endorsementRepository = endorsementRepository;
         }
 
         /**
@@ -276,13 +280,19 @@ public class GameService {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
+                // Fetch endorsements by organizer
+                List<Endorsement> endorsements = endorsementRepository.findByGameAndEndorser(game, game.getCreatedBy());
+                Set<UUID> endorsedUserIds = endorsements.stream()
+                                .map(e -> e.getEndorsedUser().getUserId())
+                                .collect(Collectors.toSet());
+
                 List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
 
                 return GameDto.RosterResponse.builder()
-                                .confirmed(confirmed.stream().map(this::mapToParticipantDto)
+                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
                                                 .collect(Collectors.toList()))
-                                .waitlisted(waitlisted.stream().map(this::mapToParticipantDto)
+                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
                                                 .collect(Collectors.toList()))
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
@@ -361,7 +371,7 @@ public class GameService {
                                 .build();
         }
 
-        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
                 return GameDto.ParticipantDto.builder()
                                 .participationId(p.getParticipationId().toString())
                                 .userId(p.getUser().getUserId().toString())
@@ -373,6 +383,7 @@ public class GameService {
                                 .waitlistPosition(p.getWaitlistPosition())
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
+                                .isEndorsedByOrganizer(endorsedUserIds.contains(p.getUser().getUserId()))
                                 .build();
         }
 }
