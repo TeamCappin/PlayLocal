@@ -16,7 +16,7 @@ export function UserProfile() {
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
-  // US 3.3 Organizer Endorsments
+  // US 3.3 Organizer Endorsements
   const [endorsements, setEndorsements] = useState<EndorsementResponse[]>([]);
   const [loadingEndorsements, setLoadingEndorsements] = useState(false);
   const [endorsementToReport, setEndorsementToReport] = useState<EndorsementResponse | null>(null);
@@ -91,21 +91,23 @@ export function UserProfile() {
   };
 
   // Fetch endorsements
-  // US 3.3 Organizer Endorsments
+  // US 3.3 Organizer Endorsements
   useEffect(() => {
-    if (user.userId) {
-      setLoadingEndorsements(true);
-      endorsementsApi.getUserEndorsements(user.userId)
-        .then(data => {
-          setEndorsements(data);
-        })
-        .catch(err => {
-          console.error("Failed to load endorsements", err);
-        })
-        .finally(() => {
-          setLoadingEndorsements(false);
-        });
+    if (!user.userId) {
+      return;
     }
+
+    setLoadingEndorsements(true);
+    endorsementsApi.getUserEndorsements(user.userId)
+      .then(data => {
+        setEndorsements(data);
+      })
+      .catch(err => {
+        console.error("Failed to load endorsements", err);
+      })
+      .finally(() => {
+        setLoadingEndorsements(false);
+      });
   }, [user.userId]);
 
 
@@ -285,7 +287,7 @@ export function UserProfile() {
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
             <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
-            {/* US 3.3 Organizer Endorsments */}
+            {/* US 3.3 Organizer Endorsements */}
             <StatCard label="Endorsements" value={endorsements.length} icon={<Medal className="w-4 h-4 text-emerald-600" />} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
           </div>
@@ -408,7 +410,7 @@ export function UserProfile() {
               </div>
 
               <div className="space-y-6">
-                {/* Endorsements - US 3.3 Organizer Endorsments */}
+                {/* Endorsements - US 3.3 Organizer Endorsements */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl text-gray-900">Endorsements</h2>

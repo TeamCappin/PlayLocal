@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/games/**").permitAll()
                         // Profiles require authentication to view [US-1.3 Privacy Defaults]
                         .requestMatchers("/api/v1/users/*/profile").authenticated()
+                        .requestMatchers("/api/v1/users/*/endorsements").authenticated()
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
