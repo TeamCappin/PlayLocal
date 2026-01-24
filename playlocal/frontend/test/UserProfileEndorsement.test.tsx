@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import { usersApi, endorsementsApi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
-// Mock mocks
+// Mock dependencies
 jest.mock('next/navigation', () => ({
   useParams: () => ({ username: 'testuser' }),
   useRouter: () => ({ push: jest.fn() }),
