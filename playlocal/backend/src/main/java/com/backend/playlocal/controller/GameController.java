@@ -54,11 +54,11 @@ public class GameController {
     }
 
     /**
-     * Get previous games created by a user.
+     * Get previous games of a user for which join status has been confirmed and game not cancelled.
      * US-2.6: Get Past Games
      */ 
-    @GetMapping ("/pastByUserIdNeedingAttendanceUpdate/{userId}")
-    public ResponseEntity<List<GameDto.GameResponse>> getPastGames(
+    @GetMapping ("/pastByUserId/{userId}")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUser(
             @PathVariable UUID userId,
             Authentication authentication) {
         UUID authenticatedUserId = null;
@@ -66,7 +66,27 @@ public class GameController {
             try {
                 authenticatedUserId = UUID.fromString(authentication.getName());
                 System.out.println("User ID received from Frontend" + userId);
-                // TODO MEL - Figure out what auth needs to be done here
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid UUIDs (e.g. anonymousUser)
+            }
+        }
+        List<GameDto.GameResponse> games = gameService.getPastGamesForUser(userId);
+        return ResponseEntity.ok(games);
+    }
+
+    /**
+     * Get previous games created by a user for which the rsvp roster needs to be updated.
+     * US-2.6: Get Past Games Needing Attendance Update
+     */ 
+    @GetMapping ("/pastByUserIdNeedingAttendanceUpdate/{userId}")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUserNeedingAttendanceUpdate(
+            @PathVariable UUID userId,
+            Authentication authentication) {
+        UUID authenticatedUserId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            try {
+                authenticatedUserId = UUID.fromString(authentication.getName());
+                System.out.println("User ID received from Frontend" + userId);
             } catch (IllegalArgumentException e) {
                 // Ignore invalid UUIDs (e.g. anonymousUser)
             }
