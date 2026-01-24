@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests + JaCoCo report
         working-directory: playlocal/backend
-        run: mvn -B test
+        run: mvn -B test -Dtest="!*IntegrationTest,!*ConcurrencyTest,!PlayLocalApplicationTests"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

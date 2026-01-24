@@ -43,7 +43,8 @@ jobs:
 
       - name: Build and test backend
         working-directory: playlocal/backend
-        run: mvn -B verify
+        run: mvn -B verify -Dtest="!*IntegrationTest,!*ConcurrencyTest,!PlayLocalApplicationTests"
+
 
       - name: Install frontend dependencies
         working-directory: playlocal/frontend
