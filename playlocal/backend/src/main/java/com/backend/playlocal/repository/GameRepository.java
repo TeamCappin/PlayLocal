@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
@@ -27,7 +28,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
      * US-2.3: Discover Games
      */
     @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
-            "AND (:sportName IS NULL OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
+            "AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', CAST(:sportName AS string), '%'))) " +
             "AND (:skillLevel IS NULL OR g.skillBand = :skillLevel) " +
             "AND (:locationType IS NULL OR g.indoorOutdoor = :locationType) " +
             "AND (:intensity IS NULL OR g.intensityBand = :intensity) " +

@@ -63,6 +63,11 @@ public class GameService {
                                 .build();
 
                 // Create game
+                // Normalize indoorOutdoor to lowercase for consistency
+                String normalizedIndoorOutdoor = (request.getIndoorOutdoor() != null && !request.getIndoorOutdoor().isEmpty())
+                                ? request.getIndoorOutdoor().toLowerCase()
+                                : null;
+                
                 Game game = Game.builder()
                                 .createdBy(organizer)
                                 .sport(sport)
@@ -70,7 +75,7 @@ public class GameService {
                                 .visibility(visibility)
                                 .title(request.getTitle())
                                 .description(request.getDescription())
-                                .indoorOutdoor(request.getIndoorOutdoor())
+                                .indoorOutdoor(normalizedIndoorOutdoor)
                                 .intensityBand(request.getIntensityBand())
                                 .skillBand(request.getSkillBand())
                                 .minPlayers(request.getMinPlayers() != null ? request.getMinPlayers() : 2)
@@ -111,8 +116,31 @@ public class GameService {
         public List<GameDto.GameResponse> getUpcomingGames(
                         String sportName, String skillLevel, String locationType, 
                         String intensity, UUID userId) {
+                // Normalize filter parameters to match database format (lowercase)
+                // Empty strings are treated as null to bypass filtering
+                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty()) 
+                                ? sportName.trim() 
+                                : null;
+                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty()) 
+                                ? skillLevel.toLowerCase().trim() 
+                                : null;
+                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty()) 
+                                ? locationType.toLowerCase().trim() 
+                                : null;
+                String normalizedIntensity = null;
+                if (intensity != null && !intensity.trim().isEmpty()) {
+                        String lowerIntensity = intensity.toLowerCase().trim();
+                        // Map "high" to "competitive" since database doesn't have "high"
+                        if ("high".equals(lowerIntensity)) {
+                                normalizedIntensity = "competitive";
+                        } else {
+                                normalizedIntensity = lowerIntensity;
+                        }
+                }
+                
                 List<Game> games = gameRepository.findUpcomingGamesWithFilters(
-                                Instant.now(), sportName, skillLevel, locationType, intensity);
+                                Instant.now(), normalizedSportName, normalizedSkillLevel, 
+                                normalizedLocationType, normalizedIntensity);
                 return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
@@ -125,10 +153,33 @@ public class GameService {
                         Float userLat, Float userLon, Double radiusKm,
                         String sportName, String skillLevel, String locationType,
                         String intensity, UUID userId) {
+                // Normalize filter parameters to match database format (lowercase)
+                // Empty strings are treated as null to bypass filtering
+                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty()) 
+                                ? sportName.trim() 
+                                : null;
+                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty()) 
+                                ? skillLevel.toLowerCase().trim() 
+                                : null;
+                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty()) 
+                                ? locationType.toLowerCase().trim() 
+                                : null;
+                String normalizedIntensity = null;
+                if (intensity != null && !intensity.trim().isEmpty()) {
+                        String lowerIntensity = intensity.toLowerCase().trim();
+                        // Map "high" to "competitive" since database doesn't have "high"
+                        if ("high".equals(lowerIntensity)) {
+                                normalizedIntensity = "competitive";
+                        } else {
+                                normalizedIntensity = lowerIntensity;
+                        }
+                }
+                
                 // Get game IDs ordered by distance
                 List<UUID> gameIds = gameRepository.findNearbyGameIdsWithFilters(
                                 Instant.now(), userLat, userLon, radiusKm,
-                                sportName, skillLevel, locationType, intensity);
+                                normalizedSportName, normalizedSkillLevel, 
+                                normalizedLocationType, normalizedIntensity);
                 
                 // Fetch full Game entities maintaining the distance order
                 List<Game> games = gameIds.stream()
