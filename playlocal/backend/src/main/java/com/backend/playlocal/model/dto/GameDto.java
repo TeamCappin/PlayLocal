@@ -147,4 +147,23 @@ public class GameDto {
         private Integer maxPlayers;
         private Integer spotsAvailable;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateRequest {
+        private String title;
+        private String description;
+        private String indoorOutdoor;
+        private String intensityBand;
+        private String skillBand;
+        private Integer minPlayers;
+        private Integer maxPlayers;
+        private Boolean allowWaitlist;
+
+        @Min(value = 0, message = "Minimum reliability must be non-negative")
+        @Max(value = 100, message = "Minimum reliability cannot exceed 100")
+        private Float minReliabilityRequired;
+    }
 }

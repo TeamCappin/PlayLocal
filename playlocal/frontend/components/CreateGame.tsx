@@ -50,6 +50,7 @@ export function CreateGame() {
     requireCheckin: true,
     description: '',
     visibility: 'public',
+    minReliabilityRequired: '',
   });
 
   const sports = [
@@ -254,6 +255,7 @@ export function CreateGame() {
         minPlayers: parseInt(formData.minPlayers) || 2,
         maxPlayers: parseInt(formData.maxPlayers) || 20,
         allowWaitlist: formData.allowWaitlist,
+        minReliabilityRequired: formData.minReliabilityRequired ? parseFloat(formData.minReliabilityRequired) : undefined,
         startTime: new Date(startDateTime).toISOString(),
         endTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
         visibility: formData.visibility,
@@ -616,6 +618,45 @@ export function CreateGame() {
                   </label>
                 </div>
 
+                {/* Minimum Reliability Score */}
+                <div>
+                  <label className="block text-gray-700 mb-2">
+                    Minimum Reliability Score (Optional)
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formData.minReliabilityRequired}
+                        onChange={(e) => setFormData({ ...formData, minReliabilityRequired: e.target.value })}
+                        placeholder="e.g., 85"
+                        className="w-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      />
+                      <span className="text-gray-600">%</span>
+                      {formData.minReliabilityRequired && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, minReliabilityRequired: '' })}
+                          className="text-sm text-red-600 hover:text-red-700"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Set a minimum reliability score to ensure only reliable players can join. 
+                      Players with a score below this threshold will not be able to join the game.
+                    </p>
+                    {user && (
+                      <p className="text-sm text-emerald-700">
+                        Your reliability score: <span className="font-semibold">{user.reliabilityScore}%</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Summary Preview */}
                 <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
                   <h3 className="text-lg text-gray-900 mb-4">Game Summary</h3>
@@ -642,6 +683,10 @@ export function CreateGame() {
                     <SummaryRow label="Skill Level" value={formData.skillLevel || 'Not set'} />
                     <SummaryRow label="Intensity" value={formData.intensity || 'Not set'} />
                     <SummaryRow label="Visibility" value={formData.visibility === 'public' ? 'Public' : formData.visibility === 'friends' ? 'Friends Only' : 'Invite Only'} />
+                    <SummaryRow 
+                      label="Min Reliability Required" 
+                      value={formData.minReliabilityRequired ? `${formData.minReliabilityRequired}%` : 'None (Open to all)'} 
+                    />
                   </div>
                 </div>
               </div>

@@ -107,4 +107,18 @@ public class GameController {
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Update game settings.
+     * US-4.1: Organizer can change threshold before game starts
+     */
+    @PutMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> updateGame(
+            @PathVariable UUID gameId,
+            @Valid @RequestBody GameDto.UpdateRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.updateGame(gameId, userId, request);
+        return ResponseEntity.ok(response);
+    }
 }

@@ -52,6 +52,7 @@ function transformApiGame(game: GameResponse) {
     host: game.organizer.displayName || 'Host',
     image: getSportImage(game.sportName),
     status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
+    minReliabilityRequired: game.minReliabilityRequired, // US-4.1: Reputation-gated games
   };
 }
 
@@ -380,6 +381,7 @@ interface GameDisplay {
   host: string;
   image: string;
   status: string;
+  minReliabilityRequired?: number; // US-4.1: Reputation-gated games
 }
 
 function GameCard({ game }: { game: GameDisplay }) {
@@ -406,10 +408,15 @@ function GameCard({ game }: { game: GameDisplay }) {
             {game.players.current}/{game.players.max} players
           </span>
         </div>
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
           <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-sm text-gray-700">
             {game.sport}
           </span>
+          {game.minReliabilityRequired != null && (
+            <span className="px-3 py-1 bg-amber-500/90 backdrop-blur-sm text-white rounded-full text-xs font-semibold">
+              Min {game.minReliabilityRequired}% Reliability
+            </span>
+          )}
         </div>
       </div>
 
@@ -439,7 +446,7 @@ function GameCard({ game }: { game: GameDisplay }) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 mb-4 text-sm">
+        <div className="flex items-center gap-3 mb-4 text-sm flex-wrap">
           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
             {game.skillLevel}
           </span>
@@ -448,6 +455,11 @@ function GameCard({ game }: { game: GameDisplay }) {
           </span>
           {game.indoor && (
             <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Indoor</span>
+          )}
+          {game.minReliabilityRequired != null && (
+            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded font-semibold">
+              Min {game.minReliabilityRequired}% Reliability
+            </span>
           )}
         </div>
 
