@@ -70,7 +70,7 @@ export function UserProfile() {
     stats: {
       gamesPlayed: currentUser.gamesCount || 0,
       gamesHosted: (currentUser as any).gamesHosted || 0,
-      reliabilityScore: currentUser.reliabilityScore || 100,
+      reliabilityScore: currentUser.reliabilityScore ?? 100,
       averageRating: (currentUser as any).averageRating || 0,
     },
   } : {
@@ -269,7 +269,7 @@ export function UserProfile() {
           <div className="grid grid-cols-4 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
+            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore.toFixed(1)}%`} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
           </div>
         </div>
