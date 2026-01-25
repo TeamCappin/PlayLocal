@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star } from 'lucide-react';
+import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star, ChevronRight } from 'lucide-react';
 import { format } from "date-fns/format";
 import { gamesApi, ParticipantDto } from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -32,7 +32,6 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
         if (game) {
           const data = await gamesApi.getGameParticipation(game.gameId, userId);
           setGameParticipation(data);
-          console.log('MatchHistoryList - fetched participation data:', data);
         }
       } catch (err) {
         console.error("Failed to fetch game participation", err);
@@ -40,6 +39,23 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
     };
     fetchData();
   }, [game, userId]);
+
+  const getAttendanceDisplay = (status?: string, role?: string) => {
+    switch (status) {
+      case 'ATTENDED':
+        return { text: 'ATTENDANCE CONFIRMED', color: 'text-emerald-600', Icon: CircleCheckBig, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+      case 'NO_SHOW':
+        return { text: 'NO SHOW', color: 'text-red-600', Icon: CircleX, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+      case 'UNKNOWN':
+        if (role === 'ORGANIZER') {
+          return { text: 'ATTENDANCE NOT CONFIRMED', color: 'text-yellow-600', Icon: CircleAlert, button: 'CONFIRM ATTENDANCE', buttonIcon: ChevronRight };
+        }
+        return { text: 'ATTENDANCE NOT CONFIRMED', color: 'text-gray-500', Icon: CircleEllipsis };
+      default:
+        return { text: 'ATTENDANCE STATUS', color: 'text-gray-500', Icon: CircleEllipsis, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+    }
+  };
+  const attendanceDisplay = getAttendanceDisplay(gameParticipation?.attendanceStatus, gameParticipation?.role);
 
   const gameDate = game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : '';
 
@@ -49,7 +65,7 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
     // {/* <Link
     //   className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
     //   > */}
-    <div className="flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors p-4">
+    <div className="flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-50 transition-colors p-4">
 
       <div className="flex items-center justify-between mb-2">
 
@@ -60,7 +76,7 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
           <div>
             <div className="flex mb-1 items-center gap-1">
               <div className="text-gray-900 text-lg">{game?.title}</div>
-              <div className="text-xs text-gray-600 bg-gray-200 rounded-md px-2">GAME.PARTICIPATION_ROLE</div>
+              <div className="text-xs text-gray-600 bg-gray-200 rounded-md px-2">{gameParticipation?.role}</div>
             </div>
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
@@ -88,13 +104,13 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
           {/* <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}> */}
           <div className='mb-1 px-2 text-lg rounded-md text-emerald-600 bg-emerald-50 inline-block'>
 
-            GAME.RESULT
+            GAME.RESULT TBD
 
           </div>
           {/* </div> */}
 
           <div className="text-sm text-gray-500">
-            GAME.TEAM • GAME.SCORE
+            GAME.GP.TEAM.Name • GAME.SCORE TBD
           </div>
 
         </div >
@@ -114,20 +130,32 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
               RATING
             </div>
           </div>
-          <div className="flex items-center gap-1 text-emerald-600">
+          <div className={`flex items-center gap-1 ${attendanceDisplay.color}`}>
             <div>
-              tick/alert/xLogo
+              <attendanceDisplay.Icon className="w-4 h-4" />
             </div>
+
             <div>
-              ATTENDANCE CONFIRMED/NO SHOW/CONFIRM ATTENDENCE/ATTENDANCE PENDING
+              {attendanceDisplay.text}
             </div>
           </div>
         </div>
-        <div className="text-right text-emerald-600">
-          VIEW DETAILS {'>'}
-        </div>
+        {attendanceDisplay.button && attendanceDisplay.buttonIcon && (
+          <div className={`text-right ${attendanceDisplay.color}`}>
+            <Link
+              key={game?.gameId}
+              href={`/rsvpRoster/${game?.gameId}`}
+              className=""
+            >
+              <div className="flex items-center align-items-center">
+                {attendanceDisplay.button}
+                <attendanceDisplay.buttonIcon />
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
-    </div>
-    //  </Link> 
+    </div >
+    //  </Link>
   );
 }
