@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star, ChevronRight } from 'lucide-react';
+import { CircleCheckBig, CircleX, CircleAlert, CircleEllipsis, MapPin, Clock, Star, ChevronRight, Flag } from 'lucide-react';
 import { format } from "date-fns/format";
 import { gamesApi, ParticipantDto } from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -43,119 +43,121 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
   const getAttendanceDisplay = (status?: string, role?: string) => {
     switch (status) {
       case 'ATTENDED':
-        return { text: 'ATTENDANCE CONFIRMED', color: 'text-emerald-600', Icon: CircleCheckBig, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+        return { text: 'Attendance Confirmed', color: 'text-emerald-600', Icon: CircleCheckBig };
       case 'NO_SHOW':
-        return { text: 'NO SHOW', color: 'text-red-600', Icon: CircleX, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+        return { text: 'No Show', color: 'text-red-600', Icon: CircleX };
       case 'UNKNOWN':
         if (role === 'ORGANIZER') {
-          return { text: 'ATTENDANCE NOT CONFIRMED', color: 'text-yellow-600', Icon: CircleAlert, button: 'CONFIRM ATTENDANCE', buttonIcon: ChevronRight };
+          return { text: 'Attendance Not Confirmed', color: 'text-yellow-600', Icon: CircleAlert };
         }
-        return { text: 'ATTENDANCE NOT CONFIRMED', color: 'text-gray-500', Icon: CircleEllipsis };
+        return { text: 'Attendance Not Confirmed', color: 'text-gray-500', Icon: CircleEllipsis };
       default:
-        return { text: 'ATTENDANCE STATUS', color: 'text-gray-500', Icon: CircleEllipsis, button: 'VIEW DETAILS', buttonIcon: ChevronRight };
+        return { text: 'Attendance Status', color: 'text-gray-500', Icon: CircleEllipsis };
     }
   };
   const attendanceDisplay = getAttendanceDisplay(gameParticipation?.attendanceStatus, gameParticipation?.role);
 
+  const isOrganizerUnknownAttendance = gameParticipation?.role === 'ORGANIZER' && gameParticipation?.attendanceStatus === 'UNKNOWN';
+  const isParticipantUnknownAttendance = gameParticipation?.role !== 'ORGANIZER' && gameParticipation?.attendanceStatus === 'UNKNOWN';
   const gameDate = game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : '';
 
   return (
-    // {/* instead of the div, use the link. */ }
+    <div className="block p-4 flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+      <Link
+        key={game?.gameId}
+        href={`/games/${game?.gameId}/recap`}
+        className="block"
+      >
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
 
-    // {/* <Link
-    //   className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
-    //   > */}
-    <div className="flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-50 transition-colors p-4">
-
-      <div className="flex items-center justify-between mb-2">
-
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
-            🏀
-          </div>
-          <div>
-            <div className="flex mb-1 items-center gap-1">
-              <div className="text-gray-900 text-lg">{game?.title}</div>
-              <div className="text-xs text-gray-600 bg-gray-200 rounded-md px-2">{gameParticipation?.role}</div>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
+              🏀
             </div>
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <div>
-                  <Clock className="w-4 h-4" />
+            <div>
+              <div className="flex mb-1 items-center gap-1">
+                <div className="text-gray-900 text-lg">{game?.title}</div>
+                <div className="text-xs text-emerald-600 bg-emerald-100 rounded-md px-2">{gameParticipation?.role}</div>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-1">
+                  <div>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    {gameDate}
+                  </div>
                 </div>
-                <div>
-                  {gameDate}
+                <div className="flex items-center gap-1">
+                  <div>
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    {game?.location.name}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div>
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div>
-                  {game?.location.name}
-                </div>
-              </div>
             </div>
           </div>
-        </div>
 
-        <div className="text-right">
+          <div className="text-right">
 
-          {/* <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}> */}
-          <div className='mb-1 px-2 text-lg rounded-md text-emerald-600 bg-emerald-50 inline-block'>
+            {/* <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}> */}
+            <div className='mb-1 px-2 text-lg rounded-md text-emerald-600 bg-emerald-100 inline-block'>
 
-            GAME.RESULT TBD
+              Result
 
-          </div>
-          {/* </div> */}
+            </div>
+            {/* </div> */}
 
-          <div className="text-sm text-gray-500">
-            GAME.GP.TEAM.Name • GAME.SCORE TBD
-          </div>
+            <div className="text-sm text-gray-500">
+              Team • Score
+            </div>
 
+          </div >
         </div >
-      </div >
+      </Link>
 
-      <div>
-        <hr />
-      </div>
-
-      <div className="flex justify-between mt-2 text-xs">
+      <div className="flex justify-between mt-2 text-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-gray-500">
+            <div> <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /> </div>
             <div>
-              starLogo
-            </div>
-            <div>
-              RATING
+              Rating
             </div>
           </div>
           <div className={`flex items-center gap-1 ${attendanceDisplay.color}`}>
             <div>
               <attendanceDisplay.Icon className="w-4 h-4" />
             </div>
-
             <div>
               {attendanceDisplay.text}
             </div>
           </div>
         </div>
-        {attendanceDisplay.button && attendanceDisplay.buttonIcon && (
-          <div className={`text-right ${attendanceDisplay.color}`}>
-            <Link
-              key={game?.gameId}
-              href={`/rsvpRoster/${game?.gameId}`}
-              className=""
-            >
-              <div className="flex items-center align-items-center">
-                {attendanceDisplay.button}
-                <attendanceDisplay.buttonIcon />
+
+        {!isParticipantUnknownAttendance && (
+          <div className="text-right">
+            {isOrganizerUnknownAttendance ? (
+              <Link
+                key={game?.gameId}
+                href={`/rsvpRoster/${game?.gameId}`}
+                className="inline-flex items-center text-yellow-600 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                <div className="flex items-center">
+                  <div className="px-2">Confirm Attendance</div>
+                  <ChevronRight className="w-5 h-5" />
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-1 text-red-600">
+                <Flag className="w-4 h-4" />
+                Report Issue
               </div>
-            </Link>
+            )}
           </div>
         )}
       </div>
     </div >
-    //  </Link>
   );
 }

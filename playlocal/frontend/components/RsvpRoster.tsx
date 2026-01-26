@@ -176,15 +176,17 @@ export function RsvpRoster() {
                   Mark each player as attended or no-show
                 </div>
               </div>
-              {pendingAttendance.map((p) => (
-                <RosterList
-                  key={p.participationId}
-                  userId={p.userId}
-                  participationId={p.participationId}
-                  currentStatus={attendanceStatuses[p.participationId]?.status || 'UNKNOWN'}
-                  onStatusChange={handleAttendanceChange}
-                />
-              ))}
+              <div className="space-y-3">
+                {pendingAttendance.map((p) => (
+                  <RosterList
+                    key={p.participationId}
+                    userId={p.userId}
+                    participationId={p.participationId}
+                    currentStatus={attendanceStatuses[p.participationId]?.status || 'UNKNOWN'}
+                    onStatusChange={handleAttendanceChange}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 

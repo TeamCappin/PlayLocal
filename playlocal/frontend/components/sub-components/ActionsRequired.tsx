@@ -1,4 +1,4 @@
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 import { useAuth } from '@/context/AuthContext';
@@ -27,9 +27,9 @@ export function ActionsRequired() {
     <div>
       {actionsRequired != 0 && (
         <div className="pt-8">
-          <div className="bg-amber-100 rounded-xl border border-gray-200 p-6">
+          <div className="bg-amber-100 rounded-xl border border-amber-200 p-6">
             <span className='flex items-center gap-2 mb-4'>
-              <CircleAlert color="red" size={35} />
+              <CircleAlert color="red" size={30} />
               <h2 className="text-xl text-gray-900 leading-none">Actions Required</h2>
             </span>
             <div className="space-y-3">
@@ -41,7 +41,8 @@ export function ActionsRequired() {
                   <div className="flex items-center gap-4">
                     <div>
                       <div className="text-gray-900">{game.title}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Clock className="w-4 h-4 inline-block mr-1" />
                         {game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : ''}
                       </div>
                     </div>
@@ -50,9 +51,9 @@ export function ActionsRequired() {
                     <Link
                       key={game.gameId}
                       href={`/rsvpRoster/${game.gameId}`}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                     >
-                      <button onClick={handleClickConfirmAttendance} className="px-4 py-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white hover:text-emerald-700">
+                      <button onClick={handleClickConfirmAttendance}>
                         Confirm Attendance
                       </button>
                     </Link>

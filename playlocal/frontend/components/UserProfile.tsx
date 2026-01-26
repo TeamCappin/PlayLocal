@@ -444,8 +444,8 @@ export function UserProfile() {
 
           {activeTab === 'history' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="border-b border-gray-200">
-                <h2 className="text-xl text-gray-900">Match History</h2>
+              <div>
+                <h2 className="text-xl text-gray-900 mb-4">Match History</h2>
               </div>
               {canViewActivityData ? (
                 //Adding a temporary div to fix layout shift while MatchHistoryList is being updated 
@@ -459,7 +459,7 @@ export function UserProfile() {
                       />
                     ))}
                   </div>
-                  <div className="divide-y divide-gray-200">
+                  {/* <div className="divide-y divide-gray-200">
                     {recentGames.map((game) => (
                       <Link
                         key={game.id}
@@ -487,7 +487,7 @@ export function UserProfile() {
                         </div>
                       </Link>
                     ))}
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="p-12 text-center">

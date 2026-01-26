@@ -30,8 +30,7 @@ export function RosterList({ userId, participationId, currentStatus, onStatusCha
   const nameInitials = profile?.displayName?.split(' ').map(name => name[0]).join('').toUpperCase().slice(0, 2) || 'MR';
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg transition-colors">
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
 
         <div className='flex gap-2'>
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
@@ -68,6 +67,5 @@ export function RosterList({ userId, participationId, currentStatus, onStatusCha
           </div>
         </div>
       </div>
-    </div>
   )
 }
