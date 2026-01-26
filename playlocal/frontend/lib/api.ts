@@ -423,6 +423,58 @@ export const healthApi = {
     check: () => apiFetch<{ status: string; service: string; version: string }>('/health'),
 };
 
+// ============================================
+// SCORE HISTORY API (US 2.7)
+// ============================================
+
+export interface ScoreHistoryEntry {
+    scoreHistoryId: string;
+    userId: string;
+    gameId?: string;
+    gameTitle?: string;
+    previousScore: number;
+    newScore: number;
+    delta: number;
+    reason: 'ATTENDANCE' | 'NO_SHOW' | 'MANUAL_ADJUSTMENT' | 'DISPUTE_RESOLVED';
+    description?: string;
+    createdAt: string;
+    createdByUserId?: string;
+    createdByDisplayName?: string;
+}
+
+export interface ScoreHistoryResponse {
+    userId: string;
+    displayName: string;
+    currentScore: number;
+    history: ScoreHistoryEntry[];
+    totalEntries: number;
+    currentPage: number;
+    totalPages: number;
+}
+
+export interface ScoreSummary {
+    userId: string;
+    currentScore: number;
+    attendedCount: number;
+    noShowCount: number;
+    gamesCount: number;
+    attendanceRate: number;
+}
+
+export const scoreHistoryApi = {
+    getHistory: (userId: string, page = 0, size = 10) =>
+        apiFetch<ScoreHistoryResponse>(`/users/${userId}/score-history?page=${page}&size=${size}`),
+
+    getMyHistory: (page = 0, size = 10) =>
+        apiFetch<ScoreHistoryResponse>(`/users/me/score-history?page=${page}&size=${size}`),
+
+    getSummary: (userId: string) =>
+        apiFetch<ScoreSummary>(`/users/${userId}/score-summary`),
+
+    getMySummary: () =>
+        apiFetch<ScoreSummary>(`/users/me/score-summary`),
+};
+
 export default {
     auth: authApi,
     games: gamesApi,
@@ -430,4 +482,5 @@ export default {
     reports: reportsApi,
     notifications: notificationsApi,
     health: healthApi,
+    scoreHistory: scoreHistoryApi,
 };

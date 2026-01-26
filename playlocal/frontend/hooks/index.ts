@@ -6,3 +6,9 @@ export { useReportUser } from './useReportUser';
 export { useAttendance } from './useAttendance';
 export { useProfile, useCurrentUser } from './useProfile';
 
+export * from './useAttendance';
+export * from './useGames';
+export * from './useNotifications';
+export * from './useProfile';
+export * from './useReportUser';
+export * from './useScoreHistory';

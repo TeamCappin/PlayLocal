@@ -6,20 +6,27 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
+import { ScoreHistoryList } from './ScoreHistoryList'; 
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGamesByUser } from '@/hooks/useGames';
+
+
 
 export function UserProfile() {
   const { username } = useParams();
   const usernameStr = Array.isArray(username) ? username[0] : username;
   const { user: currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats' | 'score-history'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
+  const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
+  const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
   const { games: pastGames, isLoading, error, refetch } = usePastGamesByUser(currentUser?.userId || '');
+
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -67,7 +74,7 @@ export function UserProfile() {
     stats: {
       gamesPlayed: currentUser.gamesCount || 0,
       gamesHosted: (currentUser as any).gamesHosted || 0,
-      reliabilityScore: currentUser.reliabilityScore || 100,
+      reliabilityScore: currentUser.reliabilityScore ?? 100,
       averageRating: (currentUser as any).averageRating || 0,
     },
   } : {
@@ -266,7 +273,7 @@ export function UserProfile() {
           <div className="grid grid-cols-4 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
+            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore.toFixed(1)}%`} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
           </div>
         </div>
@@ -311,6 +318,15 @@ export function UserProfile() {
                 }`}
             >
               Stats & Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('score-history')}
+              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'score-history'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              Score History
             </button>
           </div>
         </div>
@@ -545,15 +561,39 @@ export function UserProfile() {
               </div>
             </div>
           )}
+
+          {activeTab === 'score-history' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
+              <ScoreHistoryList 
+                userId={isOwnProfile ? undefined : user.userId || undefined}
+                onDisputeClick={(entry) => {
+                  setDisputeGameId(entry.gameId || undefined);
+                  setDisputeGameTitle(entry.gameTitle || undefined);
+                  setDisputeScoreHistoryId(entry.scoreHistoryId);
+                  setShowReportModal(true);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Report Modal */}
       <ReportModal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => {
+          setShowReportModal(false);
+          setDisputeGameId(undefined);
+          setDisputeGameTitle(undefined);
+          setDisputeScoreHistoryId(undefined);
+        }}
         reportedUserId={user.userId || undefined}
+        gameId={disputeGameId}
         targetName={user.name}
+        reportType={disputeScoreHistoryId ? 'attendance_dispute' : 'user'}
+        gameTitle={disputeGameTitle}
+        scoreHistoryId={disputeScoreHistoryId}
       />
     </div>
   );
