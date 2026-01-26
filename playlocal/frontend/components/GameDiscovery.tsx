@@ -69,7 +69,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'High', indoorOutdoor: 'outdoor',
     description: 'Competitive 5v5 full court.',
     organizer: { userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh H.', reliabilityScore: 98 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'b2c3d4e5-f6a7-8901-bcde-f23456789012',
@@ -83,7 +83,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'outdoor',
     description: 'Casual 11v11 game. All levels welcome!',
     organizer: { userId: 'c3d4e5f6-a7b8-9012-cdef-234567890123', displayName: 'Sarah K.', reliabilityScore: 95 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'c3d4e5f6-a7b8-9012-cdef-345678901234',
@@ -97,7 +97,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
     description: '6v6 beach volleyball. Bring sunscreen!',
     organizer: { userId: 'd4e5f6a7-b890-1234-def0-456789012345', displayName: 'Omar E.', reliabilityScore: 92 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 2, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 2, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'd4e5f6a7-b890-1234-def0-567890123456',
@@ -111,7 +111,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
     description: 'Looking for 1 more for doubles!',
     organizer: { userId: 'e5f6a7b8-9012-3456-ef01-678901234567', displayName: 'Melissa R.', reliabilityScore: 97 },
-    status: 'OPEN', allowWaitlist: false, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: false, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'e5f6a7b8-9012-3456-ef01-789012345678',
@@ -125,7 +125,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'indoor',
     description: 'Casual badminton. Beginners welcome!',
     organizer: { userId: 'f6a7b890-1234-5678-f012-890123456789', displayName: 'Younes B.', reliabilityScore: 94 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'f6a7b890-1234-5678-f012-901234567890',
@@ -139,7 +139,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
     description: '7v7 ultimate. Spirit of the game!',
     organizer: { userId: 'a7b89012-3456-789a-0123-012345678901', displayName: 'Alex G.', reliabilityScore: 96 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 1, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 1, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'a7b89012-3456-789a-0123-123456789012',
@@ -153,7 +153,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
     description: '7v7 flag football. No tackle!',
     organizer: { userId: 'b8901234-5678-9abc-1234-234567890123', displayName: 'David O.', reliabilityScore: 91 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'b8901234-5678-9abc-1234-345678901234',
@@ -167,7 +167,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'outdoor',
     description: 'Friendly co-ed softball game.',
     organizer: { userId: 'c9012345-6789-abcd-2345-456789012345', displayName: 'Steven Z.', reliabilityScore: 93 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'c9012345-6789-abcd-2345-567890123456',
@@ -181,7 +181,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
     description: '9-inning practice game.',
     organizer: { userId: 'd0123456-789a-bcde-3456-678901234567', displayName: 'Youssef Y.', reliabilityScore: 89 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'd0123456-789a-bcde-3456-789012345678',
@@ -195,7 +195,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Beginner', intensityBand: 'Casual', indoorOutdoor: 'indoor',
     description: 'Learn pickleball! Equipment provided.',
     organizer: { userId: 'e1234567-89ab-cdef-4567-890123456789', displayName: 'Hudson L.', reliabilityScore: 88 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
   },
   {
     gameId: 'e1234567-89ab-cdef-4567-901234567890',
@@ -209,7 +209,7 @@ const mockGames: GameResponse[] = [
     skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'indoor',
     description: 'Drop-in hockey. Full gear required.',
     organizer: { userId: 'f2345678-9abc-def0-5678-012345678901', displayName: 'Allaye D.', reliabilityScore: 99 },
-    status: 'OPEN', allowWaitlist: true, waitlistCount: 3, createdAt: new Date().toISOString(),
+    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 3, createdAt: new Date().toISOString(),
   },
 ];
 

@@ -229,6 +229,8 @@ export interface CreateGameRequest {
     visibility?: string; // US 2.2: public/friends/invite
 }
 
+export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
+
 export interface GameResponse {
     gameId: string;
     title: string;
@@ -246,7 +248,7 @@ export interface GameResponse {
     minReliabilityRequired?: number;
     startTime: string;
     endTime?: string;
-    status: string;
+    status: GameStatus;
     organizer: OrganizerDto;
     confirmedCount: number;
     waitlistCount: number;
