@@ -37,8 +37,17 @@ async function apiFetch<T>(
     });
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-        throw new ApiError(response.status, error.message || 'An error occurred', error);
+        let errorData: any = { message: 'An error occurred' };
+        try {
+            const text = await response.text();
+            if (text) {
+                errorData = JSON.parse(text);
+            }
+        } catch (e) {
+            // If response is not JSON, use status text
+            errorData = { message: response.statusText || 'An error occurred' };
+        }
+        throw new ApiError(response.status, errorData.message || 'An error occurred', errorData);
     }
 
     // Handle 204 No Content
@@ -46,7 +55,11 @@ async function apiFetch<T>(
         return {} as T;
     }
 
-    return response.json();
+    try {
+        return await response.json();
+    } catch (e) {
+        throw new ApiError(response.status, 'Invalid JSON response', { originalError: e });
+    }
 }
 
 export class ApiError extends Error {
