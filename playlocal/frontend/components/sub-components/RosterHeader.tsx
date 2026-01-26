@@ -1,6 +1,5 @@
 
-import { mock } from "node:test";
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag } from 'lucide-react';
+import { MapPin, Clock } from 'lucide-react';
 import { format } from "date-fns/format";
 
 // Helper to get image by sport (US 2.2)
@@ -45,11 +44,11 @@ const mockGame = {
 };
 
 
-export function RosterHeader({ game }: RosterHeaderProps) {
+export function RosterHeader({ game }: Readonly<RosterHeaderProps>) {
 
   const gameDate = game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : '';
   const imageUrl = getSportImage(game?.sportName || mockGame.sportName);
-  
+
   return (
     <div className="relative h-64 bg-gradient-to-br from-gray-900 to-gray-700">
       <img

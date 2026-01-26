@@ -7,9 +7,9 @@ export function useAttendance(gameId: string | undefined) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+
     const fetchPending = useCallback(async () => {
         if (!gameId) return;
-
         setIsLoading(true);
         setError(null);
         try {

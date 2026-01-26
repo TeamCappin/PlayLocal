@@ -19,9 +19,7 @@ export function RosterList({ userId, participationId, currentStatus, onStatusCha
         const data = await usersApi.getProfile(userId);
         setProfile(data);
       } catch (err) {
-        console.error("Failed to fetch profile", err);
-      } finally {
-        // console.log('Finished fetching profile for', userId);
+        console.error('Failed to fetch profile', err);
       }
     };
     fetchData();

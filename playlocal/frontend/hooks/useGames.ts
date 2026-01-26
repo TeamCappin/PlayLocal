@@ -85,7 +85,6 @@ export function useGame(gameId: string | undefined) {
 
     const fetchGame = useCallback(async () => {
         if (!gameId) return;
-
         setIsLoading(true);
         setError(null);
         try {

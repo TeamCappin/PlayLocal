@@ -21,7 +21,7 @@ type MatchHistoryListProps = {
   } | null;
 }
 
-export function MatchHistoryList({ game }: MatchHistoryListProps) {
+export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
 
   const [gameParticipation, setGameParticipation] = useState<ParticipantDto | null>(null);
 

@@ -120,11 +120,12 @@ export function RsvpRoster() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 flex flex-col items-center gap-4 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-          <CircleAlert className="w-12 h-12 text-red-600" />
-          <p className="text-gray-900 font-medium">Failed to load game</p>
-          <p className="text-gray-600 text-center text-sm">{error}</p>
-          <div className="flex gap-3 w-full sm:w-auto sm:flex-row flex-col">
+        <div className="max-w-md w-full mx-4 flex-col items-center gap-4 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+          <div className='flex items-center justify-center gap-2 mb-4'>
+            <CircleAlert className="w-12 h-12 text-red-600" />
+            <p className="text-gray-900 font-medium">{error}</p>
+          </div>
+          <div className="flex gap-3 px-8 mx-4 sm:w-auto sm:flex-row flex-col">
             <button
               onClick={() => navigate.push('/profile')}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -181,13 +182,14 @@ export function RsvpRoster() {
             </>
           ) : attendanceError ? (
             <>
-              <div className="flex flex-col items-center gap-4 py-16 rounded-xl border border-gray-200 bg-white">
-                <CircleAlert className="w-12 h-12 text-red-600" />
-                <p className="text-gray-900 font-medium">Failed to load attendance</p>
-                <p className="text-gray-600 text-center text-sm">{attendanceError}</p>
+              <div className="flex-col justify-center items-center gap-4 py-16 rounded-xl border border-gray-200 bg-white text-center p-4">
+                <div className='flex items-center justify-center gap-2 mb-4'>
+                  <CircleAlert className="w-10 h-10 text-red-600 shrink-0" />
+                  <p className="text-gray-900 font-medium">{attendanceError}</p>
+                </div>
                 <button
                   onClick={handleRetryAttendance}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Retry
@@ -198,7 +200,7 @@ export function RsvpRoster() {
                   onClick={() => navigate.push('/profile')}
                   className="px-8 py-4 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors"
                 >
-                  Cancel
+                  Back
                 </button>
               </div>
             </>

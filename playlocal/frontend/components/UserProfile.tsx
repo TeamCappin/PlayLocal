@@ -23,7 +23,7 @@ export function UserProfile() {
   const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
   const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
   const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
-  const { games: pastGames, isLoading, error, refetch } = usePastGames();
+  const { games: pastGames} = usePastGames();
 
 
   // Check if viewing own profile
