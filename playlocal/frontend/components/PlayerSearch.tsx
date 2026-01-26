@@ -105,12 +105,6 @@ export function PlayerSearch() {
       
       setPendingSentMap(prev => new Map(prev).set(userId, friendInfo));
     } catch (err: any) {
-      console.error('Error sending friend request - Full error object:', err);
-      console.error('Error type:', typeof err);
-      console.error('Error message:', err?.message);
-      console.error('Error data:', err?.data);
-      console.error('Error status:', err?.status);
-      
       // Extract user-friendly error message from various possible formats
       let errorMessage = 'Failed to send friend request';
       
@@ -121,11 +115,7 @@ export function PlayerSearch() {
         errorMessage = err.message;
       } else if (typeof err === 'string') {
         errorMessage = err;
-      } else if (err?.toString) {
-        errorMessage = err.toString();
       }
-      
-      console.error('Extracted error message:', errorMessage);
       
       // Handle specific error cases
       const lowerMessage = errorMessage.toLowerCase();
