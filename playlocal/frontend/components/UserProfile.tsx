@@ -6,12 +6,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
-import { ScoreHistoryList } from './ScoreHistoryList'; 
+import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
-import { usePastGamesByUser } from '@/hooks/useGames';
-
-
+import { usePastGames } from '@/hooks/useGames';
 
 export function UserProfile() {
   const { username } = useParams();
@@ -25,7 +23,7 @@ export function UserProfile() {
   const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
   const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
   const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
-  const { games: pastGames, isLoading, error, refetch } = usePastGamesByUser(currentUser?.userId || '');
+  const { games: pastGames, isLoading, error, refetch } = usePastGames();
 
 
   // Check if viewing own profile
@@ -465,45 +463,13 @@ export function UserProfile() {
               </div>
               {canViewActivityData ? (
                 //Adding a temporary div to fix layout shift while MatchHistoryList is being updated 
-                <div>
-                  <div className='space-y-3'>
-                    {pastGames.map((game) => (
-                      <MatchHistoryList
-                        key={game.gameId}
-                        game={game}
-                        userId={currentUser?.userId || ''}
-                      />
-                    ))}
-                  </div>
-                  {/* <div className="divide-y divide-gray-200">
-                    {recentGames.map((game) => (
-                      <Link
-                        key={game.id}
-                        href={`/games/${game.id}/recap`}
-                        className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
-                            🏀
-                          </div>
-                          <div>
-                            <div className="text-gray-900 mb-1">{game.title}</div>
-                            <div className="text-sm text-gray-600">
-                              {game.date} • {game.location}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                            {game.result}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {game.team} • {game.score}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div> */}
+                <div className='space-y-3'>
+                  {pastGames.map((game) => (
+                    <MatchHistoryList
+                      key={game.gameId}
+                      game={game}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="p-12 text-center">
@@ -565,7 +531,7 @@ export function UserProfile() {
           {activeTab === 'score-history' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
-              <ScoreHistoryList 
+              <ScoreHistoryList
                 userId={isOwnProfile ? undefined : user.userId || undefined}
                 onDisputeClick={(entry) => {
                   setDisputeGameId(entry.gameId || undefined);

@@ -23,7 +23,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     List<Game> findUpcomingGames(Instant now);
 
     @Query("SELECT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND p.user.userId = :userId AND p.joinStatus = 'CONFIRMED' ORDER BY g.endTime DESC")
-    List<Game> findPastGamesForUser(UUID userId, Instant now);
+    List<Game> findPastGames(UUID userId, Instant now);
 
     @Query("SELECT DISTINCT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' ORDER BY g.endTime ASC")
     List<Game> findPastGamesForUserNeedingAttendanceUpdate(UUID userId, Instant now);

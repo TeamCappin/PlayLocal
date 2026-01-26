@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 
 /**
  * Service for the Core Reliability Loop.
- * Implements: US-2.6 (Attendance Confirmation), US-2.7 (Reliability Score + History)
+ * Implements: US-2.6 (Attendance Confirmation), US-2.7 (Reliability Score +
+ * History)
  * 
  * The reliability score is calculated as:
  * reliability_score = (attended_count / games_count) * 100
@@ -187,7 +188,8 @@ public class ReliabilityService {
 
     /**
      * Get score history for a user.
-     * US 2.7: Users can view a simple "Score History" list on their profile (most recent first)
+     * US 2.7: Users can view a simple "Score History" list on their profile (most
+     * recent first)
      */
     public ScoreHistoryDto.ScoreHistoryResponse getScoreHistory(UUID userId, int page, int size) {
         User user = userRepository.findActiveById(userId)
@@ -260,7 +262,7 @@ public class ReliabilityService {
             throw new AccessDeniedException("Only the organizer can view attendance");
         }
 
-        List<AttendanceDto.AttendanceEntry> pendingEntries = participationRepository
+        return participationRepository
                 .findForAttendanceConfirmation(gameId).stream()
                 .map(p -> AttendanceDto.AttendanceEntry.builder()
                         .participationId(p.getParticipationId().toString())
@@ -271,7 +273,6 @@ public class ReliabilityService {
                         .requestedPositionRoleId("HARD CODED POSITION ROLE")
                         .build())
                 .collect(Collectors.toList());
-        return pendingEntries;
     }
 
     /**

@@ -10,9 +10,7 @@ import { format } from "date-fns/format";
 export function ActionsRequired() {
   const navigate = useRouter();
   const { isAuthenticated, user } = useAuth();
-
-  const { games, isLoading, error, refetch } = usePastGamesByUserNeedingAttendanceUpdate(user?.userId || '');
-  console.log('Past games fetched from API:', games);
+  const { games, isLoading, error, refetch } = usePastGamesByUserNeedingAttendanceUpdate();
   const actionsRequired = games.length;
 
   const handleClickConfirmAttendance = () => {

@@ -19,10 +19,9 @@ type MatchHistoryListProps = {
     // todo: game.participation role from the participation table. 
     // todo: get attendance confirm/no show/confirm attendance/attendance pending from game participation table
   } | null;
-  userId: string;
 }
 
-export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
+export function MatchHistoryList({ game }: MatchHistoryListProps) {
 
   const [gameParticipation, setGameParticipation] = useState<ParticipantDto | null>(null);
 
@@ -30,7 +29,7 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
     const fetchData = async () => {
       try {
         if (game) {
-          const data = await gamesApi.getGameParticipation(game.gameId, userId);
+          const data = await gamesApi.getGameParticipation(game.gameId);
           setGameParticipation(data);
         }
       } catch (err) {
@@ -38,7 +37,7 @@ export function MatchHistoryList({ game, userId }: MatchHistoryListProps) {
       }
     };
     fetchData();
-  }, [game, userId]);
+  }, [game]);
 
   const getAttendanceDisplay = (status?: string, role?: string) => {
     switch (status) {

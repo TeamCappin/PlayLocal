@@ -127,8 +127,8 @@ public class GameService {
          * not cancelled.
          * US-2.6
          */
-        public List<GameDto.GameResponse> getPastGamesForUser(UUID userId) {
-                return gameRepository.findPastGamesForUser(userId, Instant.now()).stream()
+        public List<GameDto.GameResponse> getPastGames(UUID userId) {
+                return gameRepository.findPastGames(userId, Instant.now()).stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
         }

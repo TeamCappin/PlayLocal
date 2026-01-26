@@ -57,19 +57,11 @@ public class GameController {
      * Get game participation for a specific userId and gameID.
      * US-2.6: Get Game Participation
      */
-    @GetMapping("/gameParticipation/{gameId}/{userId}")
+    @GetMapping("/gameParticipation/{gameId}")
     public ResponseEntity<GameDto.ParticipantDto> getGameParticipation(
             @PathVariable UUID gameId,
-            @PathVariable UUID userId,
             Authentication authentication) {
-        UUID authenticatedUserId = null;
-        if (authentication != null && authentication.isAuthenticated()) {
-            try {
-                authenticatedUserId = UUID.fromString(authentication.getName());
-            } catch (IllegalArgumentException e) {
-                // Ignore invalid UUIDs
-            }
-        }
+        UUID userId = UUID.fromString(authentication.getName());
         GameDto.ParticipantDto participation = gameService.getGameParticipation(gameId, userId);
         return ResponseEntity.ok(participation);
     }
@@ -79,20 +71,11 @@ public class GameController {
      * game not cancelled.
      * US-2.6: Get Past Games
      */
-    @GetMapping("/pastByUserId/{userId}")
-    public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUser(
-            @PathVariable UUID userId,
+    @GetMapping("/past")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGames(
             Authentication authentication) {
-        UUID authenticatedUserId = null;
-        if (authentication != null && authentication.isAuthenticated()) {
-            try {
-                authenticatedUserId = UUID.fromString(authentication.getName());
-                System.out.println("User ID received from Frontend" + userId);
-            } catch (IllegalArgumentException e) {
-                // Ignore invalid UUIDs (e.g. anonymousUser)
-            }
-        }
-        List<GameDto.GameResponse> games = gameService.getPastGamesForUser(userId);
+        UUID userId = UUID.fromString(authentication.getName());
+        List<GameDto.GameResponse> games = gameService.getPastGames(userId);
         return ResponseEntity.ok(games);
     }
 
@@ -101,19 +84,10 @@ public class GameController {
      * updated.
      * US-2.6: Get Past Games Needing Attendance Update
      */
-    @GetMapping("/pastByUserIdNeedingAttendanceUpdate/{userId}")
+    @GetMapping("/pastByUserIdNeedingAttendanceUpdate")
     public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUserNeedingAttendanceUpdate(
-            @PathVariable UUID userId,
             Authentication authentication) {
-        UUID authenticatedUserId = null;
-        if (authentication != null && authentication.isAuthenticated()) {
-            try {
-                authenticatedUserId = UUID.fromString(authentication.getName());
-                System.out.println("User ID received from Frontend" + userId);
-            } catch (IllegalArgumentException e) {
-                // Ignore invalid UUIDs (e.g. anonymousUser)
-            }
-        }
+        UUID userId = UUID.fromString(authentication.getName());
         List<GameDto.GameResponse> games = gameService.getPastGamesForUserNeedingAttendanceUpdate(userId);
         return ResponseEntity.ok(games);
     }

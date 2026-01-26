@@ -303,12 +303,12 @@ export const gamesApi = {
 
     getUpcoming: () => apiFetch<GameResponse[]>('/games'),
 
-    getGameParticipation: (gameId: string, userId: string) =>
-        apiFetch<ParticipantDto>(`/games/gameParticipation/${gameId}/${userId}`),
+    getPast: () => apiFetch<GameResponse[]>(`/games/past`),
 
-    getPastByUserId: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserId/${userId}`),
+    getGameParticipation: (gameId: string) =>
+        apiFetch<ParticipantDto>(`/games/gameParticipation/${gameId}`),
 
-    getPastByUserNeedingAttendanceUpdate: (userId: string) => apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate/${userId}`),
+    getPastByUserNeedingAttendanceUpdate: () => apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
 
     getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 

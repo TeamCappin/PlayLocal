@@ -27,7 +27,7 @@ export function useGames() {
     return { games, isLoading, error, refetch: fetchGames };
 }
 
-export function usePastGamesByUser(userId: string){
+export function usePastGames() {
     const [games, setGames] = useState<GameResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function usePastGamesByUser(userId: string){
         setIsLoading(true);
         setError(null);
         try {
-            const data = await gamesApi.getPastByUserId(userId);
+            const data = await gamesApi.getPast();
             setGames(data);
         } catch (err) {
             setError('Failed to load past games');
@@ -43,15 +43,16 @@ export function usePastGamesByUser(userId: string){
         } finally {
             setIsLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     useEffect(() => {
         fetchGames();
     }, [fetchGames]);
+
     return { games, isLoading, error, refetch: fetchGames };
 }
 
-export function usePastGamesByUserNeedingAttendanceUpdate(userId: string){
+export function usePastGamesByUserNeedingAttendanceUpdate() {
     const [games, setGames] = useState<GameResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -59,19 +60,20 @@ export function usePastGamesByUserNeedingAttendanceUpdate(userId: string){
         setIsLoading(true);
         setError(null);
         try {
-            const data = await gamesApi.getPastByUserNeedingAttendanceUpdate(userId);
+            const data = await gamesApi.getPastByUserNeedingAttendanceUpdate();
             setGames(data);
         } catch (err) {
-            setError('Failed to load past games');
-            console.error('Error fetching past games:', err);
+            setError('Failed to load past games needing attendance update');
+            console.error('Error fetching past games needing attendance update:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     useEffect(() => {
         fetchGames();
     }, [fetchGames]);
+
     return { games, isLoading, error, refetch: fetchGames };
 }
 
