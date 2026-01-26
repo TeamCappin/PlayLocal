@@ -31,10 +31,18 @@ async function apiFetch<T>(
         (headers as Record<string, string>)['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
+    let response: Response;
+    try {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+    } catch (networkError: any) {
+        // Handle network errors (no connection, CORS, etc.)
+        throw new ApiError(0, 'Network error: Unable to connect to server', { 
+            originalError: networkError.message || 'Network request failed' 
+        });
+    }
 
     if (!response.ok) {
         let errorData: any = { message: 'An error occurred' };

@@ -108,8 +108,10 @@ export function PlayerSearch() {
       // Extract user-friendly error message from various possible formats
       let errorMessage = 'Failed to send friend request';
       
-      // Try multiple ways to extract the error message
-      if (err?.data?.message) {
+      // Handle network errors
+      if (err?.status === 0 || err?.message?.includes('Network error')) {
+        errorMessage = 'Unable to connect to server. Please check your connection.';
+      } else if (err?.data?.message) {
         errorMessage = err.data.message;
       } else if (err?.message) {
         errorMessage = err.message;
@@ -129,6 +131,8 @@ export function PlayerSearch() {
         setError('You cannot send a friend request to yourself');
       } else if (lowerMessage.includes('not found')) {
         setError('User not found');
+      } else if (lowerMessage.includes('unexpected error')) {
+        setError('An error occurred. Please try again or contact support if the problem persists.');
       } else {
         setError(errorMessage);
       }
