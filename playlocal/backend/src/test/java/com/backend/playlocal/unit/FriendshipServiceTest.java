@@ -729,4 +729,4 @@ class FriendshipServiceTest {
         FriendDto.FriendInfo friendInfo = response.getFriends().get(0);
         assertThat(friendInfo.getCreatedAt()).isNull();
     }
-
+}
