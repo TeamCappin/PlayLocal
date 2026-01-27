@@ -126,7 +126,6 @@ public class GameDto {
         private Float reliabilityScore;
         private Instant joinedAt;
         private Boolean isEndorsedByOrganizer;
-        private String attendanceStatus;
     }
 
     @Data
