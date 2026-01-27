@@ -75,8 +75,14 @@ public class FriendshipService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Determine low/high for unique constraint
-        UUID lowId = requesterUuid.compareTo(addresseeUuid) < 0 ? requesterUuid : addresseeUuid;
-        UUID highId = requesterUuid.compareTo(addresseeUuid) < 0 ? addresseeUuid : requesterUuid;
+        // Use lexicographic comparison (string comparison) to match PostgreSQL UUID comparison
+        // PostgreSQL compares UUIDs as strings, not as integers
+        String requesterStr = requesterUuid.toString();
+        String addresseeStr = addresseeUuid.toString();
+        boolean requesterIsLow = requesterStr.compareTo(addresseeStr) < 0;
+        
+        UUID lowId = requesterIsLow ? requesterUuid : addresseeUuid;
+        UUID highId = requesterIsLow ? addresseeUuid : requesterUuid;
 
         // Check if friendship already exists
         friendshipRepository.findByUserPair(lowId, highId)
@@ -84,13 +90,13 @@ public class FriendshipService {
                     throw new DuplicateResourceException("Friend request already exists between these users");
                 });
 
-        // Ensure userLow.userId < userHigh.userId for database constraint
-        User userLow = requesterUuid.compareTo(addresseeUuid) < 0 ? requester : addressee;
-        User userHigh = requesterUuid.compareTo(addresseeUuid) < 0 ? addressee : requester;
+        // Ensure userLow.userId < userHigh.userId for database constraint (lexicographic)
+        User userLow = requesterIsLow ? requester : addressee;
+        User userHigh = requesterIsLow ? addressee : requester;
         
-        // Validate constraint will be satisfied
-        if (userLow.getUserId().compareTo(userHigh.getUserId()) >= 0) {
-            throw new IllegalStateException("Invalid user ordering: userLow must be less than userHigh");
+        // Validate constraint will be satisfied (PostgreSQL uses lexicographic comparison)
+        if (userLow.getUserId().toString().compareTo(userHigh.getUserId().toString()) >= 0) {
+            throw new IllegalStateException("Invalid user ordering: userLow must be less than userHigh (lexicographically)");
         }
 
         Friendship friendship = Friendship.builder()
