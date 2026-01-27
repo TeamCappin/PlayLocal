@@ -25,7 +25,7 @@ public class UserService {
     }
 
     /**
-     * Search users by display name or email.
+     * Search users by display name, email, or username.
      */
     public UserDto.SearchResponse searchUsers(String query, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("displayName").ascending());

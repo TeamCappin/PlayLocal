@@ -7,6 +7,8 @@ import com.backend.playlocal.model.entity.Friendship;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class FriendshipService {
 
@@ -72,8 +75,14 @@ public class FriendshipService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Determine low/high for unique constraint
-        UUID lowId = requesterUuid.compareTo(addresseeUuid) < 0 ? requesterUuid : addresseeUuid;
-        UUID highId = requesterUuid.compareTo(addresseeUuid) < 0 ? addresseeUuid : requesterUuid;
+        // Use lexicographic comparison (string comparison) to match PostgreSQL UUID comparison
+        // PostgreSQL compares UUIDs as strings, not as integers
+        String requesterStr = requesterUuid.toString();
+        String addresseeStr = addresseeUuid.toString();
+        boolean requesterIsLow = requesterStr.compareTo(addresseeStr) < 0;
+        
+        UUID lowId = requesterIsLow ? requesterUuid : addresseeUuid;
+        UUID highId = requesterIsLow ? addresseeUuid : requesterUuid;
 
         // Check if friendship already exists
         friendshipRepository.findByUserPair(lowId, highId)
@@ -81,8 +90,14 @@ public class FriendshipService {
                     throw new DuplicateResourceException("Friend request already exists between these users");
                 });
 
-        User userLow = requesterUuid.compareTo(addresseeUuid) < 0 ? requester : addressee;
-        User userHigh = requesterUuid.compareTo(addresseeUuid) < 0 ? addressee : requester;
+        // Ensure userLow.userId < userHigh.userId for database constraint (lexicographic)
+        User userLow = requesterIsLow ? requester : addressee;
+        User userHigh = requesterIsLow ? addressee : requester;
+        
+        // Validate constraint will be satisfied (PostgreSQL uses lexicographic comparison)
+        if (userLow.getUserId().toString().compareTo(userHigh.getUserId().toString()) >= 0) {
+            throw new IllegalStateException("Invalid user ordering: userLow must be less than userHigh (lexicographically)");
+        }
 
         Friendship friendship = Friendship.builder()
                 .requester(requester)
@@ -92,7 +107,27 @@ public class FriendshipService {
                 .status(Friendship.FriendshipStatus.PENDING)
                 .build();
 
-        friendship = friendshipRepository.save(friendship);
+        try {
+            friendship = friendshipRepository.save(friendship);
+        } catch (DataIntegrityViolationException e) {
+            // Handle database constraint violations
+            String errorMessage = e.getMessage();
+            log.error("DataIntegrityViolationException when saving friendship. Requester: {}, Addressee: {}, Low: {}, High: {}", 
+                    requesterId, addresseeId, userLow.getUserId(), userHigh.getUserId(), e);
+            
+            if (errorMessage != null) {
+                if (errorMessage.contains("uq_friendship_pair") || 
+                    errorMessage.contains("unique constraint") ||
+                    errorMessage.contains("duplicate key")) {
+                    throw new DuplicateResourceException("Friend request already exists between these users");
+                } else if (errorMessage.contains("ck_friendship_low_high") || 
+                          errorMessage.contains("check constraint")) {
+                    throw new IllegalStateException("Invalid friendship relationship: userLow must be less than userHigh");
+                }
+            }
+            // Re-throw as-is if it's a different constraint violation
+            throw e;
+        }
 
         return FriendDto.FriendshipAction.builder()
                 .friendshipId(friendship.getFriendshipId().toString())
