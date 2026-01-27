@@ -23,7 +23,10 @@ public class AttendanceDto {
     @AllArgsConstructor
     public static class AttendanceEntry {
         private String participationId;
-        private String attendanceStatus; // ATTENDED, NO_SHOW
+        private String attendanceStatus; // ATTENDED, NO_SHOW, UNKNOWN
+        private String userId;
+        private String sportId;
+        private String requestedPositionRoleId;
     }
 
     @Data
