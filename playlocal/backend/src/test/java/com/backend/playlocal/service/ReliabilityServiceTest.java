@@ -60,9 +60,15 @@ class ReliabilityServiceTest {
     private User participant;
     private Game game;
     private GameParticipation participation;
+    private Sport testSport;
 
     @BeforeEach
     void setUp() {
+        testSport = Sport.builder()
+                .sportId(UUID.randomUUID())
+                .name("Basketball")
+                .build();
+
         // Set up organizer
         organizer = User.builder()
                 .userId(UUID.randomUUID())
@@ -98,8 +104,80 @@ class ReliabilityServiceTest {
                 .participationId(UUID.randomUUID())
                 .game(game)
                 .user(participant)
+                .sport(testSport)
                 .attendanceStatus(GameParticipation.AttendanceStatus.UNKNOWN)
                 .build();
+    }
+
+    @Nested
+    @DisplayName("getPendingAttendance Tests")
+    class GetPendingAttendanceTests {
+
+        @Test
+        @DisplayName("Should return pending list for organizer")
+        void getPendingAttendance_whenOrganizer_shouldReturnList() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(participationRepository.findForAttendanceConfirmation(gameId))
+                    .thenReturn(List.of(participation));
+
+            var result = reliabilityService.getPendingAttendance(gameId, organizerId);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getParticipationId()).isEqualTo(participation.getParticipationId().toString());
+            assertThat(result.get(0).getUserId()).isEqualTo(participant.getUserId().toString());
+            assertThat(result.get(0).getSportId()).isEqualTo(testSport.getSportId().toString());
+            assertThat(result.get(0).getAttendanceStatus()).isEqualTo("UNKNOWN");
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository).findForAttendanceConfirmation(gameId);
+        }
+
+        @Test
+        @DisplayName("Should return empty list when no pending participants")
+        void getPendingAttendance_whenNone_shouldReturnEmpty() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(participationRepository.findForAttendanceConfirmation(gameId))
+                    .thenReturn(List.of());
+
+            var result = reliabilityService.getPendingAttendance(gameId, organizerId);
+
+            assertThat(result).isEmpty();
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository).findForAttendanceConfirmation(gameId);
+        }
+
+        @Test
+        @DisplayName("Should throw when non-organizer requests pending attendance")
+        void getPendingAttendance_whenNonOrganizer_shouldThrow() {
+            UUID gameId = game.getGameId();
+            UUID nonOrganizerId = UUID.randomUUID();
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, nonOrganizerId))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Only the organizer can view attendance");
+
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository, never()).findForAttendanceConfirmation(any());
+        }
+
+        @Test
+        @DisplayName("Should throw when game not found")
+        void getPendingAttendance_whenGameNotFound_shouldThrow() {
+            UUID gameId = UUID.randomUUID();
+            UUID organizerId = organizer.getUserId();
+            when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerId))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Game not found");
+
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository, never()).findForAttendanceConfirmation(any());
+        }
     }
 
     @Nested
