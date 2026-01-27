@@ -37,12 +37,15 @@ public class GameDto {
         private String intensityBand;
         private String skillBand;
 
+        @Builder.Default
         @Min(value = 2, message = "Minimum players must be at least 2")
         private Integer minPlayers = 2;
 
+        @Builder.Default
         @Max(value = 100, message = "Maximum players cannot exceed 100")
         private Integer maxPlayers = 20;
 
+        @Builder.Default
         private Boolean allowWaitlist = true;
 
         @Min(value = 0, message = "Minimum reliability must be non-negative")
