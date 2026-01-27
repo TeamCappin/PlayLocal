@@ -122,8 +122,10 @@ public class GameService {
          * Get game participation based on userId and gameId. US-2.6
          */
         public GameDto.ParticipantDto getGameParticipation(UUID gameId, UUID userId) {
-                return participationRepository.findByGameAndUser(gameId, userId).map(this::mapToParticipantDto)
+                GameParticipation p = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game Participation not found"));
+
+                return mapToParticipantDto(p);
         }
 
         /**
@@ -402,6 +404,14 @@ public class GameService {
         }
 
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
+                return mapToParticipantDto(p, endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
+        }
+
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {
+                return mapToParticipantDto(p, false);
+        }
+
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed) {
                 return GameDto.ParticipantDto.builder()
                                 .participationId(p.getParticipationId().toString())
                                 .userId(p.getUser().getUserId().toString())
@@ -413,8 +423,7 @@ public class GameService {
                                 .waitlistPosition(p.getWaitlistPosition())
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
-                                .isEndorsedByOrganizer(endorsedUserIds.contains(p.getUser().getUserId()))
-                                .attendanceStatus(p.getAttendanceStatus().name())
+                                .isEndorsedByOrganizer(isEndorsed)
                                 .build();
         }
 }
