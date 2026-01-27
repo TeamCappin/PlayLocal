@@ -7,6 +7,7 @@ import com.backend.playlocal.model.entity.Friendship;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class FriendshipService {
 
@@ -82,8 +84,14 @@ public class FriendshipService {
                     throw new DuplicateResourceException("Friend request already exists between these users");
                 });
 
+        // Ensure userLow.userId < userHigh.userId for database constraint
         User userLow = requesterUuid.compareTo(addresseeUuid) < 0 ? requester : addressee;
         User userHigh = requesterUuid.compareTo(addresseeUuid) < 0 ? addressee : requester;
+        
+        // Validate constraint will be satisfied
+        if (userLow.getUserId().compareTo(userHigh.getUserId()) >= 0) {
+            throw new IllegalStateException("Invalid user ordering: userLow must be less than userHigh");
+        }
 
         Friendship friendship = Friendship.builder()
                 .requester(requester)
@@ -96,11 +104,20 @@ public class FriendshipService {
         try {
             friendship = friendshipRepository.save(friendship);
         } catch (DataIntegrityViolationException e) {
-            // Handle database constraint violations (e.g., unique constraint, check constraint)
+            // Handle database constraint violations
             String errorMessage = e.getMessage();
-            if (errorMessage != null && (errorMessage.contains("uq_friendship_pair") || 
-                                         errorMessage.contains("unique constraint"))) {
-                throw new DuplicateResourceException("Friend request already exists between these users");
+            log.error("DataIntegrityViolationException when saving friendship. Requester: {}, Addressee: {}, Low: {}, High: {}", 
+                    requesterId, addresseeId, userLow.getUserId(), userHigh.getUserId(), e);
+            
+            if (errorMessage != null) {
+                if (errorMessage.contains("uq_friendship_pair") || 
+                    errorMessage.contains("unique constraint") ||
+                    errorMessage.contains("duplicate key")) {
+                    throw new DuplicateResourceException("Friend request already exists between these users");
+                } else if (errorMessage.contains("ck_friendship_low_high") || 
+                          errorMessage.contains("check constraint")) {
+                    throw new IllegalStateException("Invalid friendship relationship: userLow must be less than userHigh");
+                }
             }
             // Re-throw as-is if it's a different constraint violation
             throw e;
