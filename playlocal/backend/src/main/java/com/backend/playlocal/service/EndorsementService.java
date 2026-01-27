@@ -34,7 +34,7 @@ public class EndorsementService {
         this.participationRepository = participationRepository;
     }
 
-    // US 3.3 Organizer Endorsments
+    // US 3.3 Organizer Endorsements
     @Transactional
     public EndorsementDto.Response createEndorsement(UUID endorserId, EndorsementDto.CreateRequest request) {
         User endorser = userRepository.findActiveById(endorserId)
@@ -76,7 +76,7 @@ public class EndorsementService {
         return mapToResponse(endorsement);
     }
 
-    // US 3.3 Organizer Endorsments
+    // US 3.3 Organizer Endorsements
     public List<EndorsementDto.Response> getUserEndorsements(UUID userId) {
         return endorsementRepository.findByEndorsedUser_UserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::mapToResponse)

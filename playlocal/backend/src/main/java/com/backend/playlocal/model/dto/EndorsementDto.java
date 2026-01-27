@@ -25,7 +25,7 @@ public class EndorsementDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    // US 3.3 Organizer Endorsments
+    // US 3.3 Organizer Endorsements
     public static class Response {
         private UUID endorsementId;
         private UUID endorserId;

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { GameRoom } from '../components/GameRoom';
 import '@testing-library/jest-dom';
 
-// Mock mocks
+// Mock dependencies
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'game-123' }),
   useRouter: () => ({ push: jest.fn() }),
