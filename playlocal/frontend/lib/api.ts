@@ -31,14 +31,31 @@ async function apiFetch<T>(
         (headers as Record<string, string>)['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
+    let response: Response;
+    try {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+    } catch (networkError: any) {
+        // Handle network errors (no connection, CORS, etc.)
+        throw new ApiError(0, 'Network error: Unable to connect to server', { 
+            originalError: networkError.message || 'Network request failed' 
+        });
+    }
 
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-        throw new ApiError(response.status, error.message || 'An error occurred', error);
+        let errorData: any = { message: 'An error occurred' };
+        try {
+            const text = await response.text();
+            if (text) {
+                errorData = JSON.parse(text);
+            }
+        } catch (e) {
+            // If response is not JSON, use status text
+            errorData = { message: response.statusText || 'An error occurred' };
+        }
+        throw new ApiError(response.status, errorData.message || 'An error occurred', errorData);
     }
 
     // Handle 204 No Content
@@ -46,7 +63,11 @@ async function apiFetch<T>(
         return {} as T;
     }
 
-    return response.json();
+    try {
+        return await response.json();
+    } catch (e) {
+        throw new ApiError(response.status, 'Invalid JSON response', { originalError: e });
+    }
 }
 
 export class ApiError extends Error {
@@ -294,6 +315,7 @@ export interface ParticipantDto {
     reliabilityScore: number;
     joinedAt: string;
     isEndorsedByOrganizer?: boolean;
+    attendanceStatus?: string;
 }
 
 export const gamesApi = {
@@ -304,6 +326,13 @@ export const gamesApi = {
         }),
 
     getUpcoming: () => apiFetch<GameResponse[]>('/games'),
+
+    getPast: () => apiFetch<GameResponse[]>(`/games/past`),
+
+    getGameParticipation: (gameId: string) =>
+        apiFetch<ParticipantDto>(`/games/gameParticipation/${gameId}`),
+
+    getPastByUserNeedingAttendanceUpdate: () => apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
 
     getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
@@ -323,6 +352,9 @@ export const gamesApi = {
 export interface AttendanceEntry {
     participationId: string;
     attendanceStatus: 'ATTENDED' | 'NO_SHOW';
+    userId: string;
+    sportId: string;
+    requestedPositionRoleId: string;
 }
 
 export interface AttendanceResponse {
@@ -451,6 +483,58 @@ export const healthApi = {
     check: () => apiFetch<{ status: string; service: string; version: string }>('/health'),
 };
 
+// ============================================
+// SCORE HISTORY API (US 2.7)
+// ============================================
+
+export interface ScoreHistoryEntry {
+    scoreHistoryId: string;
+    userId: string;
+    gameId?: string;
+    gameTitle?: string;
+    previousScore: number;
+    newScore: number;
+    delta: number;
+    reason: 'ATTENDANCE' | 'NO_SHOW' | 'MANUAL_ADJUSTMENT' | 'DISPUTE_RESOLVED';
+    description?: string;
+    createdAt: string;
+    createdByUserId?: string;
+    createdByDisplayName?: string;
+}
+
+export interface ScoreHistoryResponse {
+    userId: string;
+    displayName: string;
+    currentScore: number;
+    history: ScoreHistoryEntry[];
+    totalEntries: number;
+    currentPage: number;
+    totalPages: number;
+}
+
+export interface ScoreSummary {
+    userId: string;
+    currentScore: number;
+    attendedCount: number;
+    noShowCount: number;
+    gamesCount: number;
+    attendanceRate: number;
+}
+
+export const scoreHistoryApi = {
+    getHistory: (userId: string, page = 0, size = 10) =>
+        apiFetch<ScoreHistoryResponse>(`/users/${userId}/score-history?page=${page}&size=${size}`),
+
+    getMyHistory: (page = 0, size = 10) =>
+        apiFetch<ScoreHistoryResponse>(`/users/me/score-history?page=${page}&size=${size}`),
+
+    getSummary: (userId: string) =>
+        apiFetch<ScoreSummary>(`/users/${userId}/score-summary`),
+
+    getMySummary: () =>
+        apiFetch<ScoreSummary>(`/users/me/score-summary`),
+};
+
 export default {
     auth: authApi,
     games: gamesApi,
@@ -459,4 +543,5 @@ export default {
     notifications: notificationsApi,
     endorsements: endorsementsApi,
     health: healthApi,
+    scoreHistory: scoreHistoryApi,
 };

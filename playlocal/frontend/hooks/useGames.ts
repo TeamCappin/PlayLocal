@@ -27,6 +27,56 @@ export function useGames() {
     return { games, isLoading, error, refetch: fetchGames };
 }
 
+export function usePastGames() {
+    const [games, setGames] = useState<GameResponse[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const fetchGames = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await gamesApi.getPast();
+            setGames(data);
+        } catch (err) {
+            setError('Failed to load past games');
+            console.error('Error fetching past games:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchGames();
+    }, [fetchGames]);
+
+    return { games, isLoading, error, refetch: fetchGames };
+}
+
+export function usePastGamesByUserNeedingAttendanceUpdate() {
+    const [games, setGames] = useState<GameResponse[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const fetchGames = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await gamesApi.getPastByUserNeedingAttendanceUpdate();
+            setGames(data);
+        } catch (err) {
+            setError('Failed to load past games needing attendance update');
+            console.error('Error fetching past games needing attendance update:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchGames();
+    }, [fetchGames]);
+
+    return { games, isLoading, error, refetch: fetchGames };
+}
+
 export function useGame(gameId: string | undefined) {
     const [game, setGame] = useState<GameResponse | null>(null);
     const [roster, setRoster] = useState<RosterResponse | null>(null);
@@ -35,7 +85,6 @@ export function useGame(gameId: string | undefined) {
 
     const fetchGame = useCallback(async () => {
         if (!gameId) return;
-
         setIsLoading(true);
         setError(null);
         try {

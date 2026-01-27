@@ -32,7 +32,7 @@ public class Notification {
     @Column(name = "notif_type", nullable = false)
     private String notifType; // game_reminder, attendance_prompt, friend_request, etc.
 
-    @Column(name = "payload_json", columnDefinition = "jsonb")
+    @Column(name = "payload_json", columnDefinition = "text")
     private String payloadJson;
 
     @Column(name = "scheduled_for")

@@ -119,6 +119,35 @@ public class GameService {
         }
 
         /**
+         * Get game participation based on userId and gameId. US-2.6
+         */
+        public GameDto.ParticipantDto getGameParticipation(UUID gameId, UUID userId) {
+                return participationRepository.findByGameAndUser(gameId, userId).map(this::mapToParticipantDto)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game Participation not found"));
+        }
+
+        /**
+         * Get past games of the user for which join status has been confirmed and game
+         * not cancelled.
+         * US-2.6
+         */
+        public List<GameDto.GameResponse> getPastGames(UUID userId) {
+                return gameRepository.findPastGames(userId, Instant.now()).stream()
+                                .map(game -> mapToGameResponse(game, userId))
+                                .collect(Collectors.toList());
+        }
+
+        /**
+         * Get past games created by user for which the rsvp roster needs to be updated.
+         * US-2.6
+         */
+        public List<GameDto.GameResponse> getPastGamesForUserNeedingAttendanceUpdate(UUID userId) {
+                return gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now()).stream()
+                                .map(game -> mapToGameResponse(game, userId))
+                                .collect(Collectors.toList());
+        }
+
+        /**
          * CRITICAL: Concurrency-safe join. US-2.5
          * Uses SELECT FOR UPDATE to prevent overbooking.
          */
@@ -160,7 +189,7 @@ public class GameService {
                         // User previously cancelled - allow re-join
                         // Must check capacity to determine CONFIRMED vs WAITLISTED
                         int confirmedCount = participationRepository.countConfirmedParticipants(gameId);
-                        
+
                         if (confirmedCount < game.getMaxPlayers()) {
                                 // Capacity available - rejoin as CONFIRMED
                                 participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
@@ -173,11 +202,11 @@ public class GameService {
                         } else {
                                 throw new CapacityExceededException("Game is full and waitlist is not enabled");
                         }
-                        
+
                         participation.setLeftAt(null);
                         participation.setJoinedAt(Instant.now());
                         participation = participationRepository.save(participation);
-                        
+
                         // Return immediately - don't fall through to create new participation
                         return GameDto.JoinResponse.builder()
                                         .participationId(participation.getParticipationId().toString())
@@ -185,7 +214,8 @@ public class GameService {
                                         .waitlistPosition(participation.getWaitlistPosition())
                                         .message(participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
                                                         ? "Successfully rejoined the game"
-                                                        : "Rejoined waitlist at position " + participation.getWaitlistPosition())
+                                                        : "Rejoined waitlist at position "
+                                                                        + participation.getWaitlistPosition())
                                         .build();
                 }
 
@@ -384,6 +414,7 @@ public class GameService {
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
                                 .isEndorsedByOrganizer(endorsedUserIds.contains(p.getUser().getUserId()))
+                                .attendanceStatus(p.getAttendanceStatus().name())
                                 .build();
         }
 }

@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -647,6 +648,81 @@ class GameServiceJoinLeaveTest {
                                         .joinedAt(Instant.now())
                                         .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
                                         .build();
+                }
+        }
+
+        @Nested
+        @DisplayName("US-2.6: getGameParticipation, getPastGamesForUserNeedingAttendanceUpdate")
+        class GetParticipationAndPastGamesTests {
+
+                @Test
+                @DisplayName("getGameParticipation should return participation when found")
+                void getGameParticipation_WhenFound_ShouldReturnDto() {
+                        GameParticipation p = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .joinedAt(Instant.now())
+                                        .attendanceStatus(GameParticipation.AttendanceStatus.UNKNOWN)
+                                        .build();
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(p));
+
+                        GameDto.ParticipantDto result = gameService.getGameParticipation(gameId, userId);
+
+                        assertThat(result).isNotNull();
+                        assertThat(result.getParticipationId()).isEqualTo(p.getParticipationId().toString());
+                        assertThat(result.getUserId()).isEqualTo(testUser.getUserId().toString());
+                        assertThat(result.getDisplayName()).isEqualTo(testUser.getDisplayName());
+                        assertThat(result.getRole()).isEqualTo("PARTICIPANT");
+                        assertThat(result.getJoinStatus()).isEqualTo("CONFIRMED");
+                        assertThat(result.getAttendanceStatus()).isEqualTo("UNKNOWN");
+                        verify(participationRepository).findByGameAndUser(gameId, userId);
+                }
+
+                @Test
+                @DisplayName("getGameParticipation should throw when not found")
+                void getGameParticipation_WhenNotFound_ShouldThrow() {
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.empty());
+
+                        assertThatThrownBy(() -> gameService.getGameParticipation(gameId, userId))
+                                        .isInstanceOf(ResourceNotFoundException.class)
+                                        .hasMessageContaining("Game Participation not found");
+
+                        verify(participationRepository).findByGameAndUser(gameId, userId);
+                }
+
+                @Test
+                @DisplayName("getPastGamesForUserNeedingAttendanceUpdate should return games for organizer")
+                void getPastGamesForUserNeedingAttendanceUpdate_WhenOrganizer_ShouldReturnGames() {
+                        when(gameRepository.findPastGamesForUserNeedingAttendanceUpdate(eq(organizerId), any(Instant.class)))
+                                        .thenReturn(List.of(testGame));
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
+                        when(participationRepository.findWaitlistedByGame(gameId))
+                                        .thenReturn(Collections.emptyList());
+
+                        var result = gameService.getPastGamesForUserNeedingAttendanceUpdate(organizerId);
+
+                        assertThat(result).hasSize(1);
+                        assertThat(result.get(0).getGameId()).isEqualTo(gameId.toString());
+                        assertThat(result.get(0).getTitle()).isEqualTo("Test Game");
+                        assertThat(result.get(0).getSportName()).isEqualTo("Basketball");
+                        verify(gameRepository).findPastGamesForUserNeedingAttendanceUpdate(eq(organizerId), any(Instant.class));
+                }
+
+                @Test
+                @DisplayName("getPastGamesForUserNeedingAttendanceUpdate should return empty when none")
+                void getPastGamesForUserNeedingAttendanceUpdate_WhenNone_ShouldReturnEmpty() {
+                        when(gameRepository.findPastGamesForUserNeedingAttendanceUpdate(eq(organizerId), any(Instant.class)))
+                                        .thenReturn(Collections.emptyList());
+
+                        var result = gameService.getPastGamesForUserNeedingAttendanceUpdate(organizerId);
+
+                        assertThat(result).isEmpty();
+                        verify(gameRepository).findPastGamesForUserNeedingAttendanceUpdate(eq(organizerId), any(Instant.class));
                 }
         }
 }

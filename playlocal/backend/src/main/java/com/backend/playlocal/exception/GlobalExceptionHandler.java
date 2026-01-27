@@ -72,6 +72,30 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            org.springframework.dao.DataIntegrityViolationException ex) {
+        log.error("Data integrity violation", ex);
+        
+        // Extract meaningful error message from constraint violation
+        String message = "Database constraint violation";
+        String errorMessage = ex.getMessage();
+        
+        if (errorMessage != null) {
+            if (errorMessage.contains("uq_friendship_pair") || errorMessage.contains("unique constraint")) {
+                message = "Friend request already exists between these users";
+            } else if (errorMessage.contains("ck_friendship_low_high")) {
+                message = "Invalid friendship relationship";
+            } else if (errorMessage.contains("foreign key") || errorMessage.contains("REFERENCES")) {
+                message = "Referenced resource not found";
+            } else if (errorMessage.contains("not null") || errorMessage.contains("NULL")) {
+                message = "Required field is missing";
+            }
+        }
+        
+        return buildErrorResponse(HttpStatus.CONFLICT, message);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Unhandled exception occurred", ex);
