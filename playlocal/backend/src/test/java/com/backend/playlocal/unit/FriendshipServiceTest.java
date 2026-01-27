@@ -2,6 +2,7 @@ package com.backend.playlocal.unit;
 
 import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.backend.playlocal.model.dto.FriendDto;
 import com.backend.playlocal.model.entity.Friendship;
 import com.backend.playlocal.model.entity.User;
@@ -572,4 +573,160 @@ class FriendshipServiceTest {
         assertThat(friendInfo.getGamesCount()).isEqualTo(addressee.getGamesCount());
         assertThat(friendInfo.getStatus()).isEqualTo("ACCEPTED");
     }
-}
+
+    @Test
+    @DisplayName("US-31: sendFriendRequest with DataIntegrityViolationException for duplicate key throws DuplicateResourceException")
+    void sendFriendRequest_DataIntegrityViolation_DuplicateKey_ThrowsDuplicateResourceException() {
+        // Given
+        when(userRepository.findActiveById(requesterId)).thenReturn(Optional.of(requester));
+        when(userRepository.findActiveById(addresseeId)).thenReturn(Optional.of(addressee));
+        
+        String requesterStr = requesterId.toString();
+        String addresseeStr = addresseeId.toString();
+        boolean requesterIsLow = requesterStr.compareTo(addresseeStr) < 0;
+        UUID lowId = requesterIsLow ? requesterId : addresseeId;
+        UUID highId = requesterIsLow ? addresseeId : requesterId;
+        
+        when(friendshipRepository.findByUserPair(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.empty());
+        
+        DataIntegrityViolationException integrityException = new DataIntegrityViolationException(
+                "duplicate key value violates unique constraint \"uq_friendship_pair\""
+        );
+        when(friendshipRepository.save(any(Friendship.class))).thenThrow(integrityException);
+
+        // When/Then
+        assertThatThrownBy(() -> friendshipService.sendFriendRequest(
+                requesterId.toString(),
+                addresseeId.toString()
+        ))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("Friend request already exists between these users");
+    }
+
+    @Test
+    @DisplayName("US-31: sendFriendRequest with DataIntegrityViolationException for unique constraint throws DuplicateResourceException")
+    void sendFriendRequest_DataIntegrityViolation_UniqueConstraint_ThrowsDuplicateResourceException() {
+        // Given
+        when(userRepository.findActiveById(requesterId)).thenReturn(Optional.of(requester));
+        when(userRepository.findActiveById(addresseeId)).thenReturn(Optional.of(addressee));
+        
+        when(friendshipRepository.findByUserPair(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.empty());
+        
+        DataIntegrityViolationException integrityException = new DataIntegrityViolationException(
+                "unique constraint violation"
+        );
+        when(friendshipRepository.save(any(Friendship.class))).thenThrow(integrityException);
+
+        // When/Then
+        assertThatThrownBy(() -> friendshipService.sendFriendRequest(
+                requesterId.toString(),
+                addresseeId.toString()
+        ))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("Friend request already exists between these users");
+    }
+
+    @Test
+    @DisplayName("US-31: sendFriendRequest with DataIntegrityViolationException for check constraint throws IllegalStateException")
+    void sendFriendRequest_DataIntegrityViolation_CheckConstraint_ThrowsIllegalStateException() {
+        // Given
+        when(userRepository.findActiveById(requesterId)).thenReturn(Optional.of(requester));
+        when(userRepository.findActiveById(addresseeId)).thenReturn(Optional.of(addressee));
+        
+        when(friendshipRepository.findByUserPair(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.empty());
+        
+        DataIntegrityViolationException integrityException = new DataIntegrityViolationException(
+                "check constraint \"ck_friendship_low_high\" violated"
+        );
+        when(friendshipRepository.save(any(Friendship.class))).thenThrow(integrityException);
+
+        // When/Then
+        assertThatThrownBy(() -> friendshipService.sendFriendRequest(
+                requesterId.toString(),
+                addresseeId.toString()
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Invalid friendship relationship: userLow must be less than userHigh");
+    }
+
+    @Test
+    @DisplayName("US-31: sendFriendRequest with DataIntegrityViolationException for other constraint re-throws exception")
+    void sendFriendRequest_DataIntegrityViolation_OtherConstraint_ReThrowsException() {
+        // Given
+        when(userRepository.findActiveById(requesterId)).thenReturn(Optional.of(requester));
+        when(userRepository.findActiveById(addresseeId)).thenReturn(Optional.of(addressee));
+        
+        when(friendshipRepository.findByUserPair(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.empty());
+        
+        DataIntegrityViolationException integrityException = new DataIntegrityViolationException(
+                "some other constraint violation"
+        );
+        when(friendshipRepository.save(any(Friendship.class))).thenThrow(integrityException);
+
+        // When/Then
+        assertThatThrownBy(() -> friendshipService.sendFriendRequest(
+                requesterId.toString(),
+                addresseeId.toString()
+        ))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("some other constraint violation");
+    }
+
+    @Test
+    @DisplayName("US-31: sendFriendRequest with DataIntegrityViolationException with null message re-throws exception")
+    void sendFriendRequest_DataIntegrityViolation_NullMessage_ReThrowsException() {
+        // Given
+        when(userRepository.findActiveById(requesterId)).thenReturn(Optional.of(requester));
+        when(userRepository.findActiveById(addresseeId)).thenReturn(Optional.of(addressee));
+        
+        when(friendshipRepository.findByUserPair(any(UUID.class), any(UUID.class)))
+                .thenReturn(Optional.empty());
+        
+        DataIntegrityViolationException integrityException = new DataIntegrityViolationException(null);
+        when(friendshipRepository.save(any(Friendship.class))).thenThrow(integrityException);
+
+        // When/Then
+        assertThatThrownBy(() -> friendshipService.sendFriendRequest(
+                requesterId.toString(),
+                addresseeId.toString()
+        ))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("US-31: getFriendsList handles null createdAt correctly")
+    void getFriendsList_NullCreatedAt_HandlesCorrectly() {
+        // Given
+        Friendship friendshipWithNullCreatedAt = Friendship.builder()
+                .friendshipId(friendshipId)
+                .requester(requester)
+                .addressee(addressee)
+                .userLow(requester)
+                .userHigh(addressee)
+                .status(Friendship.FriendshipStatus.ACCEPTED)
+                .createdAt(null) // Null createdAt
+                .build();
+
+        when(friendshipRepository.findAcceptedFriendships(requesterId))
+                .thenReturn(List.of(friendshipWithNullCreatedAt));
+        when(friendshipRepository.findPendingRequestsReceived(requesterId))
+                .thenReturn(new ArrayList<>());
+        when(friendshipRepository.findPendingRequestsSent(requesterId))
+                .thenReturn(new ArrayList<>());
+
+        // When
+        FriendDto.FriendsListResponse response = friendshipService.getFriendsList(
+                requesterId.toString()
+        );
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getFriends()).hasSize(1);
+        FriendDto.FriendInfo friendInfo = response.getFriends().get(0);
+        assertThat(friendInfo.getCreatedAt()).isNull();
+    }
+
