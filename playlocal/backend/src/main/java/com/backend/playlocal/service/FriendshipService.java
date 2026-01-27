@@ -7,6 +7,7 @@ import com.backend.playlocal.model.entity.Friendship;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,7 +93,18 @@ public class FriendshipService {
                 .status(Friendship.FriendshipStatus.PENDING)
                 .build();
 
-        friendship = friendshipRepository.save(friendship);
+        try {
+            friendship = friendshipRepository.save(friendship);
+        } catch (DataIntegrityViolationException e) {
+            // Handle database constraint violations (e.g., unique constraint, check constraint)
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && (errorMessage.contains("uq_friendship_pair") || 
+                                         errorMessage.contains("unique constraint"))) {
+                throw new DuplicateResourceException("Friend request already exists between these users");
+            }
+            // Re-throw as-is if it's a different constraint violation
+            throw e;
+        }
 
         return FriendDto.FriendshipAction.builder()
                 .friendshipId(friendship.getFriendshipId().toString())
