@@ -16,6 +16,8 @@ jest.mock('@/lib/api', () => ({
 
 const mockGetById = gamesApi.getById as jest.MockedFunction<typeof gamesApi.getById>;
 const mockGetRoster = gamesApi.getRoster as jest.MockedFunction<typeof gamesApi.getRoster>;
+const mockJoin = gamesApi.join as jest.MockedFunction<typeof gamesApi.join>;
+const mockLeave = gamesApi.leave as jest.MockedFunction<typeof gamesApi.leave>;
 const mockGetPastByUserNeedingAttendanceUpdate = gamesApi.getPastByUserNeedingAttendanceUpdate as jest.MockedFunction<
   typeof gamesApi.getPastByUserNeedingAttendanceUpdate
 >;
@@ -109,6 +111,60 @@ describe('useGame', () => {
       expect(result.current.game?.title).toBe('Updated');
     });
     expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it('joinGame calls API and refetches game', async () => {
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockJoin.mockResolvedValue({ participationId: 'p1', joinStatus: 'CONFIRMED', waitlistPosition: null, message: 'Joined' } as any);
+
+    const { result } = renderHook(() => useGame('game-123'));
+
+    await waitFor(() => {
+      expect(result.current.game).toEqual(mockGame);
+    });
+
+    let joinResponse: any;
+    await act(async () => {
+      joinResponse = await result.current.joinGame();
+    });
+
+    expect(mockJoin).toHaveBeenCalledWith('game-123');
+    expect(joinResponse.joinStatus).toBe('CONFIRMED');
+    expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it('joinGame throws when gameId is undefined', async () => {
+    const { result } = renderHook(() => useGame(undefined));
+
+    await expect(act(async () => result.current.joinGame())).rejects.toThrow('Game ID required');
+    expect(mockJoin).not.toHaveBeenCalled();
+  });
+
+  it('leaveGame calls API and refetches game', async () => {
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockLeave.mockResolvedValue(undefined as any);
+
+    const { result } = renderHook(() => useGame('game-123'));
+
+    await waitFor(() => {
+      expect(result.current.game).toEqual(mockGame);
+    });
+
+    await act(async () => {
+      await result.current.leaveGame();
+    });
+
+    expect(mockLeave).toHaveBeenCalledWith('game-123');
+    expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaveGame throws when gameId is undefined', async () => {
+    const { result } = renderHook(() => useGame(undefined));
+
+    await expect(act(async () => result.current.leaveGame())).rejects.toThrow('Game ID required');
+    expect(mockLeave).not.toHaveBeenCalled();
   });
 });
 

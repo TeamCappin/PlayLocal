@@ -77,4 +77,43 @@ describe('RosterList', () => {
 
     expect(screen.getByText('MR')).toBeInTheDocument();
   });
+
+  it('shows MR when getProfile fails', async () => {
+    mockGetProfile.mockRejectedValue(new Error('Network error'));
+
+    render(
+      <RosterList
+        userId="u4"
+        participationId="p4"
+        currentStatus="UNKNOWN"
+        onStatusChange={onStatusChange}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mockGetProfile).toHaveBeenCalledWith('u4');
+    });
+
+    expect(screen.getByText('MR')).toBeInTheDocument();
+  });
+
+  it('applies ATTENDED styling when currentStatus is ATTENDED', async () => {
+    mockGetProfile.mockResolvedValue({ displayName: 'Bob', defaultIntensity: 'Casual' } as any);
+
+    render(
+      <RosterList
+        userId="u5"
+        participationId="p5"
+        currentStatus="ATTENDED"
+        onStatusChange={onStatusChange}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Bob')).toBeInTheDocument();
+    });
+
+    const attendedBtn = screen.getByText('Attended').closest('button');
+    expect(attendedBtn).toHaveClass('bg-emerald-100');
+  });
 });

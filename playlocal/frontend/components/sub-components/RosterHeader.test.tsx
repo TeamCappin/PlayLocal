@@ -28,4 +28,22 @@ describe('RosterHeader', () => {
     expect(screen.getByText('Basketball')).toBeInTheDocument();
     expect(screen.getByText('Golden Gate Park Basketball Courts')).toBeInTheDocument();
   });
+
+  it('renders game with unknown sport using default image', () => {
+    const game = {
+      title: 'Curling Night',
+      skillBand: 'Beginner',
+      intensityBand: 'Casual',
+      sportName: 'Curling',
+      startTime: '2025-03-01T19:00:00Z',
+      location: { name: 'Ice Arena' },
+    };
+
+    render(<RosterHeader game={game} />);
+
+    expect(screen.getByText('Curling Night')).toBeInTheDocument();
+    expect(screen.getByText('Curling')).toBeInTheDocument();
+    const img = screen.getByRole('img', { name: /Curling Night/i });
+    expect(img).toHaveAttribute('src', expect.stringContaining('unsplash'));
+  });
 });

@@ -74,4 +74,62 @@ describe('MatchHistoryList', () => {
     const link = screen.getByRole('link', { name: /Confirm Attendance/i });
     expect(link).toHaveAttribute('href', '/rsvpRoster/g1');
   });
+
+  it('shows No Show when participation is NO_SHOW', async () => {
+    mockGetGameParticipation.mockResolvedValue({
+      role: 'PARTICIPANT',
+      attendanceStatus: 'NO_SHOW',
+    } as any);
+
+    render(<MatchHistoryList game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No Show')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Report Issue when participant and attendance UNKNOWN', async () => {
+    mockGetGameParticipation.mockResolvedValue({
+      role: 'PARTICIPANT',
+      attendanceStatus: 'UNKNOWN',
+    } as any);
+
+    render(<MatchHistoryList game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Report Issue')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Confirm Attendance')).not.toBeInTheDocument();
+  });
+
+  it('does not fetch when game is null', () => {
+    render(<MatchHistoryList game={null} />);
+
+    expect(mockGetGameParticipation).not.toHaveBeenCalled();
+  });
+
+  it('handles fetch error gracefully', async () => {
+    mockGetGameParticipation.mockRejectedValue(new Error('Network error'));
+
+    render(<MatchHistoryList game={game} />);
+
+    await waitFor(() => {
+      expect(mockGetGameParticipation).toHaveBeenCalledWith('g1');
+    });
+
+    expect(screen.getByText('Saturday Soccer')).toBeInTheDocument();
+  });
+
+  it('shows default Attendance Status for unexpected participation status', async () => {
+    mockGetGameParticipation.mockResolvedValue({
+      role: 'PARTICIPANT',
+      attendanceStatus: 'PENDING',
+    } as any);
+
+    render(<MatchHistoryList game={game} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Attendance Status')).toBeInTheDocument();
+    });
+  });
 });

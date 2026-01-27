@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ActionsRequired } from './ActionsRequired';
 
 const mockPush = jest.fn();
@@ -14,26 +14,29 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({ isAuthenticated: true, user: { userId: 'u1' } }),
+  useAuth: jest.fn(),
 }));
 
 jest.mock('@/hooks/useGames', () => ({
-  usePastGamesByUserNeedingAttendanceUpdate: () => ({
-    games: [
-      {
-        gameId: 'g1',
-        title: 'Past Basketball Game',
-        startTime: '2025-01-20T14:00:00Z',
-      },
-    ],
-    isLoading: false,
-    error: null,
-  }),
+  usePastGamesByUserNeedingAttendanceUpdate: jest.fn(),
 }));
+
+const useAuth = require('@/context/AuthContext').useAuth;
+const usePastGamesByUserNeedingAttendanceUpdate = require('@/hooks/useGames').usePastGamesByUserNeedingAttendanceUpdate;
+
+const mockGames = [
+  { gameId: 'g1', title: 'Past Basketball Game', startTime: '2025-01-20T14:00:00Z' },
+];
 
 describe('ActionsRequired', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useAuth.mockReturnValue({ isAuthenticated: true, user: { userId: 'u1' } });
+    usePastGamesByUserNeedingAttendanceUpdate.mockReturnValue({
+      games: mockGames,
+      isLoading: false,
+      error: null,
+    });
   });
 
   it('renders Actions Required section when games need attendance update', async () => {
@@ -48,5 +51,31 @@ describe('ActionsRequired', () => {
 
     const link = screen.getByRole('link', { name: /Confirm Attendance/i });
     expect(link).toHaveAttribute('href', '/rsvpRoster/g1');
+  });
+
+  it('does not render Actions Required when no games need update', () => {
+    usePastGamesByUserNeedingAttendanceUpdate.mockReturnValue({
+      games: [],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<ActionsRequired />);
+
+    expect(screen.queryByText('Actions Required')).not.toBeInTheDocument();
+  });
+
+  it('navigates to /login when unauthenticated user clicks Confirm Attendance', async () => {
+    useAuth.mockReturnValue({ isAuthenticated: false, user: null });
+
+    render(<ActionsRequired />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm Attendance')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Confirm Attendance'));
+
+    expect(mockPush).toHaveBeenCalledWith('/login');
   });
 });
