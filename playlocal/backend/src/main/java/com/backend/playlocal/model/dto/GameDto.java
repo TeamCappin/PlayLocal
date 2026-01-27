@@ -124,6 +124,7 @@ public class GameDto {
         private Integer waitlistPosition;
         private Float reliabilityScore;
         private Instant joinedAt;
+        private String attendanceStatus;
     }
 
     @Data
