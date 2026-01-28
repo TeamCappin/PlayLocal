@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
-import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
+import { usersApi, UserDto, endorsementsApi, EndorsementResponse } from '@/lib/api'; // Assume usersApi has method getProfile
 import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
@@ -20,6 +20,11 @@ export function UserProfile() {
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  // US 3.3 Organizer Endorsements
+  const [endorsements, setEndorsements] = useState<EndorsementResponse[]>([]);
+  const [loadingEndorsements, setLoadingEndorsements] = useState(false);
+  const [endorsementToReport, setEndorsementToReport] = useState<EndorsementResponse | null>(null);
+  // Attendance Disputes
   const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
   const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
   const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
@@ -94,6 +99,26 @@ export function UserProfile() {
       averageRating: 0,
     },
   };
+
+  // Fetch endorsements
+  // US 3.3 Organizer Endorsements
+  useEffect(() => {
+    if (!user.userId) {
+      return;
+    }
+
+    setLoadingEndorsements(true);
+    endorsementsApi.getUserEndorsements(user.userId)
+      .then(data => {
+        setEndorsements(data);
+      })
+      .catch(err => {
+        console.error("Failed to load endorsements", err);
+      })
+      .finally(() => {
+        setLoadingEndorsements(false);
+      });
+  }, [user.userId]);
 
 
   const sportProfiles = [
@@ -268,10 +293,12 @@ export function UserProfile() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore.toFixed(1)}%`} />
+            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
+            {/* US 3.3 Organizer Endorsements */}
+            <StatCard label="Endorsements" value={endorsements.length} icon={<Medal className="w-4 h-4 text-emerald-600" />} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
           </div>
         </div>
@@ -406,6 +433,58 @@ export function UserProfile() {
               </div>
 
               <div className="space-y-6">
+                {/* Endorsements - US 3.3 Organizer Endorsements */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl text-gray-900">Endorsements</h2>
+                    <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-sm font-medium">
+                      <Medal className="w-4 h-4" />
+                      {endorsements.length}
+                    </div>
+                  </div>
+                  {loadingEndorsements ? (
+                     <div className="text-center py-4 text-gray-400">Loading endorsements...</div>
+                  ) : endorsements.length > 0 ? (
+                    <div className="space-y-3">
+                      {endorsements.slice(0, 5).map((endorsement) => (
+                        <div key={endorsement.endorsementId} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg group">
+                          <div className="bg-white p-2 rounded-full shadow-sm text-emerald-500">
+                             <Medal className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-gray-900 font-medium">Organizer Pick</div>
+                            <div className="text-sm text-gray-600">
+                              by {endorsement.endorserName}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(endorsement.gameDate).toLocaleDateString()} • {endorsement.gameTitle}
+                            </div>
+                          </div>
+                          <button 
+                             onClick={() => setEndorsementToReport(endorsement)}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 rounded"
+                             title="Report Endorsement"
+                          >
+                             <Flag className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {endorsements.length > 5 && (
+                          <div className="text-center pt-2">
+                              <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                                  View All ({endorsements.length})
+                              </button>
+                          </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+                       <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                       <p>No endorsements yet</p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Achievements */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Achievements</h2>
@@ -560,6 +639,15 @@ export function UserProfile() {
         reportType={disputeScoreHistoryId ? 'attendance_dispute' : 'user'}
         gameTitle={disputeGameTitle}
         scoreHistoryId={disputeScoreHistoryId}
+      />
+
+      {/* Endorsement Report Modal */}
+      <ReportModal
+        isOpen={!!endorsementToReport}
+        onClose={() => setEndorsementToReport(null)}
+        endorsementId={endorsementToReport?.endorsementId}
+        targetName="Endorsement"
+        reportType="endorsement"
       />
     </div>
   );

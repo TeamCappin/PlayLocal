@@ -4,9 +4,11 @@ import com.backend.playlocal.config.RateLimitConfig;
 import com.backend.playlocal.exception.RateLimitExceededException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.ReportDto;
+import com.backend.playlocal.model.entity.Endorsement;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.Report;
 import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.repository.EndorsementRepository;
 import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.ReportRepository;
 import com.backend.playlocal.repository.UserRepository;
@@ -51,6 +53,9 @@ class ReportServiceTest {
 
         @Mock
         private GameRepository gameRepository;
+
+        @Mock
+        private EndorsementRepository endorsementRepository;
 
         @Mock
         private RateLimitConfig rateLimitConfig;
@@ -190,6 +195,41 @@ class ReportServiceTest {
         }
 
         @Test
+        @DisplayName("US-3.3: createReport with valid endorsement target succeeds")
+        void createReport_WithValidEndorsementTarget_Success() {
+                // Given
+                UUID endorsementId = UUID.randomUUID();
+                Endorsement endorsement = Endorsement.builder()
+                                .endorsementId(endorsementId)
+                                .build();
+
+                when(userRepository.findActiveById(reporterId)).thenReturn(Optional.of(reporter));
+                when(endorsementRepository.findById(endorsementId)).thenReturn(Optional.of(endorsement));
+                when(reportRepository.countRecentReportsByUser(eq(reporterId), any(Instant.class))).thenReturn(0);
+                when(reportRepository.save(any(Report.class))).thenAnswer(invocation -> {
+                        Report r = invocation.getArgument(0);
+                        r.setReportId(UUID.randomUUID());
+                        r.setCreatedAt(Instant.now());
+                        return r;
+                });
+
+                ReportDto.CreateRequest request = ReportDto.CreateRequest.builder()
+                                .endorsementId(endorsementId.toString())
+                                .reportType("SPAM")
+                                .details("This endorsement is spam")
+                                .build();
+
+                // When
+                ReportDto.ReportResponse response = reportService.createReport(request, reporterId);
+
+                // Then
+                assertThat(response).isNotNull();
+                assertThat(response.getEndorsementId()).isEqualTo(endorsementId.toString());
+                assertThat(response.getReportType()).isEqualTo("SPAM");
+                assertThat(response.getStatus()).isEqualTo("OPEN");
+        }
+
+        @Test
         @DisplayName("US-1.4: createReport without any target throws exception")
         void createReport_WithNoTarget_ThrowsException() {
                 // Given
@@ -204,7 +244,7 @@ class ReportServiceTest {
                 // When/Then
                 assertThatThrownBy(() -> reportService.createReport(request, reporterId))
                                 .isInstanceOf(IllegalArgumentException.class)
-                                .hasMessageContaining("Must specify either reportedUserId or gameId");
+                                .hasMessageContaining("Must specify either reportedUserId, gameId, or endorsementId");
         }
 
         @Test

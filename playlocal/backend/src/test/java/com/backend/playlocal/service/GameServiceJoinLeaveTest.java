@@ -60,6 +60,9 @@ class GameServiceJoinLeaveTest {
         @Mock
         private GameVisibilityRepository gameVisibilityRepository;
 
+        @Mock
+        private EndorsementRepository endorsementRepository;
+
         @InjectMocks
         private GameService gameService;
 

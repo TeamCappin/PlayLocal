@@ -3,6 +3,7 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
+import com.backend.playlocal.repository.EndorsementRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,9 @@ class UserServiceAdditionalTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EndorsementRepository endorsementRepository;
 
     @InjectMocks
     private UserService userService;

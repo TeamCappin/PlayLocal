@@ -9,8 +9,9 @@ export interface ReportModalProps {
     onClose: () => void;
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     targetName: string;
-    reportType?: 'user' | 'game' | 'attendance_dispute';
+    reportType?: 'user' | 'game' | 'attendance_dispute' | 'endorsement'; // Explicitly specify what type of report
     gameTitle?: string;  // NEW: for dispute context
     scoreHistoryId?: string;  // NEW: reference to the disputed entry
 }
@@ -36,7 +37,8 @@ export function ReportModal({
     isOpen, 
     onClose, 
     reportedUserId, 
-    gameId, 
+    gameId,
+    endorsementId,
     targetName, 
     reportType = 'user',  // Default to user report
     gameTitle,
@@ -92,6 +94,7 @@ export function ReportModal({
             await submitReport({
                 reportedUserId: isDispute ? undefined : reportedUserId,  // Don't report user for disputes
                 gameId,
+                endorsementId,
                 reportType: reason,
                 details: finalDetails,
             });

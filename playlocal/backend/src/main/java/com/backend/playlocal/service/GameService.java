@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,16 +26,19 @@ public class GameService {
         private final SportRepository sportRepository;
         private final LocationRepository locationRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
+        private final EndorsementRepository endorsementRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
-                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository) {
+                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository,
+                        EndorsementRepository endorsementRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
                 this.sportRepository = sportRepository;
                 this.locationRepository = locationRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
+                this.endorsementRepository = endorsementRepository;
         }
 
         /**
@@ -118,8 +122,10 @@ public class GameService {
          * Get game participation based on userId and gameId. US-2.6
          */
         public GameDto.ParticipantDto getGameParticipation(UUID gameId, UUID userId) {
-                return participationRepository.findByGameAndUser(gameId, userId).map(this::mapToParticipantDto)
+                GameParticipation p = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game Participation not found"));
+
+                return mapToParticipantDto(p);
         }
 
         /**
@@ -306,13 +312,19 @@ public class GameService {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
+                // Fetch endorsements by organizer
+                List<Endorsement> endorsements = endorsementRepository.findByGameAndEndorser(game, game.getCreatedBy());
+                Set<UUID> endorsedUserIds = endorsements.stream()
+                                .map(e -> e.getEndorsedUser().getUserId())
+                                .collect(Collectors.toSet());
+
                 List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
 
                 return GameDto.RosterResponse.builder()
-                                .confirmed(confirmed.stream().map(this::mapToParticipantDto)
+                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
                                                 .collect(Collectors.toList()))
-                                .waitlisted(waitlisted.stream().map(this::mapToParticipantDto)
+                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
                                                 .collect(Collectors.toList()))
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
@@ -391,7 +403,15 @@ public class GameService {
                                 .build();
         }
 
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
+                return mapToParticipantDto(p, endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
+        }
+
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {
+                return mapToParticipantDto(p, false);
+        }
+
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed) {
                 return GameDto.ParticipantDto.builder()
                                 .participationId(p.getParticipationId().toString())
                                 .userId(p.getUser().getUserId().toString())
@@ -399,10 +419,11 @@ public class GameService {
                                 .avatarUrl(p.getUser().getAvatarUrl())
                                 .role(p.getParticipationRole().name())
                                 .joinStatus(p.getJoinStatus().name())
+                                .attendanceStatus(p.getAttendanceStatus().name())
                                 .waitlistPosition(p.getWaitlistPosition())
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
-                                .attendanceStatus(p.getAttendanceStatus().name())
+                                .isEndorsedByOrganizer(isEndorsed)
                                 .build();
         }
 }

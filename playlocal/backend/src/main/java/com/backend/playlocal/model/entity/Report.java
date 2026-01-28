@@ -32,6 +32,10 @@ public class Report {
     @JoinColumn(name = "game_id")
     private Game game;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "endorsement_id")
+    private Endorsement endorsement;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "report_type", nullable = false)
     private ReportType reportType;

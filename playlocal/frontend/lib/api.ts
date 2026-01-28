@@ -117,6 +117,7 @@ export interface UserDto {
     location?: string;
     reliabilityScore: number;
     gamesCount: number;
+    endorsementsCount?: number; // New field for endorsements count [US-3.3]
     createdAt?: string;
 }
 
@@ -309,9 +310,11 @@ export interface ParticipantDto {
     avatarUrl?: string;
     role: string;
     joinStatus: string;
+    attendanceStatus: string; // UNKNOWN, ATTENDED, NO_SHOW
     waitlistPosition?: number;
     reliabilityScore: number;
     joinedAt: string;
+    isEndorsedByOrganizer?: boolean;
     attendanceStatus?: string;
 }
 
@@ -387,6 +390,7 @@ export const attendanceApi = {
 export interface CreateReportRequest {
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     reportType: 'HARASSMENT' | 'SPORTSMANSHIP' | 'SAFETY' | 'SPAM' | 'OTHER';
     details: string;
 }
@@ -396,6 +400,7 @@ export interface ReportResponse {
     reporterUserId: string;
     reportedUserId?: string;
     gameId?: string;
+    endorsementId?: string;
     reportType: string;
     details: string;
     status: string;
@@ -434,6 +439,40 @@ export const notificationsApi = {
 
     markAllAsRead: () =>
         apiFetch<void>('/notifications/mark-all-read', { method: 'POST' }),
+};
+
+// ============================================
+// ENDORSEMENTS API
+// ============================================
+
+export interface EndorsementRequest {
+    endorsedUserId: string;
+    gameId: string;
+}
+
+// US 3.3 Organizer Endorsements
+export interface EndorsementResponse {
+    endorsementId: string;
+    endorserId: string;
+    endorserName: string;
+    endorsedUserId: string;
+    gameId: string;
+    gameTitle: string;
+    gameDate: string;
+    label: string;
+    createdAt: string;
+}
+
+// US 3.3 Organizer Endorsments
+export const endorsementsApi = {
+    create: (data: EndorsementRequest) =>
+        apiFetch<EndorsementResponse>('/endorsements', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    getUserEndorsements: (userId: string) =>
+        apiFetch<EndorsementResponse[]>(`/users/${userId}/endorsements`),
 };
 
 // ============================================
@@ -502,6 +541,7 @@ export default {
     attendance: attendanceApi,
     reports: reportsApi,
     notifications: notificationsApi,
+    endorsements: endorsementsApi,
     health: healthApi,
     scoreHistory: scoreHistoryApi,
 };
