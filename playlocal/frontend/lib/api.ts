@@ -315,7 +315,6 @@ export interface ParticipantDto {
     reliabilityScore: number;
     joinedAt: string;
     isEndorsedByOrganizer?: boolean;
-    attendanceStatus?: string;
 }
 
 export const gamesApi = {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag, Medal } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
-import { endorsementsApi } from '@/lib/api';
+import { endorsementsApi, RosterResponse } from '@/lib/api';
 import { ReportModal } from './ReportModal';
 
 // Helper to get image by sport (US 2.2)
@@ -31,6 +31,7 @@ function getSportImage(sport: string) {
 const mockGame = {
   gameId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   title: '5v5 Basketball Pickup',
+
   sportName: 'Basketball',
   location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1', city: 'Montreal', latitude: 45.5312, longitude: -73.6205 },
   hasExactLocationAccess: true, // US-1.3: Mock assumes participant access
@@ -48,7 +49,7 @@ const mockGame = {
   status: 'SCHEDULED',
 };
 
-const mockRoster = {
+const mockRoster: RosterResponse = {
   confirmed: [
     { participationId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh Huynh', role: 'ORGANIZER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 98, joinedAt: new Date().toISOString() },
     { participationId: 'd4e5f6a7-b890-1234-def0-234567890123', userId: 'd4e5f6a7-b890-1234-def0-234567890124', displayName: 'Omar Elmasaoudi', role: 'PLAYER', joinStatus: 'CONFIRMED', attendanceStatus: 'ATTENDED', reliabilityScore: 95, joinedAt: new Date().toISOString() },

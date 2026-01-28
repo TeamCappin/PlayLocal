@@ -11,7 +11,7 @@ type MatchHistoryListProps = {
     startTime: string;
     location: {
       name: string
-    };
+    } | null;
 
     // todo: get game.score
     // todo: get the game.team from participation table
@@ -92,7 +92,7 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    {game?.location.name}
+                    {game?.location?.name}
                   </div>
                 </div>
               </div>
