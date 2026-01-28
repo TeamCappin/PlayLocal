@@ -23,13 +23,13 @@ function getSportImage(sport: string) {
 type RosterHeaderProps = {
   game: {
     title: string;
-    skillBand: string; // intermediate
-    intensityBand: string; //competitive [intensity]
+    skillBand?: string; // intermediate
+    intensityBand?: string; //competitive [intensity]
     sportName: string;
     startTime: string;
     location: {
       name: string
-    }
+    } | null;
   } | null;
 }
 
@@ -83,7 +83,7 @@ export function RosterHeader({ game }: Readonly<RosterHeaderProps>) {
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="w-5 h-5" />
-              <div>{game?.location.name || mockGame.location.name}</div>
+              <div>{game?.location?.name || mockGame.location.name}</div>
             </div>
           </div>
         </div>
