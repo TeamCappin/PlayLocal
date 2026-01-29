@@ -57,6 +57,18 @@ public class GameDto {
         private Instant startTime;
 
         private Instant endTime;
+
+        // US-4.2: Community tags
+        private List<String> tagNames;
+
+        // US-4.2: Age requirements
+        @Min(value = 13, message = "Minimum age must be at least 13")
+        @Max(value = 120, message = "Minimum age cannot exceed 120")
+        private Integer minAge;
+
+        @Min(value = 13, message = "Maximum age must be at least 13")
+        @Max(value = 120, message = "Maximum age cannot exceed 120")
+        private Integer maxAge;
     }
 
     @Data
@@ -89,6 +101,11 @@ public class GameDto {
         private Integer confirmedCount;
         private Integer waitlistCount;
         private Instant createdAt;
+
+        // US-4.2: Community tags and age requirements
+        private List<TagDto> tags;
+        private Integer minAge;
+        private Integer maxAge;
     }
 
     @Data
@@ -151,5 +168,26 @@ public class GameDto {
         private List<ParticipantDto> waitlisted;
         private Integer maxPlayers;
         private Integer spotsAvailable;
+    }
+
+    // US-4.2: Tag DTO
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TagDto {
+        private String tagId;
+        private String name;
+        private String tagType;
+        private Boolean isRestricted;
+    }
+
+    // US-4.2: Join request with tag confirmations
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class JoinRequest {
+        private List<String> confirmedTagIds; // IDs of restricted tags user confirms eligibility for
     }
 }
