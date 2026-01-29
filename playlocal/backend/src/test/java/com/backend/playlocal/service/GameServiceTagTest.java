@@ -36,8 +36,6 @@ class GameServiceTagTest {
     @Mock
     private SportRepository sportRepository;
     @Mock
-    private LocationRepository locationRepository;
-    @Mock
     private GameVisibilityRepository gameVisibilityRepository;
     @Mock
     private EndorsementRepository endorsementRepository;

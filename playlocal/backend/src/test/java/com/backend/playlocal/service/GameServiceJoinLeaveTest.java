@@ -55,9 +55,6 @@ class GameServiceJoinLeaveTest {
         private SportRepository sportRepository;
 
         @Mock
-        private LocationRepository locationRepository;
-
-        @Mock
         private GameVisibilityRepository gameVisibilityRepository;
 
         @Mock
