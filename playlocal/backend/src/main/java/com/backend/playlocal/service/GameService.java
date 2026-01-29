@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -506,18 +509,29 @@ public class GameService {
          * Validate age requirements for game join. US-4.2
          */
         void validateAgeRequirements(Game game, User user) {
-                // Age requirements validation - requires user birthdate
-                // For now, we'll skip actual age calculation since User entity doesn't have birthdate field
-                // In a real implementation, you'd calculate age from birthdate
-                Integer minAge = game.getMinAge();
-                Integer maxAge = game.getMaxAge();
+                // If no age requirements, no validation needed
+                if (game.getMinAge() == null && game.getMaxAge() == null) {
+                        return;
+                }
 
-                if (minAge != null || maxAge != null) {
-                        // TODO: Calculate actual age from user.getBirthdate() when available
-                        // For now, just ensure age confirmation exists
-                        if (user.getAgeConfirmedAt() == null) {
-                                throw new AccessDeniedException("Age confirmation required to join this game");
-                        }
+                // If age requirements exist but user hasn't confirmed age, throw exception
+                if (user.getAgeConfirmedAt() == null) {
+                        throw new AccessDeniedException("Age confirmation required to join this game");
+                }
+
+                // Calculate user's age based on ageConfirmedAt (which represents birth date)
+                int userAge = Period.between(
+                                LocalDate.ofInstant(user.getAgeConfirmedAt(), ZoneOffset.UTC),
+                                LocalDate.now(ZoneOffset.UTC)).getYears();
+
+                // Check minimum age
+                if (game.getMinAge() != null && userAge < game.getMinAge()) {
+                        throw new AccessDeniedException("Age confirmation required to join this game");
+                }
+
+                // Check maximum age
+                if (game.getMaxAge() != null && userAge > game.getMaxAge()) {
+                        throw new AccessDeniedException("Age confirmation required to join this game");
                 }
         }
 
