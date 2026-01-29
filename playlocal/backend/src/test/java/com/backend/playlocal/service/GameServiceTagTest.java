@@ -1,7 +1,5 @@
 package com.backend.playlocal.service;
 
-import com.backend.playlocal.exception.BadRequestException;
-import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.*;
@@ -13,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Instant;
 import java.util.*;
@@ -63,8 +62,8 @@ class GameServiceTagTest {
                 .userId(UUID.randomUUID())
                 .displayName("Test User")
                 .email("test@example.com")
-                .dateOfBirth(Instant.parse("1995-01-01T00:00:00Z"))
                 .reliabilityScore(85.0f)
+                .ageConfirmedAt(Instant.parse("1995-01-01T00:00:00Z"))
                 .build();
 
         testGame = Game.builder()
@@ -80,7 +79,7 @@ class GameServiceTagTest {
         womenTag = GameTag.builder()
                 .tagId(UUID.randomUUID())
                 .name("women")
-                .tagType(GameTag.TagType.SYSTEM)
+                .tagType("system")
                 .isSystemTag(true)
                 .isRestricted(true)
                 .build();
@@ -88,7 +87,7 @@ class GameServiceTagTest {
         casualTag = GameTag.builder()
                 .tagId(UUID.randomUUID())
                 .name("casual")
-                .tagType(GameTag.TagType.SYSTEM)
+                .tagType("system")
                 .isSystemTag(true)
                 .isRestricted(false)
                 .build();
@@ -160,8 +159,8 @@ class GameServiceTagTest {
 
             // Act & Assert
             assertThatThrownBy(() -> gameService.assignTagsToGame(testGame, tagNames))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("Invalid tag: invalid-tag");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Invalid tag");
             verify(tagAssignmentRepository, never()).save(any());
         }
 
@@ -207,8 +206,8 @@ class GameServiceTagTest {
 
             // Act & Assert
             assertThatThrownBy(() -> gameService.validateAgeRequirements(testGame, testUser))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("minimum age requirement");
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Age confirmation required");
         }
 
         @Test
@@ -230,8 +229,8 @@ class GameServiceTagTest {
 
             // Act & Assert
             assertThatThrownBy(() -> gameService.validateAgeRequirements(testGame, testUser))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("maximum age requirement");
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Age confirmation required");
         }
 
         @Test
@@ -247,10 +246,10 @@ class GameServiceTagTest {
         }
 
         @Test
-        @DisplayName("Should handle null date of birth")
-        void validateAge_NullDateOfBirth_ShouldNotThrow() {
+        @DisplayName("Should handle null age confirmation")
+        void validateAge_NullAgeConfirmation_ShouldNotThrow() {
             // Arrange
-            testUser.setDateOfBirth(null);
+            testUser.setAgeConfirmedAt(null);
             testGame.setMinAge(18);
 
             // Act & Assert
@@ -310,7 +309,7 @@ class GameServiceTagTest {
 
             // Act & Assert
             assertThatThrownBy(() -> gameService.validateAndRecordTagConfirmations(testGame, testUser, joinRequest))
-                    .isInstanceOf(BadRequestException.class)
+                    .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("must confirm");
         }
 

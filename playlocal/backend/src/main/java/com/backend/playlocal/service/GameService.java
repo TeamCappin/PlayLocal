@@ -1,7 +1,6 @@
 package com.backend.playlocal.service;
 
 import com.backend.playlocal.exception.CapacityExceededException;
-import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
@@ -24,7 +23,6 @@ public class GameService {
         private final GameParticipationRepository participationRepository;
         private final UserRepository userRepository;
         private final SportRepository sportRepository;
-        private final LocationRepository locationRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
         private final EndorsementRepository endorsementRepository;
         private final GameTagRepository tagRepository;
@@ -33,7 +31,7 @@ public class GameService {
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
-                        LocationRepository locationRepository, GameVisibilityRepository gameVisibilityRepository,
+                        GameVisibilityRepository gameVisibilityRepository,
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository) {
@@ -41,7 +39,6 @@ public class GameService {
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
                 this.sportRepository = sportRepository;
-                this.locationRepository = locationRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
                 this.endorsementRepository = endorsementRepository;
                 this.tagRepository = tagRepository;
@@ -476,7 +473,7 @@ public class GameService {
          * Assign tags to a game. US-4.2
          * Validates that tags exist and are system tags.
          */
-        private void assignTagsToGame(Game game, List<String> tagNames) {
+        void assignTagsToGame(Game game, List<String> tagNames) {
                 for (String tagName : tagNames) {
                         GameTag tag = tagRepository.findByName(tagName)
                                         .orElseThrow(() -> new ResourceNotFoundException("Tag not found: " + tagName));
@@ -505,7 +502,7 @@ public class GameService {
         /**
          * Validate age requirements for game join. US-4.2
          */
-        private void validateAgeRequirements(Game game, User user) {
+        void validateAgeRequirements(Game game, User user) {
                 // Age requirements validation - requires user birthdate
                 // For now, we'll skip actual age calculation since User entity doesn't have birthdate field
                 // In a real implementation, you'd calculate age from birthdate
@@ -524,7 +521,7 @@ public class GameService {
         /**
          * Validate and record tag confirmations for restricted tags. US-4.2
          */
-        private void validateAndRecordTagConfirmations(Game game, User user, GameDto.JoinRequest joinRequest) {
+        void validateAndRecordTagConfirmations(Game game, User user, GameDto.JoinRequest joinRequest) {
                 List<GameTagAssignment> gameTagAssignments = tagAssignmentRepository.findAllByGame(game);
                 List<GameTag> restrictedTags = gameTagAssignments.stream()
                                 .map(GameTagAssignment::getTag)
