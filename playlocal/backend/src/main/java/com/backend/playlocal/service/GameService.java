@@ -474,9 +474,12 @@ public class GameService {
          * Validates that tags exist and are system tags.
          */
         void assignTagsToGame(Game game, List<String> tagNames) {
+                if (tagNames == null || tagNames.isEmpty()) {
+                        return; // No tags to assign
+                }
                 for (String tagName : tagNames) {
                         GameTag tag = tagRepository.findByName(tagName)
-                                        .orElseThrow(() -> new ResourceNotFoundException("Tag not found: " + tagName));
+                                        .orElseThrow(() -> new IllegalArgumentException("Invalid tag: " + tagName));
 
                         if (!tag.getIsSystemTag()) {
                                 throw new IllegalArgumentException("Only system tags can be assigned: " + tagName);
@@ -536,7 +539,7 @@ public class GameService {
                 if (joinRequest == null || joinRequest.getConfirmedTagIds() == null
                                 || joinRequest.getConfirmedTagIds().isEmpty()) {
                         throw new AccessDeniedException(
-                                        "This game has restricted community tags that require confirmation");
+                                        "You must confirm restricted community tags to join this game");
                 }
 
                 // Validate that all restricted tags are confirmed
@@ -545,7 +548,7 @@ public class GameService {
                         String tagId = restrictedTag.getTagId().toString();
                         if (!confirmedTagIds.contains(tagId)) {
                                 throw new AccessDeniedException(
-                                                "Confirmation required for tag: " + restrictedTag.getName());
+                                                "You must confirm the tag: " + restrictedTag.getName());
                         }
 
                         // Record the confirmation for auditability
