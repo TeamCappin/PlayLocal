@@ -244,15 +244,16 @@ class GameServiceTagTest {
         }
 
         @Test
-        @DisplayName("Should handle null age confirmation")
-        void validateAge_NullAgeConfirmation_ShouldNotThrow() {
+        @DisplayName("Should throw exception when age requirements exist but no age confirmation")
+        void validateAge_NullAgeConfirmationWithRequirements_ShouldThrow() {
             // Arrange
             testUser.setAgeConfirmedAt(null);
             testGame.setMinAge(18);
 
             // Act & Assert
-            assertThatCode(() -> gameService.validateAgeRequirements(testGame, testUser))
-                    .doesNotThrowAnyException();
+            assertThatThrownBy(() -> gameService.validateAgeRequirements(testGame, testUser))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Age confirmation required");
         }
 
         @Test
