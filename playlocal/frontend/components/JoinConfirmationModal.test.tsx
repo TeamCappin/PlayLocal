@@ -95,8 +95,8 @@ describe("JoinConfirmationModal", () => {
         isJoining={false}
       />,
     );
-    expect(screen.getByText(/Women/i)).toBeInTheDocument();
-    expect(screen.getByText(/Men/i)).toBeInTheDocument();
+    expect(screen.getByText("women")).toBeInTheDocument();
+    expect(screen.getByText("men")).toBeInTheDocument();
     expect(screen.getAllByRole("checkbox")).toHaveLength(2);
   });
 
