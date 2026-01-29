@@ -124,13 +124,15 @@ public class GameController {
     /**
      * Join a game (concurrency-safe).
      * US-2.5: Join/Leave + Waitlist
+     * US-4.2: Community-Specific Game Filters (with tag confirmations)
      */
     @PostMapping("/{gameId}/join")
     public ResponseEntity<GameDto.JoinResponse> joinGame(
             @PathVariable UUID gameId,
+            @RequestBody(required = false) GameDto.JoinRequest joinRequest,
             Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+        GameDto.JoinResponse response = gameService.joinGame(gameId, userId, joinRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -145,5 +147,15 @@ public class GameController {
         UUID userId = UUID.fromString(authentication.getName());
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get all available community tags.
+     * US-4.2: Community-Specific Game Filters
+     */
+    @GetMapping("/tags")
+    public ResponseEntity<List<GameDto.TagDto>> getAllTags() {
+        List<GameDto.TagDto> tags = gameService.getAllTags();
+        return ResponseEntity.ok(tags);
     }
 }

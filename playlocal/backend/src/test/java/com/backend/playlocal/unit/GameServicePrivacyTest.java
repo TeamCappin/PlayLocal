@@ -31,9 +31,15 @@ class GameServicePrivacyTest {
         @Mock
         private SportRepository sportRepository;
         @Mock
-        private LocationRepository locationRepository;
-        @Mock
         private GameVisibilityRepository gameVisibilityRepository;
+        @Mock
+        private EndorsementRepository endorsementRepository;
+        @Mock
+        private GameTagRepository tagRepository;
+        @Mock
+        private GameTagAssignmentRepository tagAssignmentRepository;
+        @Mock
+        private GameTagConfirmationRepository tagConfirmationRepository;
 
         @InjectMocks
         private GameService gameService;

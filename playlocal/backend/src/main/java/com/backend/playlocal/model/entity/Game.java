@@ -65,6 +65,13 @@ public class Game {
     @Column(name = "min_reliability_required")
     private Float minReliabilityRequired;
 
+    // US-4.2: Age requirements for community-specific games
+    @Column(name = "min_age")
+    private Integer minAge;
+
+    @Column(name = "max_age")
+    private Integer maxAge;
+
     @Column(name = "start_time", nullable = false)
     private Instant startTime;
 
