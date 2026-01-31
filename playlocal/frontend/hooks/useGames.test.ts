@@ -12,6 +12,7 @@ jest.mock("@/lib/api", () => ({
     join: jest.fn(),
     leave: jest.fn(),
     create: jest.fn(),
+    cancel: jest.fn(),
   },
 }));
 
@@ -465,14 +466,10 @@ describe("useGame - cancelGame", () => {
   const mockCancel = gamesApi.cancel as jest.MockedFunction<
     typeof gamesApi.cancel
   >;
-  const mockFetchGame = gamesApi.fetchGame as jest.MockedFunction<
-    typeof gamesApi.fetchGame
-  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockCancel.mockClear();
-    mockFetchGame.mockClear();
   });
 
   it("cancels a game successfully and refreshes data", async () => {
@@ -484,13 +481,14 @@ describe("useGame - cancelGame", () => {
     } as any;
 
     // Mock initial fetch
-    mockFetchGame.mockResolvedValueOnce(mockGame);
+    mockGetById.mockResolvedValueOnce(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
     // Mock cancel response
     mockCancel.mockResolvedValue(cancelledGame);
     // Mock refresh after cancel
-    mockFetchGame.mockResolvedValueOnce(cancelledGame);
+    mockGetById.mockResolvedValueOnce(cancelledGame);
 
-    const { result } = renderHook(() => require("./useGames").useGame(gameId));
+    const { result } = renderHook(() => useGame(gameId));
 
     // Wait for initial load
     await waitFor(() => {
@@ -504,14 +502,12 @@ describe("useGame - cancelGame", () => {
 
     // Verify cancel was called
     expect(mockCancel).toHaveBeenCalledWith(gameId);
-    // Verify game was refreshed
-    expect(mockFetchGame).toHaveBeenCalledTimes(2);
+    // Verify game was refreshed (called twice: initial + after cancel)
+    expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
   it("throws error when gameId is missing", async () => {
-    mockFetchGame.mockResolvedValue(mockGame);
-
-    const { result } = renderHook(() => require("./useGames").useGame(null as any));
+    const { result } = renderHook(() => useGame(null as any));
 
     await expect(async () => {
       await result.current.cancelGame();
@@ -521,10 +517,11 @@ describe("useGame - cancelGame", () => {
   it("handles cancel failure gracefully", async () => {
     const gameId = "game-456";
 
-    mockFetchGame.mockResolvedValue(mockGame);
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
     mockCancel.mockRejectedValue(new Error("Not authorized"));
 
-    const { result } = renderHook(() => require("./useGames").useGame(gameId));
+    const { result } = renderHook(() => useGame(gameId));
 
     await waitFor(() => {
       expect(result.current.game).toBeDefined();
