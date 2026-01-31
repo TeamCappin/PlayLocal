@@ -49,15 +49,19 @@ class GameJoinConcurrencyTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Only configure from Testcontainers if DATABASE_URL is not set (local dev)
+        // Check if running in CI (DATABASE_URL environment variable is set)
         String databaseUrl = System.getenv("DATABASE_URL");
         if (databaseUrl == null || databaseUrl.isEmpty()) {
             // Local development: use Testcontainers
             registry.add("spring.datasource.url", postgres::getJdbcUrl);
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
+        } else {
+            // CI environment: use GitHub Actions service container
+            registry.add("spring.datasource.url", () -> System.getenv("DATABASE_URL"));
+            registry.add("spring.datasource.username", () -> System.getenv("DATABASE_USERNAME"));
+            registry.add("spring.datasource.password", () -> System.getenv("DATABASE_PASSWORD"));
         }
-        // CI environment: DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD already set
         registry.add("spring.flyway.enabled", () -> "true");
     }
 
