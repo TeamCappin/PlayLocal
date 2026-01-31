@@ -10,6 +10,21 @@ jobs:
   test_backend:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: playlocal_test
+          POSTGRES_USER: playlocal
+          POSTGRES_PASSWORD: playlocal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,6 +36,12 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+
+      - name: Set up test database environment
+        run: |
+          echo "DATABASE_URL=jdbc:postgresql://localhost:5432/playlocal_test" >> $GITHUB_ENV
+          echo "DATABASE_USERNAME=playlocal" >> $GITHUB_ENV
+          echo "DATABASE_PASSWORD=playlocal" >> $GITHUB_ENV
 
       - name: Run tests + JaCoCo report
         working-directory: playlocal/backend

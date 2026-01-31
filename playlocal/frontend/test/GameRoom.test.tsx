@@ -585,4 +585,173 @@ describe("GameRoom Component", () => {
       expect(waitlistElements.length).toBeGreaterThan(0);
     });
   });
+
+  // US-2.4: Cancel Game Feature Tests
+  describe("US-2.4: Cancel Game Feature", () => {
+    it("should show cancel button for organizer on scheduled game", () => {
+      const mockGame = {
+        gameId: "test-id",
+        title: "Test Game",
+        status: "SCHEDULED",
+        organizer: {
+          userId: "user-123",
+          displayName: "Test Organizer",
+          reliabilityScore: 95,
+        },
+        sport: { sportId: "sport-1", name: "Basketball" },
+        location: {
+          name: "Test Location",
+          city: "Test City",
+        },
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        maxPlayers: 10,
+        minPlayers: 2,
+        confirmedCount: 5,
+        skillBand: "Intermediate",
+        intensityBand: "High",
+        indoorOutdoor: "outdoor",
+        description: "Test game",
+        tags: [],
+      };
+
+      (useAuth as jest.Mock).mockReturnValue({
+        isAuthenticated: true,
+        userId: "user-123",
+      });
+
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: { confirmed: [], waitlisted: [], maxPlayers: 10, spotsAvailable: 5 },
+        isLoading: false,
+        error: null,
+        cancelGame: jest.fn(),
+        refetch: jest.fn(),
+        joinGame: jest.fn(),
+        leaveGame: jest.fn(),
+      });
+
+      render(<GameRoom />);
+      expect(screen.getByText("Cancel Game")).toBeInTheDocument();
+    });
+
+    it("should call cancelGame when confirmed", async () => {
+      const mockCancelGame = jest.fn().mockResolvedValue({});
+      const mockGame = {
+        gameId: "test-id",
+        title: "Test Game",
+        status: "SCHEDULED",
+        organizer: {
+          userId: "user-123",
+          displayName: "Test Organizer",
+          reliabilityScore: 95,
+        },
+        sport: { sportId: "sport-1", name: "Basketball" },
+        location: {
+          name: "Test Location",
+          city: "Test City",
+        },
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        maxPlayers: 10,
+        minPlayers: 2,
+        confirmedCount: 5,
+        skillBand: "Intermediate",
+        intensityBand: "High",
+        indoorOutdoor: "outdoor",
+        description: "Test game",
+        tags: [],
+      };
+
+      (useAuth as jest.Mock).mockReturnValue({
+        isAuthenticated: true,
+        userId: "user-123",
+      });
+
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: { confirmed: [], waitlisted: [], maxPlayers: 10, spotsAvailable: 5 },
+        isLoading: false,
+        error: null,
+        cancelGame: mockCancelGame,
+        refetch: jest.fn(),
+        joinGame: jest.fn(),
+        leaveGame: jest.fn(),
+      });
+
+      render(<GameRoom />);
+
+      // Click cancel button
+      fireEvent.click(screen.getByText("Cancel Game"));
+
+      // Confirm cancellation
+      await waitFor(() => {
+        expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText("Yes, Cancel"));
+
+      await waitFor(() => {
+        expect(mockCancelGame).toHaveBeenCalled();
+      });
+    });
+  });
+
+  // US-2.4: Share Game Feature Tests
+  describe("US-2.4: Share Game Feature", () => {
+    it("should copy link to clipboard when share clicked", async () => {
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: mockWriteText,
+        },
+      });
+
+      const mockGame = {
+        gameId: "test-id",
+        title: "Test Game",
+        status: "SCHEDULED",
+        organizer: {
+          userId: "user-123",
+          displayName: "Test Organizer",
+          reliabilityScore: 95,
+        },
+        sport: { sportId: "sport-1", name: "Basketball" },
+        location: {
+          name: "Test Location",
+          city: "Test City",
+        },
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        maxPlayers: 10,
+        minPlayers: 2,
+        confirmedCount: 5,
+        skillBand: "Intermediate",
+        intensityBand: "High",
+        indoorOutdoor: "outdoor",
+        description: "Test game",
+        tags: [],
+      };
+
+      (useAuth as jest.Mock).mockReturnValue({ isAuthenticated: true, userId: "user-456" });
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: { confirmed: [], waitlisted: [], maxPlayers: 10, spotsAvailable: 5 },
+        isLoading: false,
+        error: null,
+        cancelGame: jest.fn(),
+        refetch: jest.fn(),
+        joinGame: jest.fn(),
+        leaveGame: jest.fn(),
+      });
+
+      render(<GameRoom />);
+
+      fireEvent.click(screen.getByText("Share Game"));
+
+      await waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalled();
+        expect(screen.getByText("Link Copied!")).toBeInTheDocument();
+      });
+    });
+  });
 });
