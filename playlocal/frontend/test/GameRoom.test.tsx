@@ -42,6 +42,9 @@ jest.mock("lucide-react", () => ({
   LogIn: () => <div data-testid="icon-login" />,
   Flag: () => <div data-testid="icon-flag" />,
   Medal: () => <div data-testid="icon-medal" />,
+  XCircle: () => <div data-testid="icon-xcircle" />,
+  Copy: () => <div data-testid="icon-copy" />,
+  Check: () => <div data-testid="icon-checkmark" />,
 }));
 
 jest.mock("../components/chat/ChatPanel", () => ({

@@ -8,8 +8,13 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+/**
+ * Integration test that uses Testcontainers for local development.
+ * In CI (GitHub Actions), uses the DATABASE_URL environment variable
+ * which points to the service container instead of starting a new container.
+ */
 @SpringBootTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class PlayLocalApplicationTests {
 
     @Container
@@ -20,9 +25,15 @@ class PlayLocalApplicationTests {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        // Only configure from Testcontainers if DATABASE_URL is not set (local dev)
+        String databaseUrl = System.getenv("DATABASE_URL");
+        if (databaseUrl == null || databaseUrl.isEmpty()) {
+            // Local development: use Testcontainers
+            registry.add("spring.datasource.url", postgres::getJdbcUrl);
+            registry.add("spring.datasource.username", postgres::getUsername);
+            registry.add("spring.datasource.password", postgres::getPassword);
+        }
+        // CI environment: DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD already set
         registry.add("spring.flyway.enabled", () -> "true");
     }
 

@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * UserStory: US-2.5 Join/Leave + Waitlist (Concurrency-Safe)
  */
 @SpringBootTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @Tag("concurrency")
 class GameJoinConcurrencyTest {
 
@@ -49,9 +49,15 @@ class GameJoinConcurrencyTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        // Only configure from Testcontainers if DATABASE_URL is not set (local dev)
+        String databaseUrl = System.getenv("DATABASE_URL");
+        if (databaseUrl == null || databaseUrl.isEmpty()) {
+            // Local development: use Testcontainers
+            registry.add("spring.datasource.url", postgres::getJdbcUrl);
+            registry.add("spring.datasource.username", postgres::getUsername);
+            registry.add("spring.datasource.password", postgres::getPassword);
+        }
+        // CI environment: DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD already set
         registry.add("spring.flyway.enabled", () -> "true");
     }
 

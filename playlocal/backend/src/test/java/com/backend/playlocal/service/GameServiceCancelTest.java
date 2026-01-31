@@ -51,6 +51,18 @@ class GameServiceCancelTest {
     @Mock
     private GameVisibilityRepository gameVisibilityRepository;
 
+    @Mock
+    private EndorsementRepository endorsementRepository;
+
+    @Mock
+    private GameTagRepository tagRepository;
+
+    @Mock
+    private GameTagAssignmentRepository tagAssignmentRepository;
+
+    @Mock
+    private GameTagConfirmationRepository tagConfirmationRepository;
+
     @InjectMocks
     private GameService gameService;
 
@@ -114,6 +126,7 @@ class GameServiceCancelTest {
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
             when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5);
             when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
             when(gameRepository.save(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
 
             // When
@@ -183,6 +196,7 @@ class GameServiceCancelTest {
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
             when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(0);
             when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
             when(gameRepository.save(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
 
             Instant beforeCancel = Instant.now();
