@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -135,6 +136,132 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).containsEntry("status", 400);
         assertThat(response.getBody()).containsEntry("message", "Invalid argument");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleIllegalState should return 400")
+    void handleIllegalState() {
+        IllegalStateException ex = new IllegalStateException("Invalid state");
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleIllegalState(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).containsEntry("status", 400);
+        assertThat(response.getBody()).containsEntry("message", "Invalid state");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with uq_friendship_pair should return 409 with specific message")
+    void handleDataIntegrityViolation_UniqueConstraint_FriendshipPair() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "duplicate key value violates unique constraint \"uq_friendship_pair\""
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Friend request already exists between these users");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with unique constraint should return 409 with specific message")
+    void handleDataIntegrityViolation_UniqueConstraint_Generic() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "unique constraint violation"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Friend request already exists between these users");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with ck_friendship_low_high should return 409 with specific message")
+    void handleDataIntegrityViolation_CheckConstraint_FriendshipLowHigh() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "check constraint \"ck_friendship_low_high\" violated"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Invalid friendship relationship");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with foreign key should return 409 with specific message")
+    void handleDataIntegrityViolation_ForeignKey() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "foreign key constraint violation REFERENCES users"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Referenced resource not found");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with REFERENCES should return 409 with specific message")
+    void handleDataIntegrityViolation_References() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "constraint violation REFERENCES table"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Referenced resource not found");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with not null should return 409 with specific message")
+    void handleDataIntegrityViolation_NotNull() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "not null constraint violation"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Required field is missing");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with NULL should return 409 with specific message")
+    void handleDataIntegrityViolation_Null() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "NULL constraint violation"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Required field is missing");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with null message should return 409 with generic message")
+    void handleDataIntegrityViolation_NullMessage() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException((String) null);
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Database constraint violation");
+    }
+
+    @Test
+    @DisplayName("US-1.1: handleDataIntegrityViolation with unknown error should return 409 with generic message")
+    void handleDataIntegrityViolation_UnknownError() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "some unknown constraint violation"
+        );
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("status", 409);
+        assertThat(response.getBody()).containsEntry("message", "Database constraint violation");
     }
 
     @Test

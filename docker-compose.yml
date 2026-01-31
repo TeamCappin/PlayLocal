@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -9,6 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
+    
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U playlocal -d playlocal"]
@@ -47,6 +49,7 @@ services:
       - backend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+      NEXT_PUBLIC_WS_URL: http://localhost:8080/ws
     ports:
       - "3000:3000"
     networks:
