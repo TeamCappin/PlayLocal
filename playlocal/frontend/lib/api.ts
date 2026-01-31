@@ -398,7 +398,7 @@ export const gamesApi = {
 
 export interface AttendanceEntry {
   participationId: string;
-  attendanceStatus: "ATTENDED" | "NO_SHOW";
+  attendanceStatus: "ATTENDED" | "NO_SHOW" | "UNKNOWN";
   userId: string;
   sportId: string;
   requestedPositionRoleId: string;
@@ -569,6 +569,83 @@ export interface ScoreSummary {
   attendanceRate: number;
 }
 
+
+// ============================================
+// ORGANIZER QUALITY SCORE (OQS) API - US-6.1
+// ============================================
+
+export interface OqsResponse {
+  userId: string;
+  displayName: string;
+  oqsScore: number;
+  gameCompletionRate: number;
+  repeatPlayerRate: number;
+  totalGamesHosted: number;
+  completedGames: number;
+  cancelledGames: number;
+  totalUniquePlayers: number;
+  repeatPlayers: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceDescription: string;
+  lastCalculatedAt?: string;
+}
+
+export interface OqsSummary {
+  userId: string;
+  oqsScore: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  totalGamesHosted: number;
+}
+
+export interface OqsHistoryEntry {
+  historyId: string;
+  organizerId: string;
+  gameId?: string;
+  gameTitle?: string;
+  previousOqs: number;
+  newOqs: number;
+  delta: number;
+  previousCompletionRate?: number;
+  newCompletionRate?: number;
+  previousRepeatRate?: number;
+  newRepeatRate?: number;
+  reason: "GAME_COMPLETED" | "GAME_CANCELLED" | "PLAYER_RETURNED" | "INITIAL_CALCULATION" | "MANUAL_ADJUSTMENT" | "RECALCULATION";
+  description?: string;
+  createdAt: string;
+}
+
+export interface OqsHistoryResponse {
+  organizerId: string;
+  displayName: string;
+  currentOqs: number;
+  history: OqsHistoryEntry[];
+  totalEntries: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+export interface OqsInfoCard {
+  oqsScore: number;
+  overallDescription: string;
+  gameCompletionRate: number;
+  completionRateDescription: string;
+  completedGames: number;
+  totalGames: number;
+  repeatPlayerRate: number;
+  repeatRateDescription: string;
+  repeatPlayers: number;
+  totalUniquePlayers: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceDescription: string;
+  gamesForNextLevel: number;
+}
+
+export interface OqsWeights {
+  completionRateWeight: number;
+  repeatPlayerRateWeight: number;
+}
+
+
 export const scoreHistoryApi = {
   getHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
@@ -586,6 +663,46 @@ export const scoreHistoryApi = {
   getMySummary: () => apiFetch<ScoreSummary>(`/users/me/score-summary`),
 };
 
+
+export const organizerQualityApi = {
+  // Get full OQS for a user
+  getOqs: (userId: string) =>
+    apiFetch<OqsResponse>(`/users/${userId}/oqs`),
+
+  // Get OQS for current user
+  getMyOqs: () =>
+    apiFetch<OqsResponse>(`/users/me/oqs`),
+
+  // Get OQS summary (simplified for game cards)
+  getOqsSummary: (userId: string) =>
+    apiFetch<OqsSummary>(`/users/${userId}/oqs/summary`),
+
+  // Get OQS info card with plain language explanations
+  getOqsInfoCard: (userId: string) =>
+    apiFetch<OqsInfoCard>(`/users/${userId}/oqs/info`),
+
+  // Get OQS info card for current user
+  getMyOqsInfoCard: () =>
+    apiFetch<OqsInfoCard>(`/users/me/oqs/info`),
+
+  // Get OQS change history
+  getOqsHistory: (userId: string, page = 0, size = 10) =>
+    apiFetch<OqsHistoryResponse>(
+      `/users/${userId}/oqs/history?page=${page}&size=${size}`,
+    ),
+
+  // Get OQS change history for current user
+  getMyOqsHistory: (page = 0, size = 10) =>
+    apiFetch<OqsHistoryResponse>(
+      `/users/me/oqs/history?page=${page}&size=${size}`,
+    ),
+
+  // Get OQS calculation weights
+  getWeights: () =>
+    apiFetch<OqsWeights>(`/oqs/weights`),
+};
+
+
 export default {
   auth: authApi,
   games: gamesApi,
@@ -595,4 +712,5 @@ export default {
   endorsements: endorsementsApi,
   health: healthApi,
   scoreHistory: scoreHistoryApi,
+  organizerQuality: organizerQualityApi,
 };

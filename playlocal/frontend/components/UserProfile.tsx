@@ -10,6 +10,8 @@ import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGames } from '@/hooks/useGames';
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
+
 
 export function UserProfile() {
   const { username } = useParams();
@@ -364,6 +366,16 @@ export function UserProfile() {
           {activeTab === 'overview' && (
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
+                {/* US-6.1: Organizer Quality Score */}
+                {user.stats.gamesHosted > 0 && user.userId && (
+                  <OrganizerQualityBadge 
+                    userId={user.userId} 
+                    displayName={user.name}
+                    variant="full"
+                    showInfoCard={true}
+                  />
+                )}
+                
                 {/* Sport Profiles Summary */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Sport Profiles</h2>

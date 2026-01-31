@@ -8,6 +8,8 @@ import com.backend.playlocal.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.backend.playlocal.service.OrganizerQualityService;
+
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,13 +33,16 @@ public class GameService {
         private final GameTagRepository tagRepository;
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
+        private final OrganizerQualityService oqsService;
+
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
                         GameVisibilityRepository gameVisibilityRepository,
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
-                        GameTagConfirmationRepository tagConfirmationRepository) {
+                        GameTagConfirmationRepository tagConfirmationRepository,
+                        OrganizerQualityService oqsService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -47,7 +52,9 @@ public class GameService {
                 this.tagRepository = tagRepository;
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
+                this.oqsService = oqsService;
         }
+
 
         /**
          * Create a new game. US-2.1
@@ -334,6 +341,36 @@ public class GameService {
                         // User was waitlisted - adjust positions
                         participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
                 }
+        }
+
+        /**
+         * Cancel a game. Only the organizer can cancel.
+         * US-6.1: Triggers OQS recalculation for the organizer.
+         */
+        @Transactional
+        public void cancelGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                // Only organizer can cancel
+                if (!game.getCreatedBy().getUserId().equals(userId)) {
+                        throw new AccessDeniedException("Only the organizer can cancel the game");
+                }
+
+                // Check game status - can only cancel scheduled games
+                if (game.getStatus() != Game.GameStatus.SCHEDULED) {
+                        throw new IllegalStateException("Cannot cancel a game that is not scheduled");
+                }
+
+                // Update game status
+                game.setStatus(Game.GameStatus.CANCELLED);
+                game.setCancelledAt(Instant.now());
+                gameRepository.save(game);
+
+                // US-6.1: Recalculate OQS for the organizer after game cancellation
+                oqsService.onGameCancelled(gameId);
+
+                // TODO: Notify participants about cancellation
         }
 
         /**

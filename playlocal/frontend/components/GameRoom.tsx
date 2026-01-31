@@ -27,6 +27,7 @@ import { useAuth } from "@/context/AuthContext";
 import { endorsementsApi, RosterResponse } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -953,6 +954,17 @@ export function GameRoom() {
                   </Link>
                 </div>
               </div>
+              
+              {/* US-6.1: Organizer Quality Score */}
+              {game.organizer?.userId && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <OrganizerQualityBadge 
+                    userId={game.organizer.userId}
+                    variant="compact"
+                    showInfoCard={true}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Quick Info */}
