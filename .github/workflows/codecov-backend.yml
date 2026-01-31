@@ -39,9 +39,10 @@ jobs:
 
       - name: Set up test database environment
         run: |
-          echo "DATABASE_URL=jdbc:postgresql://localhost:5432/playlocal_test" >> $GITHUB_ENV
-          echo "DATABASE_USERNAME=playlocal" >> $GITHUB_ENV
-          echo "DATABASE_PASSWORD=playlocal" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/playlocal_test" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_USERNAME=playlocal" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_PASSWORD=playlocal" >> $GITHUB_ENV
+          echo "TESTCONTAINERS_REUSE_ENABLE=false" >> $GITHUB_ENV
 
       - name: Run tests + JaCoCo report
         working-directory: playlocal/backend
