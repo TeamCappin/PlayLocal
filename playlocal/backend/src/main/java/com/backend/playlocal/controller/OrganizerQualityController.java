@@ -1,9 +1,13 @@
 package com.backend.playlocal.controller;
 
+import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.OrganizerQualityDto;
-import com.backend.playlocal.security.JwtService;
+import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.service.OrganizerQualityService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -23,11 +27,12 @@ import java.util.UUID;
 public class OrganizerQualityController {
 
     private final OrganizerQualityService oqsService;
-    private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public OrganizerQualityController(OrganizerQualityService oqsService, JwtService jwtService) {
+    public OrganizerQualityController(OrganizerQualityService oqsService, 
+                                       UserRepository userRepository) {
         this.oqsService = oqsService;
-        this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -44,9 +49,8 @@ public class OrganizerQualityController {
      * Get OQS for the current authenticated user.
      */
     @GetMapping("/users/me/oqs")
-    public ResponseEntity<OrganizerQualityDto.OqsResponse> getMyOqs(
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = extractUserId(authHeader);
+    public ResponseEntity<OrganizerQualityDto.OqsResponse> getMyOqs() {
+        UUID userId = getCurrentUserId();
         OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userId);
         return ResponseEntity.ok(response);
     }
@@ -74,9 +78,8 @@ public class OrganizerQualityController {
      * Get OQS info card for the current user.
      */
     @GetMapping("/users/me/oqs/info")
-    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getMyOqsInfoCard(
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = extractUserId(authHeader);
+    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getMyOqsInfoCard() {
+        UUID userId = getCurrentUserId();
         OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userId);
         return ResponseEntity.ok(response);
     }
@@ -99,10 +102,9 @@ public class OrganizerQualityController {
      */
     @GetMapping("/users/me/oqs/history")
     public ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> getMyOqsHistory(
-            @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        UUID userId = extractUserId(authHeader);
+        UUID userId = getCurrentUserId();
         OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userId, page, size);
         return ResponseEntity.ok(response);
     }
@@ -119,9 +121,15 @@ public class OrganizerQualityController {
         return ResponseEntity.ok(weights);
     }
 
-    private UUID extractUserId(String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        String email = jwtService.extractUsername(token);
-        return jwtService.extractUserId(token);
+    /**
+     * Get current authenticated user's ID from SecurityContext.
+     * The JWT filter sets the authentication with the user's email as the principal.
+     */
+    private UUID getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return user.getUserId();
     }
 }
