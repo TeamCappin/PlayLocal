@@ -233,4 +233,65 @@ class GameControllerAuthTest {
             verify(gameService).getGameParticipation(gameId, userId);
         }
     }
+
+    @Nested
+    @DisplayName("US-2.4: Cancel Game (DELETE /games/{gameId})")
+    class CancelGameTests {
+
+        @Test
+        @DisplayName("cancelGame should call service with authenticated userId")
+        void cancelGame_Authenticated_ShouldCallService() {
+            // Given
+            UUID userId = UUID.randomUUID();
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.cancelGame(gameId, userId)).thenReturn(mockGame);
+
+            // When
+            ResponseEntity<GameDto.GameResponse> response = gameController.cancelGame(gameId, authentication);
+
+            // Then
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(mockGame);
+            verify(gameService).cancelGame(gameId, userId);
+        }
+
+        @Test
+        @DisplayName("cancelGame should extract userId from authentication")
+        void cancelGame_ShouldExtractUserId() {
+            // Given
+            UUID organizerId = UUID.randomUUID();
+            when(authentication.getName()).thenReturn(organizerId.toString());
+            when(gameService.cancelGame(gameId, organizerId)).thenReturn(mockGame);
+
+            // When
+            ResponseEntity<GameDto.GameResponse> response = gameController.cancelGame(gameId, authentication);
+
+            // Then
+            verify(authentication).getName();
+            verify(gameService).cancelGame(gameId, organizerId);
+        }
+
+        @Test
+        @DisplayName("cancelGame should return game response from service")
+        void cancelGame_ShouldReturnGameResponse() {
+            // Given
+            UUID userId = UUID.randomUUID();
+            GameDto.GameResponse cancelledGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .title("Cancelled Game")
+                    .status("CANCELLED")
+                    .build();
+
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.cancelGame(gameId, userId)).thenReturn(cancelledGame);
+
+            // When
+            ResponseEntity<GameDto.GameResponse> response = gameController.cancelGame(gameId, authentication);
+
+            // Then
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getStatus()).isEqualTo("CANCELLED");
+            assertThat(response.getBody().getGameId()).isEqualTo(gameId.toString());
+        }
+    }
 }
