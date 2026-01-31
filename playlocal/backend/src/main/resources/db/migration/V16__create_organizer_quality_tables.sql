@@ -6,6 +6,19 @@
 -- - Repeat player rate (players who join more than once / total unique players)
 
 -- =============================================
+-- CLEANUP: Drop old tables if they exist (handles partial migrations)
+-- =============================================
+
+DROP TRIGGER IF EXISTS tr_oqs_updated_at ON organizer_quality_score;
+DROP INDEX IF EXISTS idx_oqs_score;
+DROP INDEX IF EXISTS idx_oqs_games_hosted;
+DROP INDEX IF EXISTS idx_oqs_history_organizer;
+DROP INDEX IF EXISTS idx_oqs_history_organizer_created;
+DROP INDEX IF EXISTS idx_oqs_history_game;
+DROP TABLE IF EXISTS organizer_score_history;
+DROP TABLE IF EXISTS organizer_quality_score;
+
+-- =============================================
 -- ORGANIZER QUALITY SCORE TABLE
 -- =============================================
 

@@ -1,13 +1,9 @@
 package com.backend.playlocal.controller;
 
-import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.OrganizerQualityDto;
-import com.backend.playlocal.model.entity.User;
-import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.service.OrganizerQualityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,12 +23,9 @@ import java.util.UUID;
 public class OrganizerQualityController {
 
     private final OrganizerQualityService oqsService;
-    private final UserRepository userRepository;
 
-    public OrganizerQualityController(OrganizerQualityService oqsService, 
-                                       UserRepository userRepository) {
+    public OrganizerQualityController(OrganizerQualityService oqsService) {
         this.oqsService = oqsService;
-        this.userRepository = userRepository;
     }
 
     /**
@@ -40,8 +33,9 @@ public class OrganizerQualityController {
      * Visible on organizer profiles and game details pages.
      */
     @GetMapping("/users/{userId}/oqs")
-    public ResponseEntity<OrganizerQualityDto.OqsResponse> getOqs(@PathVariable UUID userId) {
-        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userId);
+    public ResponseEntity<OrganizerQualityDto.OqsResponse> getOqs(@PathVariable String userId) {
+        UUID userUUID = UUID.fromString(userId);
+        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userUUID);
         return ResponseEntity.ok(response);
     }
 
@@ -49,8 +43,8 @@ public class OrganizerQualityController {
      * Get OQS for the current authenticated user.
      */
     @GetMapping("/users/me/oqs")
-    public ResponseEntity<OrganizerQualityDto.OqsResponse> getMyOqs() {
-        UUID userId = getCurrentUserId();
+    public ResponseEntity<OrganizerQualityDto.OqsResponse> getMyOqs(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userId);
         return ResponseEntity.ok(response);
     }
@@ -59,8 +53,9 @@ public class OrganizerQualityController {
      * Get OQS summary (simplified for game cards).
      */
     @GetMapping("/users/{userId}/oqs/summary")
-    public ResponseEntity<OrganizerQualityDto.OqsSummary> getOqsSummary(@PathVariable UUID userId) {
-        OrganizerQualityDto.OqsSummary response = oqsService.getOqsSummary(userId);
+    public ResponseEntity<OrganizerQualityDto.OqsSummary> getOqsSummary(@PathVariable String userId) {
+        UUID userUUID = UUID.fromString(userId);
+        OrganizerQualityDto.OqsSummary response = oqsService.getOqsSummary(userUUID);
         return ResponseEntity.ok(response);
     }
 
@@ -69,8 +64,9 @@ public class OrganizerQualityController {
      * Used for the UI "info card" explaining OQS components.
      */
     @GetMapping("/users/{userId}/oqs/info")
-    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getOqsInfoCard(@PathVariable UUID userId) {
-        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userId);
+    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getOqsInfoCard(@PathVariable String userId) {
+        UUID userUUID = UUID.fromString(userId);
+        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userUUID);
         return ResponseEntity.ok(response);
     }
 
@@ -78,8 +74,8 @@ public class OrganizerQualityController {
      * Get OQS info card for the current user.
      */
     @GetMapping("/users/me/oqs/info")
-    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getMyOqsInfoCard() {
-        UUID userId = getCurrentUserId();
+    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getMyOqsInfoCard(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
         OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userId);
         return ResponseEntity.ok(response);
     }
@@ -90,10 +86,11 @@ public class OrganizerQualityController {
      */
     @GetMapping("/users/{userId}/oqs/history")
     public ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> getOqsHistory(
-            @PathVariable UUID userId,
+            @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userId, page, size);
+        UUID userUUID = UUID.fromString(userId);
+        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userUUID, page, Math.min(size, 50));
         return ResponseEntity.ok(response);
     }
 
@@ -102,10 +99,11 @@ public class OrganizerQualityController {
      */
     @GetMapping("/users/me/oqs/history")
     public ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> getMyOqsHistory(
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        UUID userId = getCurrentUserId();
-        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userId, page, size);
+        UUID userId = UUID.fromString(authentication.getName());
+        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userId, page, Math.min(size, 50));
         return ResponseEntity.ok(response);
     }
 
@@ -119,17 +117,5 @@ public class OrganizerQualityController {
                 .repeatPlayerRateWeight(0.4f)
                 .build();
         return ResponseEntity.ok(weights);
-    }
-
-    /**
-     * Get current authenticated user's ID from SecurityContext.
-     * The JWT filter sets the authentication with the user's email as the principal.
-     */
-    private UUID getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return user.getUserId();
     }
 }

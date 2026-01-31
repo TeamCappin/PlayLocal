@@ -49,7 +49,8 @@ public interface OrganizerScoreHistoryRepository extends JpaRepository<Organizer
     /**
      * Count history entries for an organizer.
      */
-    long countByOrganizerId(UUID organizerId);
+    @Query("SELECT COUNT(h) FROM OrganizerScoreHistory h WHERE h.organizer.userId = :organizerId")
+    long countByOrganizerId(@Param("organizerId") UUID organizerId);
 
     /**
      * Find by organizer ID (for backward compatibility).

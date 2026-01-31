@@ -367,7 +367,7 @@ export function UserProfile() {
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
                 {/* US-6.1: Organizer Quality Score */}
-                {user.stats.gamesHosted > 0 && user.userId && (
+                {user.userId && (
                   <OrganizerQualityBadge 
                     userId={user.userId} 
                     displayName={user.name}
