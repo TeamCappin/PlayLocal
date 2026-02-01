@@ -63,11 +63,6 @@ public class GameService {
                                 .build();
 
                 // Create game
-                // Normalize indoorOutdoor to lowercase for consistency
-                String normalizedIndoorOutdoor = (request.getIndoorOutdoor() != null && !request.getIndoorOutdoor().isEmpty())
-                                ? request.getIndoorOutdoor().toLowerCase()
-                                : null;
-                
                 Game game = Game.builder()
                                 .createdBy(organizer)
                                 .sport(sport)
@@ -75,7 +70,7 @@ public class GameService {
                                 .visibility(visibility)
                                 .title(request.getTitle())
                                 .description(request.getDescription())
-                                .indoorOutdoor(normalizedIndoorOutdoor)
+                                .indoorOutdoor(request.getIndoorOutdoor())
                                 .intensityBand(request.getIntensityBand())
                                 .skillBand(request.getSkillBand())
                                 .minPlayers(request.getMinPlayers() != null ? request.getMinPlayers() : 2)
@@ -114,33 +109,12 @@ public class GameService {
          * Get upcoming games with optional filters. US-2.3
          */
         public List<GameDto.GameResponse> getUpcomingGames(
-                        String sportName, String skillLevel, String locationType, 
+                        String sportName, String skillLevel, String locationType,
                         String intensity, UUID userId) {
-                // Normalize filter parameters to match database format (lowercase)
-                // Empty strings are treated as null to bypass filtering
-                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty()) 
-                                ? sportName.trim() 
-                                : null;
-                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty()) 
-                                ? skillLevel.toLowerCase().trim() 
-                                : null;
-                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty()) 
-                                ? locationType.toLowerCase().trim() 
-                                : null;
-                String normalizedIntensity = null;
-                if (intensity != null && !intensity.trim().isEmpty()) {
-                        String lowerIntensity = intensity.toLowerCase().trim();
-                        // Map "high" to "competitive" since database doesn't have "high"
-                        if ("high".equals(lowerIntensity)) {
-                                normalizedIntensity = "competitive";
-                        } else {
-                                normalizedIntensity = lowerIntensity;
-                        }
-                }
-                
+                GameFilterParams params = normalizeGameFilters(sportName, skillLevel, locationType, intensity);
                 List<Game> games = gameRepository.findUpcomingGamesWithFilters(
-                                Instant.now(), normalizedSportName, normalizedSkillLevel, 
-                                normalizedLocationType, normalizedIntensity);
+                                Instant.now(), params.sportName(), params.skillLevel(),
+                                params.locationType(), params.intensity());
                 return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
@@ -153,44 +127,47 @@ public class GameService {
                         Float userLat, Float userLon, Double radiusKm,
                         String sportName, String skillLevel, String locationType,
                         String intensity, UUID userId) {
-                // Normalize filter parameters to match database format (lowercase)
-                // Empty strings are treated as null to bypass filtering
-                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty()) 
-                                ? sportName.trim() 
-                                : null;
-                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty()) 
-                                ? skillLevel.toLowerCase().trim() 
-                                : null;
-                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty()) 
-                                ? locationType.toLowerCase().trim() 
-                                : null;
-                String normalizedIntensity = null;
-                if (intensity != null && !intensity.trim().isEmpty()) {
-                        String lowerIntensity = intensity.toLowerCase().trim();
-                        // Map "high" to "competitive" since database doesn't have "high"
-                        if ("high".equals(lowerIntensity)) {
-                                normalizedIntensity = "competitive";
-                        } else {
-                                normalizedIntensity = lowerIntensity;
-                        }
-                }
-                
-                // Get game IDs ordered by distance
+                GameFilterParams params = normalizeGameFilters(sportName, skillLevel, locationType, intensity);
                 List<UUID> gameIds = gameRepository.findNearbyGameIdsWithFilters(
                                 Instant.now(), userLat, userLon, radiusKm,
-                                normalizedSportName, normalizedSkillLevel, 
-                                normalizedLocationType, normalizedIntensity);
-                
-                // Fetch full Game entities maintaining the distance order
+                                params.sportName(), params.skillLevel(),
+                                params.locationType(), params.intensity());
                 List<Game> games = gameIds.stream()
                                 .map(gameId -> gameRepository.findById(gameId))
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
                                 .collect(Collectors.toList());
-                
                 return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
+        }
+
+        /**
+         * Normalize discovery filter parameters to match database format (lowercase).
+         * Empty strings are treated as null to bypass filtering.
+         * Maps "high" to "competitive" for intensity (database has no "high" value).
+         */
+        private static GameFilterParams normalizeGameFilters(
+                        String sportName, String skillLevel, String locationType, String intensity) {
+                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty())
+                                ? sportName.trim()
+                                : null;
+                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty())
+                                ? skillLevel.toLowerCase().trim()
+                                : null;
+                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty())
+                                ? locationType.toLowerCase().trim()
+                                : null;
+                String normalizedIntensity = null;
+                if (intensity != null && !intensity.trim().isEmpty()) {
+                        String lower = intensity.toLowerCase().trim();
+                        normalizedIntensity = "high".equals(lower) ? "competitive" : lower;
+                }
+                return new GameFilterParams(normalizedSportName, normalizedSkillLevel,
+                                normalizedLocationType, normalizedIntensity);
+        }
+
+        private record GameFilterParams(String sportName, String skillLevel, String locationType, String intensity) {
         }
 
         /**
@@ -235,7 +212,7 @@ public class GameService {
                         // User previously cancelled - allow re-join
                         // Must check capacity to determine CONFIRMED vs WAITLISTED
                         int confirmedCount = participationRepository.countConfirmedParticipants(gameId);
-                        
+
                         if (confirmedCount < game.getMaxPlayers()) {
                                 // Capacity available - rejoin as CONFIRMED
                                 participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
@@ -248,11 +225,11 @@ public class GameService {
                         } else {
                                 throw new CapacityExceededException("Game is full and waitlist is not enabled");
                         }
-                        
+
                         participation.setLeftAt(null);
                         participation.setJoinedAt(Instant.now());
                         participation = participationRepository.save(participation);
-                        
+
                         // Return immediately - don't fall through to create new participation
                         return GameDto.JoinResponse.builder()
                                         .participationId(participation.getParticipationId().toString())
@@ -260,7 +237,8 @@ public class GameService {
                                         .waitlistPosition(participation.getWaitlistPosition())
                                         .message(participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
                                                         ? "Successfully rejoined the game"
-                                                        : "Rejoined waitlist at position " + participation.getWaitlistPosition())
+                                                        : "Rejoined waitlist at position "
+                                                                        + participation.getWaitlistPosition())
                                         .build();
                 }
 
