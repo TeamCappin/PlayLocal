@@ -649,7 +649,7 @@ export function GameRoom() {
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <span className="text-gray-600">
-                                  Reliability: {player.reliabilityScore}%
+                                  Reliability: {Math.round(player.reliabilityScore)}%
                                 </span>
                               </div>
                             </div>
@@ -705,7 +705,7 @@ export function GameRoom() {
                                     {player.displayName}
                                   </Link>
                                   <div className="text-sm text-gray-600">
-                                    Reliability: {player.reliabilityScore}%
+                                    Reliability: {Math.round(player.reliabilityScore)}%
                                   </div>
                                 </div>
                               </div>
@@ -900,7 +900,7 @@ export function GameRoom() {
                   <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-gray-600">
-                      Reliability: {game.organizer?.reliabilityScore || 100}%
+                      Reliability: {Math.round(game.organizer?.reliabilityScore ?? 100)}%
                     </span>
                   </div>
                   <Link
