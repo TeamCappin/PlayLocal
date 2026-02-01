@@ -12,6 +12,7 @@ jest.mock("@/lib/api", () => ({
     join: jest.fn(),
     leave: jest.fn(),
     create: jest.fn(),
+    cancel: jest.fn(),
   },
 }));
 
@@ -458,5 +459,78 @@ describe("useCreateGame", () => {
     expect(error).toBeDefined();
     expect(result.current.error).toBe("Failed to create game");
     expect(result.current.isCreating).toBe(false);
+  });
+});
+
+describe("useGame - cancelGame", () => {
+  const mockCancel = gamesApi.cancel as jest.MockedFunction<
+    typeof gamesApi.cancel
+  >;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCancel.mockClear();
+  });
+
+  it("cancels a game successfully and refreshes data", async () => {
+    const gameId = "game-123";
+    const cancelledGame = {
+      ...mockGame,
+      gameId,
+      status: "CANCELLED",
+    } as any;
+
+    // Mock initial fetch
+    mockGetById.mockResolvedValueOnce(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    // Mock cancel response
+    mockCancel.mockResolvedValue(cancelledGame);
+    // Mock refresh after cancel
+    mockGetById.mockResolvedValueOnce(cancelledGame);
+
+    const { result } = renderHook(() => useGame(gameId));
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(result.current.game).toBeDefined();
+    });
+
+    // Cancel the game
+    await act(async () => {
+      await result.current.cancelGame();
+    });
+
+    // Verify cancel was called
+    expect(mockCancel).toHaveBeenCalledWith(gameId);
+    // Verify game was refreshed (called twice: initial + after cancel)
+    expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws error when gameId is missing", async () => {
+    const { result } = renderHook(() => useGame(null as any));
+
+    await expect(async () => {
+      await result.current.cancelGame();
+    }).rejects.toThrow("Game ID required");
+  });
+
+  it("handles cancel failure gracefully", async () => {
+    const gameId = "game-456";
+
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockCancel.mockRejectedValue(new Error("Not authorized"));
+
+    const { result } = renderHook(() => useGame(gameId));
+
+    await waitFor(() => {
+      expect(result.current.game).toBeDefined();
+    });
+
+    await expect(async () => {
+      await result.current.cancelGame();
+    }).rejects.toThrow("Not authorized");
+
+    expect(mockCancel).toHaveBeenCalledWith(gameId);
   });
 });

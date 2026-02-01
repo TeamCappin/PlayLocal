@@ -150,6 +150,19 @@ public class GameController {
     }
 
     /**
+     * Cancel a game (organizer only).
+     * US-2.4: Game Page - Organizer controls to cancel the game
+     */
+    @DeleteMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> cancelGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.cancelGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get all available community tags.
      * US-4.2: Community-Specific Game Filters
      */

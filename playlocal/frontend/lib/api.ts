@@ -388,6 +388,10 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  // US-2.4: Cancel game endpoint
+  cancel: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
+
   // US-4.2: Get all available tags
   getTags: () => apiFetch<TagDto[]>("/games/tags"),
 };
