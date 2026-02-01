@@ -23,12 +23,6 @@ public interface OrganizerQualityScoreRepository extends JpaRepository<Organizer
     Optional<OrganizerQualityScore> findByUserId(UUID userId);
 
     /**
-     * Find OQS for a user, joining with user entity.
-     */
-    @Query("SELECT oqs FROM OrganizerQualityScore oqs JOIN FETCH oqs.user WHERE oqs.userId = :userId")
-    Optional<OrganizerQualityScore> findByUserIdWithUser(@Param("userId") UUID userId);
-
-    /**
      * Find all organizers with games hosted (for batch recalculation).
      */
     @Query("SELECT oqs FROM OrganizerQualityScore oqs WHERE oqs.totalGamesHosted > 0")

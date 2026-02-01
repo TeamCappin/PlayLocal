@@ -71,7 +71,6 @@ class OrganizerQualityServiceTest {
 
         testOqs = OrganizerQualityScore.builder()
                 .userId(testOrganizer.getUserId())
-                .user(testOrganizer)
                 .oqsScore(85.0f)
                 .gameCompletionRate(90.0f)
                 .repeatPlayerRate(75.0f)

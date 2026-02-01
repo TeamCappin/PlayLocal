@@ -136,7 +136,8 @@ public class OrganizerQualityService {
             logOqsChange(oqs, triggeringGame, previousOqs, newOqs, delta,
                     previousCompletionRate, oqs.getGameCompletionRate(),
                     previousRepeatRate, oqs.getRepeatPlayerRate(),
-                    reason, buildChangeDescription(reason, triggeringGame));
+                    reason, buildChangeDescription(reason, triggeringGame),
+                    organizer);
         }
 
         return toOqsResponse(oqs, organizer);
@@ -303,7 +304,6 @@ public class OrganizerQualityService {
 
     private OrganizerQualityScore initializeOqs(User user) {
         OrganizerQualityScore oqs = OrganizerQualityScore.builder()
-                .user(user)
                 .userId(user.getUserId())
                 .oqsScore(100.0f)
                 .gameCompletionRate(100.0f)
@@ -319,7 +319,6 @@ public class OrganizerQualityService {
 
     private OrganizerQualityScore createDefaultOqs(User user) {
         return OrganizerQualityScore.builder()
-                .user(user)
                 .userId(user.getUserId())
                 .oqsScore(100.0f)
                 .gameCompletionRate(100.0f)
@@ -332,13 +331,14 @@ public class OrganizerQualityService {
                 .build();
     }
 
-    private void logOqsChange(OrganizerQualityScore oqs, Game game,
+private void logOqsChange(OrganizerQualityScore oqs, Game game,
                               float previousOqs, float newOqs, float delta,
                               float previousCompletionRate, float newCompletionRate,
                               float previousRepeatRate, float newRepeatRate,
-                              OrganizerScoreHistory.OqsChangeReason reason, String description) {
+                              OrganizerScoreHistory.OqsChangeReason reason, String description,
+                              User organizer) {
         OrganizerScoreHistory history = OrganizerScoreHistory.builder()
-                .organizer(oqs.getUser())
+                .organizer(organizer)
                 .game(game)
                 .previousOqs(previousOqs)
                 .newOqs(newOqs)

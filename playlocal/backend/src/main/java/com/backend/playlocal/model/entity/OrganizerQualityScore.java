@@ -29,10 +29,6 @@ public class OrganizerQualityScore {
     @Column(name = "user_id")
     private UUID userId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "user_id")
-    private User user;
 
     @Column(name = "oqs_score", nullable = false)
     @Builder.Default
