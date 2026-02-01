@@ -1,4 +1,7 @@
+import { renderHook, act, waitFor } from '@testing-library/react';
 import {
+    useOrganizerQuality,
+    useOrganizerQualityHistory,
     formatOqsScore,
     getOqsColorClass,
     getOqsBgColorClass,
@@ -7,10 +10,68 @@ import {
     getOqsDeltaColor,
     formatOqsReason,
 } from '@/hooks/useOrganizerQuality';
+import { organizerQualityApi } from '@/lib/api';
+
+// Mock the API module
+jest.mock('@/lib/api', () => ({
+    organizerQualityApi: {
+        getOqs: jest.fn(),
+        getMyOqs: jest.fn(),
+        getOqsSummary: jest.fn(),
+        getOqsInfoCard: jest.fn(),
+        getMyOqsInfoCard: jest.fn(),
+        getOqsHistory: jest.fn(),
+        getMyOqsHistory: jest.fn(),
+    },
+}));
+
+const mockOqsResponse = {
+    userId: 'user-123',
+    oqsScore: 85.5,
+    gameCompletionRate: 90,
+    repeatPlayerRate: 80,
+    confidenceLevel: 'HIGH',
+    totalGamesHosted: 10,
+    completedGames: 9,
+    cancelledGames: 1,
+    uniquePlayers: 50,
+    repeatPlayers: 40,
+    lastCalculatedAt: '2026-01-01T00:00:00Z',
+};
+
+const mockOqsSummary = {
+    userId: 'user-123',
+    oqsScore: 85.5,
+    confidenceLevel: 'HIGH',
+    totalGamesHosted: 10,
+};
+
+const mockInfoCard = {
+    userId: 'user-123',
+    headline: 'Great organizer!',
+    summary: 'This organizer has a great track record.',
+    tips: ['Keep up the good work!'],
+};
+
+const mockHistoryResponse = {
+    history: [
+        {
+            id: '1',
+            previousScore: 80,
+            newScore: 85,
+            delta: 5,
+            reason: 'GAME_COMPLETED',
+            createdAt: '2026-01-01T00:00:00Z',
+        },
+    ],
+    currentPage: 0,
+    totalPages: 1,
+    totalEntries: 1,
+};
 
 /**
- * Unit tests for useOrganizerQuality utility functions.
- * Implements: US-6.1 - Organizer Quality Score display utilities
+ * Unit tests for useOrganizerQuality hook and utility functions.
+ * Implements: US-6.1 - Organizer Quality Score
  */
 
 describe('useOrganizerQuality utility functions', () => {
@@ -197,5 +258,286 @@ describe('useOrganizerQuality utility functions', () => {
             expect(result.label).toBe('UNKNOWN_REASON');
             expect(result.color).toBe('text-gray-600');
         });
+    });
+});
+
+// ==================== useOrganizerQuality Hook Tests ====================
+describe('useOrganizerQuality hook', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should fetch OQS data with userId', async () => {
+        (organizerQualityApi.getOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockResolvedValue(mockOqsSummary);
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(organizerQualityApi.getOqs).toHaveBeenCalledWith('user-123');
+        expect(organizerQualityApi.getOqsSummary).toHaveBeenCalledWith('user-123');
+        expect(organizerQualityApi.getOqsInfoCard).toHaveBeenCalledWith('user-123');
+        expect(result.current.oqs).toEqual(mockOqsResponse);
+    });
+
+    it('should fetch OQS data without userId (current user)', async () => {
+        (organizerQualityApi.getMyOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getMyOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        const { result } = renderHook(() => useOrganizerQuality({}));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(organizerQualityApi.getMyOqs).toHaveBeenCalled();
+        expect(organizerQualityApi.getMyOqsInfoCard).toHaveBeenCalled();
+        expect(result.current.oqs).toEqual(mockOqsResponse);
+    });
+
+    it('should handle fetch error', async () => {
+        (organizerQualityApi.getOqs as jest.Mock).mockRejectedValue(new Error('API Error'));
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockResolvedValue(mockOqsSummary);
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.error).toBe('Failed to load organizer quality score');
+        expect(result.current.oqs).toBeNull();
+    });
+
+    it('should not auto-fetch when autoFetch is false', async () => {
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123', autoFetch: false }));
+
+        expect(organizerQualityApi.getOqs).not.toHaveBeenCalled();
+        expect(result.current.isLoading).toBe(false);
+    });
+
+    it('should refresh data when refresh is called', async () => {
+        (organizerQualityApi.getOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockResolvedValue(mockOqsSummary);
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        // Clear mocks to track refresh calls
+        jest.clearAllMocks();
+        (organizerQualityApi.getOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockResolvedValue(mockOqsSummary);
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        act(() => {
+            result.current.refresh();
+        });
+
+        await waitFor(() => {
+            expect(organizerQualityApi.getOqs).toHaveBeenCalledWith('user-123');
+        });
+    });
+
+    it('should handle info card fetch error gracefully', async () => {
+        (organizerQualityApi.getOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockResolvedValue(mockOqsSummary);
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockRejectedValue(new Error('Info card error'));
+
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        // OQS should still load even if info card fails
+        expect(result.current.oqs).toEqual(mockOqsResponse);
+        expect(result.current.infoCard).toBeNull();
+    });
+
+    it('should handle summary fetch error gracefully', async () => {
+        (organizerQualityApi.getOqs as jest.Mock).mockResolvedValue(mockOqsResponse);
+        (organizerQualityApi.getOqsSummary as jest.Mock).mockRejectedValue(new Error('Summary error'));
+        (organizerQualityApi.getOqsInfoCard as jest.Mock).mockResolvedValue(mockInfoCard);
+
+        const { result } = renderHook(() => useOrganizerQuality({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.oqs).toEqual(mockOqsResponse);
+        expect(result.current.summary).toBeNull();
+    });
+});
+
+// ==================== useOrganizerQualityHistory Hook Tests ====================
+describe('useOrganizerQualityHistory hook', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should fetch history with userId', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockResolvedValue(mockHistoryResponse);
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(organizerQualityApi.getOqsHistory).toHaveBeenCalledWith('user-123', 0, 10);
+        expect(result.current.history).toEqual(mockHistoryResponse.history);
+        expect(result.current.totalPages).toBe(1);
+        expect(result.current.totalEntries).toBe(1);
+    });
+
+    it('should fetch history without userId (current user)', async () => {
+        (organizerQualityApi.getMyOqsHistory as jest.Mock).mockResolvedValue(mockHistoryResponse);
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({}));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(organizerQualityApi.getMyOqsHistory).toHaveBeenCalledWith(0, 10);
+        expect(result.current.history).toEqual(mockHistoryResponse.history);
+    });
+
+    it('should handle fetch error', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockRejectedValue(new Error('API Error'));
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.error).toBe('Failed to load OQS history');
+        expect(result.current.history).toEqual([]);
+    });
+
+    it('should not auto-fetch when autoFetch is false', async () => {
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123', autoFetch: false }));
+
+        expect(organizerQualityApi.getOqsHistory).not.toHaveBeenCalled();
+        expect(result.current.isLoading).toBe(false);
+    });
+
+    it('should load more pages', async () => {
+        const page1Response = {
+            history: [{ id: '1', previousScore: 80, newScore: 85, delta: 5, reason: 'GAME_COMPLETED', createdAt: '2026-01-01T00:00:00Z' }],
+            currentPage: 0,
+            totalPages: 2,
+            totalEntries: 2,
+        };
+        const page2Response = {
+            history: [{ id: '2', previousScore: 85, newScore: 90, delta: 5, reason: 'GAME_COMPLETED', createdAt: '2026-01-02T00:00:00Z' }],
+            currentPage: 1,
+            totalPages: 2,
+            totalEntries: 2,
+        };
+
+        (organizerQualityApi.getOqsHistory as jest.Mock)
+            .mockResolvedValueOnce(page1Response)
+            .mockResolvedValueOnce(page2Response);
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.hasMore).toBe(true);
+
+        act(() => {
+            result.current.loadMore();
+        });
+
+        await waitFor(() => {
+            expect(result.current.history).toHaveLength(2);
+        });
+
+        expect(result.current.hasMore).toBe(false);
+    });
+
+    it('should refresh history', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockResolvedValue(mockHistoryResponse);
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        jest.clearAllMocks();
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockResolvedValue(mockHistoryResponse);
+
+        act(() => {
+            result.current.refresh();
+        });
+
+        await waitFor(() => {
+            expect(organizerQualityApi.getOqsHistory).toHaveBeenCalledWith('user-123', 0, 10);
+        });
+    });
+
+    it('should use custom pageSize', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockResolvedValue(mockHistoryResponse);
+
+        renderHook(() => useOrganizerQualityHistory({ userId: 'user-123', pageSize: 20 }));
+
+        await waitFor(() => {
+            expect(organizerQualityApi.getOqsHistory).toHaveBeenCalledWith('user-123', 0, 20);
+        });
+    });
+
+    it('should not load more when already loading', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockImplementation(
+            () => new Promise(resolve => setTimeout(() => resolve(mockHistoryResponse), 100))
+        );
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        // Try to load more while still loading initial data
+        act(() => {
+            result.current.loadMore();
+        });
+
+        // Should only have one call (the initial fetch)
+        expect(organizerQualityApi.getOqsHistory).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not load more when on last page', async () => {
+        (organizerQualityApi.getOqsHistory as jest.Mock).mockResolvedValue({
+            ...mockHistoryResponse,
+            currentPage: 0,
+            totalPages: 1,
+        });
+
+        const { result } = renderHook(() => useOrganizerQualityHistory({ userId: 'user-123' }));
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false);
+        });
+
+        expect(result.current.hasMore).toBe(false);
+
+        jest.clearAllMocks();
+
+        act(() => {
+            result.current.loadMore();
+        });
+
+        expect(organizerQualityApi.getOqsHistory).not.toHaveBeenCalled();
     });
 });
