@@ -74,6 +74,7 @@ describe('UserProfile Endorsements', () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isAuthenticated: true,
+      refreshUser: jest.fn(),
     });
     (usersApi.getProfile as jest.Mock).mockResolvedValue(mockUser);
     (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(mockUser);
@@ -132,5 +133,23 @@ describe('UserProfile Endorsements', () => {
     });
 
     expect(screen.getByText('No endorsements yet')).toBeInTheDocument();
+  });
+
+  it('calls refreshUser when viewing own profile', async () => {
+    const mockRefreshUser = jest.fn();
+    // Override useParams to match the mock user's slug (Test User -> test-user)
+    jest.spyOn(require('next/navigation'), 'useParams').mockReturnValue({ username: 'test-user' });
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      refreshUser: mockRefreshUser,
+    });
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue([]);
+
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(mockRefreshUser).toHaveBeenCalled();
+    });
   });
 });
