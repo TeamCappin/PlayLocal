@@ -23,7 +23,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.status = 'ACTIVE' " +
             "AND (LOWER(u.displayName) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')))")
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
+            "OR LOWER(u.slug) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<User> searchByDisplayNameOrEmail(String query, Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.status = 'ACTIVE'")

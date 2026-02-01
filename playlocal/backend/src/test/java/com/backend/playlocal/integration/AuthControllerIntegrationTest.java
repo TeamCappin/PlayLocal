@@ -251,7 +251,7 @@ class AuthControllerIntegrationTest {
         @DisplayName("US-1.1: GET /me - Unauthorized/Forbidden without token")
         void me_WithoutToken() throws Exception {
                 mockMvc.perform(get(BASE_URL + "/me"))
-                                .andExpect(status().isForbidden());
+                                .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -259,7 +259,7 @@ class AuthControllerIntegrationTest {
         void me_WithInvalidToken() throws Exception {
                 mockMvc.perform(get(BASE_URL + "/me")
                                 .header("Authorization", "Bearer invalid-token"))
-                                .andExpect(status().isForbidden());
+                                .andExpect(status().isUnauthorized());
         }
 
         // ==========================================

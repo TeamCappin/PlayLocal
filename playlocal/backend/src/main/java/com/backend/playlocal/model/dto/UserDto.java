@@ -10,6 +10,10 @@ import java.util.List;
 
 public class UserDto {
 
+    private UserDto() {
+        // Private constructor to prevent instantiation
+    }
+
     @Data
     @Builder
     @NoArgsConstructor

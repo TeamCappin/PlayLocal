@@ -218,8 +218,9 @@ export function GameDiscovery() {
   const [showFilters, setShowFilters] = useState(false);
   const { games: apiGames, isLoading, error } = useGames();
 
-  // Use API data only - no mock fallback
-  const displayGames = (apiGames.length > 0 ? apiGames : mockGames).map(transformApiGame);
+  // Use API data only - no mock fallback (BUG-2.2 fix)
+  const displayGames = apiGames.map(transformApiGame);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -343,12 +344,27 @@ export function GameDiscovery() {
               </select>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayGames.map((game) => (
-                <GameCard key={game.id} game={game} />
-              ))}
-            </div>
+            {displayGames.length === 0 ? (
+              <div className="text-center py-16">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl text-gray-900 mb-2">No games available</h3>
+                <p className="text-gray-600 mb-6">Be the first to create a game in your area!</p>
+                <a
+                  href="/games/create"
+                  className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Create a Game
+                </a>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayGames.map((game) => (
+                  <GameCard key={game.id} game={game} />
+                ))}
+              </div>
+            )}
           </>
+
         ) : (
           <div className="h-[600px] bg-gray-200 rounded-xl flex items-center justify-center">
             <div className="text-center">

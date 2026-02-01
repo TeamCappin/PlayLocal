@@ -1,0 +1,229 @@
+package com.backend.playlocal.service;
+
+import com.backend.playlocal.exception.ResourceNotFoundException;
+import com.backend.playlocal.model.dto.GameDto;
+import com.backend.playlocal.model.entity.*;
+import com.backend.playlocal.repository.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for GameService - US 2.4: Cancel Game (Organizer Control)
+ * 
+ * Acceptance Criteria:
+ * - Organizer has controls to cancel the game
+ * - Only organizer can cancel
+ * - Game must be in SCHEDULED status to be cancelled
+ */
+@ExtendWith(MockitoExtension.class)
+class GameServiceCancelTest {
+
+    @Mock
+    private GameRepository gameRepository;
+
+    @Mock
+    private GameParticipationRepository participationRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private SportRepository sportRepository;
+
+    @Mock
+    private LocationRepository locationRepository;
+
+    @Mock
+    private GameVisibilityRepository gameVisibilityRepository;
+
+    @Mock
+    private EndorsementRepository endorsementRepository;
+
+    @Mock
+    private GameTagRepository tagRepository;
+
+    @Mock
+    private GameTagAssignmentRepository tagAssignmentRepository;
+
+    @Mock
+    private GameTagConfirmationRepository tagConfirmationRepository;
+
+    @InjectMocks
+    private GameService gameService;
+
+    private UUID gameId;
+    private UUID organizerId;
+    private UUID otherUserId;
+    private User organizer;
+    private User otherUser;
+    private Game testGame;
+    private Sport testSport;
+
+    @BeforeEach
+    void setUp() {
+        gameId = UUID.randomUUID();
+        organizerId = UUID.randomUUID();
+        otherUserId = UUID.randomUUID();
+
+        organizer = User.builder()
+                .userId(organizerId)
+                .displayName("Organizer")
+                .email("organizer@example.com")
+                .reliabilityScore(95.0f)
+                .build();
+
+        otherUser = User.builder()
+                .userId(otherUserId)
+                .displayName("Other User")
+                .email("other@example.com")
+                .reliabilityScore(85.0f)
+                .build();
+
+        testSport = Sport.builder()
+                .sportId(UUID.randomUUID())
+                .name("Basketball")
+                .build();
+
+        testGame = Game.builder()
+                .gameId(gameId)
+                .createdBy(organizer)
+                .sport(testSport)
+                .title("Test Game")
+                .status(Game.GameStatus.SCHEDULED)
+                .maxPlayers(10)
+                .minPlayers(2)
+                .allowWaitlist(true)
+                .startTime(Instant.now().plusSeconds(3600))
+                .build();
+    }
+
+    // =========================================================================
+    // US 2.4: Cancel Game Tests
+    // =========================================================================
+    @Nested
+    @DisplayName("US 2.4: Cancel Game Functionality")
+    class CancelGame {
+
+        @Test
+        @DisplayName("Should cancel game successfully when organizer requests")
+        void cancelGame_WhenOrganizer_ShouldSucceed() {
+            // Given
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(5);
+            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+            when(gameRepository.save(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            GameDto.GameResponse response = gameService.cancelGame(gameId, organizerId);
+
+            // Then
+            assertThat(response).isNotNull();
+            assertThat(testGame.getStatus()).isEqualTo(Game.GameStatus.CANCELLED);
+            assertThat(testGame.getCancelledAt()).isNotNull();
+            verify(gameRepository).save(testGame);
+        }
+
+        @Test
+        @DisplayName("Should throw AccessDeniedException when non-organizer tries to cancel")
+        void cancelGame_WhenNotOrganizer_ShouldThrowException() {
+            // Given
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            // When/Then
+            assertThatThrownBy(() -> gameService.cancelGame(gameId, otherUserId))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Only the organizer can cancel");
+        }
+
+        @Test
+        @DisplayName("Should throw IllegalStateException when game is not SCHEDULED")
+        void cancelGame_WhenGameNotScheduled_ShouldThrowException() {
+            // Given
+            testGame.setStatus(Game.GameStatus.COMPLETED);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            // When/Then
+            assertThatThrownBy(() -> gameService.cancelGame(gameId, organizerId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot cancel");
+        }
+
+        @Test
+        @DisplayName("Should throw IllegalStateException when game is IN_PROGRESS")
+        void cancelGame_WhenGameInProgress_ShouldThrowException() {
+            // Given
+            testGame.setStatus(Game.GameStatus.IN_PROGRESS);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            // When/Then
+            assertThatThrownBy(() -> gameService.cancelGame(gameId, organizerId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot cancel");
+        }
+
+        @Test
+        @DisplayName("Should throw ResourceNotFoundException when game not found")
+        void cancelGame_WhenGameNotFound_ShouldThrowException() {
+            // Given
+            when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+            // When/Then
+            assertThatThrownBy(() -> gameService.cancelGame(gameId, organizerId))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Game not found");
+        }
+
+        @Test
+        @DisplayName("Should set cancelledAt timestamp when cancelling game")
+        void cancelGame_ShouldSetCancelledAtTimestamp() {
+            // Given
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(0);
+            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+            when(gameRepository.save(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            Instant beforeCancel = Instant.now();
+
+            // When
+            gameService.cancelGame(gameId, organizerId);
+
+            Instant afterCancel = Instant.now();
+
+            // Then
+            assertThat(testGame.getCancelledAt()).isNotNull();
+            assertThat(testGame.getCancelledAt()).isAfterOrEqualTo(beforeCancel);
+            assertThat(testGame.getCancelledAt()).isBeforeOrEqualTo(afterCancel);
+        }
+
+        @Test
+        @DisplayName("Should not allow cancelling already cancelled game")
+        void cancelGame_WhenAlreadyCancelled_ShouldThrowException() {
+            // Given
+            testGame.setStatus(Game.GameStatus.CANCELLED);
+            testGame.setCancelledAt(Instant.now().minusSeconds(3600));
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            // When/Then
+            assertThatThrownBy(() -> gameService.cancelGame(gameId, organizerId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot cancel");
+        }
+    }
+}
