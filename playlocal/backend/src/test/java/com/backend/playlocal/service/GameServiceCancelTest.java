@@ -1,5 +1,6 @@
 package com.backend.playlocal.service;
 
+import com.backend.playlocal.service.OrganizerQualityService;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
@@ -62,6 +63,10 @@ class GameServiceCancelTest {
 
     @Mock
     private GameTagConfirmationRepository tagConfirmationRepository;
+
+    @Mock
+    private OrganizerQualityService oqsService;
+
 
     @InjectMocks
     private GameService gameService;

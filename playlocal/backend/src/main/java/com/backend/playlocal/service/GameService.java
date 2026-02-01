@@ -344,36 +344,6 @@ public class GameService {
         }
 
         /**
-         * Cancel a game. Only the organizer can cancel.
-         * US-6.1: Triggers OQS recalculation for the organizer.
-         */
-        @Transactional
-        public void cancelGame(UUID gameId, UUID userId) {
-                Game game = gameRepository.findById(gameId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
-
-                // Only organizer can cancel
-                if (!game.getCreatedBy().getUserId().equals(userId)) {
-                        throw new AccessDeniedException("Only the organizer can cancel the game");
-                }
-
-                // Check game status - can only cancel scheduled games
-                if (game.getStatus() != Game.GameStatus.SCHEDULED) {
-                        throw new IllegalStateException("Cannot cancel a game that is not scheduled");
-                }
-
-                // Update game status
-                game.setStatus(Game.GameStatus.CANCELLED);
-                game.setCancelledAt(Instant.now());
-                gameRepository.save(game);
-
-                // US-6.1: Recalculate OQS for the organizer after game cancellation
-                oqsService.onGameCancelled(gameId);
-
-                // TODO: Notify participants about cancellation
-        }
-
-        /**
          * Get game roster. US-2.4
          */
         public GameDto.RosterResponse getRoster(UUID gameId) {
@@ -424,6 +394,10 @@ public class GameService {
                 game.setStatus(Game.GameStatus.CANCELLED);
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
+
+                // US-6.1: Recalculate OQS for the organizer after game cancellation
+                oqsService.onGameCancelled(gameId);
+
 
                 return mapToGameResponse(game, userId);
         }
