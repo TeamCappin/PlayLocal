@@ -8,21 +8,37 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+/**
+ * Integration test that uses Testcontainers for local development.
+ * In CI (GitHub Actions), uses the SPRING_DATASOURCE_URL environment variable
+ * which points to the service container instead of starting a new container.
+ */
 @SpringBootTest
-@Testcontainers
 class PlayLocalApplicationTests {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("playlocal_test")
-            .withUsername("test")
-            .withPassword("test");
+    // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
+    static PostgreSQLContainer<?> postgres;
+
+    static {
+        // Only create container for local development (CI uses service container via SPRING_DATASOURCE_URL)
+        if (System.getenv("SPRING_DATASOURCE_URL") == null) {
+            postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                    .withDatabaseName("playlocal_test")
+                    .withUsername("test")
+                    .withPassword("test");
+            postgres.start();
+        }
+    }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        // Only configure Testcontainers properties if running locally
+        // In CI, Spring Boot automatically uses SPRING_DATASOURCE_URL environment variables
+        if (postgres != null) {
+            registry.add("spring.datasource.url", postgres::getJdbcUrl);
+            registry.add("spring.datasource.username", postgres::getUsername);
+            registry.add("spring.datasource.password", postgres::getPassword);
+        }
         registry.add("spring.flyway.enabled", () -> "true");
     }
 

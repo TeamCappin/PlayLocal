@@ -362,6 +362,35 @@ public class GameService {
                                 .build();
         }
 
+        /**
+         * Cancel a game. US-2.4 (Organizer cancellation control)
+         * Only the organizer can cancel. Game must be in SCHEDULED status.
+         */
+        @Transactional
+        public GameDto.GameResponse cancelGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                // Verify the requester is the organizer
+                if (!game.getCreatedBy().getUserId().equals(userId)) {
+                        throw new AccessDeniedException("Only the organizer can cancel this game");
+                }
+
+                // Verify game is in SCHEDULED status (cannot cancel in-progress or completed
+                // games)
+                if (game.getStatus() != Game.GameStatus.SCHEDULED) {
+                        throw new IllegalStateException(
+                                        "Cannot cancel a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                // Update game status to CANCELLED
+                game.setStatus(Game.GameStatus.CANCELLED);
+                game.setCancelledAt(Instant.now());
+                game = gameRepository.save(game);
+
+                return mapToGameResponse(game, userId);
+        }
+
         // ================== MAPPERS ==================
 
         /**
@@ -438,7 +467,8 @@ public class GameService {
         }
 
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
-                return mapToParticipantDto(p, endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
+                return mapToParticipantDto(p,
+                                endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
         }
 
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {

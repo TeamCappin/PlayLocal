@@ -132,6 +132,13 @@ export function useGame(gameId: string | undefined) {
     await fetchGame(); // Refresh data
   };
 
+  const cancelGame = async (): Promise<GameResponse> => {
+    if (!gameId) throw new Error('Game ID required');
+    const response = await gamesApi.cancel(gameId);
+    await fetchGame(); // Refresh data
+    return response;
+  };
+
   return {
     game,
     roster,
@@ -140,6 +147,7 @@ export function useGame(gameId: string | undefined) {
     refetch: fetchGame,
     joinGame,
     leaveGame,
+    cancelGame,
   };
 }
 

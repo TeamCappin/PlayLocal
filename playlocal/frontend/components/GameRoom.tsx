@@ -21,6 +21,9 @@ import {
   LogIn,
   Flag,
   Medal,
+  XCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
@@ -58,153 +61,6 @@ function getSportImage(sport: string) {
   );
 }
 
-// Mock data for fallback when backend unavailable
-const mockGame = {
-  gameId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  title: "5v5 Basketball Pickup",
-
-  sportName: "Basketball",
-  location: {
-    name: "Parc Jarry Courts",
-    addressLine: "201 Rue Gary-Carter, Montréal, QC H2R 2W1",
-    city: "Montreal",
-    latitude: 45.5312,
-    longitude: -73.6205,
-  },
-  hasExactLocationAccess: true, // US-1.3: Mock assumes participant access
-  approximateLocation: "Montreal, QC",
-  startTime: new Date().toISOString(),
-  endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-  confirmedCount: 8,
-  maxPlayers: 10,
-  minPlayers: 6,
-  skillBand: "Intermediate",
-  intensityBand: "High",
-  indoorOutdoor: "outdoor",
-  description:
-    "Looking for some competitive basketball! We'll do team balancing based on skill levels. Bring water and good vibes.",
-  organizer: {
-    userId: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-    displayName: "Minh H.",
-    reliabilityScore: 98,
-  },
-  status: "SCHEDULED",
-  tags: [],
-  minAge: undefined,
-  maxAge: undefined,
-};
-
-const mockRoster: RosterResponse = {
-  confirmed: [
-    {
-      participationId: "c3d4e5f6-a7b8-9012-cdef-123456789012",
-      userId: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-      displayName: "Minh Huynh",
-      role: "ORGANIZER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 98,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "d4e5f6a7-b890-1234-def0-234567890123",
-      userId: "d4e5f6a7-b890-1234-def0-234567890124",
-      displayName: "Omar Elmasaoudi",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 95,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "e5f6a7b8-9012-3456-ef01-345678901234",
-      userId: "e5f6a7b8-9012-3456-ef01-345678901235",
-      displayName: "Asif Ali Khan",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 92,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "f6a7b890-1234-5678-f012-456789012345",
-      userId: "f6a7b890-1234-5678-f012-456789012346",
-      displayName: "Melissa Rahman",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 88,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "a7b89012-3456-789a-0123-567890123456",
-      userId: "a7b89012-3456-789a-0123-567890123457",
-      displayName: "Younes Bouhaba",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 97,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "b8901234-5678-9abc-1234-678901234567",
-      userId: "b8901234-5678-9abc-1234-678901234568",
-      displayName: "Alexander El Ghaoui",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 90,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "c9012345-6789-abcd-2345-789012345678",
-      userId: "c9012345-6789-abcd-2345-789012345679",
-      displayName: "David Onwionoko",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 85,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "d0123456-789a-bcde-3456-890123456789",
-      userId: "d0123456-789a-bcde-3456-890123456780",
-      displayName: "Steven Zrihen",
-      role: "PLAYER",
-      joinStatus: "CONFIRMED",
-      attendanceStatus: "ATTENDED",
-      reliabilityScore: 93,
-      joinedAt: new Date().toISOString(),
-    },
-  ],
-  waitlisted: [
-    {
-      participationId: "e1234567-89ab-cdef-4567-901234567890",
-      userId: "e1234567-89ab-cdef-4567-901234567891",
-      displayName: "Youssef Yacoub",
-      role: "PLAYER",
-      joinStatus: "WAITLISTED",
-      attendanceStatus: "UNKNOWN",
-      waitlistPosition: 1,
-      reliabilityScore: 87,
-      joinedAt: new Date().toISOString(),
-    },
-    {
-      participationId: "f2345678-9abc-def0-5678-012345678901",
-      userId: "f2345678-9abc-def0-5678-012345678902",
-      displayName: "Hudson Lu",
-      role: "PLAYER",
-      joinStatus: "WAITLISTED",
-      attendanceStatus: "UNKNOWN",
-      waitlistPosition: 2,
-      reliabilityScore: 82,
-      joinedAt: new Date().toISOString(),
-    },
-  ],
-  maxPlayers: 10,
-  spotsAvailable: 2,
-};
-
 export function GameRoom() {
   const params = useParams();
   const id = params?.id as string;
@@ -217,6 +73,7 @@ export function GameRoom() {
     error,
     joinGame,
     leaveGame,
+    cancelGame,
     refetch,
   } = useGame(id);
 
@@ -231,10 +88,45 @@ export function GameRoom() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
+  // US-2.4: Cancel/share state
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
-  // Use API data if available, fallback to mock
-  const game = apiGame || mockGame;
-  const roster = apiRoster || mockRoster;
+  // CRITICAL: Check loading state FIRST before accessing any data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <span className="text-gray-600">Loading game...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // BUG-2.2 fix: Show error state if game not found (after loading completes)
+  if (!apiGame || !apiRoster) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center px-4">
+          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h1 className="text-2xl text-gray-900 mb-2">Game Not Found</h1>
+          <p className="text-gray-600 mb-6">This game may have been removed or doesn't exist.</p>
+          <a
+            href="/discover"
+            className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            Browse Games
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Now it's safe to access game and roster
+  const game = apiGame;
+  const roster = apiRoster;
 
   const handleEndorse = async (userId: string) => {
     try {
@@ -339,16 +231,40 @@ export function GameRoom() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <span className="text-gray-600">Loading game...</span>
-        </div>
-      </div>
-    );
-  }
+  // US-2.4: Organizer cancel game
+  const handleCancel = async () => {
+    setActionError(null);
+    setIsCancelling(true);
+    try {
+      await cancelGame();
+      setActionSuccess('Game has been cancelled');
+      setShowCancelConfirm(false);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to cancel game');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  // US-2.4: Share game link
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    }
+  };
 
   const chatMessages = [
     {
@@ -422,11 +338,10 @@ export function GameRoom() {
                 game.tags.map((tag: any) => (
                   <span
                     key={tag.tagId}
-                    className={`px-3 py-1 rounded-full text-sm capitalize ${
-                      tag.isRestricted
+                    className={`px-3 py-1 rounded-full text-sm capitalize ${tag.isRestricted
                         ? "bg-amber-500 text-white"
                         : "bg-blue-500/90 text-white"
-                    }`}
+                      }`}
                   >
                     {tag.isRestricted && "⚠️ "}
                     {tag.name.replace("-", " ")}
@@ -484,31 +399,28 @@ export function GameRoom() {
                 <div className="flex">
                   <button
                     onClick={() => setActiveTab("details")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${
-                      activeTab === "details"
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "details"
                         ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     Details
                   </button>
                   <button
                     onClick={() => setActiveTab("lineup")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${
-                      activeTab === "lineup"
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "lineup"
                         ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     Lineup ({roster.confirmed.length}/{game.maxPlayers})
                   </button>
                   <button
                     onClick={() => setActiveTab("chat")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${
-                      activeTab === "chat"
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "chat"
                         ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <span>Chat</span>
@@ -567,7 +479,7 @@ export function GameRoom() {
                             <a
                               href={
                                 game.location.latitude &&
-                                game.location.longitude
+                                  game.location.longitude
                                   ? `https://www.google.com/maps/search/?api=1&query=${game.location.latitude},${game.location.longitude}`
                                   : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location.addressLine || game.location.name || game.location.city || "")}`
                               }
@@ -601,61 +513,60 @@ export function GameRoom() {
                     {((game.tags && game.tags.length > 0) ||
                       game.minAge ||
                       game.maxAge) && (
-                      <div>
-                        <h3 className="text-lg text-gray-900 mb-3">
-                          Community Requirements
-                        </h3>
-                        <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-                          {game.tags && game.tags.length > 0 && (
-                            <div>
-                              <p className="text-sm text-gray-600 mb-2">
-                                This game is tagged for specific communities:
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {game.tags.map((tag: any) => (
-                                  <span
-                                    key={tag.tagId}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${
-                                      tag.isRestricted
-                                        ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                        : "bg-blue-100 text-blue-800 border border-blue-200"
-                                    }`}
-                                  >
-                                    {tag.isRestricted && "⚠️ "}
-                                    {tag.name.replace("-", " ")}
-                                  </span>
-                                ))}
-                              </div>
-                              {game.tags.some(
-                                (tag: any) => tag.isRestricted,
-                              ) && (
-                                <p className="text-sm text-amber-700 mt-2 flex items-start gap-2">
-                                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                  <span>
-                                    Tags marked with ⚠️ require confirmation
-                                    when joining
-                                  </span>
+                        <div>
+                          <h3 className="text-lg text-gray-900 mb-3">
+                            Community Requirements
+                          </h3>
+                          <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                            {game.tags && game.tags.length > 0 && (
+                              <div>
+                                <p className="text-sm text-gray-600 mb-2">
+                                  This game is tagged for specific communities:
                                 </p>
-                              )}
-                            </div>
-                          )}
-                          {(game.minAge || game.maxAge) && (
-                            <div>
-                              <p className="text-sm text-gray-600 mb-1">
-                                Age Requirement:
-                              </p>
-                              <p className="text-gray-900 font-medium">
-                                {game.minAge && game.maxAge
-                                  ? `${game.minAge}–${game.maxAge} years old`
-                                  : game.minAge
-                                    ? `${game.minAge}+ years old`
-                                    : `Up to ${game.maxAge} years old`}
-                              </p>
-                            </div>
-                          )}
+                                <div className="flex flex-wrap gap-2">
+                                  {game.tags.map((tag: any) => (
+                                    <span
+                                      key={tag.tagId}
+                                      className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${tag.isRestricted
+                                          ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                          : "bg-blue-100 text-blue-800 border border-blue-200"
+                                        }`}
+                                    >
+                                      {tag.isRestricted && "⚠️ "}
+                                      {tag.name.replace("-", " ")}
+                                    </span>
+                                  ))}
+                                </div>
+                                {game.tags.some(
+                                  (tag: any) => tag.isRestricted,
+                                ) && (
+                                    <p className="text-sm text-amber-700 mt-2 flex items-start gap-2">
+                                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                      <span>
+                                        Tags marked with ⚠️ require confirmation
+                                        when joining
+                                      </span>
+                                    </p>
+                                  )}
+                              </div>
+                            )}
+                            {(game.minAge || game.maxAge) && (
+                              <div>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  Age Requirement:
+                                </p>
+                                <p className="text-gray-900 font-medium">
+                                  {game.minAge && game.maxAge
+                                    ? `${game.minAge}–${game.maxAge} years old`
+                                    : game.minAge
+                                      ? `${game.minAge}+ years old`
+                                      : `Up to ${game.maxAge} years old`}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">
@@ -906,10 +817,56 @@ export function GameRoom() {
                 </>
               )}
 
-              <button className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                <Share2 className="w-5 h-5" />
-                <span>Share Game</span>
+              <button
+                onClick={handleShare}
+                className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              >
+                {shareSuccess ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
+                <span>{shareSuccess ? 'Link Copied!' : 'Share Game'}</span>
               </button>
+
+              {/* US-2.4: Organizer Cancel Game Control */}
+              {isOrganizer && game.status === 'SCHEDULED' && (
+                <>
+                  {!showCancelConfirm ? (
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-5 h-5" />
+                      <span>Cancel Game</span>
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-3">
+                      <p className="text-red-700 text-sm">Are you sure you want to cancel this game? This action cannot be undone.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowCancelConfirm(false)}
+                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          No, Keep
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          disabled={isCancelling}
+                          className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                          style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                        >
+                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Show cancelled badge if game is cancelled */}
+              {game.status === 'CANCELLED' && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-center">
+                  <XCircle className="w-5 h-5 inline mr-2" />
+                  This game has been cancelled
+                </div>
+              )}
 
               {isAuthenticated && (
                 <button
