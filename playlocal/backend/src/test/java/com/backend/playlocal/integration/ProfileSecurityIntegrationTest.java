@@ -35,7 +35,7 @@ class ProfileSecurityIntegrationTest {
         
         // Try to access a profile without a token
         mockMvc.perform(get("/api/v1/users/" + randomUserId + "/profile"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

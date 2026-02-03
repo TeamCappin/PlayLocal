@@ -1,21 +1,37 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
-import { usersApi, UserDto } from '@/lib/api'; // Assume usersApi has method getProfile
+import { usersApi, UserDto, endorsementsApi, EndorsementResponse } from '@/lib/api'; // Assume usersApi has method getProfile
+import { ScoreHistoryList } from './ScoreHistoryList';
+import { ActionsRequired } from './sub-components/ActionsRequired';
+import { MatchHistoryList } from './sub-components/MatchHistoryList';
+import { usePastGames } from '@/hooks/useGames';
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
+
 
 export function UserProfile() {
   const { username } = useParams();
   const usernameStr = Array.isArray(username) ? username[0] : username;
-  const { user: currentUser, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats'>('overview');
+  const { user: currentUser, isAuthenticated, refreshUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats' | 'score-history'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  // US 3.3 Organizer Endorsements
+  const [endorsements, setEndorsements] = useState<EndorsementResponse[]>([]);
+  const [loadingEndorsements, setLoadingEndorsements] = useState(false);
+  const [endorsementToReport, setEndorsementToReport] = useState<EndorsementResponse | null>(null);
+  // Attendance Disputes
+  const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
+  const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
+  const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
+  const { games: pastGames} = usePastGames();
+
 
   // Check if viewing own profile
   const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
@@ -42,6 +58,13 @@ export function UserProfile() {
     }
   }, [isOwnProfile, usernameStr]);
 
+  // Refresh auth user data when viewing own profile so stats are up-to-date
+  useEffect(() => {
+    if (isOwnProfile) {
+      refreshUser();
+    }
+  }, [isOwnProfile]);
+
   // TODO: Implement friendship check via API
   const isFriend = false; // Placeholder for friendship status
   // Copilot fix #10: Renamed from canViewPrivateDetails to canViewActivityData
@@ -63,7 +86,7 @@ export function UserProfile() {
     stats: {
       gamesPlayed: currentUser.gamesCount || 0,
       gamesHosted: (currentUser as any).gamesHosted || 0,
-      reliabilityScore: currentUser.reliabilityScore || 100,
+      reliabilityScore: currentUser.reliabilityScore ?? 100,
       averageRating: (currentUser as any).averageRating || 0,
     },
   } : {
@@ -85,6 +108,26 @@ export function UserProfile() {
       averageRating: 0,
     },
   };
+
+  // Fetch endorsements
+  // US 3.3 Organizer Endorsements
+  useEffect(() => {
+    if (!user.userId) {
+      return;
+    }
+
+    setLoadingEndorsements(true);
+    endorsementsApi.getUserEndorsements(user.userId)
+      .then(data => {
+        setEndorsements(data);
+      })
+      .catch(err => {
+        console.error("Failed to load endorsements", err);
+      })
+      .finally(() => {
+        setLoadingEndorsements(false);
+      });
+  }, [user.userId]);
 
 
   const sportProfiles = [
@@ -259,10 +302,12 @@ export function UserProfile() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
+            <StatCard label="Reliability Score" value={`${Math.round(user.stats.reliabilityScore)}%`} />
+            {/* US 3.3 Organizer Endorsements */}
+            <StatCard label="Endorsements" value={endorsements.length} icon={<Medal className="w-4 h-4 text-emerald-600" />} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
           </div>
         </div>
@@ -308,13 +353,36 @@ export function UserProfile() {
             >
               Stats & Analytics
             </button>
+            <button
+              onClick={() => setActiveTab('score-history')}
+              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'score-history'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              Score History
+            </button>
           </div>
+        </div>
+
+        <div>
+          <ActionsRequired />
         </div>
 
         <div className="py-8">
           {activeTab === 'overview' && (
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
+                {/* US-6.1: Organizer Quality Score */}
+                {user.userId && (
+                  <OrganizerQualityBadge 
+                    userId={user.userId} 
+                    displayName={user.name}
+                    variant="full"
+                    showInfoCard={true}
+                  />
+                )}
+                
                 {/* Sport Profiles Summary */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Sport Profiles</h2>
@@ -384,6 +452,58 @@ export function UserProfile() {
               </div>
 
               <div className="space-y-6">
+                {/* Endorsements - US 3.3 Organizer Endorsements */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl text-gray-900">Endorsements</h2>
+                    <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-sm font-medium">
+                      <Medal className="w-4 h-4" />
+                      {endorsements.length}
+                    </div>
+                  </div>
+                  {loadingEndorsements ? (
+                     <div className="text-center py-4 text-gray-400">Loading endorsements...</div>
+                  ) : endorsements.length > 0 ? (
+                    <div className="space-y-3">
+                      {endorsements.slice(0, 5).map((endorsement) => (
+                        <div key={endorsement.endorsementId} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg group">
+                          <div className="bg-white p-2 rounded-full shadow-sm text-emerald-500">
+                             <Medal className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-gray-900 font-medium">Organizer Pick</div>
+                            <div className="text-sm text-gray-600">
+                              by {endorsement.endorserName}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {new Date(endorsement.gameDate).toLocaleDateString()} • {endorsement.gameTitle}
+                            </div>
+                          </div>
+                          <button 
+                             onClick={() => setEndorsementToReport(endorsement)}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 rounded"
+                             title="Report Endorsement"
+                          >
+                             <Flag className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {endorsements.length > 5 && (
+                          <div className="text-center pt-2">
+                              <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                                  View All ({endorsements.length})
+                              </button>
+                          </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+                       <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                       <p>No endorsements yet</p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Achievements */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Achievements</h2>
@@ -435,38 +555,18 @@ export function UserProfile() {
           )}
 
           {activeTab === 'history' && (
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl text-gray-900">Match History</h2>
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div>
+                <h2 className="text-xl text-gray-900 mb-4">Match History</h2>
               </div>
               {canViewActivityData ? (
-                <div className="divide-y divide-gray-200">
-                  {recentGames.map((game) => (
-                    <Link
-                      key={game.id}
-                      href={`/games/${game.id}/recap`}
-                      className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white">
-                          🏀
-                        </div>
-                        <div>
-                          <div className="text-gray-900 mb-1">{game.title}</div>
-                          <div className="text-sm text-gray-600">
-                            {game.date} • {game.location}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
-                          {game.result}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {game.team} • {game.score}
-                        </div>
-                      </div>
-                    </Link>
+                //Adding a temporary div to fix layout shift while MatchHistoryList is being updated 
+                <div className='space-y-3'>
+                  {pastGames.map((game) => (
+                    <MatchHistoryList
+                      key={game.gameId}
+                      game={game}
+                    />
                   ))}
                 </div>
               ) : (
@@ -525,15 +625,48 @@ export function UserProfile() {
               </div>
             </div>
           )}
+
+          {activeTab === 'score-history' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
+              <ScoreHistoryList
+                userId={isOwnProfile ? undefined : user.userId || undefined}
+                onDisputeClick={(entry) => {
+                  setDisputeGameId(entry.gameId || undefined);
+                  setDisputeGameTitle(entry.gameTitle || undefined);
+                  setDisputeScoreHistoryId(entry.scoreHistoryId);
+                  setShowReportModal(true);
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Report Modal */}
       <ReportModal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => {
+          setShowReportModal(false);
+          setDisputeGameId(undefined);
+          setDisputeGameTitle(undefined);
+          setDisputeScoreHistoryId(undefined);
+        }}
         reportedUserId={user.userId || undefined}
+        gameId={disputeGameId}
         targetName={user.name}
+        reportType={disputeScoreHistoryId ? 'attendance_dispute' : 'user'}
+        gameTitle={disputeGameTitle}
+        scoreHistoryId={disputeScoreHistoryId}
+      />
+
+      {/* Endorsement Report Modal */}
+      <ReportModal
+        isOpen={!!endorsementToReport}
+        onClose={() => setEndorsementToReport(null)}
+        endorsementId={endorsementToReport?.endorsementId}
+        targetName="Endorsement"
+        reportType="endorsement"
       />
     </div>
   );

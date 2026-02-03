@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Star, UserPlus, Filter, Loader2 } from 'lucide-react';
-import { usersApi, friendsApi, UserDto } from '@/lib/api';
+import { Search, MapPin, Star, UserPlus, Filter, Loader2, CheckCircle, UserCheck, Clock } from 'lucide-react';
+import { usersApi, friendsApi, UserDto, FriendInfo } from '@/lib/api';
 
 export function PlayerSearch() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,7 +10,46 @@ export function PlayerSearch() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
-  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  
+  // Track friend status for each player
+  const [friendsMap, setFriendsMap] = useState<Map<string, FriendInfo>>(new Map());
+  const [pendingSentMap, setPendingSentMap] = useState<Map<string, FriendInfo>>(new Map());
+  const [pendingReceivedMap, setPendingReceivedMap] = useState<Map<string, FriendInfo>>(new Map());
+
+  // Fetch friends list to check existing relationships
+  const fetchFriendsList = useCallback(async () => {
+    try {
+      const friendsData = await friendsApi.getFriends();
+      
+      // Create maps for quick lookup
+      const friends = new Map<string, FriendInfo>();
+      const sent = new Map<string, FriendInfo>();
+      const received = new Map<string, FriendInfo>();
+      
+      (friendsData.friends || []).forEach(friend => {
+        friends.set(friend.friendUserId, friend);
+      });
+      
+      (friendsData.pendingSent || []).forEach(request => {
+        sent.set(request.friendUserId, request);
+      });
+      
+      (friendsData.pendingReceived || []).forEach(request => {
+        received.set(request.friendUserId, request);
+      });
+      
+      setFriendsMap(friends);
+      setPendingSentMap(sent);
+      setPendingReceivedMap(received);
+    } catch (err: any) {
+      // Log error but don't block the page
+      console.error('Failed to load friends list:', err);
+      // Set empty maps on error
+      setFriendsMap(new Map());
+      setPendingSentMap(new Map());
+      setPendingReceivedMap(new Map());
+    }
+  }, []);
 
   // Debounced search
   const searchPlayers = useCallback(async (query: string) => {
@@ -29,8 +68,9 @@ export function PlayerSearch() {
 
   // Initial load
   useEffect(() => {
+    fetchFriendsList();
     searchPlayers('');
-  }, [searchPlayers]);
+  }, [fetchFriendsList, searchPlayers]);
 
   // Search on query change (debounced)
   useEffect(() => {
@@ -43,10 +83,59 @@ export function PlayerSearch() {
   const handleAddFriend = async (userId: string) => {
     try {
       setSendingRequestTo(userId);
-      await friendsApi.sendRequest(userId);
-      setSentRequests(prev => new Set(prev).add(userId));
+      setError(null);
+      
+      // Prevent duplicate requests
+      if (friendsMap.has(userId) || pendingSentMap.has(userId) || pendingReceivedMap.has(userId)) {
+        return;
+      }
+      
+      const response = await friendsApi.sendRequest(userId);
+      
+      // Update the pending sent map
+      const friendInfo: FriendInfo = {
+        friendshipId: response.friendshipId,
+        friendUserId: userId,
+        displayName: players.find(p => p.userId === userId)?.displayName || '',
+        status: 'PENDING',
+        reliabilityScore: 0,
+        gamesCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      
+      setPendingSentMap(prev => new Map(prev).set(userId, friendInfo));
     } catch (err: any) {
-      setError(err.message || 'Failed to send friend request');
+      // Extract user-friendly error message from various possible formats
+      let errorMessage = 'Failed to send friend request';
+      
+      // Handle network errors
+      if (err?.status === 0 || err?.message?.includes('Network error')) {
+        errorMessage = 'Unable to connect to server. Please check your connection.';
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      // Handle specific error cases
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes('already exists') || 
+          lowerMessage.includes('friend request already') ||
+          lowerMessage.includes('duplicate')) {
+        setError('A friend request already exists with this user');
+        // Refresh friends list to get accurate state
+        await fetchFriendsList();
+      } else if (lowerMessage.includes('yourself')) {
+        setError('You cannot send a friend request to yourself');
+      } else if (lowerMessage.includes('not found')) {
+        setError('User not found');
+      } else if (lowerMessage.includes('unexpected error')) {
+        setError('An error occurred. Please try again or contact support if the problem persists.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setSendingRequestTo(null);
     }
@@ -121,8 +210,15 @@ export function PlayerSearch() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-            {error}
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-4 text-red-700 hover:text-red-900"
+              aria-label="Dismiss error"
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -138,15 +234,23 @@ export function PlayerSearch() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {players.map((player) => (
-              <PlayerCard
-                key={player.userId}
-                player={player}
-                onAddFriend={() => handleAddFriend(player.userId)}
-                loading={sendingRequestTo === player.userId}
-                requestSent={sentRequests.has(player.userId)}
-              />
-            ))}
+            {players.map((player) => {
+              const isFriend = friendsMap.has(player.userId);
+              const hasPendingSent = pendingSentMap.has(player.userId);
+              const hasPendingReceived = pendingReceivedMap.has(player.userId);
+              
+              return (
+                <PlayerCard
+                  key={player.userId}
+                  player={player}
+                  onAddFriend={() => handleAddFriend(player.userId)}
+                  loading={sendingRequestTo === player.userId}
+                  isFriend={isFriend}
+                  requestSent={hasPendingSent}
+                  requestReceived={hasPendingReceived}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -158,12 +262,16 @@ function PlayerCard({
   player,
   onAddFriend,
   loading,
+  isFriend,
   requestSent,
+  requestReceived,
 }: {
   player: UserDto;
   onAddFriend: () => void;
   loading: boolean;
+  isFriend: boolean;
   requestSent: boolean;
+  requestReceived: boolean;
 }) {
   const avatar = player.displayName?.substring(0, 2).toUpperCase() || '??';
 
@@ -211,27 +319,53 @@ function PlayerCard({
         )}
       </div>
 
-      <button
-        onClick={onAddFriend}
-        disabled={loading || requestSent}
-        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors ${requestSent
-            ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
-          } disabled:opacity-50`}
-      >
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : requestSent ? (
-          <>
-            <span>Request Sent</span>
-          </>
-        ) : (
-          <>
-            <UserPlus className="w-4 h-4" />
-            <span>Add Friend</span>
-          </>
-        )}
-      </button>
+      {isFriend ? (
+        <button
+          disabled
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Already Friends</span>
+        </button>
+      ) : requestReceived ? (
+        <Link
+          href="/friends"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+        >
+          <CheckCircle className="w-4 h-4" />
+          <span>Request Received</span>
+        </Link>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!loading && !requestSent && !isFriend && !requestReceived) {
+              onAddFriend();
+            }
+          }}
+          disabled={loading || requestSent || isFriend || requestReceived}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            requestSent || isFriend || requestReceived
+              ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : requestSent ? (
+            <>
+              <Clock className="w-4 h-4" />
+              <span>Request Sent</span>
+            </>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" />
+              <span>Add Friend</span>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

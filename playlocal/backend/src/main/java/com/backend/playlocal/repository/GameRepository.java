@@ -72,6 +72,14 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             String skillLevel,
             String locationType,
             String intensity);
+    @Query("SELECT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND p.user.userId = :userId AND p.joinStatus = 'CONFIRMED' ORDER BY g.endTime DESC")
+    List<Game> findPastGames(UUID userId, Instant now);
+
+    @Query("SELECT DISTINCT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' ORDER BY g.endTime ASC")
+    List<Game> findPastGamesForUserNeedingAttendanceUpdate(UUID userId, Instant now);
+
+    @Query("SELECT g FROM Game g WHERE g.sport.sportId = :sportId AND g.status = 'SCHEDULED' AND g.startTime > :now")
+    List<Game> findBySportAndUpcoming(UUID sportId, Instant now);
 
     @Query("SELECT g FROM Game g WHERE g.createdBy.userId = :userId ORDER BY g.createdAt DESC")
     List<Game> findByOrganizer(UUID userId);

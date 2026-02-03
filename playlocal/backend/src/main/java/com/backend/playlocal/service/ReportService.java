@@ -5,9 +5,11 @@ import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.RateLimitExceededException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.ReportDto;
+import com.backend.playlocal.model.entity.Endorsement;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.Report;
 import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.repository.EndorsementRepository;
 import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.ReportRepository;
 import com.backend.playlocal.repository.UserRepository;
@@ -30,13 +32,16 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final GameRepository gameRepository;
+    private final EndorsementRepository endorsementRepository;
     private final RateLimitConfig rateLimitConfig;
 
     public ReportService(ReportRepository reportRepository, UserRepository userRepository,
-            GameRepository gameRepository, RateLimitConfig rateLimitConfig) {
+            GameRepository gameRepository, EndorsementRepository endorsementRepository,
+            RateLimitConfig rateLimitConfig) {
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.gameRepository = gameRepository;
+        this.endorsementRepository = endorsementRepository;
         this.rateLimitConfig = rateLimitConfig;
     }
 
@@ -59,8 +64,9 @@ public class ReportService {
 
         User reportedUser = null;
         Game game = null;
+        Endorsement endorsement = null;
 
-        // Validate target (either user or game, not both)
+        // Validate target (either user, game, or endorsement)
         if (request.getReportedUserId() != null) {
             reportedUser = userRepository.findActiveById(UUID.fromString(request.getReportedUserId()))
                     .orElseThrow(() -> new ResourceNotFoundException("Reported user not found"));
@@ -75,8 +81,13 @@ public class ReportService {
                     .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
         }
 
-        if (reportedUser == null && game == null) {
-            throw new IllegalArgumentException("Must specify either reportedUserId or gameId");
+        if (request.getEndorsementId() != null) {
+            endorsement = endorsementRepository.findById(UUID.fromString(request.getEndorsementId()))
+                    .orElseThrow(() -> new ResourceNotFoundException("Endorsement not found"));
+        }
+
+        if (reportedUser == null && game == null && endorsement == null) {
+            throw new IllegalArgumentException("Must specify either reportedUserId, gameId, or endorsementId");
         }
 
         Report.ReportType reportType;
@@ -90,6 +101,7 @@ public class ReportService {
                 .reporter(reporter)
                 .reportedUser(reportedUser)
                 .game(game)
+                .endorsement(endorsement)
                 .reportType(reportType)
                 .details(request.getDetails())
                 .status(Report.ReportStatus.OPEN)
@@ -153,6 +165,7 @@ public class ReportService {
                 .reportedUserId(
                         report.getReportedUser() != null ? report.getReportedUser().getUserId().toString() : null)
                 .gameId(report.getGame() != null ? report.getGame().getGameId().toString() : null)
+                .endorsementId(report.getEndorsement() != null ? report.getEndorsement().getEndorsementId().toString() : null)
                 .reportType(report.getReportType().name())
                 .details(report.getDetails())
                 .status(report.getStatus().name())

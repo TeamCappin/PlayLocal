@@ -71,6 +71,45 @@ public class GameController {
     }
 
     /**
+     * Get game participation for a specific userId and gameID.
+     * US-2.6: Get Game Participation
+     */
+    @GetMapping("/gameParticipation/{gameId}")
+    public ResponseEntity<GameDto.ParticipantDto> getGameParticipation(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.ParticipantDto participation = gameService.getGameParticipation(gameId, userId);
+        return ResponseEntity.ok(participation);
+    }
+
+    /**
+     * Get previous games of a user for which join status has been confirmed and
+     * game not cancelled.
+     * US-2.6: Get Past Games
+     */
+    @GetMapping("/past")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGames(
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        List<GameDto.GameResponse> games = gameService.getPastGames(userId);
+        return ResponseEntity.ok(games);
+    }
+
+    /**
+     * Get previous games created by a user for which the rsvp roster needs to be
+     * updated.
+     * US-2.6: Get Past Games Needing Attendance Update
+     */
+    @GetMapping("/pastByUserIdNeedingAttendanceUpdate")
+    public ResponseEntity<List<GameDto.GameResponse>> getPastGamesForUserNeedingAttendanceUpdate(
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        List<GameDto.GameResponse> games = gameService.getPastGamesForUserNeedingAttendanceUpdate(userId);
+        return ResponseEntity.ok(games);
+    }
+
+    /**
      * Get game by ID.
      * US-2.4: Game Page
      * US-1.3: Hides exact location if user is not confirmed participant
@@ -102,13 +141,15 @@ public class GameController {
     /**
      * Join a game (concurrency-safe).
      * US-2.5: Join/Leave + Waitlist
+     * US-4.2: Community-Specific Game Filters (with tag confirmations)
      */
     @PostMapping("/{gameId}/join")
     public ResponseEntity<GameDto.JoinResponse> joinGame(
             @PathVariable UUID gameId,
+            @RequestBody(required = false) GameDto.JoinRequest joinRequest,
             Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+        GameDto.JoinResponse response = gameService.joinGame(gameId, userId, joinRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -123,5 +164,28 @@ public class GameController {
         UUID userId = UUID.fromString(authentication.getName());
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Cancel a game (organizer only).
+     * US-2.4: Game Page - Organizer controls to cancel the game
+     */
+    @DeleteMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> cancelGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.cancelGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get all available community tags.
+     * US-4.2: Community-Specific Game Filters
+     */
+    @GetMapping("/tags")
+    public ResponseEntity<List<GameDto.TagDto>> getAllTags() {
+        List<GameDto.TagDto> tags = gameService.getAllTags();
+        return ResponseEntity.ok(tags);
     }
 }

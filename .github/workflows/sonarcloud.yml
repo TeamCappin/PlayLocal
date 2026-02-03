@@ -48,7 +48,7 @@ jobs:
       - name: Install frontend dependencies
         working-directory: playlocal/frontend
         run: npm ci
-
+      
       - name: Run frontend tests with coverage
         working-directory: playlocal/frontend
         run: npm run test:coverage
