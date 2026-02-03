@@ -155,7 +155,7 @@ export function GameDiscovery() {
   const { games: apiGames, isLoading, error } = useGames(apiFilters);
 
   // Transform games - backend already filters, so just transform
-  const displayGames = (apiGames.length > 0 ? apiGames : mockGames).map(transformApiGame);
+  const displayGames = apiGames.map(transformApiGame);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -351,7 +351,7 @@ export function GameDiscovery() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayGames.map((game) => (
+                {displayGames.map((game: GameDisplay) => (
                   <GameCard key={game.id} game={game} />
                 ))}
               </div>

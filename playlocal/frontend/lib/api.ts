@@ -373,7 +373,19 @@ export const gamesApi = {
       body: JSON.stringify(data),
     }),
 
-  getUpcoming: () => apiFetch<GameResponse[]>("/games"),
+  getUpcoming: (filters?: GameFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+    if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
+    if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters?.sportName) params.append('sportName', filters.sportName);
+    if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+    if (filters?.locationType) params.append('locationType', filters.locationType);
+    if (filters?.intensity) params.append('intensity', filters.intensity);
+    
+    const queryString = params.toString();
+    return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+  },
 
   getPast: () => apiFetch<GameResponse[]>(`/games/past`),
 
@@ -382,20 +394,6 @@ export const gamesApi = {
 
   getPastByUserNeedingAttendanceUpdate: () =>
     apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
-
-    getUpcoming: (filters?: GameFilters) => {
-        const params = new URLSearchParams();
-        if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
-        if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
-        if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
-        if (filters?.sportName) params.append('sportName', filters.sportName);
-        if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
-        if (filters?.locationType) params.append('locationType', filters.locationType);
-        if (filters?.intensity) params.append('intensity', filters.intensity);
-        
-        const queryString = params.toString();
-        return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
-    },
   getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
   getRoster: (gameId: string) =>
