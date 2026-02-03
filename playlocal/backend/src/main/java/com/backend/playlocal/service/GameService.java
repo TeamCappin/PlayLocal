@@ -23,6 +23,10 @@ public class GameService {
 
         private static final Logger log = LoggerFactory.getLogger(GameService.class);
 
+        private static final String OUTCOME_CONFIRMED = "CONFIRMED";
+        private static final String OUTCOME_WAITLISTED = "WAITLISTED";
+        private static final String JOIN_LOG_FORMAT = "US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}, isOrganizer={}";
+
         private final GameRepository gameRepository;
         private final GameParticipationRepository participationRepository;
         private final UserRepository userRepository;
@@ -79,7 +83,7 @@ public class GameService {
                                 .skillBand(request.getSkillBand())
                                 .minPlayers(request.getMinPlayers() != null ? request.getMinPlayers() : 2)
                                 .maxPlayers(request.getMaxPlayers() != null ? request.getMaxPlayers() : 20)
-                                .allowWaitlist(request.getAllowWaitlist() != null ? request.getAllowWaitlist() : true)
+                                .allowWaitlist(request.getAllowWaitlist() == null || Boolean.TRUE.equals(request.getAllowWaitlist()))
                                 .minReliabilityRequired(request.getMinReliabilityRequired())
                                 .startTime(request.getStartTime())
                                 .endTime(request.getEndTime())
@@ -144,10 +148,9 @@ public class GameService {
                 if (!isOrganizer && game.getMinReliabilityRequired() != null
                                 && user.getReliabilityScore() < game.getMinReliabilityRequired()) {
                         joinOutcome = "DENIED";
-                        joinReason = String.format("Minimum reliability score required: %.1f%%. User score: %.1f%%", 
+                        joinReason = String.format("Minimum reliability score required: %.1f%%. User score: %.1f%%",
                                 game.getMinReliabilityRequired(), user.getReliabilityScore());
-                        log.info("US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}", 
-                                userId, gameId, joinOutcome, joinReason);
+                        log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
                         throw new AccessDeniedException(joinReason);
                 }
 
@@ -158,10 +161,9 @@ public class GameService {
                         if (participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ||
                                         participation.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED) {
                                 // Already joined - return current status (idempotent)
-                                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? "CONFIRMED" : "WAITLISTED";
+                                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
                                 joinReason = "Already joined this game";
-                                log.info("US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}, isOrganizer={}", 
-                                        userId, gameId, joinOutcome, joinReason, isOrganizer);
+                                log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
                                 return GameDto.JoinResponse.builder()
                                                 .participationId(participation.getParticipationId().toString())
                                                 .joinStatus(participation.getJoinStatus().name())
@@ -191,12 +193,11 @@ public class GameService {
                         participation = participationRepository.save(participation);
                         
                         // US-4.1: Log rejoin decision
-                        joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? "CONFIRMED" : "WAITLISTED";
+                        joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
                         joinReason = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
                                 ? "Successfully rejoined the game"
                                 : String.format("Rejoined waitlist at position %d", participation.getWaitlistPosition());
-                        log.info("US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}, isOrganizer={}", 
-                                userId, gameId, joinOutcome, joinReason, isOrganizer);
+                        log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
                         
                         // Return immediately - don't fall through to create new participation
                         return GameDto.JoinResponse.builder()
@@ -240,12 +241,11 @@ public class GameService {
                 participation = participationRepository.save(participation);
 
                 // US-4.1: Log successful join decision
-                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? "CONFIRMED" : "WAITLISTED";
-                joinReason = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED 
-                        ? "Joined successfully" 
+                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
+                joinReason = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
+                        ? "Joined successfully"
                         : String.format("Added to waitlist at position %d", participation.getWaitlistPosition());
-                log.info("US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}, isOrganizer={}", 
-                        userId, gameId, joinOutcome, joinReason, isOrganizer);
+                log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
 
                 return GameDto.JoinResponse.builder()
                                 .participationId(participation.getParticipationId().toString())
@@ -403,10 +403,7 @@ public class GameService {
                         } else {
                                 Optional<GameParticipation> p = participationRepository
                                                 .findByGameAndUser(game.getGameId(), requestingUserId);
-                                if (p.isPresent()
-                                                && p.get().getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED) {
-                                        showExactLocation = true;
-                                }
+                                showExactLocation = p.filter(part -> part.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED).isPresent();
                         }
                 }
 

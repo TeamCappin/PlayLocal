@@ -98,101 +98,93 @@ export function CreateGame() {
     setIsAddressValid(true);
   };
 
+  const validateStep1 = (): boolean => {
+    if (!formData.title) {
+      setError("Please enter a game title");
+      return false;
+    }
+    if (!formData.sport) {
+      setError("Please select a sport");
+      return false;
+    }
+    if (!formData.location) {
+      setError("Please enter a location");
+      return false;
+    }
+    if (!isAddressValid) {
+      setError("Please select a valid address from the suggestions");
+      return false;
+    }
+    if (!formData.date) {
+      setError("Please select a date");
+      return false;
+    }
+    const selectedDate = new Date(formData.date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      setError("Date cannot be in the past");
+      return false;
+    }
+    if (!formData.indoor) {
+      setError("Please select location type (Indoor/Outdoor)");
+      return false;
+    }
+    if (!formData.startTime) {
+      setError("Please select a start time");
+      return false;
+    }
+    if (!formData.endTime) {
+      setError("Please select an end time");
+      return false;
+    }
+    const start = new Date(`${formData.date}T${formData.startTime}:00`);
+    const end = new Date(`${formData.date}T${formData.endTime}:00`);
+    if (end <= start) {
+      setError("End time must be after start time");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = (): boolean => {
+    if (!formData.minPlayers) {
+      setError("Please enter minimum players");
+      return false;
+    }
+    if (!formData.maxPlayers) {
+      setError("Please enter maximum players");
+      return false;
+    }
+    const min = parseInt(formData.minPlayers, 10);
+    const max = parseInt(formData.maxPlayers, 10);
+    if (Number.isNaN(min) || Number.isNaN(max)) {
+      setError("Player counts must be numbers");
+      return false;
+    }
+    if (min < 2) {
+      setError("Minimum players must be at least 2");
+      return false;
+    }
+    if (max < min) {
+      setError("Maximum players cannot be less than minimum players");
+      return false;
+    }
+    if (!formData.skillLevel) {
+      setError("Please select a skill level");
+      return false;
+    }
+    if (!formData.intensity) {
+      setError("Please select an intensity level");
+      return false;
+    }
+    return true;
+  };
+
   const validateStep = (currentStep: number): boolean => {
     setError(null);
-
-    if (currentStep === 1) {
-      if (!formData.title) {
-        setError("Please enter a game title");
-        return false;
-      }
-      if (!formData.sport) {
-        setError("Please select a sport");
-        return false;
-      }
-      if (!formData.location) {
-        setError("Please enter a location");
-        return false;
-      }
-      if (!isAddressValid) {
-        setError("Please select a valid address from the suggestions");
-        return false;
-      }
-      if (!formData.date) {
-        setError("Please select a date");
-        return false;
-      }
-
-      // Date Validation: Cannot be in the past
-      // Normalize to midnight for comparison
-      const selectedDate = new Date(formData.date + 'T00:00:00');
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // We allow today, so strictly less than
-      if (selectedDate < today) {
-        setError("Date cannot be in the past");
-        return false;
-      }
-
-      if (!formData.indoor) {
-        setError("Please select location type (Indoor/Outdoor)");
-        return false;
-      }
-      if (!formData.startTime) {
-        setError("Please select a start time");
-        return false;
-      }
-      if (!formData.endTime) {
-        setError("Please select an end time");
-        return false;
-      }
-
-      // Time Validation
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError("End time must be after start time");
-        return false;
-      }
-    }
-
-    if (currentStep === 2) {
-      if (!formData.minPlayers) {
-        setError("Please enter minimum players");
-        return false;
-      }
-      if (!formData.maxPlayers) {
-        setError("Please enter maximum players");
-        return false;
-      }
-
-      const min = parseInt(formData.minPlayers);
-      const max = parseInt(formData.maxPlayers);
-
-      if (isNaN(min) || isNaN(max)) {
-        setError("Player counts must be numbers");
-        return false;
-      }
-      if (min < 2) {
-        setError("Minimum players must be at least 2");
-        return false;
-      }
-      if (max < min) {
-        setError("Maximum players cannot be less than minimum players");
-        return false;
-      }
-
-      if (!formData.skillLevel) {
-        setError("Please select a skill level");
-        return false;
-      }
-      if (!formData.intensity) {
-        setError("Please select an intensity level");
-        return false;
-      }
-    }
-
+    if (currentStep === 1) return validateStep1();
+    if (currentStep === 2) return validateStep2();
     return true;
   };
 
@@ -255,7 +247,7 @@ export function CreateGame() {
         minPlayers: parseInt(formData.minPlayers) || 2,
         maxPlayers: parseInt(formData.maxPlayers) || 20,
         allowWaitlist: formData.allowWaitlist,
-        minReliabilityRequired: formData.minReliabilityRequired ? parseFloat(formData.minReliabilityRequired) : undefined,
+        minReliabilityRequired: formData.minReliabilityRequired ? Number.parseFloat(formData.minReliabilityRequired) : undefined,
         startTime: new Date(startDateTime).toISOString(),
         endTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
         visibility: formData.visibility,
@@ -620,12 +612,13 @@ export function CreateGame() {
 
                 {/* Minimum Reliability Score */}
                 <div>
-                  <label className="block text-gray-700 mb-2">
+                  <label htmlFor="min-reliability-create" className="block text-gray-700 mb-2">
                     Minimum Reliability Score (Optional)
                   </label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <input
+                        id="min-reliability-create"
                         type="number"
                         min="0"
                         max="100"

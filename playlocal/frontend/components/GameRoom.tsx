@@ -3,7 +3,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import Link from 'next/link';
-import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag, Edit, X } from 'lucide-react';
+import { MapPin, Clock, Users, MessageCircle, Share2, Calendar, ExternalLink, CheckCircle, TrendingUp, Star, AlertCircle, Sun, Loader2, UserMinus, LogIn, Flag, Edit } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
@@ -127,8 +127,8 @@ export function GameRoom() {
     
     try {
       const updateData: UpdateGameRequest = {
-        minReliabilityRequired: editFormData.minReliabilityRequired 
-          ? parseFloat(editFormData.minReliabilityRequired) 
+        minReliabilityRequired: editFormData.minReliabilityRequired
+          ? Number.parseFloat(editFormData.minReliabilityRequired)
           : undefined,
       };
 
@@ -150,8 +150,11 @@ export function GameRoom() {
     }
 
     // Check reliability requirement before attempting to join
-    if (game.minReliabilityRequired != null && user && user.reliabilityScore < game.minReliabilityRequired) {
-      setActionError(`Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user.reliabilityScore}%`);
+    const meetsReliabilityRequirement = game.minReliabilityRequired == null
+      || !user
+      || user.reliabilityScore >= game.minReliabilityRequired;
+    if (!meetsReliabilityRequirement) {
+      setActionError(`Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user?.reliabilityScore ?? 0}%`);
       return;
     }
 
@@ -165,13 +168,8 @@ export function GameRoom() {
         setActionSuccess('Successfully joined the game!');
       }
     } catch (err: any) {
-      // Check if error is about reliability score
       const errorMessage = err.message || 'Failed to join game';
-      if (errorMessage.includes('Minimum reliability score required') || errorMessage.includes('reliability')) {
-        setActionError(errorMessage);
-      } else {
-        setActionError(errorMessage);
-      }
+      setActionError(errorMessage);
     } finally {
       setIsJoining(false);
     }
@@ -691,11 +689,12 @@ export function GameRoom() {
           
           <div className="space-y-4 py-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="min-reliability-edit" className="block text-sm font-medium text-gray-700 mb-2">
                 Minimum Reliability Score (Optional)
               </label>
               <div className="flex items-center gap-3">
                 <input
+                  id="min-reliability-edit"
                   type="number"
                   min="0"
                   max="100"
