@@ -18,6 +18,7 @@ public class ReportDto {
     public static class CreateRequest {
         private String reportedUserId;
         private String gameId;
+        private String endorsementId;
 
         @NotNull(message = "Report type is required")
         private String reportType; // HARASSMENT, SPORTSMANSHIP, SAFETY, SPAM, OTHER
@@ -35,6 +36,7 @@ public class ReportDto {
         private String reporterUserId;
         private String reportedUserId;
         private String gameId;
+        private String endorsementId;
         private String reportType;
         private String details;
         private String status;

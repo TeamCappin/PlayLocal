@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.backend.playlocal.service.OrganizerQualityService;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,7 +27,8 @@ import java.util.stream.Collectors;
 
 /**
  * Service for the Core Reliability Loop.
- * Implements: US-2.6 (Attendance Confirmation), US-2.7 (Reliability Score + History)
+ * Implements: US-2.6 (Attendance Confirmation), US-2.7 (Reliability Score +
+ * History)
  * 
  * The reliability score is calculated as:
  * reliability_score = (attended_count / games_count) * 100
@@ -40,15 +42,18 @@ public class ReliabilityService {
     private final GameParticipationRepository participationRepository;
     private final UserRepository userRepository;
     private final ScoreHistoryRepository scoreHistoryRepository;
+    private final OrganizerQualityService oqsService;
 
     public ReliabilityService(GameRepository gameRepository,
             GameParticipationRepository participationRepository,
             UserRepository userRepository,
-            ScoreHistoryRepository scoreHistoryRepository) {
+            ScoreHistoryRepository scoreHistoryRepository,
+            OrganizerQualityService oqsService) {
         this.gameRepository = gameRepository;
         this.participationRepository = participationRepository;
         this.userRepository = userRepository;
         this.scoreHistoryRepository = scoreHistoryRepository;
+        this.oqsService = oqsService;
     }
 
     /**
@@ -157,6 +162,9 @@ public class ReliabilityService {
             gameRepository.save(game);
         }
 
+        // US-6.1: Recalculate OQS for the organizer after attendance confirmation
+        oqsService.onAttendanceConfirmed(gameId);
+
         return AttendanceDto.AttendanceResponse.builder()
                 .gameId(gameId.toString())
                 .attendedCount(attendedCount)
@@ -187,7 +195,8 @@ public class ReliabilityService {
 
     /**
      * Get score history for a user.
-     * US 2.7: Users can view a simple "Score History" list on their profile (most recent first)
+     * US 2.7: Users can view a simple "Score History" list on their profile (most
+     * recent first)
      */
     public ScoreHistoryDto.ScoreHistoryResponse getScoreHistory(UUID userId, int page, int size) {
         User user = userRepository.findActiveById(userId)
@@ -250,7 +259,7 @@ public class ReliabilityService {
     }
 
     /**
-     * Get participants awaiting attendance confirmation.
+     * Get participants awaiting attendance confirmation. US-2.6
      */
     public List<AttendanceDto.AttendanceEntry> getPendingAttendance(UUID gameId, UUID organizerId) {
         Game game = gameRepository.findById(gameId)
@@ -260,11 +269,15 @@ public class ReliabilityService {
             throw new AccessDeniedException("Only the organizer can view attendance");
         }
 
-        return participationRepository.findForAttendanceConfirmation(gameId).stream()
-                .filter(p -> p.getAttendanceStatus() == GameParticipation.AttendanceStatus.UNKNOWN)
+        return participationRepository
+                .findForAttendanceConfirmation(gameId).stream()
                 .map(p -> AttendanceDto.AttendanceEntry.builder()
                         .participationId(p.getParticipationId().toString())
-                        .attendanceStatus("UNKNOWN")
+                        .attendanceStatus(p.getAttendanceStatus().name())
+                        .userId(p.getUser().getUserId().toString())
+                        .sportId(p.getSport().getSportId().toString())
+                        // TODO fetch actual position role - figure out the position role table
+                        .requestedPositionRoleId("HARD CODED POSITION ROLE")
                         .build())
                 .collect(Collectors.toList());
     }
