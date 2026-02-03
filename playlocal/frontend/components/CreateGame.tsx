@@ -47,6 +47,12 @@ function getSportImage(sport: string) {
   );
 }
 
+function getVisibilityLabel(visibility: string): string {
+  if (visibility === "public") return "Public";
+  if (visibility === "friends") return "Friends Only";
+  return "Invite Only";
+}
+
 export function CreateGame() {
   const navigate = useRouter();
   const { isAuthenticated, user } = useAuth();
@@ -134,7 +140,7 @@ export function CreateGame() {
     setIsAddressValid(true);
   };
 
-  const validateStep1 = (): boolean => {
+  const validateStep1RequiredFields = (): boolean => {
     if (!formData.title) {
       setError("Please enter a game title");
       return false;
@@ -155,13 +161,6 @@ export function CreateGame() {
       setError("Please select a date");
       return false;
     }
-    const selectedDate = new Date(formData.date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (selectedDate < today) {
-      setError("Date cannot be in the past");
-      return false;
-    }
     if (!formData.indoor) {
       setError("Please select location type (Indoor/Outdoor)");
       return false;
@@ -174,6 +173,17 @@ export function CreateGame() {
       setError("Please select an end time");
       return false;
     }
+    return true;
+  };
+
+  const validateStep1DateAndTime = (): boolean => {
+    const selectedDate = new Date(formData.date + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      setError("Date cannot be in the past");
+      return false;
+    }
     const start = new Date(`${formData.date}T${formData.startTime}:00`);
     const end = new Date(`${formData.date}T${formData.endTime}:00`);
     if (end <= start) {
@@ -181,6 +191,10 @@ export function CreateGame() {
       return false;
     }
     return true;
+  };
+
+  const validateStep1 = (): boolean => {
+    return validateStep1RequiredFields() && validateStep1DateAndTime();
   };
 
   const validateStep2 = (): boolean => {
@@ -192,8 +206,8 @@ export function CreateGame() {
       setError("Please enter maximum players");
       return false;
     }
-    const min = parseInt(formData.minPlayers, 10);
-    const max = parseInt(formData.maxPlayers, 10);
+    const min = Number.parseInt(formData.minPlayers, 10);
+    const max = Number.parseInt(formData.maxPlayers, 10);
     if (Number.isNaN(min) || Number.isNaN(max)) {
       setError("Player counts must be numbers");
       return false;
@@ -267,8 +281,8 @@ export function CreateGame() {
 
     // Validate age requirements if both are provided
     if (formData.minAge && formData.maxAge) {
-      const min = parseInt(formData.minAge);
-      const max = parseInt(formData.maxAge);
+      const min = Number.parseInt(formData.minAge, 10);
+      const max = Number.parseInt(formData.maxAge, 10);
       if (min > max) {
         setError("Minimum age cannot be greater than maximum age");
         return;
@@ -291,16 +305,16 @@ export function CreateGame() {
         indoorOutdoor: formData.indoor, // Now sends INDOOR/OUTDOOR
         intensityBand: formData.intensity, // Now sends BEGINNER/CASUAL/COMPETITIVE
         skillBand: formData.skillLevel, // Now sends ALL_LEVELS/BEGINNER/INTERMEDIATE/ADVANCED
-        minPlayers: parseInt(formData.minPlayers) || 2,
-        maxPlayers: parseInt(formData.maxPlayers) || 20,
+        minPlayers: Number.parseInt(formData.minPlayers, 10) || 2,
+        maxPlayers: Number.parseInt(formData.maxPlayers, 10) || 20,
         allowWaitlist: formData.allowWaitlist,
         minReliabilityRequired: formData.minReliabilityRequired ? Number.parseFloat(formData.minReliabilityRequired) : undefined,
         startTime: new Date(startDateTime).toISOString(),
         endTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
         visibility: formData.visibility,
         tagNames: formData.tagNames.length > 0 ? formData.tagNames : undefined,
-        minAge: formData.minAge ? parseInt(formData.minAge) : undefined,
-        maxAge: formData.maxAge ? parseInt(formData.maxAge) : undefined,
+        minAge: formData.minAge ? Number.parseInt(formData.minAge, 10) : undefined,
+        maxAge: formData.maxAge ? Number.parseInt(formData.maxAge, 10) : undefined,
       });
 
       navigate.push(`/games/${game.gameId}`);
@@ -751,7 +765,7 @@ export function CreateGame() {
                   </div>
                   {formData.minAge &&
                     formData.maxAge &&
-                    parseInt(formData.minAge) > parseInt(formData.maxAge) && (
+                    Number.parseInt(formData.minAge, 10) > Number.parseInt(formData.maxAge, 10) && (
                       <p className="text-sm text-red-600 mt-2">
                         Minimum age cannot be greater than maximum age
                       </p>
@@ -932,17 +946,14 @@ export function CreateGame() {
                     />
                     <SummaryRow
                       label="Visibility"
-                      value={
-                        formData.visibility === "public"
-                          ? "Public"
-                          : formData.visibility === "friends"
-                            ? "Friends Only"
-                            : "Invite Only"
-                      }
+                      value={getVisibilityLabel(formData.visibility)}
                     />
                     <SummaryRow label="Skill Level" value={formData.skillLevel || "Not set"} />
                     <SummaryRow label="Intensity" value={formData.intensity || "Not set"} />
-                    <SummaryRow label="Visibility" value={formData.visibility === "public" ? "Public" : formData.visibility === "friends" ? "Friends Only" : "Invite Only"} />
+                    <SummaryRow
+                      label="Visibility"
+                      value={getVisibilityLabel(formData.visibility)}
+                    />
                     <SummaryRow
                       label="Min Reliability Required"
                       value={formData.minReliabilityRequired ? `${formData.minReliabilityRequired}%` : "None (Open to all)"}
@@ -1063,7 +1074,7 @@ function isValidStep(step: number, formData: any): boolean {
     return !!(
       formData.minPlayers &&
       formData.maxPlayers &&
-      parseInt(formData.maxPlayers) >= parseInt(formData.minPlayers) &&
+      Number.parseInt(formData.maxPlayers, 10) >= Number.parseInt(formData.minPlayers, 10) &&
       formData.skillLevel &&
       formData.intensity
     );

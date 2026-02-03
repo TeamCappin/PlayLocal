@@ -252,7 +252,7 @@ public class GameService {
                                 // Capacity available - rejoin as CONFIRMED
                                 participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
                                 participation.setWaitlistPosition(null);
-                        } else if (game.getAllowWaitlist()) {
+                        } else if (Boolean.TRUE.equals(game.getAllowWaitlist())) {
                                 // Game full - rejoin to waitlist
                                 int nextPosition = participationRepository.getNextWaitlistPosition(gameId);
                                 participation.setJoinStatus(GameParticipation.JoinStatus.WAITLISTED);
@@ -297,7 +297,7 @@ public class GameService {
                                         .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
                                         .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
                                         .build();
-                } else if (game.getAllowWaitlist()) {
+                } else if (Boolean.TRUE.equals(game.getAllowWaitlist())) {
                         // Add to waitlist
                         int nextPosition = participationRepository.getNextWaitlistPosition(gameId);
                         participation = GameParticipation.builder()
@@ -551,7 +551,7 @@ public class GameService {
                                 .skillBand(game.getSkillBand())
                                 .minPlayers(game.getMinPlayers())
                                 .maxPlayers(game.getMaxPlayers())
-                                .allowWaitlist(game.getAllowWaitlist())
+                                .allowWaitlist(Boolean.TRUE.equals(game.getAllowWaitlist()))
                                 .minReliabilityRequired(game.getMinReliabilityRequired())
                                 .minAge(game.getMinAge())
                                 .maxAge(game.getMaxAge())

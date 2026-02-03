@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
-import { gamesApi, UpdateGameRequest, GameResponse, endorsementsApi, RosterResponse } from "@/lib/api";
+import { gamesApi, UpdateGameRequest, endorsementsApi } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
@@ -250,26 +250,25 @@ export function GameRoom() {
       game.minReliabilityRequired == null ||
       !user ||
       user.reliabilityScore >= game.minReliabilityRequired;
-    if (!meetsReliabilityRequirement) {
+    if (meetsReliabilityRequirement) {
+      // Check if there are restricted tags or age requirements
+      const restrictedTags =
+        game.tags?.filter((tag: any) => tag.isRestricted) || [];
+      const hasAgeRequirements = game.minAge || game.maxAge;
+
+      // Show confirmation modal if there are restricted tags or age requirements
+      if (restrictedTags.length > 0 || hasAgeRequirements) {
+        setShowJoinConfirmationModal(true);
+        return;
+      }
+
+      // Join directly if no restrictions
+      await performJoin();
+    } else {
       setActionError(
         `Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user?.reliabilityScore ?? 0}%`,
       );
-      return;
     }
-
-    // Check if there are restricted tags or age requirements
-    const restrictedTags =
-      game.tags?.filter((tag: any) => tag.isRestricted) || [];
-    const hasAgeRequirements = game.minAge || game.maxAge;
-
-    // Show confirmation modal if there are restricted tags or age requirements
-    if (restrictedTags.length > 0 || hasAgeRequirements) {
-      setShowJoinConfirmationModal(true);
-      return;
-    }
-
-    // Join directly if no restrictions
-    await performJoin();
   };
 
   const performJoin = async (confirmedTagIds?: string[]) => {
