@@ -274,6 +274,18 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
+export interface UpdateGameRequest {
+    title?: string;
+    description?: string;
+    indoorOutdoor?: string;
+    intensityBand?: string;
+    skillBand?: string;
+    minPlayers?: number;
+    maxPlayers?: number;
+    allowWaitlist?: boolean;
+    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+}
+
 export interface GameResponse {
   gameId: string;
   title: string;
@@ -388,9 +400,16 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  // US-4.1: Update game settings (min reliability, etc.)
+  update: (gameId: string, data: UpdateGameRequest) =>
+    apiFetch<GameResponse>(`/games/${gameId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   // US-2.4: Cancel game endpoint
   cancel: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: "DELETE" }),
 
   // US-4.2: Get all available tags
   getTags: () => apiFetch<TagDto[]>("/games/tags"),

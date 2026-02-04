@@ -194,4 +194,19 @@ class GameServicePrivacyTest {
                 assertNull(response.getLocation(), "Location should be null when game has no location");
                 assertEquals("Location unavailable", response.getApproximateLocation());
         }
+
+        @Test
+        void getGameById_WhenGameAllowWaitlistFalse_ReturnsAllowWaitlistFalse() {
+                game.setAllowWaitlist(false);
+                when(gameRepository.findById(game.getGameId())).thenReturn(Optional.of(game));
+                when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
+                when(participationRepository.findWaitlistedByGame(any())).thenReturn(java.util.Collections.emptyList());
+                when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+
+                GameDto.GameResponse response = gameService.getGameById(game.getGameId(), organizer.getUserId());
+
+                assertNotNull(response);
+                assertFalse(Boolean.TRUE.equals(response.getAllowWaitlist()),
+                                "allowWaitlist should be false when game has allowWaitlist false");
+        }
 }
