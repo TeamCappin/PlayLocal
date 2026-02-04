@@ -129,6 +129,7 @@ class MediaServiceTest {
             RequestUploadSlotResponse resp = mediaService.requestPhotoUploadSlot(gameId, uploaderUserId, req);
 
             // Assert
+            // Assert
             assertThat(resp.getMediaId()).isEqualTo(generatedMediaId);
             assertThat(resp.getUploadUrl()).isEqualTo("http://example.com/put");
             assertThat(resp.getObjectKey()).isEqualTo("games/" + gameId + "/photos/" + generatedMediaId);
@@ -136,17 +137,18 @@ class MediaServiceTest {
             verify(mediaRepo, times(2)).save(savedAssetCaptor.capture());
             List<MediaAsset> savedAssets = savedAssetCaptor.getAllValues();
 
-            // First save: before objectKey is assigned
-            assertThat(savedAssets.get(0).getStorageUrl()).isNull();
+            String expectedKey = "games/" + gameId + "/photos/" + generatedMediaId;
+
+            assertThat(savedAssets.get(0).getStorageUrl()).isEqualTo(expectedKey);
             assertThat(savedAssets.get(0).getUploaderUserId()).isEqualTo(uploaderUserId);
             assertThat(savedAssets.get(0).getGameId()).isEqualTo(gameId);
             assertThat(savedAssets.get(0).getMediaType()).isEqualTo(MediaAsset.MediaType.PHOTO);
 
-            // Second save: objectKey assigned
-            assertThat(savedAssets.get(1).getStorageUrl()).isEqualTo("games/" + gameId + "/photos/" + generatedMediaId);
+            assertThat(savedAssets.get(1).getStorageUrl()).isEqualTo(expectedKey);
 
             verify(presigner).presignPutObject(presignCaptor.capture());
             assertThat(presignCaptor.getValue().putObjectRequest().contentType()).isEqualTo("image/jpeg");
+
         }
 
         @Test
