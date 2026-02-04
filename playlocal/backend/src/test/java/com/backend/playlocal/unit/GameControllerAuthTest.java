@@ -339,4 +339,70 @@ class GameControllerAuthTest {
             assertThat(response.getBody().getGameId()).isEqualTo(gameId.toString());
         }
     }
+
+    @Nested
+    @DisplayName("US-4.1: joinGame and updateGame")
+    class JoinAndUpdateGameTests {
+
+        @Test
+        @DisplayName("joinGame should call service with userId and optional body and return 200")
+        void joinGame_Authenticated_ShouldCallServiceAndReturn200() {
+            UUID userId = UUID.randomUUID();
+            when(authentication.getName()).thenReturn(userId.toString());
+            GameDto.JoinRequest joinRequest = GameDto.JoinRequest.builder().build();
+            GameDto.JoinResponse joinResponse = GameDto.JoinResponse.builder()
+                    .participationId(UUID.randomUUID().toString())
+                    .joinStatus("CONFIRMED")
+                    .message("Joined")
+                    .build();
+            when(gameService.joinGame(gameId, userId, joinRequest)).thenReturn(joinResponse);
+
+            ResponseEntity<GameDto.JoinResponse> response = gameController.joinGame(gameId, joinRequest, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getJoinStatus()).isEqualTo("CONFIRMED");
+            verify(gameService).joinGame(gameId, userId, joinRequest);
+        }
+
+        @Test
+        @DisplayName("joinGame with null body should call service with null request")
+        void joinGame_NullBody_ShouldCallServiceWithNull() {
+            UUID userId = UUID.randomUUID();
+            when(authentication.getName()).thenReturn(userId.toString());
+            GameDto.JoinResponse joinResponse = GameDto.JoinResponse.builder()
+                    .participationId(UUID.randomUUID().toString())
+                    .joinStatus("CONFIRMED")
+                    .build();
+            when(gameService.joinGame(gameId, userId, null)).thenReturn(joinResponse);
+
+            ResponseEntity<GameDto.JoinResponse> response = gameController.joinGame(gameId, null, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(gameService).joinGame(gameId, userId, null);
+        }
+
+        @Test
+        @DisplayName("updateGame should call service with userId and request and return 200")
+        void updateGame_Organizer_ShouldCallServiceAndReturn200() {
+            UUID organizerId = UUID.randomUUID();
+            when(authentication.getName()).thenReturn(organizerId.toString());
+            GameDto.UpdateRequest updateRequest = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(85.0f)
+                    .build();
+            GameDto.GameResponse updatedGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .title("Updated Game")
+                    .minReliabilityRequired(85.0f)
+                    .build();
+            when(gameService.updateGame(gameId, organizerId, updateRequest)).thenReturn(updatedGame);
+
+            ResponseEntity<GameDto.GameResponse> response = gameController.updateGame(gameId, updateRequest, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getMinReliabilityRequired()).isEqualTo(85.0f);
+            verify(gameService).updateGame(gameId, organizerId, updateRequest);
+        }
+    }
 }

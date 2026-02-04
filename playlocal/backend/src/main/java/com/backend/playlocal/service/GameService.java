@@ -5,6 +5,8 @@ import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,12 @@ import java.util.stream.Collectors;
 
 @Service
 public class GameService {
+
+        private static final Logger log = LoggerFactory.getLogger(GameService.class);
+
+        private static final String OUTCOME_CONFIRMED = "CONFIRMED";
+        private static final String OUTCOME_WAITLISTED = "WAITLISTED";
+        private static final String JOIN_LOG_FORMAT = "US-4.1 Join decision: userId={}, gameId={}, outcome={}, reason={}, isOrganizer={}";
 
         private final GameRepository gameRepository;
         private final GameParticipationRepository participationRepository;
@@ -94,7 +102,7 @@ public class GameService {
                                 .skillBand(request.getSkillBand())
                                 .minPlayers(request.getMinPlayers() != null ? request.getMinPlayers() : 2)
                                 .maxPlayers(request.getMaxPlayers() != null ? request.getMaxPlayers() : 20)
-                                .allowWaitlist(request.getAllowWaitlist() != null ? request.getAllowWaitlist() : true)
+                                .allowWaitlist(request.getAllowWaitlist() == null || Boolean.TRUE.equals(request.getAllowWaitlist()))
                                 .minReliabilityRequired(request.getMinReliabilityRequired())
                                 .minAge(request.getMinAge())
                                 .maxAge(request.getMaxAge())
@@ -261,11 +269,18 @@ public class GameService {
                 // US-4.2: Validate and record tag confirmations for restricted tags
                 validateAndRecordTagConfirmations(game, user, joinRequest);
 
-                // Check reliability requirement
-                if (game.getMinReliabilityRequired() != null
+                // US-4.1: Check reliability requirement (organizer is exempt)
+                boolean isOrganizer = game.getCreatedBy().getUserId().equals(userId);
+                String joinReason = null;
+                String joinOutcome = null;
+
+                if (!isOrganizer && game.getMinReliabilityRequired() != null
                                 && user.getReliabilityScore() < game.getMinReliabilityRequired()) {
-                        throw new AccessDeniedException(
-                                        "Minimum reliability score required: " + game.getMinReliabilityRequired());
+                        joinOutcome = "DENIED";
+                        joinReason = String.format("Minimum reliability score required: %.1f%%. User score: %.1f%%",
+                                game.getMinReliabilityRequired(), user.getReliabilityScore());
+                        log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
+                        throw new AccessDeniedException(joinReason);
                 }
 
                 // Check for existing participation (idempotent - one per user per game)
@@ -275,6 +290,9 @@ public class GameService {
                         if (participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ||
                                         participation.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED) {
                                 // Already joined - return current status (idempotent)
+                                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
+                                joinReason = "Already joined this game";
+                                log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
                                 return GameDto.JoinResponse.builder()
                                                 .participationId(participation.getParticipationId().toString())
                                                 .joinStatus(participation.getJoinStatus().name())
@@ -290,7 +308,7 @@ public class GameService {
                                 // Capacity available - rejoin as CONFIRMED
                                 participation.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
                                 participation.setWaitlistPosition(null);
-                        } else if (game.getAllowWaitlist()) {
+                        } else if (Boolean.TRUE.equals(game.getAllowWaitlist())) {
                                 // Game full - rejoin to waitlist
                                 int nextPosition = participationRepository.getNextWaitlistPosition(gameId);
                                 participation.setJoinStatus(GameParticipation.JoinStatus.WAITLISTED);
@@ -302,6 +320,13 @@ public class GameService {
                         participation.setLeftAt(null);
                         participation.setJoinedAt(Instant.now());
                         participation = participationRepository.save(participation);
+
+                        // US-4.1: Log rejoin decision
+                        joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
+                        joinReason = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
+                                ? "Successfully rejoined the game"
+                                : String.format("Rejoined waitlist at position %d", participation.getWaitlistPosition());
+                        log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
 
                         // Return immediately - don't fall through to create new participation
                         return GameDto.JoinResponse.builder()
@@ -328,7 +353,7 @@ public class GameService {
                                         .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
                                         .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
                                         .build();
-                } else if (game.getAllowWaitlist()) {
+                } else if (Boolean.TRUE.equals(game.getAllowWaitlist())) {
                         // Add to waitlist
                         int nextPosition = participationRepository.getNextWaitlistPosition(gameId);
                         participation = GameParticipation.builder()
@@ -344,6 +369,13 @@ public class GameService {
                 }
 
                 participation = participationRepository.save(participation);
+
+                // US-4.1: Log successful join decision
+                joinOutcome = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED ? OUTCOME_CONFIRMED : OUTCOME_WAITLISTED;
+                joinReason = participation.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
+                        ? "Joined successfully"
+                        : String.format("Added to waitlist at position %d", participation.getWaitlistPosition());
+                log.info(JOIN_LOG_FORMAT, userId, gameId, joinOutcome, joinReason, isOrganizer);
 
                 return GameDto.JoinResponse.builder()
                                 .participationId(participation.getParticipationId().toString())
@@ -397,6 +429,70 @@ public class GameService {
                         // User was waitlisted - adjust positions
                         participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
                 }
+        }
+
+        /**
+         * Update game settings. US-4.1
+         * Only allows updates before game starts (status == SCHEDULED and startTime > now).
+         */
+        @Transactional
+        public GameDto.GameResponse updateGame(UUID gameId, UUID organizerId, GameDto.UpdateRequest request) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                // Verify caller is the organizer
+                if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+                        throw new AccessDeniedException("Only the organizer can update the game");
+                }
+
+                // US-4.1: Only allow updates before game starts
+                if (game.getStatus() != Game.GameStatus.SCHEDULED || game.getStartTime().isBefore(Instant.now())) {
+                        throw new IllegalStateException("Cannot update game after it has started");
+                }
+
+                // Update fields if provided
+                if (request.getTitle() != null) {
+                        game.setTitle(request.getTitle());
+                }
+                if (request.getDescription() != null) {
+                        game.setDescription(request.getDescription());
+                }
+                if (request.getIndoorOutdoor() != null) {
+                        game.setIndoorOutdoor(request.getIndoorOutdoor());
+                }
+                if (request.getIntensityBand() != null) {
+                        game.setIntensityBand(request.getIntensityBand());
+                }
+                if (request.getSkillBand() != null) {
+                        game.setSkillBand(request.getSkillBand());
+                }
+                if (request.getMinPlayers() != null) {
+                        game.setMinPlayers(request.getMinPlayers());
+                }
+                if (request.getMaxPlayers() != null) {
+                        game.setMaxPlayers(request.getMaxPlayers());
+                }
+                if (request.getAllowWaitlist() != null) {
+                        game.setAllowWaitlist(request.getAllowWaitlist());
+                }
+                // US-4.1: Allow updating minReliabilityRequired (changes apply immediately to new join attempts)
+                // Note: To clear the requirement, send -1 or omit the field entirely
+                // We'll use a special sentinel value to indicate "clear" - but for now, 
+                // only update if a non-null value is provided
+                if (request.getMinReliabilityRequired() != null) {
+                        if (request.getMinReliabilityRequired() < 0) {
+                                // Special value to clear the requirement
+                                game.setMinReliabilityRequired(null);
+                        } else {
+                                game.setMinReliabilityRequired(request.getMinReliabilityRequired());
+                        }
+                }
+
+                game = gameRepository.save(game);
+                log.info("US-4.1 Game updated: gameId={}, organizerId={}, minReliabilityRequired={}", 
+                        gameId, organizerId, game.getMinReliabilityRequired());
+
+                return mapToGameResponse(game, organizerId);
         }
 
         /**
@@ -476,10 +572,7 @@ public class GameService {
                         } else {
                                 Optional<GameParticipation> p = participationRepository
                                                 .findByGameAndUser(game.getGameId(), requestingUserId);
-                                if (p.isPresent()
-                                                && p.get().getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED) {
-                                        showExactLocation = true;
-                                }
+                                showExactLocation = p.filter(part -> part.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED).isPresent();
                         }
                 }
 
@@ -514,7 +607,7 @@ public class GameService {
                                 .skillBand(game.getSkillBand())
                                 .minPlayers(game.getMinPlayers())
                                 .maxPlayers(game.getMaxPlayers())
-                                .allowWaitlist(game.getAllowWaitlist())
+                                .allowWaitlist(Boolean.TRUE.equals(game.getAllowWaitlist()))
                                 .minReliabilityRequired(game.getMinReliabilityRequired())
                                 .minAge(game.getMinAge())
                                 .maxAge(game.getMaxAge())
