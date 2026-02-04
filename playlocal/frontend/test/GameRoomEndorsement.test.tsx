@@ -17,14 +17,77 @@ jest.mock('../hooks/useGames', () => ({
   useGame: jest.fn(),
 }));
 
-jest.mock('../lib/api', () => ({
-  endorsementsApi: {
-    create: jest.fn(),
-  },
-  gamesApi: {
-     // ... mock other api calls if necessary
-  }
-}));
+jest.mock('../lib/api', () => {
+  const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
+  const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
+  
+  // Mock OQS data with proper structure
+  const createMockOqsFn = () => jest.fn(() => Promise.resolve({
+    userId: 'test-user-id',
+    displayName: 'Test Organizer',
+    oqsScore: 85.0,
+    gameCompletionRate: 90.0,
+    repeatPlayerRate: 75.0,
+    totalGamesHosted: 10,
+    completedGames: 9,
+    cancelledGames: 1,
+    totalUniquePlayers: 50,
+    repeatPlayers: 20,
+    confidenceLevel: 'HIGH',
+    confidenceDescription: 'Based on 10 games - score is highly reliable',
+    lastCalculatedAt: '2024-01-15T10:00:00Z',
+  }));
+  
+  const createMockOqsInfoCardFn = () => jest.fn(() => Promise.resolve({
+    oqsScore: 85.0,
+    overallDescription: 'Good organizer with reliable game history',
+    gameCompletionRate: 90.0,
+    completionRateDescription: 'Good reliability: 9 of 10 games completed',
+    completedGames: 9,
+    totalGames: 10,
+    repeatPlayerRate: 75.0,
+    repeatRateDescription: 'Great retention! 20 of 50 players have returned',
+    repeatPlayers: 20,
+    totalUniquePlayers: 50,
+    confidenceLevel: 'HIGH',
+    confidenceDescription: 'Based on 10 games - score is highly reliable',
+    gamesForNextLevel: 0,
+  }));
+  
+  return {
+    endorsementsApi: {
+      create: jest.fn(),
+    },
+    gamesApi: {
+      getUpcoming: createMockArrayFn(),
+      getPast: createMockArrayFn(),
+      getPastByUserNeedingAttendanceUpdate: createMockArrayFn(),
+      getById: createMockObjectFn(),
+      getRoster: createMockObjectFn(),
+      create: createMockObjectFn(),
+      join: createMockObjectFn(),
+      leave: createMockObjectFn(),
+      cancel: createMockObjectFn(),
+      getGameParticipation: createMockObjectFn(),
+    },
+    organizerQualityApi: {
+      getOqs: createMockOqsFn(),
+      getMyOqs: createMockOqsFn(),
+      getOqsSummary: createMockObjectFn(),
+      getOqsInfoCard: createMockOqsInfoCardFn(),
+      getMyOqsInfoCard: createMockOqsInfoCardFn(),
+      getOqsHistory: createMockObjectFn(),
+      getMyOqsHistory: createMockObjectFn(),
+      getWeights: createMockObjectFn(),
+    },
+    usersApi: {
+      getProfile: createMockObjectFn(),
+      getProfileBySlug: createMockObjectFn(),
+      updateProfile: createMockObjectFn(),
+      search: createMockObjectFn(),
+    },
+  };
+});
 
 // Mock Lucide icons to avoid render issues (optional)
 jest.mock('lucide-react', () => ({
@@ -45,6 +108,10 @@ jest.mock('lucide-react', () => ({
   LogIn: () => <div data-testid="icon-login" />,
   Flag: () => <div data-testid="icon-flag" />,
   Medal: () => <div data-testid="icon-medal" role="img" title="Icon Medal" />,
+  Info: () => <div data-testid="icon-info" />,
+  ChevronDown: () => <div data-testid="icon-chevrondown" />,
+  ChevronUp: () => <div data-testid="icon-chevronup" />,
+  XCircle: () => <div data-testid="icon-xcircle" />,
 }));
 
 // Mock ChatPanel to avoid complex sub-component rendering

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { GameDiscovery } from "../components/GameDiscovery";
 import "@testing-library/jest-dom";
 
@@ -25,6 +25,8 @@ jest.mock("lucide-react", () => ({
   Cloud: () => <div data-testid="icon-cloud" />,
   Sun: () => <div data-testid="icon-sun" />,
   Loader2: () => <div data-testid="icon-loader" />,
+  X: () => <div data-testid="icon-x" />,
+  Search: () => <div data-testid="icon-search" />,
 }));
 
 import { useGames } from "../hooks/useGames";
@@ -240,7 +242,7 @@ describe("GameDiscovery Component", () => {
   });
 
   describe("Filter Toggle", () => {
-    it("should toggle filters when filter button is clicked", () => {
+    it("should toggle filters when filter button is clicked", async () => {
       (useGames as jest.Mock).mockReturnValue({
         games: [],
         isLoading: false,
@@ -250,10 +252,15 @@ describe("GameDiscovery Component", () => {
       render(<GameDiscovery />);
 
       const filterButton = screen.getByText("Filters");
-      fireEvent.click(filterButton);
+      
+      await act(async () => {
+        fireEvent.click(filterButton);
+      });
 
-      // Filters should now be visible - check for "Distance" label
-      expect(screen.getByText("Distance")).toBeInTheDocument();
+      // Wait for modal to render - check for "Distance" label
+      await waitFor(() => {
+        expect(screen.getByText("Distance")).toBeInTheDocument();
+      });
       expect(screen.getByText("Skill Level")).toBeInTheDocument();
     });
   });
