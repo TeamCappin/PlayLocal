@@ -17,11 +17,10 @@ jest.mock("../hooks/useGames", () => ({
   useGame: jest.fn(),
 }));
 
+const mockGamesApiUpdate = jest.fn();
 jest.mock("../lib/api", () => ({
-  endorsementsApi: {
-    create: jest.fn(),
-  },
-  gamesApi: {},
+  endorsementsApi: { create: jest.fn() },
+  gamesApi: { update: (...args: unknown[]) => mockGamesApiUpdate(...args) },
 }));
 
 jest.mock("lucide-react", () => ({
@@ -65,6 +64,19 @@ jest.mock("../components/JoinConfirmationModal", () => ({
         <button onClick={onCancel}>Cancel</button>
       </div>
     ) : null,
+}));
+
+jest.mock("../components/OrganizerQualityBadge", () => ({
+  OrganizerQualityBadge: () => <div data-testid="organizer-quality-badge" />,
+}));
+
+jest.mock("../components/ui/dialog", () => ({
+  Dialog: ({ children, open }: any) => (open ? <div data-testid="dialog">{children}</div> : null),
+  DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+  DialogDescription: ({ children }: any) => <p>{children}</p>,
+  DialogFooter: ({ children }: any) => <div>{children}</div>,
 }));
 
 import { useAuth } from "../context/AuthContext";
@@ -510,6 +522,121 @@ describe("GameRoom Component", () => {
     });
   });
 
+  describe("US-4.1 Reliability requirements in Details", () => {
+    it("shows You meet the requirement when user score >= minReliabilityRequired", () => {
+      const gameWithMin = { ...mockGame, minReliabilityRequired: 80 };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameWithMin,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, reliabilityScore: 85 },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      expect(screen.getByText(/You meet the requirement!/i)).toBeInTheDocument();
+    });
+
+    it("shows You need X% to join when user score < minReliabilityRequired", () => {
+      const gameWithMin = { ...mockGame, minReliabilityRequired: 90 };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameWithMin,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, reliabilityScore: 70 },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      expect(screen.getByText(/You need 90% to join/i)).toBeInTheDocument();
+    });
+
+    it("displays Min X% Reliability badge when game has minReliabilityRequired", () => {
+      const gameWithMin = { ...mockGame, minReliabilityRequired: 85 };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameWithMin,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: mockUser,
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      expect(screen.getByText(/Min 85% Reliability/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Share, Edit and Cancel (coverage)", () => {
+    const futureStart = () => new Date(Date.now() + 86400000).toISOString();
+    const futureEnd = () => new Date(Date.now() + 86400000 + 7200000).toISOString();
+
+    it("organizer can open edit modal and cancel", async () => {
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", minReliabilityRequired: 85, startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1", reliabilityScore: 90 },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByTitle("Edit game settings"));
+      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+      await waitFor(() => expect(screen.queryByText("Edit Game Settings")).not.toBeInTheDocument());
+    });
+
+    it("organizer cancel game shows confirm then success", async () => {
+      mockCancelGame.mockResolvedValue(undefined);
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /Cancel Game/i }));
+      await waitFor(() => expect(screen.getByText(/Are you sure you want to cancel/i)).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Yes, Cancel/i }));
+      await waitFor(() => expect(screen.getByText("Game has been cancelled")).toBeInTheDocument());
+    });
+
+  });
+
   describe("Endorsement Flow", () => {
     it("handles endorsement with FINISHED game and ATTENDED status", async () => {
       const finishedGame = {
@@ -638,10 +765,9 @@ describe("GameRoom Component", () => {
   describe("US-2.4: Share Game Feature", () => {
     it("should copy link to clipboard when share clicked", async () => {
       const mockWriteText = jest.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: mockWriteText,
-        },
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText: mockWriteText },
+        configurable: true,
       });
 
       const mockGame = {
@@ -693,11 +819,9 @@ describe("GameRoom Component", () => {
     });
 
     it("should use fallback copy method when clipboard API fails", async () => {
-      // Mock clipboard API failure
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: jest.fn().mockRejectedValue(new Error("Clipboard API not supported")),
-        },
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText: jest.fn().mockRejectedValue(new Error("Clipboard API not supported")) },
+        configurable: true,
       });
 
       // Mock document.execCommand
