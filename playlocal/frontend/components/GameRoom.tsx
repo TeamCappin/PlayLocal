@@ -512,7 +512,7 @@ export function GameRoom() {
                           : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
                       }`}
                     >
-                      Photos
+                      Album
                     </button>
                   
                 </div>
