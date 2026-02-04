@@ -285,6 +285,18 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
+export interface UpdateGameRequest {
+    title?: string;
+    description?: string;
+    indoorOutdoor?: string;
+    intensityBand?: string;
+    skillBand?: string;
+    minPlayers?: number;
+    maxPlayers?: number;
+    allowWaitlist?: boolean;
+    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+}
+
 export interface GameResponse {
   gameId: string;
   title: string;
@@ -363,6 +375,16 @@ export interface TagDto {
   isRestricted: boolean;
 }
 
+export interface GameFilters {
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
+    sportName?: string;
+    skillLevel?: string;
+    locationType?: string;
+    intensity?: string;
+}
+
 // US-4.2: Join request with tag confirmations
 export interface JoinRequest {
   confirmedTagIds?: string[];
@@ -374,7 +396,19 @@ export const gamesApi = {
       body: JSON.stringify(data),
     }),
 
-  getUpcoming: () => apiFetch<GameResponse[]>("/games"),
+  getUpcoming: (filters?: GameFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+    if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
+    if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters?.sportName) params.append('sportName', filters.sportName);
+    if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+    if (filters?.locationType) params.append('locationType', filters.locationType);
+    if (filters?.intensity) params.append('intensity', filters.intensity);
+    
+    const queryString = params.toString();
+    return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+  },
 
   getPast: () => apiFetch<GameResponse[]>(`/games/past`),
 
@@ -383,7 +417,6 @@ export const gamesApi = {
 
   getPastByUserNeedingAttendanceUpdate: () =>
     apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
-
   getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
   getRoster: (gameId: string) =>
@@ -399,9 +432,16 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  // US-4.1: Update game settings (min reliability, etc.)
+  update: (gameId: string, data: UpdateGameRequest) =>
+    apiFetch<GameResponse>(`/games/${gameId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   // US-2.4: Cancel game endpoint
   cancel: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: "DELETE" }),
 
   // US-4.2: Get all available tags
   getTags: () => apiFetch<TagDto[]>("/games/tags"),

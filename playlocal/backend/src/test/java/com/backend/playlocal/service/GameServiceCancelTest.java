@@ -231,4 +231,144 @@ class GameServiceCancelTest {
                     .hasMessageContaining("Cannot cancel");
         }
     }
+
+    // =========================================================================
+    // US-4.1: Update Game (minReliabilityRequired) Tests
+    // =========================================================================
+    @Nested
+    @DisplayName("US-4.1: Update Game - minReliabilityRequired")
+    class UpdateGameMinReliability {
+
+        private void stubMapToGameResponse() {
+            when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(0);
+            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+            when(gameRepository.save(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
+        }
+
+        @Test
+        @DisplayName("Organizer can set minReliabilityRequired")
+        void updateGame_OrganizerSetsMinReliability_ShouldSucceed() {
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            stubMapToGameResponse();
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(85.0f)
+                    .build();
+
+            GameDto.GameResponse response = gameService.updateGame(gameId, organizerId, request);
+
+            assertThat(response).isNotNull();
+            assertThat(testGame.getMinReliabilityRequired()).isEqualTo(85.0f);
+            verify(gameRepository).save(testGame);
+        }
+
+        @Test
+        @DisplayName("Organizer can clear minReliabilityRequired with negative value")
+        void updateGame_OrganizerClearsMinReliability_ShouldSucceed() {
+            testGame.setMinReliabilityRequired(90.0f);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            stubMapToGameResponse();
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(-1f)
+                    .build();
+
+            gameService.updateGame(gameId, organizerId, request);
+
+            assertThat(testGame.getMinReliabilityRequired()).isNull();
+            verify(gameRepository).save(testGame);
+        }
+
+        @Test
+        @DisplayName("Non-organizer cannot update game")
+        void updateGame_NonOrganizer_ShouldThrow() {
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(80.0f)
+                    .build();
+
+            assertThatThrownBy(() -> gameService.updateGame(gameId, otherUserId, request))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Only the organizer can update");
+        }
+
+        @Test
+        @DisplayName("Cannot update game after start time")
+        void updateGame_AfterStartTime_ShouldThrow() {
+            testGame.setStartTime(Instant.now().minusSeconds(3600));
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(80.0f)
+                    .build();
+
+            assertThatThrownBy(() -> gameService.updateGame(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot update game after");
+        }
+
+        @Test
+        @DisplayName("updateGame when game not found throws ResourceNotFoundException")
+        void updateGame_WhenGameNotFound_ShouldThrow() {
+            when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(80.0f)
+                    .build();
+
+            assertThatThrownBy(() -> gameService.updateGame(gameId, organizerId, request))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Game not found");
+        }
+
+        @Test
+        @DisplayName("Cannot update game when status is not SCHEDULED")
+        void updateGame_WhenGameNotScheduled_ShouldThrow() {
+            testGame.setStatus(Game.GameStatus.IN_PROGRESS);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .title("Updated")
+                    .build();
+
+            assertThatThrownBy(() -> gameService.updateGame(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Cannot update game after");
+        }
+
+        @Test
+        @DisplayName("Organizer can update all optional fields")
+        void updateGame_OrganizerUpdatesAllFields_ShouldSucceed() {
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            stubMapToGameResponse();
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .title("New Title")
+                    .description("New description")
+                    .indoorOutdoor("INDOOR")
+                    .intensityBand("COMPETITIVE")
+                    .skillBand("ADVANCED")
+                    .minPlayers(4)
+                    .maxPlayers(14)
+                    .allowWaitlist(false)
+                    .minReliabilityRequired(90.0f)
+                    .build();
+
+            GameDto.GameResponse response = gameService.updateGame(gameId, organizerId, request);
+
+            assertThat(response).isNotNull();
+            assertThat(testGame.getTitle()).isEqualTo("New Title");
+            assertThat(testGame.getDescription()).isEqualTo("New description");
+            assertThat(testGame.getIndoorOutdoor()).isEqualTo("INDOOR");
+            assertThat(testGame.getIntensityBand()).isEqualTo("COMPETITIVE");
+            assertThat(testGame.getSkillBand()).isEqualTo("ADVANCED");
+            assertThat(testGame.getMinPlayers()).isEqualTo(4);
+            assertThat(testGame.getMaxPlayers()).isEqualTo(14);
+            assertThat(testGame.getAllowWaitlist()).isFalse();
+            assertThat(testGame.getMinReliabilityRequired()).isEqualTo(90.0f);
+            verify(gameRepository).save(testGame);
+        }
+    }
 }

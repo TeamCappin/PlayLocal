@@ -15,7 +15,7 @@ class PlayLocalApplicationMainTest {
                 "--spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
                 "--spring.datasource.driver-class-name=org.h2.Driver",
                 "--spring.datasource.username=sa",
-                "--spring.datasource.password=password",
+                "--spring.datasource.password=",
                 "--spring.flyway.enabled=false",
                 "--spring.jpa.hibernate.ddl-auto=create-drop",
                 "--server.port=0" // Use random port to avoid conflicts

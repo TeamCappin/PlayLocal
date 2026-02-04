@@ -35,12 +35,20 @@ public class GameController {
     }
 
     /**
-     * Get upcoming games.
-     * US-2.3: Discover Games
+     * Get upcoming games with optional geospatial filtering.
+     * US-2.3: Discover Games 
      * US-1.3: Filters private locations based on auth status
      */
     @GetMapping
-    public ResponseEntity<List<GameDto.GameResponse>> getUpcomingGames(Authentication authentication) {
+    public ResponseEntity<List<GameDto.GameResponse>> getUpcomingGames(
+            @RequestParam(required = false) Float lat,
+            @RequestParam(required = false) Float lon,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false) String sportName,
+            @RequestParam(required = false) String skillLevel,
+            @RequestParam(required = false) String locationType,
+            @RequestParam(required = false) String intensity,
+            Authentication authentication) {
         UUID userId = null;
         if (authentication != null && authentication.isAuthenticated()) {
             try {
@@ -49,8 +57,17 @@ public class GameController {
                 // Ignore invalid UUIDs (e.g. anonymousUser)
             }
         }
-        List<GameDto.GameResponse> games = gameService.getUpcomingGames(userId);
-        return ResponseEntity.ok(games);
+
+        // If location parameters are provided, use geospatial search, else use simple upcoming games query without the distance filtering
+        if (lat != null && lon != null) {
+            List<GameDto.GameResponse> games = gameService.findNearbyGames(
+                    lat, lon, radiusKm, sportName, skillLevel, locationType, intensity, userId);
+            return ResponseEntity.ok(games);
+        } else {
+            List<GameDto.GameResponse> games = gameService.getUpcomingGames(
+                    sportName, skillLevel, locationType, intensity, userId);
+            return ResponseEntity.ok(games);
+        }
     }
 
     /**
@@ -147,6 +164,20 @@ public class GameController {
         UUID userId = UUID.fromString(authentication.getName());
         gameService.leaveGame(gameId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Update game settings.
+     * US-4.1: Organizer can change threshold before game starts
+     */
+    @PutMapping("/{gameId}")
+    public ResponseEntity<GameDto.GameResponse> updateGame(
+            @PathVariable UUID gameId,
+            @Valid @RequestBody GameDto.UpdateRequest request,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        GameDto.GameResponse response = gameService.updateGame(gameId, userId, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

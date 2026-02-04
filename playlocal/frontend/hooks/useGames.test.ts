@@ -2,19 +2,40 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useGame, usePastGamesByUserNeedingAttendanceUpdate } from "./useGames";
 import { gamesApi } from "@/lib/api";
 
-jest.mock("@/lib/api", () => ({
-  gamesApi: {
-    getById: jest.fn(),
-    getRoster: jest.fn(),
-    getPastByUserNeedingAttendanceUpdate: jest.fn(),
-    getUpcoming: jest.fn(),
-    getPast: jest.fn(),
-    join: jest.fn(),
-    leave: jest.fn(),
-    create: jest.fn(),
-    cancel: jest.fn(),
-  },
-}));
+jest.mock("@/lib/api", () => {
+  const mockFn = jest.fn(() => Promise.resolve({}));
+  return {
+    gamesApi: {
+      getById: jest.fn(),
+      getRoster: jest.fn(),
+      getPastByUserNeedingAttendanceUpdate: jest.fn(),
+      getUpcoming: jest.fn(),
+      getPast: jest.fn(),
+      join: jest.fn(),
+      leave: jest.fn(),
+      create: jest.fn(),
+      cancel: jest.fn(),
+      getGameParticipation: jest.fn(),
+    },
+    organizerQualityApi: {
+      getOqs: mockFn,
+      getMyOqs: mockFn,
+      getOqsSummary: mockFn,
+      getOqsInfoCard: mockFn,
+      getMyOqsInfoCard: mockFn,
+      getOqsHistory: mockFn,
+      getMyOqsHistory: mockFn,
+      getWeights: mockFn,
+    },
+    attendanceApi: {},
+    reportsApi: {},
+    notificationsApi: {},
+    endorsementsApi: {},
+    healthApi: {},
+    authApi: {},
+    scoreHistoryApi: {},
+  };
+});
 
 const mockGetById = gamesApi.getById as jest.MockedFunction<
   typeof gamesApi.getById
