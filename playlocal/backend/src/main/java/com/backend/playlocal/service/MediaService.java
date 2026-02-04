@@ -6,7 +6,9 @@ import com.backend.playlocal.model.dto.RequestUploadSlotResponse;
 import com.backend.playlocal.model.entity.MediaAsset;
 import com.backend.playlocal.repository.MediaAssetRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -26,6 +28,7 @@ public class MediaService {
     private final MediaAssetRepository mediaRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
+    private static final int MAX_PHOTOS_PER_GAME = 9;
 
     @Value("${s3.bucket:uploads}")
     private String bucketName;
@@ -40,6 +43,14 @@ public class MediaService {
     }
 
     public RequestUploadSlotResponse requestPhotoUploadSlot(UUID gameId, UUID uploaderUserId, RequestUploadSlotRequest req) {
+
+        long existing = mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(gameId, MediaAsset.MediaType.PHOTO);
+        if (existing >= MAX_PHOTOS_PER_GAME) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Max " + MAX_PHOTOS_PER_GAME + " photos per game"
+            );
+        }
 
         MediaAsset asset = new MediaAsset();
         asset.setUploaderUserId(uploaderUserId);

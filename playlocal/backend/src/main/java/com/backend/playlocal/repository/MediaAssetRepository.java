@@ -24,4 +24,6 @@ public interface MediaAssetRepository extends JpaRepository<MediaAsset, UUID> {
     );
 
     Optional<MediaAsset> findByMediaId(UUID mediaId);
+
+    long countByGameIdAndMediaTypeAndDeletedAtIsNull(UUID gameId, MediaAsset.MediaType mediaType);
 }

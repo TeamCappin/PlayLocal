@@ -433,8 +433,8 @@ export function GameRoom() {
                       onClick={() => setActiveTab("photos")}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         activeTab === "photos"
-                          ? "bg-emerald-600 text-white"
-                          : "text-gray-600 hover:bg-gray-100"
+                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
+                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
                       }`}
                     >
                       Photos
@@ -752,8 +752,8 @@ export function GameRoom() {
                   </div>
                 )}
 
-                {activeTab === "photos" && isParticipant && (
-                  <PhotosPanel gameId={id} />
+                {activeTab === "photos" && (
+                  <PhotosPanel gameId={id} canUpload={isParticipant}/>
                 )}
               </div>
             </div>
