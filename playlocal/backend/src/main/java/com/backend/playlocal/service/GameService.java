@@ -140,12 +140,68 @@ public class GameService {
         }
 
         /**
-         * Get upcoming games. US-2.3
+         * Get upcoming games with optional filters. US-2.3
          */
-        public List<GameDto.GameResponse> getUpcomingGames(UUID userId) {
-                return gameRepository.findUpcomingGames(Instant.now()).stream()
+        public List<GameDto.GameResponse> getUpcomingGames(
+                        String sportName, String skillLevel, String locationType,
+                        String intensity, UUID userId) {
+                GameFilterParams params = normalizeGameFilters(sportName, skillLevel, locationType, intensity);
+                List<Game> games = gameRepository.findUpcomingGamesWithFilters(
+                                Instant.now(), params.sportName(), params.skillLevel(),
+                                params.locationType(), params.intensity());
+                return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))
                                 .collect(Collectors.toList());
+        }
+
+        /**
+         * Find nearby games with geospatial filtering. US-2.3
+         */
+        public List<GameDto.GameResponse> findNearbyGames(
+                        Float userLat, Float userLon, Double radiusKm,
+                        String sportName, String skillLevel, String locationType,
+                        String intensity, UUID userId) {
+                GameFilterParams params = normalizeGameFilters(sportName, skillLevel, locationType, intensity);
+                List<UUID> gameIds = gameRepository.findNearbyGameIdsWithFilters(
+                                Instant.now(), userLat, userLon, radiusKm,
+                                params.sportName(), params.skillLevel(),
+                                params.locationType(), params.intensity());
+                List<Game> games = gameIds.stream()
+                                .map(gameId -> gameRepository.findById(gameId))
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collect(Collectors.toList());
+                return games.stream()
+                                .map(game -> mapToGameResponse(game, userId))
+                                .collect(Collectors.toList());
+        }
+
+        /**
+         * Normalize discovery filter parameters to match database format (lowercase).
+         * Empty strings are treated as null to bypass filtering.
+         * Maps "high" to "competitive" for intensity (database has no "high" value).
+         */
+        private static GameFilterParams normalizeGameFilters(
+                        String sportName, String skillLevel, String locationType, String intensity) {
+                String normalizedSportName = (sportName != null && !sportName.trim().isEmpty())
+                                ? sportName.trim()
+                                : null;
+                String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty())
+                                ? skillLevel.toLowerCase().trim()
+                                : null;
+                String normalizedLocationType = (locationType != null && !locationType.trim().isEmpty())
+                                ? locationType.toLowerCase().trim()
+                                : null;
+                String normalizedIntensity = null;
+                if (intensity != null && !intensity.trim().isEmpty()) {
+                        String lower = intensity.toLowerCase().trim();
+                        normalizedIntensity = "high".equals(lower) ? "competitive" : lower;
+                }
+                return new GameFilterParams(normalizedSportName, normalizedSkillLevel,
+                                normalizedLocationType, normalizedIntensity);
+        }
+
+        private record GameFilterParams(String sportName, String skillLevel, String locationType, String intensity) {
         }
 
         /**

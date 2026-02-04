@@ -12,18 +12,41 @@ import {
 } from '@/hooks/useOrganizerQuality';
 import { organizerQualityApi } from '@/lib/api';
 
-// Mock the API module
-jest.mock('@/lib/api', () => ({
-    organizerQualityApi: {
-        getOqs: jest.fn(),
-        getMyOqs: jest.fn(),
-        getOqsSummary: jest.fn(),
-        getOqsInfoCard: jest.fn(),
-        getMyOqsInfoCard: jest.fn(),
-        getOqsHistory: jest.fn(),
-        getMyOqsHistory: jest.fn(),
-    },
-}));
+// Mock the API module - include all APIs to prevent undefined errors
+jest.mock('@/lib/api', () => {
+    const mockFn = jest.fn(() => Promise.resolve({}));
+    return {
+        organizerQualityApi: {
+            getOqs: jest.fn(),
+            getMyOqs: jest.fn(),
+            getOqsSummary: jest.fn(),
+            getOqsInfoCard: jest.fn(),
+            getMyOqsInfoCard: jest.fn(),
+            getOqsHistory: jest.fn(),
+            getMyOqsHistory: jest.fn(),
+            getWeights: jest.fn(),
+        },
+        gamesApi: {
+            getUpcoming: mockFn,
+            getPast: mockFn,
+            getPastByUserNeedingAttendanceUpdate: mockFn,
+            getById: mockFn,
+            getRoster: mockFn,
+            create: mockFn,
+            join: mockFn,
+            leave: mockFn,
+            cancel: mockFn,
+            getGameParticipation: mockFn,
+        },
+        attendanceApi: {},
+        reportsApi: {},
+        notificationsApi: {},
+        endorsementsApi: {},
+        healthApi: {},
+        authApi: {},
+        scoreHistoryApi: {},
+    };
+});
 
 const mockOqsResponse = {
     userId: 'user-123',

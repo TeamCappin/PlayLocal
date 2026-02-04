@@ -23,7 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for GameController authentication parsing.
@@ -56,12 +57,50 @@ class GameControllerAuthTest {
     @Test
     @DisplayName("getUpcomingGames with null authentication calls service with null userId")
     void getUpcomingGames_NullAuth_PassesNullUserId() {
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(null);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, null);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
+        verify(gameService, org.mockito.Mockito.never()).findNearbyGames(any(), any(), any(), any(), any(), any(),
+                any(), any());
+    }
+
+    @Test
+    @DisplayName("getUpcomingGames with lat and lon calls findNearbyGames")
+    void getUpcomingGames_WithLatLon_CallsFindNearbyGames() {
+        Float lat = 45.5f;
+        Float lon = -73.5f;
+        Double radiusKm = 10.0;
+        when(gameService.findNearbyGames(eq(lat), eq(lon), eq(radiusKm), isNull(), isNull(), isNull(), isNull(),
+                isNull()))
+                .thenReturn(List.of(mockGame));
+
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                lat, lon, radiusKm, null, null, null, null, null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        verify(gameService).findNearbyGames(eq(lat), eq(lon), eq(radiusKm), isNull(), isNull(), isNull(), isNull(),
+                isNull());
+        verify(gameService, org.mockito.Mockito.never()).getUpcomingGames(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("getUpcomingGames with filter params forwards to getUpcomingGames")
+    void getUpcomingGames_WithFilters_ForwardsToService() {
+        when(gameService.getUpcomingGames(eq("Basketball"), eq("intermediate"), eq("outdoor"), eq("competitive"),
+                isNull()))
+                .thenReturn(List.of(mockGame));
+
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, "Basketball", "intermediate", "outdoor", "competitive", null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        verify(gameService).getUpcomingGames(eq("Basketball"), eq("intermediate"), eq("outdoor"), eq("competitive"),
+                isNull());
     }
 
     @Test
@@ -70,12 +109,14 @@ class GameControllerAuthTest {
         UUID userId = UUID.randomUUID();
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn(userId.toString());
-        when(gameService.getUpcomingGames(userId)).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), eq(userId)))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(userId);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), eq(userId));
     }
 
     @Test
@@ -84,24 +125,28 @@ class GameControllerAuthTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("anonymousUser"); // Not a valid UUID
 
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test
     @DisplayName("getUpcomingGames with unauthenticated calls service with null userId")
     void getUpcomingGames_NotAuthenticated_PassesNullUserId() {
         when(authentication.isAuthenticated()).thenReturn(false);
-        when(gameService.getUpcomingGames(isNull())).thenReturn(List.of(mockGame));
+        when(gameService.getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull()))
+                .thenReturn(List.of(mockGame));
 
-        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(authentication);
+        ResponseEntity<List<GameDto.GameResponse>> response = gameController.getUpcomingGames(
+                null, null, null, null, null, null, null, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        verify(gameService).getUpcomingGames(null);
+        verify(gameService).getUpcomingGames(isNull(), isNull(), isNull(), isNull(), isNull());
     }
 
     @Test

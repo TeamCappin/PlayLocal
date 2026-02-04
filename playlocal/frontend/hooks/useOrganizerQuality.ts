@@ -23,13 +23,21 @@ export function useOrganizerQuality(options: UseOrganizerQualityOptions = {}) {
         setIsLoading(true);
         setError(null);
         try {
+            if (!organizerQualityApi) {
+                throw new Error('organizerQualityApi is not available');
+            }
+            const method = userId ? organizerQualityApi.getOqs : organizerQualityApi.getMyOqs;
+            if (typeof method !== 'function') {
+                throw new Error(`organizerQualityApi.${userId ? 'getOqs' : 'getMyOqs'} is not available`);
+            }
             const response = userId
                 ? await organizerQualityApi.getOqs(userId)
                 : await organizerQualityApi.getMyOqs();
-            setOqs(response);
+            setOqs(response || null);
         } catch (err) {
             setError('Failed to load organizer quality score');
             console.error('Error fetching OQS:', err);
+            setOqs(null);
         } finally {
             setIsLoading(false);
         }
@@ -37,28 +45,44 @@ export function useOrganizerQuality(options: UseOrganizerQualityOptions = {}) {
 
     const fetchSummary = useCallback(async () => {
         try {
+            if (!organizerQualityApi) {
+                return;
+            }
             const response = userId
-                ? await organizerQualityApi.getOqsSummary(userId)
-                : await organizerQualityApi.getMyOqs().then(r => ({
-                    userId: r.userId,
-                    oqsScore: r.oqsScore,
-                    confidenceLevel: r.confidenceLevel,
-                    totalGamesHosted: r.totalGamesHosted,
-                }));
-            setSummary(response);
+                ? (typeof organizerQualityApi.getOqsSummary === 'function'
+                    ? await organizerQualityApi.getOqsSummary(userId)
+                    : null)
+                : (typeof organizerQualityApi.getMyOqs === 'function'
+                    ? await organizerQualityApi.getMyOqs().then(r => ({
+                        userId: r.userId,
+                        oqsScore: r.oqsScore,
+                        confidenceLevel: r.confidenceLevel,
+                        totalGamesHosted: r.totalGamesHosted,
+                    }))
+                    : null);
+            setSummary(response || null);
         } catch (err) {
             console.error('Error fetching OQS summary:', err);
+            setSummary(null);
         }
     }, [userId]);
 
     const fetchInfoCard = useCallback(async () => {
         try {
+            if (!organizerQualityApi) {
+                return;
+            }
+            const method = userId ? organizerQualityApi.getOqsInfoCard : organizerQualityApi.getMyOqsInfoCard;
+            if (typeof method !== 'function') {
+                return;
+            }
             const response = userId
                 ? await organizerQualityApi.getOqsInfoCard(userId)
                 : await organizerQualityApi.getMyOqsInfoCard();
-            setInfoCard(response);
+            setInfoCard(response || null);
         } catch (err) {
             console.error('Error fetching OQS info card:', err);
+            setInfoCard(null);
         }
     }, [userId]);
 
@@ -106,22 +130,30 @@ export function useOrganizerQualityHistory(options: UseOrganizerQualityOptions &
         setIsLoading(true);
         setError(null);
         try {
+            if (!organizerQualityApi) {
+                throw new Error('organizerQualityApi is not available');
+            }
+            const method = userId ? organizerQualityApi.getOqsHistory : organizerQualityApi.getMyOqsHistory;
+            if (typeof method !== 'function') {
+                throw new Error(`organizerQualityApi.${userId ? 'getOqsHistory' : 'getMyOqsHistory'} is not available`);
+            }
             const response: OqsHistoryResponse = userId
                 ? await organizerQualityApi.getOqsHistory(userId, pageNum, pageSize)
                 : await organizerQualityApi.getMyOqsHistory(pageNum, pageSize);
 
             if (pageNum === 0) {
-                setHistory(response.history);
+                setHistory(response?.history || []);
             } else {
-                setHistory(prev => [...prev, ...response.history]);
+                setHistory(prev => [...prev, ...(response?.history || [])]);
             }
 
-            setPage(response.currentPage);
-            setTotalPages(response.totalPages);
-            setTotalEntries(response.totalEntries);
+            setPage(response?.currentPage || 0);
+            setTotalPages(response?.totalPages || 0);
+            setTotalEntries(response?.totalEntries || 0);
         } catch (err) {
             setError('Failed to load OQS history');
             console.error('Error fetching OQS history:', err);
+            setHistory([]);
         } finally {
             setIsLoading(false);
         }
