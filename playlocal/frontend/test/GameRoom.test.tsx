@@ -635,6 +635,56 @@ describe("GameRoom Component", () => {
       await waitFor(() => expect(screen.getByText("Game has been cancelled")).toBeInTheDocument());
     });
 
+    it("organizer save edit modal calls update and shows success", async () => {
+      mockGamesApiUpdate.mockResolvedValue(undefined);
+      mockRefetch.mockResolvedValue(undefined);
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", minReliabilityRequired: 80, startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByTitle("Edit game settings"));
+      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+      await waitFor(() => expect(screen.getByText("Game settings updated successfully!")).toBeInTheDocument());
+      expect(mockGamesApiUpdate).toHaveBeenCalledWith("game-123", expect.objectContaining({ minReliabilityRequired: 80 }));
+      expect(mockRefetch).toHaveBeenCalled();
+    });
+
+    it("organizer save edit shows error when update fails", async () => {
+      mockGamesApiUpdate.mockRejectedValue(new Error("Network error"));
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByTitle("Edit game settings"));
+      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+      await waitFor(() => expect(screen.getByText("Network error")).toBeInTheDocument());
+    });
   });
 
   describe("Endorsement Flow", () => {
@@ -685,6 +735,71 @@ describe("GameRoom Component", () => {
       // Just verify the component renders with FINISHED status
       const lineupTab = screen.getByRole("button", { name: /Lineup/i });
       expect(lineupTab).toBeInTheDocument();
+    });
+
+    it("endorsement success shows success message", async () => {
+      (endorsementsApi.create as jest.Mock).mockResolvedValue(undefined);
+      const finishedGame = { ...mockGame, status: "FINISHED" };
+      const rosterWithAttended = {
+        confirmed: [
+          { participationId: "p1", userId: "organizer-1", displayName: "Organizer", role: "ORGANIZER", joinStatus: "CONFIRMED", attendanceStatus: "ATTENDED", reliabilityScore: 100, isEndorsedByOrganizer: false },
+          { participationId: "p2", userId: "user-2", displayName: "Other", role: "PLAYER", joinStatus: "CONFIRMED", attendanceStatus: "ATTENDED", reliabilityScore: 85, isEndorsedByOrganizer: false },
+        ],
+        waitlisted: [],
+        maxPlayers: 10,
+        spotsAvailable: 8,
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: finishedGame,
+        roster: rosterWithAttended,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/i }));
+      await waitFor(() => expect(screen.getByTitle("Endorse as Organizer's Pick")).toBeInTheDocument());
+      fireEvent.click(screen.getByTitle("Endorse as Organizer's Pick"));
+      await waitFor(() => expect(screen.getByText("Player endorsed successfully!")).toBeInTheDocument());
+    });
+
+    it("endorsement duplicate refetches without showing error", async () => {
+      (endorsementsApi.create as jest.Mock).mockRejectedValue(new Error("Duplicate endorsement exists"));
+      const finishedGame = { ...mockGame, status: "FINISHED" };
+      const rosterWithAttended = {
+        confirmed: [
+          { participationId: "p1", userId: "organizer-1", displayName: "Organizer", role: "ORGANIZER", joinStatus: "CONFIRMED", attendanceStatus: "ATTENDED", reliabilityScore: 100, isEndorsedByOrganizer: false },
+          { participationId: "p2", userId: "user-2", displayName: "Other", role: "PLAYER", joinStatus: "CONFIRMED", attendanceStatus: "ATTENDED", reliabilityScore: 85, isEndorsedByOrganizer: false },
+        ],
+        waitlisted: [],
+        maxPlayers: 10,
+        spotsAvailable: 8,
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: finishedGame,
+        roster: rosterWithAttended,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/i }));
+      await waitFor(() => expect(screen.getByTitle("Endorse as Organizer's Pick")).toBeInTheDocument());
+      fireEvent.click(screen.getByTitle("Endorse as Organizer's Pick"));
+      await waitFor(() => expect(mockRefetch).toHaveBeenCalled());
+      expect(screen.queryByText("Failed to endorse player")).not.toBeInTheDocument();
     });
   });
 
