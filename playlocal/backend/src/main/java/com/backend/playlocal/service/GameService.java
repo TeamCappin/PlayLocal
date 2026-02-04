@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,13 +33,15 @@ public class GameService {
         private final GameTagRepository tagRepository;
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
+        private final NotificationService notificationService;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
                         GameVisibilityRepository gameVisibilityRepository,
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
-                        GameTagConfirmationRepository tagConfirmationRepository) {
+                        GameTagConfirmationRepository tagConfirmationRepository,
+                        NotificationService notificationService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -48,6 +51,7 @@ public class GameService {
                 this.tagRepository = tagRepository;
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
+                this.notificationService = notificationService;
         }
 
         /**
@@ -390,7 +394,50 @@ public class GameService {
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
 
+                notifyCancellation(game);
+
                 return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Mark a game as completed (organizer only).
+         */
+        @Transactional
+        public void completeGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException(
+                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                game.setStatus(Game.GameStatus.COMPLETED);
+                gameRepository.save(game);
+        }
+
+        /**
+         * Archive a game (organizer only).
+         */
+        @Transactional
+        public void archiveGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.SCHEDULED
+                                || game.getStatus() == Game.GameStatus.IN_PROGRESS) {
+                        throw new IllegalStateException(
+                                        "Cannot archive a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                if (game.getStatus() != Game.GameStatus.ARCHIVED) {
+                        game.setStatus(Game.GameStatus.ARCHIVED);
+                        gameRepository.save(game);
+                }
         }
 
         // ================== MAPPERS ==================
@@ -632,8 +679,12 @@ public class GameService {
         }
 
         private void notifyCancellation(Game game) {
-                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(game.getGameId());
-                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(game.getGameId());
+                List<GameParticipation> confirmed = Optional
+                                .ofNullable(participationRepository.findConfirmedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                List<GameParticipation> waitlisted = Optional
+                                .ofNullable(participationRepository.findWaitlistedByGame(game.getGameId()))
+                                .orElseGet(List::of);
                 Set<UUID> notified = new HashSet<>();
 
                 Map<String, Object> payload = Map.of(
@@ -656,7 +707,9 @@ public class GameService {
                 if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
                         return;
                 }
-                notificationService.createInAppNotification(userId, "game_cancelled", payload);
-                notified.add(userId);
+                if (notificationService != null) {
+                        notificationService.createInAppNotification(userId, "game_cancelled", payload);
+                        notified.add(userId);
+                }
         }
 }

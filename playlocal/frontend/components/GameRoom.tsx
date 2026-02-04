@@ -24,6 +24,7 @@ import {
   XCircle,
   Copy,
   Check,
+  Archive,
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
@@ -92,7 +93,6 @@ export function GameRoom() {
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
   // US-2.4: Cancel/share state
-  const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
@@ -910,16 +910,6 @@ export function GameRoom() {
               {isOrganizer && (
                 <div className="mt-4 border-t border-gray-200 pt-4 space-y-2">
                   <p className="text-sm text-gray-500">Organizer actions</p>
-                  {statusKey === 'SCHEDULED' && (
-                    <button
-                      onClick={handleCancel}
-                      disabled={isCancelling}
-                      className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
-                      <span>Cancel Game</span>
-                    </button>
-                  )}
                   {(statusKey === 'SCHEDULED' || statusKey === 'IN_PROGRESS') && (
                     <button
                       onClick={handleComplete}

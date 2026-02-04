@@ -15,13 +15,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.extension.ExtendWith;
+import com.backend.playlocal.testutil.DockerOrExternalDbCondition;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -38,27 +39,25 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest
 @Tag("concurrency")
+@ExtendWith(DockerOrExternalDbCondition.class)
 class GameJoinConcurrencyTest {
 
     // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
     static PostgreSQLContainer<?> postgres;
-
-    static {
-        // Only create container for local development (CI uses service container via SPRING_DATASOURCE_URL)
-        if (System.getenv("SPRING_DATASOURCE_URL") == null) {
-            postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-                    .withDatabaseName("playlocal_concurrency_test")
-                    .withUsername("test")
-                    .withPassword("test");
-            postgres.start();
-        }
-    }
+    private static final boolean EXTERNAL_DB_CONFIGURED = System.getenv("SPRING_DATASOURCE_URL") != null;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         // Only configure Testcontainers properties if running locally
         // In CI, Spring Boot automatically uses SPRING_DATASOURCE_URL environment variables
-        if (postgres != null) {
+        if (!EXTERNAL_DB_CONFIGURED) {
+            if (postgres == null) {
+                postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                        .withDatabaseName("playlocal_concurrency_test")
+                        .withUsername("test")
+                        .withPassword("test");
+                postgres.start();
+            }
             registry.add("spring.datasource.url", postgres::getJdbcUrl);
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
@@ -145,6 +144,13 @@ class GameJoinConcurrencyTest {
                     .reliabilityScore(100.0f)
                     .build();
             testUsers.add(userRepository.save(user));
+        }
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (postgres != null) {
+            postgres.stop();
         }
     }
 

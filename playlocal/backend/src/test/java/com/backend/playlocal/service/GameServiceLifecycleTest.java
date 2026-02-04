@@ -8,10 +8,14 @@ import com.backend.playlocal.model.entity.Sport;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.GameParticipationRepository;
 import com.backend.playlocal.repository.GameRepository;
+import com.backend.playlocal.repository.GameTagAssignmentRepository;
+import com.backend.playlocal.repository.GameTagConfirmationRepository;
+import com.backend.playlocal.repository.GameTagRepository;
 import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.LocationRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
+import com.backend.playlocal.repository.EndorsementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +57,14 @@ class GameServiceLifecycleTest {
     private GameVisibilityRepository gameVisibilityRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private EndorsementRepository endorsementRepository;
+    @Mock
+    private GameTagRepository tagRepository;
+    @Mock
+    private GameTagAssignmentRepository tagAssignmentRepository;
+    @Mock
+    private GameTagConfirmationRepository tagConfirmationRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -91,9 +104,10 @@ class GameServiceLifecycleTest {
                 .startTime(Instant.now().plusSeconds(3600))
                 .build();
 
-        when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
-        when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
+        lenient().when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
+        lenient().when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
+        lenient().when(tagAssignmentRepository.findAllByGame(game)).thenReturn(List.of());
     }
 
     @Test
