@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import api, { PhotoItem } from "@/lib/api";
 
-const MAX_PHOTOS = 9;
+const MAX_PHOTOS = 5;
 
 function inferImageMimeFromName(fileName: string): string | null {
   const lower = fileName.toLowerCase();

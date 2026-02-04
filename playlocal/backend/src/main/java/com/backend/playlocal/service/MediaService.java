@@ -28,7 +28,7 @@ public class MediaService {
     private final MediaAssetRepository mediaRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
-    private static final int MAX_PHOTOS_PER_GAME = 9;
+    private static final int MAX_PHOTOS_PER_GAME = 5;
 
     @Value("${s3.bucket:uploads}")
     private String bucketName;
