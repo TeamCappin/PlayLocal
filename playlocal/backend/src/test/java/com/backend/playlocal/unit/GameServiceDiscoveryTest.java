@@ -4,6 +4,7 @@ import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.*;
 import com.backend.playlocal.service.GameService;
+import com.backend.playlocal.service.OrganizerQualityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,9 +40,17 @@ class GameServiceDiscoveryTest {
         @Mock
         private SportRepository sportRepository;
         @Mock
-        private LocationRepository locationRepository;
-        @Mock
         private GameVisibilityRepository gameVisibilityRepository;
+        @Mock
+        private EndorsementRepository endorsementRepository;
+        @Mock
+        private GameTagRepository tagRepository;
+        @Mock
+        private GameTagAssignmentRepository tagAssignmentRepository;
+        @Mock
+        private GameTagConfirmationRepository tagConfirmationRepository;
+        @Mock
+        private OrganizerQualityService oqsService;
 
         @InjectMocks
         private GameService gameService;
@@ -84,16 +93,18 @@ class GameServiceDiscoveryTest {
                                 .build();
         }
 
-        private void mockMapToGameResponseDependencies() {
-                when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
-                when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
-                // lenient: when user is organizer we don't call findByGameAndUser
-                lenient().when(participationRepository.findByGameAndUser(any(), eq(userId)))
-                                .thenReturn(Optional.of(GameParticipation.builder()
-                                                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                                                .user(organizer)
-                                                .build()));
-        }
+    private void mockMapToGameResponseDependencies() {
+        when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
+        when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
+        // Mock tag assignment repository (used by getGameTags in mapToGameResponse)
+        when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
+        // lenient: when user is organizer we don't call findByGameAndUser
+        lenient().when(participationRepository.findByGameAndUser(any(), eq(userId)))
+                .thenReturn(Optional.of(GameParticipation.builder()
+                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                        .user(organizer)
+                        .build()));
+    }
 
         @Test
         @DisplayName("getUpcomingGames with all null filters calls repository with nulls")
@@ -219,6 +230,7 @@ class GameServiceDiscoveryTest {
                                 .thenReturn(List.of(game));
                 when(participationRepository.countConfirmedParticipants(any())).thenReturn(0);
                 when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(null, null, null, null, null);
 
