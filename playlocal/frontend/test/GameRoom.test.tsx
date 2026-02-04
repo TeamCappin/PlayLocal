@@ -77,11 +77,13 @@ describe("GameRoom Component", () => {
   const mockRefetch = jest.fn();
   const mockJoinGame = jest.fn();
   const mockLeaveGame = jest.fn();
+  const mockCancelGame = jest.fn();
 
   const mockUser = {
     userId: "user-1",
     displayName: "Test User",
     email: "test@example.com",
+    reliabilityScore: 85,
   };
 
   const mockGame = {
@@ -135,6 +137,7 @@ describe("GameRoom Component", () => {
       refetch: mockRefetch,
       joinGame: mockJoinGame,
       leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
     });
   });
 
@@ -203,6 +206,46 @@ describe("GameRoom Component", () => {
           ).toBeInTheDocument();
         });
       }
+    });
+
+    it("US-4.1: shows error when user reliability below game minReliabilityRequired", async () => {
+      const gameWithMinReliability = {
+        ...mockGame,
+        minReliabilityRequired: 90,
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameWithMinReliability,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, reliabilityScore: 70 },
+        isAuthenticated: true,
+      });
+
+      render(<GameRoom />);
+
+      const buttons = screen.getAllByRole("button");
+      const joinButton = buttons.find((btn) =>
+        btn.textContent?.includes("Join"),
+      );
+      expect(joinButton).toBeDefined();
+      fireEvent.click(joinButton!);
+
+      await waitFor(() => {
+        const errorEl = screen.getByText((content) =>
+          content.includes("Minimum reliability score required") &&
+          content.includes("90") &&
+          content.includes("70"),
+        );
+        expect(errorEl).toBeInTheDocument();
+      });
+      expect(mockJoinGame).not.toHaveBeenCalled();
     });
 
     it("shows confirmation modal when game has restricted tags", async () => {

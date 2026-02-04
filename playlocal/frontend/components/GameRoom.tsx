@@ -216,7 +216,7 @@ export function GameRoom() {
   const canEdit = isOrganizer && game.status === "SCHEDULED" && startDate > new Date();
   const handleOpenEditModal = () => {
     setEditFormData({
-      minReliabilityRequired: game.minReliabilityRequired != null ? String(game.minReliabilityRequired) : "",
+      minReliabilityRequired: game.minReliabilityRequired == null ? "" : String(game.minReliabilityRequired),
     });
     setShowEditModal(true);
   };
