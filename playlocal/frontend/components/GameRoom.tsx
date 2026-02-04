@@ -31,6 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { endorsementsApi, RosterResponse } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -733,7 +734,7 @@ export function GameRoom() {
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <span className="text-gray-600">
-                                  Reliability: {player.reliabilityScore}%
+                                  Reliability: {Math.round(player.reliabilityScore)}%
                                 </span>
                               </div>
                             </div>
@@ -789,7 +790,7 @@ export function GameRoom() {
                                     {player.displayName}
                                   </Link>
                                   <div className="text-sm text-gray-600">
-                                    Reliability: {player.reliabilityScore}%
+                                    Reliability: {Math.round(player.reliabilityScore)}%
                                   </div>
                                 </div>
                               </div>
@@ -1015,7 +1016,7 @@ export function GameRoom() {
                   <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-gray-600">
-                      Reliability: {game.organizer?.reliabilityScore || 100}%
+                      Reliability: {Math.round(game.organizer?.reliabilityScore ?? 100)}%
                     </span>
                   </div>
                   <Link
@@ -1026,6 +1027,17 @@ export function GameRoom() {
                   </Link>
                 </div>
               </div>
+              
+              {/* US-6.1: Organizer Quality Score */}
+              {game.organizer?.userId && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <OrganizerQualityBadge 
+                    userId={game.organizer.userId}
+                    variant="compact"
+                    showInfoCard={true}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Quick Info */}

@@ -10,11 +10,13 @@ import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGames } from '@/hooks/useGames';
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
+
 
 export function UserProfile() {
   const { username } = useParams();
   const usernameStr = Array.isArray(username) ? username[0] : username;
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats' | 'score-history'>('overview');
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
@@ -55,6 +57,13 @@ export function UserProfile() {
       fetchData();
     }
   }, [isOwnProfile, usernameStr]);
+
+  // Refresh auth user data when viewing own profile so stats are up-to-date
+  useEffect(() => {
+    if (isOwnProfile) {
+      refreshUser();
+    }
+  }, [isOwnProfile]);
 
   // TODO: Implement friendship check via API
   const isFriend = false; // Placeholder for friendship status
@@ -296,7 +305,7 @@ export function UserProfile() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${user.stats.reliabilityScore}%`} />
+            <StatCard label="Reliability Score" value={`${Math.round(user.stats.reliabilityScore)}%`} />
             {/* US 3.3 Organizer Endorsements */}
             <StatCard label="Endorsements" value={endorsements.length} icon={<Medal className="w-4 h-4 text-emerald-600" />} />
             <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
@@ -364,6 +373,16 @@ export function UserProfile() {
           {activeTab === 'overview' && (
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
+                {/* US-6.1: Organizer Quality Score */}
+                {user.userId && (
+                  <OrganizerQualityBadge 
+                    userId={user.userId} 
+                    displayName={user.name}
+                    variant="full"
+                    showInfoCard={true}
+                  />
+                )}
+                
                 {/* Sport Profiles Summary */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Sport Profiles</h2>

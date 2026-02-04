@@ -1,5 +1,6 @@
 package com.backend.playlocal.service;
 
+import com.backend.playlocal.service.OrganizerQualityService;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AttendanceDto;
 import com.backend.playlocal.model.dto.ScoreHistoryDto;
@@ -46,6 +47,9 @@ class ReliabilityServiceTest {
 
     @Mock
     private ScoreHistoryRepository scoreHistoryRepository;
+
+    @Mock
+    private OrganizerQualityService oqsService;
 
     @InjectMocks
     private ReliabilityService reliabilityService;

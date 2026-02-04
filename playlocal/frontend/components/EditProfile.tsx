@@ -174,7 +174,7 @@ export function EditProfile() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <span className="text-3xl font-bold text-emerald-600">
-                                            {user?.reliabilityScore || 100}%
+                                            {Math.round(user?.reliabilityScore ?? 100)}%
                                         </span>
                                         <CheckCircle className="w-6 h-6 text-emerald-500" />
                                     </div>

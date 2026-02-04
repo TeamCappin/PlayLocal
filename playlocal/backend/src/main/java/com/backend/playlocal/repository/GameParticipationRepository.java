@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 import java.util.List;
@@ -70,4 +71,11 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
      */
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.user.userId = :userId ORDER BY gp.joinedAt DESC")
     List<GameParticipation> findByUser(UUID userId);
+
+    /**
+     * Find all participations for a specific game.
+     * Used for OQS repeat player calculation (US-6.1).
+     */
+    @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId = :gameId")
+    List<GameParticipation> findByGameId(@Param("gameId") UUID gameId);
 }

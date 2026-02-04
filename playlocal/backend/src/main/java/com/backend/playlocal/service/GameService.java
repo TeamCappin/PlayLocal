@@ -8,6 +8,8 @@ import com.backend.playlocal.repository.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.backend.playlocal.service.OrganizerQualityService;
+
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,6 +36,8 @@ public class GameService {
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
         private final NotificationService notificationService;
+        private final OrganizerQualityService oqsService;
+
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
@@ -41,7 +45,8 @@ public class GameService {
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        OrganizerQualityService oqsService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -52,7 +57,9 @@ public class GameService {
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
                 this.notificationService = notificationService;
+                this.oqsService = oqsService;
         }
+
 
         /**
          * Create a new game. US-2.1
@@ -395,6 +402,9 @@ public class GameService {
                 game = gameRepository.save(game);
 
                 notifyCancellation(game);
+                // US-6.1: Recalculate OQS for the organizer after game cancellation
+                oqsService.onGameCancelled(gameId);
+
 
                 return mapToGameResponse(game, userId);
         }
