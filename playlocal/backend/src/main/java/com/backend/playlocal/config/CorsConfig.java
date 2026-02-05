@@ -24,7 +24,8 @@ public class CorsConfig {
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:3001",
                 "http://127.0.0.1:5173",
-                "https://playlocal.netlify.app"
+                "https://playlocal.netlify.app",
+                "https://playlocal-capstone.netlify.app/"
         ));
 
         // Allow common HTTP methods
