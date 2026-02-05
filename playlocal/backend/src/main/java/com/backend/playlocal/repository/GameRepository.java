@@ -43,15 +43,15 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
      * US-2.3: Discover Games
      */
     @Query("SELECT g FROM Game g " +
-            "LEFT JOIN FETCH g.sport " +
-            "LEFT JOIN FETCH g.createdBy " +
-            "LEFT JOIN FETCH g.location " +
-            "WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
-            "AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
-            "AND (:skillLevel IS NULL OR LOWER(g.skillBand) = LOWER(:skillLevel)) " +
-            "AND (:locationType IS NULL OR LOWER(g.indoorOutdoor) = LOWER(:locationType)) " +
-            "AND (:intensity IS NULL OR LOWER(g.intensityBand) = LOWER(:intensity)) " +
-            "ORDER BY g.startTime ASC")
+           "LEFT JOIN FETCH g.sport " +
+           "LEFT JOIN FETCH g.createdBy " +
+           "LEFT JOIN FETCH g.location " +
+           "WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
+           "AND (:sportName IS NULL OR :sportName = '' OR LOWER(CAST(g.sport.name AS text)) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
+           "AND (:skillLevel IS NULL OR LOWER(CAST(g.skillBand AS text)) = LOWER(:skillLevel)) " +
+           "AND (:locationType IS NULL OR LOWER(CAST(g.indoorOutdoor AS text)) = LOWER(:locationType)) " +
+           "AND (:intensity IS NULL OR LOWER(CAST(g.intensityBand AS text)) = LOWER(:intensity)) " +
+           "ORDER BY g.startTime ASC")
     List<Game> findUpcomingGamesWithFilters(
             Instant now,
             String sportName,
