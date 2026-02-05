@@ -1466,4 +1466,279 @@ describe("GameRoom Component", () => {
       expect(screen.getByText("Game Not Found")).toBeInTheDocument();
     });
   });
+  describe("Additional coverage: Location rendering & links", () => {
+  it("renders exact location with lat/lng and builds Google Maps link using coordinates", () => {
+    const gameWithCoords = {
+      ...mockGame,
+      hasExactLocationAccess: true,
+      location: {
+        name: "Parc Jarry Courts",
+        addressLine: "201 Rue Gary-Carter, Montréal, QC H2R 2W1",
+        city: "Montreal",
+        latitude: 45.5312,
+        longitude: -73.6205,
+      },
+    };
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: gameWithCoords,
+      roster: mockRoster,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    expect(screen.getByText("Location")).toBeInTheDocument();
+
+    const openMaps = screen.getByRole("link", { name: /Open in Google Maps/i });
+    expect(openMaps).toHaveAttribute(
+      "href",
+      expect.stringContaining("query=45.5312,-73.6205"),
+    );
+  });
+
+  it("renders exact location without lat/lng and builds Google Maps link using encoded address/name/city", () => {
+    const gameWithAddressOnly = {
+      ...mockGame,
+      hasExactLocationAccess: true,
+      location: {
+        name: "Test Park",
+        addressLine: "123 Main St, Montreal, QC",
+        city: "Montreal",
+        latitude: undefined,
+        longitude: undefined,
+      },
+    };
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: gameWithAddressOnly,
+      roster: mockRoster,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    const openMaps = screen.getByRole("link", { name: /Open in Google Maps/i });
+    expect(openMaps).toHaveAttribute(
+      "href",
+      expect.stringContaining("query=123%20Main%20St%2C%20Montreal%2C%20QC"),
+    );
+  });
+
+describe("Additional coverage: Endorsement error (non-duplicate)", () => {
+  it("shows error message when endorsement fails for reasons other than duplicate", async () => {
+    (endorsementsApi.create as jest.Mock).mockRejectedValue(
+      new Error("Server is down"),
+    );
+
+    const finishedGame = { ...mockGame, status: "FINISHED" };
+    const rosterWithAttended = {
+      confirmed: [
+        {
+          participationId: "p1",
+          userId: "organizer-1",
+          displayName: "Organizer",
+          role: "ORGANIZER",
+          joinStatus: "CONFIRMED",
+          attendanceStatus: "ATTENDED",
+          reliabilityScore: 100,
+          isEndorsedByOrganizer: false,
+        },
+        {
+          participationId: "p2",
+          userId: "user-2",
+          displayName: "Other Player",
+          role: "PLAYER",
+          joinStatus: "CONFIRMED",
+          attendanceStatus: "ATTENDED",
+          reliabilityScore: 85,
+          isEndorsedByOrganizer: false,
+        },
+      ],
+      waitlisted: [],
+      maxPlayers: 10,
+      spotsAvailable: 8,
+    };
+
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { ...mockUser, userId: "organizer-1" },
+      isAuthenticated: true,
+    });
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: finishedGame,
+      roster: rosterWithAttended,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    // Go to lineup where endorsement button exists
+    fireEvent.click(screen.getByRole("button", { name: /Lineup/i }));
+
+    await waitFor(() =>
+      expect(screen.getByTitle("Endorse as Organizer's Pick")).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByTitle("Endorse as Organizer's Pick"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Server is down")).toBeInTheDocument();
+    });
+
+    // Ensure it didn't silently refetch like the duplicate path
+    expect(mockRefetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("Additional coverage: Edit modal clear + update undefined", () => {
+  const futureStart = () => new Date(Date.now() + 86400000).toISOString();
+  const futureEnd = () => new Date(Date.now() + 86400000 + 7200000).toISOString();
+
+  it("clearing minReliabilityRequired sends undefined in update payload", async () => {
+    mockGamesApiUpdate.mockResolvedValue(undefined);
+    mockRefetch.mockResolvedValue(undefined);
+
+    const scheduledGame = {
+      ...mockGame,
+      status: "SCHEDULED",
+      startTime: futureStart(),
+      endTime: futureEnd(),
+      minReliabilityRequired: 80,
+    };
+
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { ...mockUser, userId: "organizer-1" },
+      isAuthenticated: true,
+    });
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: scheduledGame,
+      roster: mockRoster,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    // Open edit modal
+    fireEvent.click(screen.getByTitle("Edit game settings"));
+    await waitFor(() =>
+      expect(screen.getByText("Edit Game Settings")).toBeInTheDocument(),
+    );
+
+    // Clear input using the "Clear" button (branch coverage)
+    fireEvent.click(screen.getByRole("button", { name: /Clear/i }));
+
+    // Save changes
+    fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+
+    await waitFor(() =>
+      expect(mockGamesApiUpdate).toHaveBeenCalledWith(
+        "game-123",
+        expect.objectContaining({ minReliabilityRequired: undefined }),
+      ),
+    );
+  });
+});
+
+describe("Additional coverage: Join when user is missing but authenticated", () => {
+  it("allows join when user is null (meetsReliabilityRequirement path uses !user)", async () => {
+    mockJoinGame.mockResolvedValue({
+      joinStatus: "CONFIRMED",
+      waitlistPosition: null,
+    });
+
+    const gatedGame = { ...mockGame, minReliabilityRequired: 95 };
+
+    (useAuth as jest.Mock).mockReturnValue({
+      user: null,
+      isAuthenticated: true,
+    });
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: gatedGame,
+      roster: mockRoster,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    const buttons = screen.getAllByRole("button");
+    const joinButton = buttons.find((btn) => btn.textContent?.includes("Join"));
+    expect(joinButton).toBeDefined();
+
+    fireEvent.click(joinButton!);
+
+    await waitFor(() => {
+      expect(mockJoinGame).toHaveBeenCalledWith(undefined);
+    });
+  });
+});
+
+describe("Additional coverage: Spots Available Full label", () => {
+  it('shows "Full" when spotsAvailable is 0', () => {
+    const fullGame = { ...mockGame, maxPlayers: 1 };
+    const fullRoster = {
+      ...mockRoster,
+      confirmed: [
+        {
+          participationId: "p1",
+          userId: "organizer-1",
+          displayName: "Organizer",
+          role: "ORGANIZER",
+          joinStatus: "CONFIRMED",
+          attendanceStatus: null,
+          reliabilityScore: 100,
+        },
+      ],
+      waitlisted: [],
+      maxPlayers: 1,
+      spotsAvailable: 0,
+    };
+
+    (useGame as jest.Mock).mockReturnValue({
+      game: fullGame,
+      roster: fullRoster,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      joinGame: mockJoinGame,
+      leaveGame: mockLeaveGame,
+      cancelGame: mockCancelGame,
+    });
+
+    render(<GameRoom />);
+
+    expect(screen.getByText("Spots Available")).toBeInTheDocument();
+    expect(screen.getByText("Full")).toBeInTheDocument();
+  });
+}) //describe
+
+});
+
 });

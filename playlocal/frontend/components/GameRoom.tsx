@@ -33,6 +33,7 @@ import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PhotosPanel } from "./photos/PhotosPanel";
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -109,7 +110,7 @@ export function GameRoom() {
     refetch,
   } = useGame(id);
 
-  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup">(
+  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup"| "photos">(
     "details",
   );
   const [message, setMessage] = useState("");
@@ -503,6 +504,17 @@ export function GameRoom() {
                       <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     </div>
                   </button>
+                  <button
+                      onClick={() => setActiveTab("photos")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === "photos"
+                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
+                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      }`}
+                    >
+                      Album
+                    </button>
+                  
                 </div>
               </div>
 
@@ -836,6 +848,10 @@ export function GameRoom() {
                       />
                     </div>
                   </div>
+                )}
+
+                {activeTab === "photos" && (
+                  <PhotosPanel gameId={id} canUpload={isParticipant}/>
                 )}
               </div>
             </div>
