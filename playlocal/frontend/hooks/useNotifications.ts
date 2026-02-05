@@ -39,6 +39,13 @@ export function useNotifications() {
         }
     }, [isAuthenticated, fetchNotifications]);
 
+    // US-4.3: Refresh notification count when game is edited or deleted (so bell icon updates)
+    useEffect(() => {
+        const handler = () => fetchNotifications();
+        window.addEventListener("playlocal-refresh-notifications", handler);
+        return () => window.removeEventListener("playlocal-refresh-notifications", handler);
+    }, [fetchNotifications]);
+
     const markAsRead = async (notificationId: string) => {
         try {
             await notificationsApi.markAsRead(notificationId);
