@@ -420,6 +420,33 @@ class GameServiceJoinLeaveTest {
                 }
 
                 @Test
+                @DisplayName("Should be idempotent - return existing WAITLISTED participation if already on waitlist")
+                void joinGame_WhenAlreadyWaitlisted_ShouldReturnExisting() {
+                        // Given
+                        GameParticipation existingParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                                        .waitlistPosition(2)
+                                        .build();
+
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(existingParticipation));
+
+                        // When
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, userId);
+
+                        // Then
+                        assertThat(response.getJoinStatus()).isEqualTo("WAITLISTED");
+                        assertThat(response.getWaitlistPosition()).isEqualTo(2);
+                        assertThat(response.getMessage()).contains("Already joined");
+                        verify(participationRepository, never()).save(any());
+                }
+
+                @Test
                 @DisplayName("Should allow re-join after cancellation - to CONFIRMED if spots available")
                 void joinGame_WhenRejoinAfterCancel_AndCapacityAvailable_ShouldConfirm() {
                         // Given
@@ -558,6 +585,34 @@ class GameServiceJoinLeaveTest {
                         assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
                                         .isInstanceOf(AccessDeniedException.class)
                                         .hasMessageContaining("reliability");
+                }
+
+                @Test
+                @DisplayName("US-4.1: Organizer can join despite minReliabilityRequired (organizer exempt)")
+                void joinGame_WhenOrganizer_IgnoresMinReliability() {
+                        // Given: game has minReliabilityRequired 90, organizer has score 70 (below threshold)
+                        testGame.setMinReliabilityRequired(90.0f);
+                        organizer.setReliabilityScore(70.0f);
+                        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+                        when(participationRepository.findByGameAndUser(gameId, organizerId)).thenReturn(Optional.empty());
+                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(0);
+                        GameParticipation saved = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(organizer)
+                                        .sport(testSport)
+                                        .participationRole(GameParticipation.ParticipationRole.ORGANIZER)
+                                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                                        .build();
+                        when(participationRepository.save(any(GameParticipation.class))).thenReturn(saved);
+
+                        // When: organizer joins (same as createdBy)
+                        GameDto.JoinResponse response = gameService.joinGame(gameId, organizerId);
+
+                        // Then: succeeds (organizer exempt from reliability check)
+                        assertThat(response).isNotNull();
+                        assertThat(response.getJoinStatus()).isEqualTo("CONFIRMED");
                 }
 
                 @Test

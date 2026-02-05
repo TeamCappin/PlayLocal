@@ -29,6 +29,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.Assumptions;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -46,24 +48,36 @@ class GameJoinConcurrencyTest {
     static {
         // Only create container for local development (CI uses service container via SPRING_DATASOURCE_URL)
         if (System.getenv("SPRING_DATASOURCE_URL") == null) {
-            postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-                    .withDatabaseName("playlocal_concurrency_test")
-                    .withUsername("test")
-                    .withPassword("test");
-            postgres.start();
+            try {
+                postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                        .withDatabaseName("playlocal_concurrency_test")
+                        .withUsername("test")
+                        .withPassword("test");
+                postgres.start();
+            } catch (Exception e) {
+                postgres = null; // Docker unavailable; tests will be skipped
+            }
         }
     }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Only configure Testcontainers properties if running locally
-        // In CI, Spring Boot automatically uses SPRING_DATASOURCE_URL environment variables
+        // Only configure Testcontainers properties if running locally with Docker
         if (postgres != null) {
             registry.add("spring.datasource.url", postgres::getJdbcUrl);
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
+        } else if (System.getenv("SPRING_DATASOURCE_URL") == null) {
+            registry.add("spring.datasource.url", () -> "jdbc:h2:mem:concurrency;DB_CLOSE_DELAY=-1;MODE=PostgreSQL");
+            registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
+            registry.add("spring.datasource.username", () -> "sa");
+            registry.add("spring.datasource.password", () -> "");
+            registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+            registry.add("spring.flyway.enabled", () -> "false");
         }
-        registry.add("spring.flyway.enabled", () -> "true");
+        if (postgres != null || System.getenv("SPRING_DATASOURCE_URL") != null) {
+            registry.add("spring.flyway.enabled", () -> "true");
+        }
     }
 
     @Autowired
@@ -91,6 +105,8 @@ class GameJoinConcurrencyTest {
 
     @BeforeEach
     void setUp() {
+        Assumptions.assumeTrue(postgres != null || System.getenv("SPRING_DATASOURCE_URL") != null,
+                "Docker/Postgres required for concurrency tests");
         // Clean up previous test data
         participationRepository.deleteAll();
         gameRepository.deleteAll();

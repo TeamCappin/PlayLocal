@@ -15,15 +15,75 @@ jest.mock('../context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('../lib/api', () => ({
-  usersApi: {
-    getProfile: jest.fn(),
-    getProfileBySlug: jest.fn(),
-  },
-  endorsementsApi: {
-    getUserEndorsements: jest.fn(),
-  },
-}));
+jest.mock('../lib/api', () => {
+  const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
+  const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
+  
+  // Mock OQS data with proper structure
+  const createMockOqsFn = () => jest.fn(() => Promise.resolve({
+    userId: 'test-user-id',
+    displayName: 'Test Organizer',
+    oqsScore: 85.0,
+    gameCompletionRate: 90.0,
+    repeatPlayerRate: 75.0,
+    totalGamesHosted: 10,
+    completedGames: 9,
+    cancelledGames: 1,
+    totalUniquePlayers: 50,
+    repeatPlayers: 20,
+    confidenceLevel: 'HIGH',
+    confidenceDescription: 'Based on 10 games - score is highly reliable',
+    lastCalculatedAt: '2024-01-15T10:00:00Z',
+  }));
+  
+  const createMockOqsInfoCardFn = () => jest.fn(() => Promise.resolve({
+    oqsScore: 85.0,
+    overallDescription: 'Good organizer with reliable game history',
+    gameCompletionRate: 90.0,
+    completionRateDescription: 'Good reliability: 9 of 10 games completed',
+    completedGames: 9,
+    totalGames: 10,
+    repeatPlayerRate: 75.0,
+    repeatRateDescription: 'Great retention! 20 of 50 players have returned',
+    repeatPlayers: 20,
+    totalUniquePlayers: 50,
+    confidenceLevel: 'HIGH',
+    confidenceDescription: 'Based on 10 games - score is highly reliable',
+    gamesForNextLevel: 0,
+  }));
+  
+  return {
+    usersApi: {
+      getProfile: jest.fn(),
+      getProfileBySlug: jest.fn(),
+    },
+    endorsementsApi: {
+      getUserEndorsements: jest.fn(),
+    },
+    organizerQualityApi: {
+      getOqs: createMockOqsFn(),
+      getMyOqs: createMockOqsFn(),
+      getOqsSummary: createMockObjectFn(),
+      getOqsInfoCard: createMockOqsInfoCardFn(),
+      getMyOqsInfoCard: createMockOqsInfoCardFn(),
+      getOqsHistory: createMockObjectFn(),
+      getMyOqsHistory: createMockObjectFn(),
+      getWeights: createMockObjectFn(),
+    },
+    gamesApi: {
+      getUpcoming: createMockArrayFn(),
+      getPast: createMockArrayFn(),
+      getPastByUserNeedingAttendanceUpdate: createMockArrayFn(),
+      getById: createMockObjectFn(),
+      getRoster: createMockObjectFn(),
+      create: createMockObjectFn(),
+      join: createMockObjectFn(),
+      leave: createMockObjectFn(),
+      cancel: createMockObjectFn(),
+      getGameParticipation: createMockObjectFn(),
+    },
+  };
+});
 
 // Mock Recharts
 jest.mock('recharts', () => ({
@@ -58,6 +118,11 @@ jest.mock('lucide-react', () => ({
   Flag: () => <div />,
   Loader2: () => <div />,
   AlertCircle: () => <div />,
+  // Icons used by OrganizerQualityBadge
+  Info: () => <div />,
+  XCircle: () => <div />,
+  ChevronDown: () => <div />,
+  ChevronUp: () => <div />,
 }));
 
 describe('UserProfile Endorsements', () => {
@@ -74,6 +139,7 @@ describe('UserProfile Endorsements', () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isAuthenticated: true,
+      refreshUser: jest.fn(),
     });
     (usersApi.getProfile as jest.Mock).mockResolvedValue(mockUser);
     (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(mockUser);
@@ -132,5 +198,23 @@ describe('UserProfile Endorsements', () => {
     });
 
     expect(screen.getByText('No endorsements yet')).toBeInTheDocument();
+  });
+
+  it('calls refreshUser when viewing own profile', async () => {
+    const mockRefreshUser = jest.fn();
+    // Override useParams to match the mock user's slug (Test User -> test-user)
+    jest.spyOn(require('next/navigation'), 'useParams').mockReturnValue({ username: 'test-user' });
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      refreshUser: mockRefreshUser,
+    });
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue([]);
+
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(mockRefreshUser).toHaveBeenCalled();
+    });
   });
 });

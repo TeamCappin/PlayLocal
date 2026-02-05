@@ -5,15 +5,17 @@ import com.backend.playlocal.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.validation.BindingResult;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -86,13 +88,12 @@ class GlobalExceptionHandlerTest {
 
     @Test
     @DisplayName("US-1.1: handleValidationErrors should return 400 with field errors")
-    void handleValidationErrors() {
-        MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
-        BindingResult bindingResult = mock(BindingResult.class);
-        FieldError fieldError = new FieldError("object", "email", "Invalid email format");
-
-        when(ex.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+    void handleValidationErrors() throws Exception {
+        // Use real BindingResult and exception to avoid mock pollution with subclass mock maker
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "object");
+        bindingResult.addError(new FieldError("object", "email", "Invalid email format"));
+        MethodParameter param = new MethodParameter(Object.class.getMethod("equals", Object.class), 0);
+        MethodArgumentNotValidException ex = new MethodArgumentNotValidException(param, bindingResult);
 
         ResponseEntity<Map<String, Object>> response = exceptionHandler.handleValidationErrors(ex);
 

@@ -40,6 +40,17 @@ rate-limit:
   general:
     requests-per-minute: 60
 
+
+s3:
+  endpoint: http://localhost:9000
+  publicEndpoint: http://localhost:9000
+  bucket: uploads
+  region: us-east-1
+  accessKey: minioadmin
+  secretKey: minioadmin
+  forcePathStyle: true
+  presignExpirySeconds: 900
+  
 # Logging
 logging:
   level:

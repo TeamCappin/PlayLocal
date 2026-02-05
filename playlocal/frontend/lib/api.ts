@@ -69,11 +69,22 @@ async function apiFetch<T>(
 
   // Handle 204 No Content
   if (response.status === 204) {
-    return {} as T;
+    return undefined as T;
+  }
+
+  const contentLength = response.headers.get("content-length");
+  if (contentLength === "0") {
+    return undefined as T;
+  }
+
+  const ct = response.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) {
+    // Some endpoints return empty string even with 200
+    return undefined as T;
   }
 
   try {
-    return await response.json();
+    return (await response.json()) as T;
   } catch (e) {
     throw new ApiError(response.status, "Invalid JSON response", {
       originalError: e,
@@ -274,6 +285,18 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
+export interface UpdateGameRequest {
+    title?: string;
+    description?: string;
+    indoorOutdoor?: string;
+    intensityBand?: string;
+    skillBand?: string;
+    minPlayers?: number;
+    maxPlayers?: number;
+    allowWaitlist?: boolean;
+    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+}
+
 export interface GameResponse {
   gameId: string;
   title: string;
@@ -352,6 +375,16 @@ export interface TagDto {
   isRestricted: boolean;
 }
 
+export interface GameFilters {
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
+    sportName?: string;
+    skillLevel?: string;
+    locationType?: string;
+    intensity?: string;
+}
+
 // US-4.2: Join request with tag confirmations
 export interface JoinRequest {
   confirmedTagIds?: string[];
@@ -363,7 +396,19 @@ export const gamesApi = {
       body: JSON.stringify(data),
     }),
 
-  getUpcoming: () => apiFetch<GameResponse[]>("/games"),
+  getUpcoming: (filters?: GameFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+    if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
+    if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters?.sportName) params.append('sportName', filters.sportName);
+    if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+    if (filters?.locationType) params.append('locationType', filters.locationType);
+    if (filters?.intensity) params.append('intensity', filters.intensity);
+    
+    const queryString = params.toString();
+    return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+  },
 
   getPast: () => apiFetch<GameResponse[]>(`/games/past`),
 
@@ -372,7 +417,6 @@ export const gamesApi = {
 
   getPastByUserNeedingAttendanceUpdate: () =>
     apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
-
   getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
   getRoster: (gameId: string) =>
@@ -388,9 +432,16 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  // US-4.1: Update game settings (min reliability, etc.)
+  update: (gameId: string, data: UpdateGameRequest) =>
+    apiFetch<GameResponse>(`/games/${gameId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   // US-2.4: Cancel game endpoint
   cancel: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: "DELETE" }),
 
   // US-4.2: Get all available tags
   getTags: () => apiFetch<TagDto[]>("/games/tags"),
@@ -402,7 +453,7 @@ export const gamesApi = {
 
 export interface AttendanceEntry {
   participationId: string;
-  attendanceStatus: "ATTENDED" | "NO_SHOW";
+  attendanceStatus: "ATTENDED" | "NO_SHOW" | "UNKNOWN";
   userId: string;
   sportId: string;
   requestedPositionRoleId: string;
@@ -573,6 +624,83 @@ export interface ScoreSummary {
   attendanceRate: number;
 }
 
+
+// ============================================
+// ORGANIZER QUALITY SCORE (OQS) API - US-6.1
+// ============================================
+
+export interface OqsResponse {
+  userId: string;
+  displayName: string;
+  oqsScore: number;
+  gameCompletionRate: number;
+  repeatPlayerRate: number;
+  totalGamesHosted: number;
+  completedGames: number;
+  cancelledGames: number;
+  totalUniquePlayers: number;
+  repeatPlayers: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceDescription: string;
+  lastCalculatedAt?: string;
+}
+
+export interface OqsSummary {
+  userId: string;
+  oqsScore: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  totalGamesHosted: number;
+}
+
+export interface OqsHistoryEntry {
+  historyId: string;
+  organizerId: string;
+  gameId?: string;
+  gameTitle?: string;
+  previousOqs: number;
+  newOqs: number;
+  delta: number;
+  previousCompletionRate?: number;
+  newCompletionRate?: number;
+  previousRepeatRate?: number;
+  newRepeatRate?: number;
+  reason: "GAME_COMPLETED" | "GAME_CANCELLED" | "PLAYER_RETURNED" | "INITIAL_CALCULATION" | "MANUAL_ADJUSTMENT" | "RECALCULATION";
+  description?: string;
+  createdAt: string;
+}
+
+export interface OqsHistoryResponse {
+  organizerId: string;
+  displayName: string;
+  currentOqs: number;
+  history: OqsHistoryEntry[];
+  totalEntries: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+export interface OqsInfoCard {
+  oqsScore: number;
+  overallDescription: string;
+  gameCompletionRate: number;
+  completionRateDescription: string;
+  completedGames: number;
+  totalGames: number;
+  repeatPlayerRate: number;
+  repeatRateDescription: string;
+  repeatPlayers: number;
+  totalUniquePlayers: number;
+  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceDescription: string;
+  gamesForNextLevel: number;
+}
+
+export interface OqsWeights {
+  completionRateWeight: number;
+  repeatPlayerRateWeight: number;
+}
+
+
 export const scoreHistoryApi = {
   getHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
@@ -590,13 +718,97 @@ export const scoreHistoryApi = {
   getMySummary: () => apiFetch<ScoreSummary>(`/users/me/score-summary`),
 };
 
+
+export const organizerQualityApi = {
+  // Get full OQS for a user
+  getOqs: (userId: string) =>
+    apiFetch<OqsResponse>(`/users/${userId}/oqs`),
+
+  // Get OQS for current user
+  getMyOqs: () =>
+    apiFetch<OqsResponse>(`/users/me/oqs`),
+
+  // Get OQS summary (simplified for game cards)
+  getOqsSummary: (userId: string) =>
+    apiFetch<OqsSummary>(`/users/${userId}/oqs/summary`),
+
+  // Get OQS info card with plain language explanations
+  getOqsInfoCard: (userId: string) =>
+    apiFetch<OqsInfoCard>(`/users/${userId}/oqs/info`),
+
+  // Get OQS info card for current user
+  getMyOqsInfoCard: () =>
+    apiFetch<OqsInfoCard>(`/users/me/oqs/info`),
+
+  // Get OQS change history
+  getOqsHistory: (userId: string, page = 0, size = 10) =>
+    apiFetch<OqsHistoryResponse>(
+      `/users/${userId}/oqs/history?page=${page}&size=${size}`,
+    ),
+
+  // Get OQS change history for current user
+  getMyOqsHistory: (page = 0, size = 10) =>
+    apiFetch<OqsHistoryResponse>(
+      `/users/me/oqs/history?page=${page}&size=${size}`,
+    ),
+
+  // Get OQS calculation weights
+  getWeights: () =>
+    apiFetch<OqsWeights>(`/oqs/weights`),
+};
+// ============================================
+// Photos API
+// ============================================
+
+export interface UploadSlotReq {
+  fileName: string;
+  contentType: string;   // MUST be image/*
+  sizeBytes: number;
+}
+
+export interface UploadSlotRes {
+  mediaId: string;
+  storageKey: string;
+  uploadUrl: string;
+}
+
+export interface PhotoItem {
+  mediaId: string;
+  url: string;
+  createdAt: string;
+  uploaderUserId: string; // (or number if your backend returns numeric)
+}
+
+export const photosApi = {
+  // List photos for a game
+  listByGame: (gameId: string) =>
+    apiFetch<PhotoItem[]>(`/games/${gameId}/media/photos`),
+
+  // Create an upload slot (backend returns presigned PUT URL)
+  requestUploadSlot: (gameId: string, data: UploadSlotReq) =>
+    apiFetch<UploadSlotRes>(`/games/${gameId}/media/photos/upload-slot`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Finalize upload
+  finalizeUpload: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
+      method: "POST",
+    }),
+};
+
+
+
 export default {
   auth: authApi,
   games: gamesApi,
+  photos: photosApi,
   attendance: attendanceApi,
   reports: reportsApi,
   notifications: notificationsApi,
   endorsements: endorsementsApi,
   health: healthApi,
   scoreHistory: scoreHistoryApi,
+  organizerQuality: organizerQualityApi,
 };

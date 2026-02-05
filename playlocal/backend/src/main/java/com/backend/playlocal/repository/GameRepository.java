@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
@@ -22,6 +23,55 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now ORDER BY g.startTime ASC")
     List<Game> findUpcomingGames(Instant now);
 
+    /**
+     * Find upcoming games with optional filters (non-geospatial).
+     * US-2.3: Discover Games
+     */
+    @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
+            "AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', CAST(:sportName AS string), '%'))) " +
+            "AND (:skillLevel IS NULL OR g.skillBand = :skillLevel) " +
+            "AND (:locationType IS NULL OR g.indoorOutdoor = :locationType) " +
+            "AND (:intensity IS NULL OR g.intensityBand = :intensity) " +
+            "ORDER BY g.startTime ASC")
+    List<Game> findUpcomingGamesWithFilters(
+            Instant now,
+            String sportName,
+            String skillLevel,
+            String locationType,
+            String intensity);
+
+    /**
+     * Find nearby games with geospatial filtering using Haversine formula.
+     * US-2.3: Discover Games (Geospatial)
+     * Distance is calculated in kilometers.
+     * Returns game IDs ordered by distance, then by start time.
+     */
+    @Query(value = "SELECT g.game_id FROM game g " +
+            "INNER JOIN location l ON g.location_id = l.location_id " +
+            "INNER JOIN sport s ON g.sport_id = s.sport_id " +
+            "WHERE g.status = 'SCHEDULED' " +
+            "AND g.start_time > :now " +
+            "AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL " +
+            "AND (:sportName IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
+            "AND (:skillLevel IS NULL OR g.skill_band = :skillLevel) " +
+            "AND (:locationType IS NULL OR g.indoor_outdoor = :locationType) " +
+            "AND (:intensity IS NULL OR g.intensity_band = :intensity) " +
+            "AND (:radiusKm IS NULL OR (6371 * acos(LEAST(1.0, cos(radians(:userLat)) * cos(radians(l.latitude)) * " +
+            "cos(radians(l.longitude) - radians(:userLon)) + sin(radians(:userLat)) * sin(radians(l.latitude))))) <= :radiusKm) "
+            +
+            "ORDER BY (6371 * acos(LEAST(1.0, cos(radians(:userLat)) * cos(radians(l.latitude)) * " +
+            "cos(radians(l.longitude) - radians(:userLon)) + sin(radians(:userLat)) * sin(radians(l.latitude))))) ASC, "
+            +
+            "g.start_time ASC", nativeQuery = true)
+    List<UUID> findNearbyGameIdsWithFilters(
+            Instant now,
+            Float userLat,
+            Float userLon,
+            Double radiusKm,
+            String sportName,
+            String skillLevel,
+            String locationType,
+            String intensity);
     @Query("SELECT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND p.user.userId = :userId AND p.joinStatus = 'CONFIRMED' ORDER BY g.endTime DESC")
     List<Game> findPastGames(UUID userId, Instant now);
 

@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.backend.playlocal.service.OrganizerQualityService;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -41,15 +42,18 @@ public class ReliabilityService {
     private final GameParticipationRepository participationRepository;
     private final UserRepository userRepository;
     private final ScoreHistoryRepository scoreHistoryRepository;
+    private final OrganizerQualityService oqsService;
 
     public ReliabilityService(GameRepository gameRepository,
             GameParticipationRepository participationRepository,
             UserRepository userRepository,
-            ScoreHistoryRepository scoreHistoryRepository) {
+            ScoreHistoryRepository scoreHistoryRepository,
+            OrganizerQualityService oqsService) {
         this.gameRepository = gameRepository;
         this.participationRepository = participationRepository;
         this.userRepository = userRepository;
         this.scoreHistoryRepository = scoreHistoryRepository;
+        this.oqsService = oqsService;
     }
 
     /**
@@ -157,6 +161,9 @@ public class ReliabilityService {
             game.setStatus(Game.GameStatus.COMPLETED);
             gameRepository.save(game);
         }
+
+        // US-6.1: Recalculate OQS for the organizer after attendance confirmation
+        oqsService.onAttendanceConfirmed(gameId);
 
         return AttendanceDto.AttendanceResponse.builder()
                 .gameId(gameId.toString())

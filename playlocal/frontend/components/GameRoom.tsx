@@ -20,6 +20,7 @@ import {
   UserMinus,
   LogIn,
   Flag,
+  Edit,
   Medal,
   XCircle,
   Copy,
@@ -27,9 +28,12 @@ import {
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
-import { endorsementsApi, RosterResponse } from "@/lib/api";
+import { gamesApi, UpdateGameRequest, endorsementsApi } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
+import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PhotosPanel } from "./photos/PhotosPanel";
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -61,6 +65,35 @@ function getSportImage(sport: string) {
   );
 }
 
+// Mock data for fallback when backend unavailable
+const mockGame = {
+  gameId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  title: "5v5 Basketball Pickup",
+  sportName: "Basketball",
+  location: { name: "Parc Jarry Courts", addressLine: "201 Rue Gary-Carter, Montréal, QC H2R 2W1", city: "Montreal", latitude: 45.5312, longitude: -73.6205 },
+  hasExactLocationAccess: true,
+  approximateLocation: "Montreal, QC",
+  startTime: new Date().toISOString(),
+  endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+  confirmedCount: 8,
+  maxPlayers: 10,
+  minPlayers: 6,
+  skillBand: "Intermediate",
+  intensityBand: "High",
+  indoorOutdoor: "outdoor",
+  description: "Looking for some competitive basketball!",
+  organizer: { userId: "b2c3d4e5-f6a7-8901-bcde-f12345678901", displayName: "Minh H.", reliabilityScore: 98 },
+  status: "SCHEDULED",
+  minReliabilityRequired: undefined as number | undefined,
+};
+
+const mockRoster = {
+  confirmed: [],
+  waitlisted: [],
+  maxPlayers: 10,
+  spotsAvailable: 10,
+};
+
 export function GameRoom() {
   const params = useParams();
   const id = params?.id as string;
@@ -77,7 +110,7 @@ export function GameRoom() {
     refetch,
   } = useGame(id);
 
-  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup">(
+  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup"| "photos">(
     "details",
   );
   const [message, setMessage] = useState("");
@@ -86,9 +119,13 @@ export function GameRoom() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    minReliabilityRequired: "",
+  });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
-  // US-2.4: Cancel/share state
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -177,25 +214,62 @@ export function GameRoom() {
     ? `${Math.round((endDate.getTime() - startDate.getTime()) / 3600000)} hours`
     : "2 hours";
 
+  const canEdit = isOrganizer && game.status === "SCHEDULED" && startDate > new Date();
+  const handleOpenEditModal = () => {
+    setEditFormData({
+      minReliabilityRequired: game.minReliabilityRequired == null ? "" : String(game.minReliabilityRequired),
+    });
+    setShowEditModal(true);
+  };
+  const handleUpdateGame = async () => {
+    if (!id) return;
+    setIsUpdating(true);
+    setActionError(null);
+    try {
+      const updateData: UpdateGameRequest = {
+        minReliabilityRequired: editFormData.minReliabilityRequired
+          ? Number.parseFloat(editFormData.minReliabilityRequired)
+          : undefined,
+      };
+      await gamesApi.update(id, updateData);
+      setActionSuccess("Game settings updated successfully!");
+      setShowEditModal(false);
+      await refetch();
+    } catch (err: any) {
+      setActionError(err.message || "Failed to update game settings");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleJoin = async () => {
     if (!isAuthenticated) {
       navigate.push("/login");
       return;
     }
+    const meetsReliabilityRequirement =
+      game.minReliabilityRequired == null ||
+      !user ||
+      user.reliabilityScore >= game.minReliabilityRequired;
+    if (meetsReliabilityRequirement) {
+      // Check if there are restricted tags or age requirements
+      const restrictedTags =
+        game.tags?.filter((tag: any) => tag.isRestricted) || [];
+      const hasAgeRequirements = game.minAge || game.maxAge;
 
-    // Check if there are restricted tags or age requirements
-    const restrictedTags =
-      game.tags?.filter((tag: any) => tag.isRestricted) || [];
-    const hasAgeRequirements = game.minAge || game.maxAge;
+      // Show confirmation modal if there are restricted tags or age requirements
+      if (restrictedTags.length > 0 || hasAgeRequirements) {
+        setShowJoinConfirmationModal(true);
+        return;
+      }
 
-    // Show confirmation modal if there are restricted tags or age requirements
-    if (restrictedTags.length > 0 || hasAgeRequirements) {
-      setShowJoinConfirmationModal(true);
-      return;
+      // Join directly if no restrictions
+      await performJoin();
+    } else {
+      setActionError(
+        `Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user?.reliabilityScore ?? 0}%`,
+      );
     }
-
-    // Join directly if no restrictions
-    await performJoin();
   };
 
   const performJoin = async (confirmedTagIds?: string[]) => {
@@ -332,7 +406,11 @@ export function GameRoom() {
               <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-sm">
                 {game.intensityBand || "Medium"} Intensity
               </span>
-              {/* Community Tags */}
+              {game.minReliabilityRequired != null && (
+                <span className="px-3 py-1 bg-amber-500/90 backdrop-blur-sm text-white rounded-full text-sm font-semibold">
+                  Min {game.minReliabilityRequired}% Reliability
+                </span>
+              )}
               {game.tags &&
                 game.tags.length > 0 &&
                 game.tags.map((tag: any) => (
@@ -347,7 +425,6 @@ export function GameRoom() {
                     {tag.name.replace("-", " ")}
                   </span>
                 ))}
-              {/* Age Requirements */}
               {(game.minAge || game.maxAge) && (
                 <span className="px-3 py-1 bg-purple-500/90 text-white rounded-full text-sm">
                   Ages {game.minAge || "13"}–{game.maxAge || "120"}
@@ -427,6 +504,17 @@ export function GameRoom() {
                       <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     </div>
                   </button>
+                  <button
+                      onClick={() => setActiveTab("photos")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === "photos"
+                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
+                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      }`}
+                    >
+                      Album
+                    </button>
+                  
                 </div>
               </div>
 
@@ -572,6 +660,29 @@ export function GameRoom() {
                       <h3 className="text-lg text-gray-900 mb-3">
                         Game Rules & Requirements
                       </h3>
+                      {game.minReliabilityRequired != null && (
+                        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <TrendingUp className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="text-amber-900 font-semibold mb-1">Reputation-Gated Game</h4>
+                              <p className="text-sm text-amber-700">
+                                This game requires a minimum reliability score of <span className="font-semibold">{game.minReliabilityRequired}%</span> to join.
+                                {user && user.reliabilityScore < game.minReliabilityRequired && (
+                                  <span className="block mt-1 text-amber-800">
+                                    Your score: {user.reliabilityScore}% - You need {game.minReliabilityRequired}% to join.
+                                  </span>
+                                )}
+                                {user && user.reliabilityScore >= game.minReliabilityRequired && (
+                                  <span className="block mt-1 text-emerald-700">
+                                    ✓ Your score: {user.reliabilityScore}% - You meet the requirement!
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <ul className="space-y-2 text-gray-600">
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -648,7 +759,7 @@ export function GameRoom() {
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <span className="text-gray-600">
-                                  Reliability: {player.reliabilityScore}%
+                                  Reliability: {Math.round(player.reliabilityScore)}%
                                 </span>
                               </div>
                             </div>
@@ -704,7 +815,7 @@ export function GameRoom() {
                                     {player.displayName}
                                   </Link>
                                   <div className="text-sm text-gray-600">
-                                    Reliability: {player.reliabilityScore}%
+                                    Reliability: {Math.round(player.reliabilityScore)}%
                                   </div>
                                 </div>
                               </div>
@@ -737,6 +848,10 @@ export function GameRoom() {
                       />
                     </div>
                   </div>
+                )}
+
+                {activeTab === "photos" && (
+                  <PhotosPanel gameId={id} canUpload={isParticipant}/>
                 )}
               </div>
             </div>
@@ -881,7 +996,18 @@ export function GameRoom() {
 
             {/* Host Card */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg text-gray-900 mb-4">Hosted by</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg text-gray-900">Hosted by</h3>
+                {canEdit && (
+                  <button
+                    onClick={handleOpenEditModal}
+                    className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                    title="Edit game settings"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white">
                   {game.organizer?.displayName?.[0] || "H"}
@@ -899,7 +1025,7 @@ export function GameRoom() {
                   <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-gray-600">
-                      Reliability: {game.organizer?.reliabilityScore || 100}%
+                      Reliability: {Math.round(game.organizer?.reliabilityScore ?? 100)}%
                     </span>
                   </div>
                   <Link
@@ -910,6 +1036,17 @@ export function GameRoom() {
                   </Link>
                 </div>
               </div>
+              
+              {/* US-6.1: Organizer Quality Score */}
+              {game.organizer?.userId && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <OrganizerQualityBadge 
+                    userId={game.organizer.userId}
+                    variant="compact"
+                    showInfoCard={true}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Quick Info */}
@@ -960,6 +1097,79 @@ export function GameRoom() {
         reportType="game"
       />
 
+      {/* Edit Game Settings Modal - US-4.1 */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Game Settings</DialogTitle>
+            <DialogDescription>
+              Update game settings before it starts. Changes apply immediately to new join attempts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label htmlFor="min-reliability-edit" className="block text-sm font-medium text-gray-700 mb-2">
+                Minimum Reliability Score (Optional)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="min-reliability-edit"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editFormData.minReliabilityRequired}
+                  onChange={(e) => setEditFormData({ ...editFormData, minReliabilityRequired: e.target.value })}
+                  placeholder="e.g., 85"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+                <span className="text-gray-600">%</span>
+                {editFormData.minReliabilityRequired && (
+                  <button
+                    type="button"
+                    onClick={() => setEditFormData({ ...editFormData, minReliabilityRequired: "" })}
+                    className="text-sm text-red-600 hover:text-red-700"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Players with a score below this threshold cannot join. Leave empty to allow all players.
+              </p>
+              {user && (
+                <p className="text-xs text-emerald-700 mt-1">
+                  Your reliability score: <span className="font-semibold">{user.reliabilityScore}%</span>
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setShowEditModal(false)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={isUpdating}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleUpdateGame}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Join Confirmation Modal */}
       <JoinConfirmationModal
         isOpen={showJoinConfirmationModal}
