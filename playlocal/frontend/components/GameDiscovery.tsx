@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2 } from 'lucide-react';
+import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
 
@@ -52,6 +52,7 @@ function transformApiGame(game: GameResponse) {
     host: game.organizer.displayName || 'Host',
     image: getSportImage(game.sportName),
     status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
+    minReliabilityRequired: game.minReliabilityRequired, // US-4.1: Reputation-gated games
   };
 }
 
@@ -213,14 +214,106 @@ const mockGames: GameResponse[] = [
   },
 ];
 
+interface FilterState {
+  sportName: string;
+  distance: string;
+  skillLevel: string;
+  locationType: string;
+  intensity: string;
+}
+
 export function GameDiscovery() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
-  const { games: apiGames, isLoading, error } = useGames();
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    sportName: '',
+    distance: 'any distance',
+    skillLevel: 'any',
+    locationType: 'any',
+    intensity: 'any',
+  });
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
+    sportName: '',
+    distance: 'any distance',
+    skillLevel: 'any',
+    locationType: 'any',
+    intensity: 'any',
+  });
 
-  // Use API data only - no mock fallback (BUG-2.2 fix)
+  // Get user location on mount (optional)
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log('Geolocation error:', error);
+          // Continue without location - distance filtering won't work
+        }
+      );
+    }
+  }, []);
+
+  // Convert filter state to API format
+  const apiFilters = useMemo(() => {
+    const apiFilter: any = {};
+
+    if (appliedFilters.sportName.trim()) {
+      apiFilter.sportName = appliedFilters.sportName.trim();
+    }
+
+    if (appliedFilters.skillLevel !== 'any') {
+      // Map to database format: Beginner, Intermediate, Advanced (capitalized)
+      const skillLevelMap: Record<string, string> = {
+        'beginner': 'Beginner',
+        'intermediate': 'Intermediate',
+        'advanced': 'Advanced',
+      };
+      apiFilter.skillLevel = skillLevelMap[appliedFilters.skillLevel.toLowerCase()] || appliedFilters.skillLevel;
+    }
+
+    if (appliedFilters.locationType !== 'any') {
+      apiFilter.locationType = appliedFilters.locationType.toLowerCase();
+    }
+
+    if (appliedFilters.intensity !== 'any') {
+      // Map to database format: Casual, High, Competitive (capitalized)
+      const intensityMap: Record<string, string> = {
+        'casual': 'Casual',
+        'high': 'High',
+        'competitive': 'Competitive',
+      };
+      apiFilter.intensity = intensityMap[appliedFilters.intensity.toLowerCase()] || appliedFilters.intensity;
+    }
+
+    // Distance filter - convert to radiusKm
+    if (appliedFilters.distance !== 'any distance' && userLocation) {
+      apiFilter.lat = userLocation.lat;
+      apiFilter.lon = userLocation.lon;
+
+      const distanceMap: Record<string, number> = {
+        'within 5km': 5,
+        'within 10km': 10,
+        'within 20km': 20,
+      };
+      const radius = distanceMap[appliedFilters.distance.toLowerCase()];
+      if (radius) {
+        apiFilter.radiusKm = radius;
+      }
+    }
+
+    return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
+  }, [appliedFilters, userLocation]);
+
+  const { games: apiGames, isLoading, error } = useGames(apiFilters);
+
+  // Transform games - backend already filters, so just transform
   const displayGames = apiGames.map(transformApiGame);
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -234,7 +327,7 @@ export function GameDiscovery() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={() => setShowFilterModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 <Filter className="w-5 h-5" />
@@ -277,45 +370,103 @@ export function GameDiscovery() {
         </div>
       </div>
 
-      {/* Advanced Filters Panel */}
-      {showFilters && (
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="grid md:grid-cols-4 gap-6">
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setShowFilterModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Filter Games</h2>
+              <button
+                onClick={() => setShowFilterModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Sport Name Input */}
               <div>
-                <label className="block text-sm text-gray-700 mb-2">Distance</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  <option>Within 5 km</option>
-                  <option>Within 10 km</option>
-                  <option>Within 20 km</option>
-                  <option>Any distance</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sport Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter sport name (e.g., Basketball, Soccer)"
+                  value={filters.sportName}
+                  onChange={(e) => setFilters({ ...filters, sportName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
               </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">Skill Level</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  <option>All Levels</option>
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </select>
+
+              {/* Filter Dropdowns */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Distance</label>
+                  <select
+                    value={filters.distance}
+                    onChange={(e) => setFilters({ ...filters, distance: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="any distance">Any distance</option>
+                    <option value="within 5km">Within 5 km</option>
+                    <option value="within 10km">Within 10 km</option>
+                    <option value="within 20km">Within 20 km</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Skill Level</label>
+                  <select
+                    value={filters.skillLevel}
+                    onChange={(e) => setFilters({ ...filters, skillLevel: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="any">Any</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location Type</label>
+                  <select
+                    value={filters.locationType}
+                    onChange={(e) => setFilters({ ...filters, locationType: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="any">Any</option>
+                    <option value="indoor">Indoor</option>
+                    <option value="outdoor">Outdoor</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Intensity</label>
+                  <select
+                    value={filters.intensity}
+                    onChange={(e) => setFilters({ ...filters, intensity: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="any">Any</option>
+                    <option value="casual">Casual</option>
+                    <option value="high">High</option>
+                    <option value="competitive">Competitive</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">Location Type</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  <option>Any</option>
-                  <option>Indoor</option>
-                  <option>Outdoor</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">Intensity</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                  <option>Any</option>
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
-                </select>
+
+              {/* Search Button */}
+              <div className="flex justify-end pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setAppliedFilters(filters);
+                    setShowFilterModal(false);
+                  }}
+                  className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                >
+                  <Search className="w-5 h-5" />
+                  <span>Search</span>
+                </button>
               </div>
             </div>
           </div>
@@ -358,7 +509,7 @@ export function GameDiscovery() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayGames.map((game) => (
+                {displayGames.map((game: GameDisplay) => (
                   <GameCard key={game.id} game={game} />
                 ))}
               </div>
@@ -396,6 +547,7 @@ interface GameDisplay {
   host: string;
   image: string;
   status: string;
+  minReliabilityRequired?: number; // US-4.1: Reputation-gated games
 }
 
 function GameCard({ game }: { game: GameDisplay }) {
@@ -422,10 +574,15 @@ function GameCard({ game }: { game: GameDisplay }) {
             {game.players.current}/{game.players.max} players
           </span>
         </div>
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
           <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-sm text-gray-700">
             {game.sport}
           </span>
+          {game.minReliabilityRequired != null && (
+            <span className="px-3 py-1 bg-amber-500/90 backdrop-blur-sm text-white rounded-full text-xs font-semibold">
+              Min {game.minReliabilityRequired}% Reliability
+            </span>
+          )}
         </div>
       </div>
 
@@ -455,7 +612,7 @@ function GameCard({ game }: { game: GameDisplay }) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 mb-4 text-sm">
+        <div className="flex items-center gap-3 mb-4 text-sm flex-wrap">
           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
             {game.skillLevel}
           </span>
@@ -464,6 +621,11 @@ function GameCard({ game }: { game: GameDisplay }) {
           </span>
           {game.indoor && (
             <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Indoor</span>
+          )}
+          {game.minReliabilityRequired != null && (
+            <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded font-semibold">
+              Min {game.minReliabilityRequired}% Reliability
+            </span>
           )}
         </div>
 

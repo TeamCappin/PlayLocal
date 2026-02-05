@@ -26,7 +26,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests all authentication endpoints with a real database.
  */
 @AutoConfigureMockMvc
-class AuthControllerIntegrationTest extends IntegrationTestBase {
+@Testcontainers(disabledWithoutDocker = true)
+class AuthControllerIntegrationTest {
+
+        @Container
+        static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                        .withDatabaseName("playlocal_test")
+                        .withUsername("test")
+                        .withPassword("test");
+
+        @DynamicPropertySource
+        static void configureProperties(DynamicPropertyRegistry registry) {
+                registry.add("spring.datasource.url", postgres::getJdbcUrl);
+                registry.add("spring.datasource.username", postgres::getUsername);
+                registry.add("spring.datasource.password", postgres::getPassword);
+        }
 
         @Autowired
         private MockMvc mockMvc;

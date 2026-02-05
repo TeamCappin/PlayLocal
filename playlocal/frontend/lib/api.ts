@@ -69,11 +69,22 @@ async function apiFetch<T>(
 
   // Handle 204 No Content
   if (response.status === 204) {
-    return {} as T;
+    return undefined as T;
+  }
+
+  const contentLength = response.headers.get("content-length");
+  if (contentLength === "0") {
+    return undefined as T;
+  }
+
+  const ct = response.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) {
+    // Some endpoints return empty string even with 200
+    return undefined as T;
   }
 
   try {
-    return await response.json();
+    return (await response.json()) as T;
   } catch (e) {
     throw new ApiError(response.status, "Invalid JSON response", {
       originalError: e,
@@ -275,6 +286,17 @@ export interface CreateGameRequest {
 }
 
 export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
+export interface UpdateGameRequest {
+    title?: string;
+    description?: string;
+    indoorOutdoor?: string;
+    intensityBand?: string;
+    skillBand?: string;
+    minPlayers?: number;
+    maxPlayers?: number;
+    allowWaitlist?: boolean;
+    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+}
 
 export interface GameResponse {
   gameId: string;
@@ -354,6 +376,16 @@ export interface TagDto {
   isRestricted: boolean;
 }
 
+export interface GameFilters {
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
+    sportName?: string;
+    skillLevel?: string;
+    locationType?: string;
+    intensity?: string;
+}
+
 // US-4.2: Join request with tag confirmations
 export interface JoinRequest {
   confirmedTagIds?: string[];
@@ -365,7 +397,19 @@ export const gamesApi = {
       body: JSON.stringify(data),
     }),
 
-  getUpcoming: () => apiFetch<GameResponse[]>("/games"),
+  getUpcoming: (filters?: GameFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
+    if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
+    if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters?.sportName) params.append('sportName', filters.sportName);
+    if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
+    if (filters?.locationType) params.append('locationType', filters.locationType);
+    if (filters?.intensity) params.append('intensity', filters.intensity);
+    
+    const queryString = params.toString();
+    return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+  },
 
   getPast: () => apiFetch<GameResponse[]>(`/games/past`),
 
@@ -374,7 +418,6 @@ export const gamesApi = {
 
   getPastByUserNeedingAttendanceUpdate: () =>
     apiFetch<GameResponse[]>(`/games/pastByUserIdNeedingAttendanceUpdate`),
-
   getById: (gameId: string) => apiFetch<GameResponse>(`/games/${gameId}`),
 
   getRoster: (gameId: string) =>
@@ -398,9 +441,16 @@ export const gamesApi = {
 
     archive: (gameId: string) =>
         apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: 'POST' }),
+  // US-4.1: Update game settings (min reliability, etc.)
+  update: (gameId: string, data: UpdateGameRequest) =>
+    apiFetch<GameResponse>(`/games/${gameId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   // US-2.4: Cancel game endpoint
   cancel: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: "DELETE" }),
 
   // US-4.2: Get all available tags
   getTags: () => apiFetch<TagDto[]>("/games/tags"),
@@ -715,11 +765,54 @@ export const organizerQualityApi = {
   getWeights: () =>
     apiFetch<OqsWeights>(`/oqs/weights`),
 };
+// ============================================
+// Photos API
+// ============================================
+
+export interface UploadSlotReq {
+  fileName: string;
+  contentType: string;   // MUST be image/*
+  sizeBytes: number;
+}
+
+export interface UploadSlotRes {
+  mediaId: string;
+  storageKey: string;
+  uploadUrl: string;
+}
+
+export interface PhotoItem {
+  mediaId: string;
+  url: string;
+  createdAt: string;
+  uploaderUserId: string; // (or number if your backend returns numeric)
+}
+
+export const photosApi = {
+  // List photos for a game
+  listByGame: (gameId: string) =>
+    apiFetch<PhotoItem[]>(`/games/${gameId}/media/photos`),
+
+  // Create an upload slot (backend returns presigned PUT URL)
+  requestUploadSlot: (gameId: string, data: UploadSlotReq) =>
+    apiFetch<UploadSlotRes>(`/games/${gameId}/media/photos/upload-slot`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Finalize upload
+  finalizeUpload: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
+      method: "POST",
+    }),
+};
+
 
 
 export default {
   auth: authApi,
   games: gamesApi,
+  photos: photosApi,
   attendance: attendanceApi,
   reports: reportsApi,
   notifications: notificationsApi,

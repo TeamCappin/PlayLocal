@@ -144,23 +144,23 @@ CREATE UNIQUE INDEX ux_match_record_current ON match_record_revision(match_recor
 -- MEDIA ASSETS
 -- =============================================
 
-CREATE TABLE media_asset (
+CREATE TABLE IF NOT EXISTS media_asset (
     media_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     uploader_user_id UUID NOT NULL REFERENCES "user"(user_id),
     game_id UUID REFERENCES game(game_id),
     match_record_revision_id UUID REFERENCES match_record_revision(match_record_revision_id),
-    media_type media_type NOT NULL,
-    storage_url VARCHAR(500),
-    thumbnail_url VARCHAR(500),
-    visibility_id UUID NOT NULL REFERENCES content_visibility(content_visibility_id),
+    media_type media_type NULL,
+    storage_url VARCHAR(500) NULL,
+    thumbnail_url VARCHAR(500) NULL,
+    visibility_id UUID NULL REFERENCES content_visibility(content_visibility_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    delete_after TIMESTAMP,  -- retention policy
-    deleted_at TIMESTAMP,
-    
+    delete_after TIMESTAMP NULL,  -- retention policy
+    deleted_at TIMESTAMP NULL
+
     -- XOR parent: either game or match_record_revision, not both
-    CONSTRAINT ck_media_parent CHECK (
-        (game_id IS NOT NULL) <> (match_record_revision_id IS NOT NULL)
-    )
+    --CONSTRAINT ck_media_parent CHECK (
+        --(game_id IS NOT NULL) <> (match_record_revision_id IS NOT NULL)
+    --)
 );
 
 -- Add FK from report to media
@@ -175,7 +175,7 @@ CREATE TABLE media_tag (
     tag_type tag_type NOT NULL,
     timestamp_seconds INT,  -- for video timestamps
     note TEXT,
-    
+
     -- Tag type constraints
     CONSTRAINT ck_player_tag CHECK (tag_type <> 'player' OR tagged_user_id IS NOT NULL),
     CONSTRAINT ck_timestamp_positive CHECK (timestamp_seconds IS NULL OR timestamp_seconds >= 0)

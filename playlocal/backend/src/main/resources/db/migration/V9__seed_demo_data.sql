@@ -4,7 +4,7 @@
 -- San Francisco demo users (password: password123)
 -- NOSONAR: Intentional demo credentials for local development only
 INSERT INTO "user" (user_id, email, password_hash, display_name, bio, location, default_intensity, availability, reliability_score, games_count, created_at)
-VALUES 
+VALUES
     ('11111111-1111-1111-1111-111111111111', 'alex.chen@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Alex Chen', 'Basketball enthusiast.', 'San Francisco, CA', 'competitive', 'weekdays,evenings', 98.5, 47, NOW() - INTERVAL '6 months'),
     ('22222222-2222-2222-2222-222222222222', 'sarah.kim@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Sarah Kim', 'Soccer and volleyball player.', 'San Francisco, CA', 'casual', 'weekends,afternoons', 95.0, 32, NOW() - INTERVAL '4 months'),
     ('33333333-3333-3333-3333-333333333333', 'marcus.johnson@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Marcus Johnson', 'Former college basketball player.', 'Oakland, CA', 'competitive', 'flexible', 100.0, 89, NOW() - INTERVAL '1 year'),

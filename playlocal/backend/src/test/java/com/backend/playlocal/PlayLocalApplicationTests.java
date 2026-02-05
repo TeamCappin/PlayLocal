@@ -21,23 +21,40 @@ class PlayLocalApplicationTests {
     // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
     static PostgreSQLContainer<?> postgres;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // Only configure Testcontainers properties if running locally
-        // In CI, Spring Boot automatically uses SPRING_DATASOURCE_URL environment variables
+    static {
+        // Only create container for local development (CI uses service container via SPRING_DATASOURCE_URL)
         if (System.getenv("SPRING_DATASOURCE_URL") == null) {
-            if (postgres == null) {
+            try {
                 postgres = new PostgreSQLContainer<>("postgres:15-alpine")
                         .withDatabaseName("playlocal_test")
                         .withUsername("test")
                         .withPassword("test");
                 postgres.start();
+            } catch (Exception e) {
+                postgres = null; // Docker unavailable; tests will use H2
             }
+        }
+    }
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        // Only configure Testcontainers properties if running locally with Docker
+        // In CI, Spring Boot uses SPRING_DATASOURCE_URL. Without Docker, use H2 so context loads.
+        if (postgres != null) {
             registry.add("spring.datasource.url", postgres::getJdbcUrl);
             registry.add("spring.datasource.username", postgres::getUsername);
             registry.add("spring.datasource.password", postgres::getPassword);
+        } else if (System.getenv("SPRING_DATASOURCE_URL") == null) {
+            registry.add("spring.datasource.url", () -> "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL");
+            registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
+            registry.add("spring.datasource.username", () -> "sa");
+            registry.add("spring.datasource.password", () -> "");
+            registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+            registry.add("spring.flyway.enabled", () -> "false");
         }
-        registry.add("spring.flyway.enabled", () -> "true");
+        if (postgres != null || System.getenv("SPRING_DATASOURCE_URL") != null) {
+            registry.add("spring.flyway.enabled", () -> "true");
+        }
     }
 
     @Test
