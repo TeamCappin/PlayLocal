@@ -16,22 +16,41 @@ import java.util.UUID;
 @Repository
 public interface GameRepository extends JpaRepository<Game, UUID> {
 
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.gameId = :id")
+    Optional<Game> findById(@Param("id") UUID id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT g FROM Game g WHERE g.gameId = :gameId")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.gameId = :gameId")
     Optional<Game> findByIdWithLock(UUID gameId);
 
-    @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now ORDER BY g.startTime ASC")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.status = 'SCHEDULED' AND g.startTime > :now ORDER BY g.startTime ASC")
     List<Game> findUpcomingGames(Instant now);
 
     /**
      * Find upcoming games with optional filters (non-geospatial).
      * US-2.3: Discover Games
      */
-    @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
-            "AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', CAST(:sportName AS string), '%'))) " +
-            "AND (:skillLevel IS NULL OR g.skillBand = :skillLevel) " +
-            "AND (:locationType IS NULL OR g.indoorOutdoor = :locationType) " +
-            "AND (:intensity IS NULL OR g.intensityBand = :intensity) " +
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
+            "AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
+            "AND (:skillLevel IS NULL OR LOWER(g.skillBand) = LOWER(:skillLevel)) " +
+            "AND (:locationType IS NULL OR LOWER(g.indoorOutdoor) = LOWER(:locationType)) " +
+            "AND (:intensity IS NULL OR LOWER(g.intensityBand) = LOWER(:intensity)) " +
             "ORDER BY g.startTime ASC")
     List<Game> findUpcomingGamesWithFilters(
             Instant now,
@@ -72,18 +91,42 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             String skillLevel,
             String locationType,
             String intensity);
-    @Query("SELECT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND p.user.userId = :userId AND p.joinStatus = 'CONFIRMED' ORDER BY g.endTime DESC")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "JOIN GameParticipation p ON g.gameId = p.game.gameId " +
+            "WHERE g.status != 'CANCELLED' AND g.startTime < :now AND p.user.userId = :userId AND p.joinStatus = 'CONFIRMED' " +
+            "ORDER BY g.endTime DESC")
     List<Game> findPastGames(UUID userId, Instant now);
 
-    @Query("SELECT DISTINCT g FROM Game g JOIN GameParticipation p ON g.gameId = p.game.gameId WHERE g.status != 'CANCELLED' AND g.startTime < :now AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' ORDER BY g.endTime ASC")
+    @Query("SELECT DISTINCT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "JOIN GameParticipation p ON g.gameId = p.game.gameId " +
+            "WHERE g.status != 'CANCELLED' AND g.startTime < :now AND g.createdBy.userId = :userId AND p.attendanceStatus = 'UNKNOWN' " +
+            "ORDER BY g.endTime ASC")
     List<Game> findPastGamesForUserNeedingAttendanceUpdate(UUID userId, Instant now);
 
-    @Query("SELECT g FROM Game g WHERE g.sport.sportId = :sportId AND g.status = 'SCHEDULED' AND g.startTime > :now")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.sport.sportId = :sportId AND g.status = 'SCHEDULED' AND g.startTime > :now")
     List<Game> findBySportAndUpcoming(UUID sportId, Instant now);
 
-    @Query("SELECT g FROM Game g WHERE g.createdBy.userId = :userId ORDER BY g.createdAt DESC")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.createdBy.userId = :userId ORDER BY g.createdAt DESC")
     List<Game> findByOrganizer(UUID userId);
 
-    @Query("SELECT g FROM Game g WHERE g.status = 'SCHEDULED' AND g.startTime < :time")
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.status = 'SCHEDULED' AND g.startTime < :time")
     List<Game> findGamesNeedingStatusUpdate(Instant time);
 }
