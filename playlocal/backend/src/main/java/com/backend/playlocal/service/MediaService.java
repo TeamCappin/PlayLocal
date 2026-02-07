@@ -29,7 +29,8 @@ public class MediaService {
     private final S3Client s3;
     private final S3Presigner presigner;
     private static final int MAX_PHOTOS_PER_GAME = 5;
-
+    private static final UUID DEFAULT_VISIBILITY_ID = UUID.fromString("2ea9d210-b15e-4612-8908-220002c6cc19");
+    
     @Value("${s3.bucket:uploads}")
     private String bucketName;
 
@@ -60,7 +61,7 @@ public class MediaService {
 
         asset.setStorageUrl(null);   // will set after ID exists
         asset.setThumbnailUrl(null);
-        asset.setVisibilityId(null);
+        asset.setVisibilityId(DEFAULT_VISIBILITY_ID);
         asset.setCreatedAt(Instant.now());
         asset.setDeleteAfter(null);
         asset.setDeletedAt(null);
