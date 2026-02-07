@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
-import { gamesApi, UpdateGameRequest, endorsementsApi } from "@/lib/api";
+import { gamesApi, UpdateGameRequest, endorsementsApi, TagDto } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
@@ -120,6 +120,7 @@ export function GameRoom() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [editFormData, setEditFormData] = useState({
     description: "",
     indoorOutdoor: "",
@@ -129,12 +130,26 @@ export function GameRoom() {
     maxPlayers: "",
     allowWaitlist: true,
     minReliabilityRequired: "",
+    locationName: "",
+    addressLine: "",
+    city: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    visibility: "public",
+    tagNames: [] as string[],
+    minAge: "",
+    maxAge: "",
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+
+  useEffect(() => {
+    gamesApi.getTags().then(setAvailableTags).catch(() => {});
+  }, []);
 
   // CRITICAL: Check loading state FIRST before accessing any data
   if (isLoading) {
@@ -222,6 +237,9 @@ export function GameRoom() {
 
   const canEdit = isOrganizer && game.status === "SCHEDULED" && startDate > new Date();
   const handleOpenEditModal = () => {
+    const start = new Date(game.startTime);
+    const end = game.endTime ? new Date(game.endTime) : start;
+    const pad = (n: number) => String(n).padStart(2, "0");
     setEditFormData({
       description: game.description ?? "",
       indoorOutdoor: game.indoorOutdoor ?? "",
@@ -231,6 +249,16 @@ export function GameRoom() {
       maxPlayers: String(game.maxPlayers ?? 20),
       allowWaitlist: game.allowWaitlist ?? true,
       minReliabilityRequired: game.minReliabilityRequired == null ? "" : String(game.minReliabilityRequired),
+      locationName: game.location?.name ?? "",
+      addressLine: game.location?.addressLine ?? "",
+      city: game.location?.city ?? "",
+      date: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+      startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+      endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+      visibility: "public",
+      tagNames: game.tags?.map((t: { name: string }) => t.name) ?? [],
+      minAge: game.minAge != null ? String(game.minAge) : "",
+      maxAge: game.maxAge != null ? String(game.maxAge) : "",
     });
     setShowEditModal(true);
   };
@@ -247,6 +275,12 @@ export function GameRoom() {
       setActionError("Maximum players must be at least the minimum");
       return;
     }
+    const startISO = editFormData.date && editFormData.startTime
+      ? new Date(`${editFormData.date}T${editFormData.startTime}:00`).toISOString()
+      : undefined;
+    const endISO = editFormData.date && editFormData.endTime
+      ? new Date(`${editFormData.date}T${editFormData.endTime}:00`).toISOString()
+      : undefined;
     setIsUpdating(true);
     setActionError(null);
     try {
@@ -261,15 +295,28 @@ export function GameRoom() {
         minReliabilityRequired: editFormData.minReliabilityRequired
           ? Number.parseFloat(editFormData.minReliabilityRequired)
           : undefined,
+        locationName: editFormData.locationName || undefined,
+        addressLine: editFormData.addressLine || undefined,
+        city: editFormData.city || undefined,
+        startTime: startISO,
+        endTime: endISO,
+        visibility: editFormData.visibility || undefined,
+        tagNames: editFormData.tagNames ?? [],
+        minAge: editFormData.minAge ? Number.parseInt(editFormData.minAge, 10) : undefined,
+        maxAge: editFormData.maxAge ? Number.parseInt(editFormData.maxAge, 10) : undefined,
       };
       await gamesApi.update(id, updateData);
-      setActionSuccess("Game updated successfully. All participants have been notified.");
+      setActionError(null);
+      setActionSuccess("Changes saved.");
       setShowEditModal(false);
       await refetch();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+        window.dispatchEvent(new CustomEvent("playlocal-refresh-games"));
       }
+      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
+      setActionSuccess(null);
       setActionError(err.message || "Failed to update game settings");
     } finally {
       setIsUpdating(false);
@@ -1182,6 +1229,65 @@ export function GameRoom() {
               </div>
 
               <div>
+                <label htmlFor="edit-location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  id="edit-location"
+                  type="text"
+                  value={editFormData.locationName}
+                  onChange={(e) => setEditFormData({ ...editFormData, locationName: e.target.value })}
+                  placeholder="Venue or address"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
+                />
+                <input
+                  type="text"
+                  value={editFormData.addressLine}
+                  onChange={(e) => setEditFormData({ ...editFormData, addressLine: e.target.value })}
+                  placeholder="Street address (optional)"
+                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
+                />
+                <input
+                  type="text"
+                  value={editFormData.city}
+                  onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                  placeholder="City (optional)"
+                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="edit-date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    id="edit-date"
+                    type="date"
+                    value={editFormData.date}
+                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-start-time" className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+                  <input
+                    id="edit-start-time"
+                    type="time"
+                    value={editFormData.startTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-end-time" className="block text-sm font-medium text-gray-700 mb-1">End time</label>
+                  <input
+                    id="edit-end-time"
+                    type="time"
+                    value={editFormData.endTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   id="edit-description"
@@ -1273,6 +1379,78 @@ export function GameRoom() {
                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="edit-allow-waitlist" className="text-sm text-gray-700">Allow waitlist</label>
+              </div>
+
+              <div>
+                <label htmlFor="edit-visibility" className="block text-sm font-medium text-gray-700 mb-1">Game visibility</label>
+                <select
+                  id="edit-visibility"
+                  value={editFormData.visibility}
+                  onChange={(e) => setEditFormData({ ...editFormData, visibility: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                >
+                  <option value="public">Public - Anyone can see and join</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="invite">Invite Only</option>
+                </select>
+              </div>
+
+              {availableTags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Community tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map((tag) => (
+                      <label
+                        key={tag.tagId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={editFormData.tagNames.includes(tag.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditFormData({ ...editFormData, tagNames: [...editFormData.tagNames, tag.name] });
+                            } else {
+                              setEditFormData({ ...editFormData, tagNames: editFormData.tagNames.filter((t) => t !== tag.name) });
+                            }
+                          }}
+                          className="rounded border-gray-300 text-emerald-600"
+                        />
+                        <span className="capitalize">{tag.name.replace(/-/g, " ")}</span>
+                        {tag.isRestricted && <span className="text-red-600 text-xs">!</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="edit-min-age" className="block text-sm font-medium text-gray-700 mb-1">Min age (optional)</label>
+                  <input
+                    id="edit-min-age"
+                    type="number"
+                    min={13}
+                    max={120}
+                    value={editFormData.minAge}
+                    onChange={(e) => setEditFormData({ ...editFormData, minAge: e.target.value })}
+                    placeholder="e.g. 18"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-max-age" className="block text-sm font-medium text-gray-700 mb-1">Max age (optional)</label>
+                  <input
+                    id="edit-max-age"
+                    type="number"
+                    min={13}
+                    max={120}
+                    value={editFormData.maxAge}
+                    onChange={(e) => setEditFormData({ ...editFormData, maxAge: e.target.value })}
+                    placeholder="e.g. 65"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
               </div>
 
               <div>

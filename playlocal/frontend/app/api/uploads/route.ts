@@ -9,21 +9,29 @@ function mustGet(name: string) {
   return v;
 }
 
-const s3 = new S3Client({
-  region: process.env.S3_REGION || "us-east-1",
-  endpoint: mustGet("S3_ENDPOINT"), // IMPORTANT: inside docker use http://minio:9000
-  credentials: {
-    accessKeyId: mustGet("S3_ACCESS_KEY_ID"),
-    secretAccessKey: mustGet("S3_SECRET_ACCESS_KEY"),
-  },
-  forcePathStyle: (process.env.S3_FORCE_PATH_STYLE || "true") === "true",
-});
+// Lazy init so build (no env vars) does not fail; client is created on first request.
+let s3Client: S3Client | null = null;
+function getS3(): S3Client {
+  if (!s3Client) {
+    s3Client = new S3Client({
+      region: process.env.S3_REGION || "us-east-1",
+      endpoint: mustGet("S3_ENDPOINT"),
+      credentials: {
+        accessKeyId: mustGet("S3_ACCESS_KEY_ID"),
+        secretAccessKey: mustGet("S3_SECRET_ACCESS_KEY"),
+      },
+      forcePathStyle: (process.env.S3_FORCE_PATH_STYLE || "true") === "true",
+    });
+  }
+  return s3Client;
+}
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const prefix = url.searchParams.get("prefix") || ""; // e.g. games/<gameId>/photos/
 
   const bucket = mustGet("S3_BUCKET");
+  const s3 = getS3();
 
   const out = await s3.send(
     new ListObjectsV2Command({

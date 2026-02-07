@@ -153,7 +153,14 @@ export function GameDiscovery() {
     return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
   }, [appliedFilters, userLocation]);
 
-  const { games: apiGames, isLoading, error } = useGames(apiFilters);
+  const { games: apiGames, isLoading, error, refetch } = useGames(apiFilters);
+
+  // Refetch when a game is updated (e.g. from GameRoom Save Changes) so Discover stays in sync
+  useEffect(() => {
+    const handler = () => refetch();
+    window.addEventListener("playlocal-refresh-games", handler);
+    return () => window.removeEventListener("playlocal-refresh-games", handler);
+  }, [refetch]);
 
   // Transform games - backend already filters, so just transform
   const displayGames = apiGames.map(transformApiGame);

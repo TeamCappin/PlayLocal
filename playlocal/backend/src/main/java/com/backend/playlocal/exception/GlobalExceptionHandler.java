@@ -82,8 +82,10 @@ public class GlobalExceptionHandler {
         String errorMessage = ex.getMessage();
         
         if (errorMessage != null) {
-            if (errorMessage.contains("uq_friendship_pair") || errorMessage.contains("unique constraint")) {
+            if (errorMessage.contains("uq_friendship_pair")) {
                 message = "Friend request already exists between these users";
+            } else if (errorMessage.contains("unique constraint") || errorMessage.contains("duplicate key")) {
+                message = "A duplicate record already exists. Please try again.";
             } else if (errorMessage.contains("ck_friendship_low_high")) {
                 message = "Invalid friendship relationship";
             } else if (errorMessage.contains("foreign key") || errorMessage.contains("REFERENCES")) {

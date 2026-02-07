@@ -42,6 +42,7 @@ public class GameService {
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
         private final OrganizerQualityService oqsService;
+        private final LocationRepository locationRepository;
 
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
@@ -50,7 +51,8 @@ public class GameService {
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
-                        OrganizerQualityService oqsService) {
+                        OrganizerQualityService oqsService,
+                        LocationRepository locationRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -61,6 +63,7 @@ public class GameService {
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
                 this.oqsService = oqsService;
+                this.locationRepository = locationRepository;
         }
 
 
@@ -481,16 +484,49 @@ public class GameService {
                 // only update if a non-null value is provided
                 if (request.getMinReliabilityRequired() != null) {
                         if (request.getMinReliabilityRequired() < 0) {
-                                // Special value to clear the requirement
                                 game.setMinReliabilityRequired(null);
                         } else {
                                 game.setMinReliabilityRequired(request.getMinReliabilityRequired());
                         }
                 }
 
-                game = gameRepository.save(game);
-                log.info("US-4.1 Game updated: gameId={}, organizerId={}, minReliabilityRequired={}", 
-                        gameId, organizerId, game.getMinReliabilityRequired());
+                // US-4.3: Location (update existing location entity and persist)
+                if (request.getLocationName() != null || request.getAddressLine() != null
+                                || request.getCity() != null || request.getLatitude() != null
+                                || request.getLongitude() != null) {
+                        Location loc = game.getLocation();
+                        if (loc != null) {
+                                if (request.getLocationName() != null) loc.setName(request.getLocationName());
+                                if (request.getAddressLine() != null) loc.setAddressLine(request.getAddressLine());
+                                if (request.getCity() != null) loc.setCity(request.getCity());
+                                if (request.getLatitude() != null) loc.setLatitude(request.getLatitude());
+                                if (request.getLongitude() != null) loc.setLongitude(request.getLongitude());
+                                locationRepository.saveAndFlush(loc);
+                        }
+                }
+
+                if (request.getStartTime() != null) game.setStartTime(request.getStartTime());
+                if (request.getEndTime() != null) game.setEndTime(request.getEndTime());
+
+                if (request.getVisibility() != null && !request.getVisibility().isBlank()) {
+                        GameVisibility vis = gameVisibilityRepository.findByCode(request.getVisibility().trim().toLowerCase())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Visibility not found: " + request.getVisibility()));
+                        game.setVisibility(vis);
+                }
+
+                if (request.getTagNames() != null) {
+                        tagAssignmentRepository.deleteAllByGame(game);
+                        tagAssignmentRepository.flush();
+                        if (!request.getTagNames().isEmpty()) {
+                                assignTagsToGame(game, request.getTagNames());
+                        }
+                }
+
+                if (request.getMinAge() != null) game.setMinAge(request.getMinAge());
+                if (request.getMaxAge() != null) game.setMaxAge(request.getMaxAge());
+
+                game = gameRepository.saveAndFlush(game);
+                log.info("US-4.1/4.3 Game updated: gameId={}, organizerId={}", gameId, organizerId);
 
                 return mapToGameResponse(game, organizerId);
         }
