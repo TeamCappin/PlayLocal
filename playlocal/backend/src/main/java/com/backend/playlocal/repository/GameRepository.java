@@ -42,22 +42,26 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
      * Find upcoming games with optional filters (non-geospatial).
      * US-2.3: Discover Games
      */
-    @Query("SELECT g FROM Game g " +
-           "LEFT JOIN FETCH g.sport " +
-           "LEFT JOIN FETCH g.createdBy " +
-           "LEFT JOIN FETCH g.location " +
-           "WHERE g.status = 'SCHEDULED' AND g.startTime > :now " +
-           "AND (:sportName IS NULL OR :sportName = '' OR LOWER(CAST(g.sport.name AS text)) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
-           "AND (:skillLevel IS NULL OR LOWER(CAST(g.skillBand AS text)) = LOWER(:skillLevel)) " +
-           "AND (:locationType IS NULL OR LOWER(CAST(g.indoorOutdoor AS text)) = LOWER(:locationType)) " +
-           "AND (:intensity IS NULL OR LOWER(CAST(g.intensityBand AS text)) = LOWER(:intensity)) " +
-           "ORDER BY g.startTime ASC")
-    List<Game> findUpcomingGamesWithFilters(
-            Instant now,
-            String sportName,
-            String skillLevel,
-            String locationType,
-            String intensity);
+    @Query("""
+        SELECT g FROM Game g
+        LEFT JOIN FETCH g.sport
+        LEFT JOIN FETCH g.createdBy
+        LEFT JOIN FETCH g.location
+        WHERE g.status = 'SCHEDULED' AND g.startTime > :now
+        AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE CONCAT('%', :sportName, '%'))
+        AND (:skillLevel IS NULL OR g.skillBand = :skillLevel)
+        AND (:locationType IS NULL OR g.indoorOutdoor = :locationType)
+        AND (:intensity IS NULL OR g.intensityBand = :intensity)
+        ORDER BY g.startTime ASC
+        """)
+            List<Game> findUpcomingGamesWithFilters(
+                    Instant now,
+                    String sportName,     // already lowercase
+                    String skillLevel,    // already lowercase
+                    String locationType,  // already lowercase
+                    String intensity      // already lowercase
+            );
+
 
     /**
      * Find nearby games with geospatial filtering using Haversine formula.

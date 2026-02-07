@@ -49,5 +49,7 @@ s3:
   region: ${AWS_REGION:us-east-2}
   accessKey: ${AWS_ACCESS_KEY_ID}
   secretKey: ${AWS_SECRET_ACCESS_KEY}
+  endpoint: ${endpoint}
+  publicEndpoint: ${publicEndpoint}
   forcePathStyle: false
   presignExpirySeconds: 900
