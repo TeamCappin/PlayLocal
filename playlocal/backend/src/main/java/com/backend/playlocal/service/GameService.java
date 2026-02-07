@@ -522,6 +522,68 @@ public class GameService {
         }
 
         /**
+         * US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer)
+         * that the game was updated.
+         */
+        private void notifyParticipantsGameUpdated(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameUpdatedNotification(Game game, UUID userId) {
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game updated");
+                payload.put("message", String.format("The game \"%s\" has been updated. Check the details for changes.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/games/" + game.getGameId().toString());
+                notificationService.createInAppNotification(userId, "GAME_UPDATED", payload);
+        }
+
+        /**
+         * US-4.3: Notify all joined players (confirmed + waitlisted, except organizer)
+         * that the game was cancelled.
+         */
+        private void notifyParticipantsGameCancelled(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameCancelledNotification(Game game, UUID userId) {
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game cancelled");
+                payload.put("message", String.format("The game \"%s\" has been cancelled by the organizer.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/discover");
+                notificationService.createInAppNotification(userId, "GAME_CANCELLED", payload);
+        }
+
+        /**
          * Update game settings. US-4.1
          * Only allows updates before game starts (status == SCHEDULED and startTime > now).
          */
@@ -620,6 +682,9 @@ public class GameService {
                 game = gameRepository.saveAndFlush(game);
                 log.info("US-4.1/4.3 Game updated: gameId={}, organizerId={}", gameId, organizerId);
 
+                // US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer) that game was updated
+                notifyParticipantsGameUpdated(game, organizerId);
+
                 return mapToGameResponse(game, organizerId);
         }
 
@@ -678,6 +743,8 @@ public class GameService {
                 // US-6.1: Recalculate OQS for the organizer after game cancellation
                 oqsService.onGameCancelled(gameId);
 
+                // US-4.3: Notify all joined players (confirmed + waitlisted, except organizer) that game was cancelled
+                notifyParticipantsGameCancelled(game, userId);
 
                 return mapToGameResponse(game, userId);
         }

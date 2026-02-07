@@ -5,6 +5,27 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/context/AuthContext';
 
 // Map notification types to icons
+const DISMISSED_STORAGE_KEY = "playlocal-dismissed-notifications";
+
+function loadDismissedFromStorage(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(DISMISSED_STORAGE_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissedToStorage(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
+
 const getNotificationIcon = (type: string) => {
   const icons: Record<string, React.ReactElement> = {
     GAME_REMINDER: <Calendar className="w-5 h-5 text-emerald-600" />,
@@ -12,6 +33,7 @@ const getNotificationIcon = (type: string) => {
     GAME_LEFT: <Users className="w-5 h-5 text-gray-600" />,
     GAME_CANCELLED: <AlertCircle className="w-5 h-5 text-red-600" />,
     GAME_REMOVED_REQUIREMENTS: <AlertCircle className="w-5 h-5 text-amber-600" />,
+    GAME_UPDATED: <Calendar className="w-5 h-5 text-emerald-600" />,
     GAME_STARTING: <Calendar className="w-5 h-5 text-amber-600" />,
     FRIEND_REQUEST: <UserPlus className="w-5 h-5 text-blue-600" />,
     MESSAGE: <MessageCircle className="w-5 h-5 text-amber-600" />,
@@ -105,7 +127,7 @@ export function NotificationsPage() {
   const { notifications: apiNotifications, unreadCount: apiUnreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [localReadState, setLocalReadState] = useState<Record<string, boolean>>({});
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissedFromStorage());
 
   // Use API notifications only - no mock fallback
   const notifications = (apiNotifications as any) || [];
@@ -147,7 +169,11 @@ export function NotificationsPage() {
   };
 
   const handleDismiss = (notificationId: string) => {
-    setDismissed(prev => new Set(prev).add(notificationId));
+    setDismissed(prev => {
+      const next = new Set(prev).add(notificationId);
+      saveDismissedToStorage(next);
+      return next;
+    });
   };
 
   const formatTime = (dateStr: string) => {
@@ -316,6 +342,10 @@ function NotificationItem({
   onDismiss: () => void;
   formatTime: (date: string) => string;
 }) {
+  const handleViewClick = (e: React.MouseEvent) => {
+    if (!isRead) onMarkAsRead();
+  };
+
   return (
     <div
       className={`p-4 hover:bg-gray-50 transition-colors ${!isRead ? 'bg-emerald-50/30' : ''
@@ -336,7 +366,7 @@ function NotificationItem({
             <div className="flex items-center gap-2 flex-shrink-0">
               {!isRead && (
                 <button
-                  onClick={onMarkAsRead}
+                  onClick={(e) => { e.stopPropagation(); onMarkAsRead(); }}
                   className="text-emerald-600 hover:text-emerald-700 transition-colors"
                   title="Mark as read"
                 >
@@ -344,7 +374,7 @@ function NotificationItem({
                 </button>
               )}
               <button
-                onClick={onDismiss}
+                onClick={(e) => { e.stopPropagation(); onDismiss(); }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
                 title="Dismiss"
               >
@@ -358,6 +388,7 @@ function NotificationItem({
             {notification.link && (
               <Link
                 href={notification.link}
+                onClick={handleViewClick}
                 className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
               >
                 View →

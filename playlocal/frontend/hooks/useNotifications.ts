@@ -80,6 +80,9 @@ export function useNotifications() {
                 )
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+            }
         } catch (err) {
             console.error('Error marking notification as read:', err);
         }
@@ -90,6 +93,9 @@ export function useNotifications() {
             await notificationsApi.markAllAsRead();
             setNotifications(prev => prev.map(n => ({ ...n, status: 'READ' })));
             setUnreadCount(0);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+            }
         } catch (err) {
             console.error('Error marking all notifications as read:', err);
         }
