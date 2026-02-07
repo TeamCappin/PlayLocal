@@ -11,6 +11,7 @@ const getNotificationIcon = (type: string) => {
     GAME_JOINED: <Users className="w-5 h-5 text-purple-600" />,
     GAME_LEFT: <Users className="w-5 h-5 text-gray-600" />,
     GAME_CANCELLED: <AlertCircle className="w-5 h-5 text-red-600" />,
+    GAME_REMOVED_REQUIREMENTS: <AlertCircle className="w-5 h-5 text-amber-600" />,
     GAME_STARTING: <Calendar className="w-5 h-5 text-amber-600" />,
     FRIEND_REQUEST: <UserPlus className="w-5 h-5 text-blue-600" />,
     MESSAGE: <MessageCircle className="w-5 h-5 text-amber-600" />,
@@ -353,7 +354,7 @@ function NotificationItem({
           </div>
           <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">{formatTime(notification.createdAt)}</span>
+            <span className="text-xs text-gray-500">{notification.createdAt ? formatTime(notification.createdAt) : ''}</span>
             {notification.link && (
               <Link
                 href={notification.link}

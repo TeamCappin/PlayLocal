@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +44,7 @@ public class GameService {
         private final GameTagConfirmationRepository tagConfirmationRepository;
         private final OrganizerQualityService oqsService;
         private final LocationRepository locationRepository;
+        private final NotificationService notificationService;
 
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
@@ -52,7 +54,8 @@ public class GameService {
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
                         OrganizerQualityService oqsService,
-                        LocationRepository locationRepository) {
+                        LocationRepository locationRepository,
+                        NotificationService notificationService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -64,6 +67,7 @@ public class GameService {
                 this.tagConfirmationRepository = tagConfirmationRepository;
                 this.oqsService = oqsService;
                 this.locationRepository = locationRepository;
+                this.notificationService = notificationService;
         }
 
 
@@ -435,6 +439,89 @@ public class GameService {
         }
 
         /**
+         * US-4.3: When organizer raises min reliability, remove confirmed/waitlisted participants
+         * whose reliability is below the new threshold. Organizer is never removed.
+         * Process waitlisted first (by position), then confirmed, so promotions work correctly.
+         */
+        private void removeParticipantsBelowReliabilityThreshold(Game game, float newThreshold) {
+                UUID gameId = game.getGameId();
+                UUID organizerId = game.getCreatedBy().getUserId();
+
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+
+                List<GameParticipation> toRemove = new java.util.ArrayList<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId)) {
+                                float score = p.getUser().getReliabilityScore() != null
+                                                ? p.getUser().getReliabilityScore() : 0f;
+                                if (score < newThreshold) {
+                                        toRemove.add(p);
+                                }
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        float score = p.getUser().getReliabilityScore() != null
+                                        ? p.getUser().getReliabilityScore() : 0f;
+                        if (score < newThreshold) {
+                                toRemove.add(p);
+                        }
+                }
+
+                // Process waitlisted first (by position asc), then confirmed
+                toRemove.sort((a, b) -> {
+                        boolean aWait = a.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        boolean bWait = b.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        if (aWait != bWait) return aWait ? -1 : 1;
+                        if (aWait) {
+                                int posA = a.getWaitlistPosition() != null ? a.getWaitlistPosition() : 0;
+                                int posB = b.getWaitlistPosition() != null ? b.getWaitlistPosition() : 0;
+                                return Integer.compare(posA, posB);
+                        }
+                        return 0;
+                });
+
+                for (GameParticipation p : toRemove) {
+                        boolean wasConfirmed = p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED;
+                        int oldWaitlistPosition = p.getWaitlistPosition() != null ? p.getWaitlistPosition() : 0;
+
+                        p.setJoinStatus(GameParticipation.JoinStatus.CANCELLED);
+                        p.setLeftAt(Instant.now());
+                        p.setWaitlistPosition(null);
+                        participationRepository.save(p);
+
+                        if (wasConfirmed) {
+                                List<GameParticipation> firstWaitlisted = participationRepository.findFirstWaitlisted(gameId);
+                                if (!firstWaitlisted.isEmpty()) {
+                                        GameParticipation promoted = firstWaitlisted.get(0);
+                                        promoted.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
+                                        promoted.setWaitlistPosition(null);
+                                        participationRepository.save(promoted);
+                                        participationRepository.decrementWaitlistPositionsAfter(gameId, 1);
+                                }
+                        } else if (oldWaitlistPosition > 0) {
+                                participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
+                        }
+                        log.info("US-4.3 Removed participant userId={} from gameId={} (reliability {} < threshold {})",
+                                        p.getUser().getUserId(), gameId,
+                                        p.getUser().getReliabilityScore(), newThreshold);
+
+                        // US-4.3: Notify removed player they no longer meet the updated requirements
+                        Map<String, Object> payload = new java.util.HashMap<>();
+                        payload.put("title", "Removed from game");
+                        payload.put("message", String.format(
+                                        "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
+                                        game.getTitle()));
+                        payload.put("gameId", gameId.toString());
+                        payload.put("link", "/games/" + gameId.toString());
+                        notificationService.createInAppNotification(
+                                        p.getUser().getUserId(),
+                                        "GAME_REMOVED_REQUIREMENTS",
+                                        payload);
+                }
+        }
+
+        /**
          * Update game settings. US-4.1
          * Only allows updates before game starts (status == SCHEDULED and startTime > now).
          */
@@ -480,14 +567,19 @@ public class GameService {
                 }
                 // US-4.1: Allow updating minReliabilityRequired (changes apply immediately to new join attempts)
                 // Note: To clear the requirement, send -1 or omit the field entirely
-                // We'll use a special sentinel value to indicate "clear" - but for now, 
-                // only update if a non-null value is provided
+                // US-4.3: When raising the threshold, automatically remove participants below it
+                Float oldMinReliability = game.getMinReliabilityRequired();
                 if (request.getMinReliabilityRequired() != null) {
                         if (request.getMinReliabilityRequired() < 0) {
                                 game.setMinReliabilityRequired(null);
                         } else {
                                 game.setMinReliabilityRequired(request.getMinReliabilityRequired());
                         }
+                }
+                Float newMinReliability = game.getMinReliabilityRequired();
+                // US-4.3: Remove participants below new threshold when organizer raises min reliability
+                if (newMinReliability != null && (oldMinReliability == null || newMinReliability > oldMinReliability)) {
+                        removeParticipantsBelowReliabilityThreshold(game, newMinReliability);
                 }
 
                 // US-4.3: Location (update existing location entity and persist)

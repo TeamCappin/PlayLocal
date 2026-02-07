@@ -20,7 +20,30 @@ export function useNotifications() {
                 notificationsApi.getAll(),
                 notificationsApi.getUnreadCount(),
             ]);
-            setNotifications(notifs);
+            // Enrich with display fields from payload (title, message, link) for frontend
+            const enriched = (notifs || []).map((n: { payload?: string; type: string; scheduledFor?: string; sentAt?: string; status: string }) => {
+                let title = n.type?.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) || '';
+                let message = '';
+                let link: string | undefined;
+                if (n.payload) {
+                    try {
+                        const p = JSON.parse(n.payload);
+                        if (p.title) title = p.title;
+                        if (p.message) message = p.message;
+                        if (p.link) link = p.link;
+                        else if (p.gameId) link = `/games/${p.gameId}`;
+                    } catch { /* ignore */ }
+                }
+                return {
+                    ...n,
+                    title,
+                    message,
+                    link,
+                    createdAt: n.sentAt || n.scheduledFor,
+                    read: n.status === 'READ',
+                };
+            });
+            setNotifications(enriched);
             setUnreadCount(countData.count);
         } catch (err) {
             setError('Failed to load notifications');
