@@ -182,6 +182,22 @@ class ReliabilityServiceTest {
             verify(gameRepository).findById(gameId);
             verify(participationRepository, never()).findForAttendanceConfirmation(any());
         }
+
+        @Test
+        @DisplayName("Should throw when game is archived")
+        void getPendingAttendance_whenArchived_shouldThrow() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.ARCHIVED);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Archived games are read-only");
+
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository, never()).findForAttendanceConfirmation(any());
+        }
     }
 
     @Nested

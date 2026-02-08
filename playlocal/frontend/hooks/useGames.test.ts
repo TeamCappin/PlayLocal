@@ -624,4 +624,36 @@ describe("useGame - completeGame and archiveGame", () => {
     expect(mockArchive).toHaveBeenCalledWith(gameId);
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
+
+  it("completeGame throws when gamesApi.complete is unavailable", async () => {
+    const gameId = "game-901";
+    const originalComplete = (gamesApi as any).complete;
+    (gamesApi as any).complete = undefined;
+
+    try {
+      const { result } = renderHook(() => useGame(gameId));
+
+      await expect(async () => {
+        await result.current.completeGame();
+      }).rejects.toThrow("gamesApi.complete is not available");
+    } finally {
+      (gamesApi as any).complete = originalComplete;
+    }
+  });
+
+  it("archiveGame throws when gamesApi.archive is unavailable", async () => {
+    const gameId = "game-902";
+    const originalArchive = (gamesApi as any).archive;
+    (gamesApi as any).archive = undefined;
+
+    try {
+      const { result } = renderHook(() => useGame(gameId));
+
+      await expect(async () => {
+        await result.current.archiveGame();
+      }).rejects.toThrow("gamesApi.archive is not available");
+    } finally {
+      (gamesApi as any).archive = originalArchive;
+    }
+  });
 });

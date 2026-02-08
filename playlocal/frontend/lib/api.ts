@@ -433,14 +433,11 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
-    leave: (gameId: string) =>
-        apiFetch<void>(`/games/${gameId}/leave`, { method: 'DELETE' }),
+  complete: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: "POST" }),
 
-    complete: (gameId: string) =>
-        apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: 'POST' }),
-
-    archive: (gameId: string) =>
-        apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: 'POST' }),
+  archive: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: "POST" }),
   // US-4.1: Update game settings (min reliability, etc.)
   update: (gameId: string, data: UpdateGameRequest) =>
     apiFetch<GameResponse>(`/games/${gameId}`, {

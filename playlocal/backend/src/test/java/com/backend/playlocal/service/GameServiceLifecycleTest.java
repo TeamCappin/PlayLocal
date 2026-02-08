@@ -190,6 +190,15 @@ class GameServiceLifecycleTest {
     }
 
     @Test
+    void completeGame_AsNonOrganizer_ThrowsAccessDenied() {
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        assertThatThrownBy(() -> gameService.completeGame(gameId, UUID.randomUUID()))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Only the organizer can modify this game");
+    }
+
+    @Test
     void completeGame_GameMissing_ThrowsNotFound() {
         when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
 
@@ -263,6 +272,69 @@ class GameServiceLifecycleTest {
 
         assertThatThrownBy(() -> gameService.leaveGame(gameId, confirmedUser.getUserId()))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void cancelGame_WhenParticipantAppearsInBothLists_NotifiesOnlyOnce() {
+        GameParticipation organizerParticipation = GameParticipation.builder()
+                .game(game)
+                .user(organizer)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .build();
+        GameParticipation confirmedParticipation = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .build();
+        GameParticipation duplicateWaitlistedParticipation = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                .build();
+
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(participationRepository.findConfirmedByGame(gameId))
+                .thenReturn(List.of(organizerParticipation, confirmedParticipation));
+        when(participationRepository.findWaitlistedByGame(gameId))
+                .thenReturn(List.of(duplicateWaitlistedParticipation));
+
+        gameService.cancelGame(gameId, organizer.getUserId());
+
+        verify(notificationService, times(1))
+                .createInAppNotification(eq(confirmedUser.getUserId()), eq("game_cancelled"), anyMap());
+    }
+
+    @Test
+    void cancelGame_WhenNotificationServiceIsNull_StillCancels() {
+        GameParticipation confirmedParticipation = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .build();
+
+        GameService gameServiceWithoutNotifications = new GameService(
+                gameRepository,
+                participationRepository,
+                userRepository,
+                sportRepository,
+                gameVisibilityRepository,
+                endorsementRepository,
+                tagRepository,
+                tagAssignmentRepository,
+                tagConfirmationRepository,
+                null,
+                oqsService);
+
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(participationRepository.findConfirmedByGame(gameId))
+                .thenReturn(List.of(confirmedParticipation));
+        when(participationRepository.findWaitlistedByGame(gameId))
+                .thenReturn(List.of());
+
+        gameServiceWithoutNotifications.cancelGame(gameId, organizer.getUserId());
+
+        verify(gameRepository).save(any(Game.class));
+        verify(oqsService).onGameCancelled(gameId);
     }
 
     @Test
