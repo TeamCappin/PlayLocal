@@ -565,7 +565,7 @@ public class GameService {
          * Mark a game as completed (organizer only).
          */
         @Transactional
-        public void completeGame(UUID gameId, UUID userId) {
+        public GameDto.GameResponse completeGame(UUID gameId, UUID userId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
@@ -577,14 +577,15 @@ public class GameService {
                 }
 
                 game.setStatus(Game.GameStatus.COMPLETED);
-                gameRepository.save(game);
+                game = gameRepository.save(game);
+                return mapToGameResponse(game, userId);
         }
 
         /**
          * Archive a game (organizer only).
          */
         @Transactional
-        public void archiveGame(UUID gameId, UUID userId) {
+        public GameDto.GameResponse archiveGame(UUID gameId, UUID userId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
@@ -598,8 +599,10 @@ public class GameService {
 
                 if (game.getStatus() != Game.GameStatus.ARCHIVED) {
                         game.setStatus(Game.GameStatus.ARCHIVED);
-                        gameRepository.save(game);
+                        game = gameRepository.save(game);
                 }
+
+                return mapToGameResponse(game, userId);
         }
 
         // ================== MAPPERS ==================

@@ -350,6 +350,49 @@ class GameControllerAuthTest {
     }
 
     @Nested
+    @DisplayName("US-2.5: Complete and Archive Game")
+    class CompleteAndArchiveTests {
+
+        @Test
+        @DisplayName("completeGame should call service with authenticated userId")
+        void completeGame_Authenticated_ShouldCallService() {
+            UUID userId = UUID.randomUUID();
+            GameDto.GameResponse completedGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .status("COMPLETED")
+                    .build();
+
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.completeGame(gameId, userId)).thenReturn(completedGame);
+
+            ResponseEntity<GameDto.GameResponse> response = gameController.completeGame(gameId, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(completedGame);
+            verify(gameService).completeGame(gameId, userId);
+        }
+
+        @Test
+        @DisplayName("archiveGame should call service with authenticated userId")
+        void archiveGame_Authenticated_ShouldCallService() {
+            UUID userId = UUID.randomUUID();
+            GameDto.GameResponse archivedGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .status("ARCHIVED")
+                    .build();
+
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.archiveGame(gameId, userId)).thenReturn(archivedGame);
+
+            ResponseEntity<GameDto.GameResponse> response = gameController.archiveGame(gameId, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(archivedGame);
+            verify(gameService).archiveGame(gameId, userId);
+        }
+    }
+
+    @Nested
     @DisplayName("US-4.1: joinGame and updateGame")
     class JoinAndUpdateGameTests {
 

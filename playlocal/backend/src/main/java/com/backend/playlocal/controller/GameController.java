@@ -195,6 +195,30 @@ public class GameController {
     }
 
     /**
+     * Mark a game as completed (organizer only).
+     */
+    @PostMapping("/{gameId}/complete")
+    public ResponseEntity<GameDto.GameResponse> completeGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = requireAuthenticatedUserId(authentication);
+        GameDto.GameResponse response = gameService.completeGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Archive a game (organizer only).
+     */
+    @PostMapping("/{gameId}/archive")
+    public ResponseEntity<GameDto.GameResponse> archiveGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = requireAuthenticatedUserId(authentication);
+        GameDto.GameResponse response = gameService.archiveGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get all available community tags.
      * US-4.2: Community-Specific Game Filters
      */
