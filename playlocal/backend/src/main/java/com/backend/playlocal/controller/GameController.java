@@ -5,6 +5,7 @@ import com.backend.playlocal.service.GameService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -188,8 +189,32 @@ public class GameController {
     public ResponseEntity<GameDto.GameResponse> cancelGame(
             @PathVariable UUID gameId,
             Authentication authentication) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = requireAuthenticatedUserId(authentication);
         GameDto.GameResponse response = gameService.cancelGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Mark a game as completed (organizer only).
+     */
+    @PostMapping("/{gameId}/complete")
+    public ResponseEntity<GameDto.GameResponse> completeGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = requireAuthenticatedUserId(authentication);
+        GameDto.GameResponse response = gameService.completeGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Archive a game (organizer only).
+     */
+    @PostMapping("/{gameId}/archive")
+    public ResponseEntity<GameDto.GameResponse> archiveGame(
+            @PathVariable UUID gameId,
+            Authentication authentication) {
+        UUID userId = requireAuthenticatedUserId(authentication);
+        GameDto.GameResponse response = gameService.archiveGame(gameId, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -201,5 +226,17 @@ public class GameController {
     public ResponseEntity<List<GameDto.TagDto>> getAllTags() {
         List<GameDto.TagDto> tags = gameService.getAllTags();
         return ResponseEntity.ok(tags);
+    }
+
+    private UUID requireAuthenticatedUserId(Authentication authentication) {
+        if (authentication == null) {
+            throw new BadCredentialsException("Authentication is required");
+        }
+
+        try {
+            return UUID.fromString(authentication.getName());
+        } catch (IllegalArgumentException e) {
+            throw new BadCredentialsException("Invalid authentication principal");
+        }
     }
 }

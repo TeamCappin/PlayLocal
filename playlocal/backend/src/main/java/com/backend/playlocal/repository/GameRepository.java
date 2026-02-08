@@ -127,6 +127,8 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             "WHERE g.createdBy.userId = :userId ORDER BY g.createdAt DESC")
     List<Game> findByOrganizer(UUID userId);
 
+    @Query("SELECT g FROM Game g WHERE g.status IN ('SCHEDULED', 'IN_PROGRESS') AND g.endTime IS NOT NULL AND g.endTime <= :time")
+    List<Game> findGamesToComplete(Instant time);
     @Query("SELECT g FROM Game g " +
             "LEFT JOIN FETCH g.sport " +
             "LEFT JOIN FETCH g.createdBy " +

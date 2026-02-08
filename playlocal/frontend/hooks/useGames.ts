@@ -166,6 +166,26 @@ export function useGame(gameId: string | undefined) {
     return response;
   };
 
+  const completeGame = async (): Promise<GameResponse> => {
+    if (!gameId) throw new Error('Game ID required');
+    if (!gamesApi || typeof gamesApi.complete !== 'function') {
+      throw new Error('gamesApi.complete is not available');
+    }
+    const response = await gamesApi.complete(gameId);
+    await fetchGame(); // Refresh data
+    return response;
+  };
+
+  const archiveGame = async (): Promise<GameResponse> => {
+    if (!gameId) throw new Error('Game ID required');
+    if (!gamesApi || typeof gamesApi.archive !== 'function') {
+      throw new Error('gamesApi.archive is not available');
+    }
+    const response = await gamesApi.archive(gameId);
+    await fetchGame(); // Refresh data
+    return response;
+  };
+
   return {
     game,
     roster,
@@ -175,6 +195,8 @@ export function useGame(gameId: string | undefined) {
     joinGame,
     leaveGame,
     cancelGame,
+    completeGame,
+    archiveGame,
   };
 }
 

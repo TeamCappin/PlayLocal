@@ -4,6 +4,7 @@ import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.*;
 import com.backend.playlocal.service.GameService;
+import com.backend.playlocal.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,7 @@ class GameServicePrivacyTest {
         @Mock
         private GameVisibilityRepository gameVisibilityRepository;
         @Mock
+        private NotificationService notificationService;
         private EndorsementRepository endorsementRepository;
         @Mock
         private GameTagRepository tagRepository;

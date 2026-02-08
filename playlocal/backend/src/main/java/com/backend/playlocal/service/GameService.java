@@ -17,7 +17,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -41,6 +43,7 @@ public class GameService {
         private final GameTagRepository tagRepository;
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
+        private final NotificationService notificationService;
         private final OrganizerQualityService oqsService;
 
 
@@ -50,6 +53,7 @@ public class GameService {
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
+                        NotificationService notificationService,
                         OrganizerQualityService oqsService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
@@ -60,6 +64,7 @@ public class GameService {
                 this.tagRepository = tagRepository;
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
+                this.notificationService = notificationService;
                 this.oqsService = oqsService;
         }
 
@@ -397,6 +402,7 @@ public class GameService {
                 GameParticipation participation = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Participation not found"));
 
+                ensureNotArchived(participation.getGame());
                 if (participation.getParticipationRole() == GameParticipation.ParticipationRole.ORGANIZER) {
                         throw new IllegalStateException(
                                         "Organizer cannot leave their own game. Cancel the game instead.");
@@ -547,9 +553,54 @@ public class GameService {
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
 
+                notifyCancellation(game);
                 // US-6.1: Recalculate OQS for the organizer after game cancellation
                 oqsService.onGameCancelled(gameId);
 
+
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Mark a game as completed (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse completeGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException(
+                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                game.setStatus(Game.GameStatus.COMPLETED);
+                game = gameRepository.save(game);
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Archive a game (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse archiveGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.SCHEDULED
+                                || game.getStatus() == Game.GameStatus.IN_PROGRESS) {
+                        throw new IllegalStateException(
+                                        "Cannot archive a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                if (game.getStatus() != Game.GameStatus.ARCHIVED) {
+                        game.setStatus(Game.GameStatus.ARCHIVED);
+                        game = gameRepository.save(game);
+                }
 
                 return mapToGameResponse(game, userId);
         }
@@ -775,5 +826,52 @@ public class GameService {
                                 .tagType(tag.getTagType())
                                 .isRestricted(tag.getIsRestricted())
                                 .build();
+        }
+
+        private void assertOrganizer(Game game, UUID organizerId) {
+                if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+                        throw new AccessDeniedException("Only the organizer can modify this game");
+                }
+        }
+
+        private void ensureNotArchived(Game game) {
+                if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Archived games are read-only");
+                }
+        }
+
+        private void notifyCancellation(Game game) {
+                List<GameParticipation> confirmed = Optional
+                                .ofNullable(participationRepository.findConfirmedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                List<GameParticipation> waitlisted = Optional
+                                .ofNullable(participationRepository.findWaitlistedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                Set<UUID> notified = new HashSet<>();
+
+                Map<String, Object> payload = Map.of(
+                                "gameId", game.getGameId().toString(),
+                                "gameTitle", game.getTitle(),
+                                "status", game.getStatus().name(),
+                                "message", "Game cancelled: " + game.getTitle());
+
+                for (GameParticipation participation : confirmed) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+                for (GameParticipation participation : waitlisted) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+        }
+
+        private void addCancellationNotification(GameParticipation participation, Game game,
+                        Map<String, Object> payload, Set<UUID> notified) {
+                UUID userId = participation.getUser().getUserId();
+                if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
+                        return;
+                }
+                if (notificationService != null) {
+                        notificationService.createInAppNotification(userId, "game_cancelled", payload);
+                        notified.add(userId);
+                }
         }
 }

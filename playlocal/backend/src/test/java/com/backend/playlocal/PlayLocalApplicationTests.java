@@ -1,12 +1,13 @@
 package com.backend.playlocal;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import com.backend.playlocal.testutil.DockerOrExternalDbCondition;
 
 /**
  * Integration test that uses Testcontainers for local development.
@@ -14,6 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * which points to the service container instead of starting a new container.
  */
 @SpringBootTest
+@ExtendWith(DockerOrExternalDbCondition.class)
 class PlayLocalApplicationTests {
 
     // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
@@ -57,5 +59,12 @@ class PlayLocalApplicationTests {
 
     @Test
     void contextLoads() {
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (postgres != null) {
+            postgres.stop();
+        }
     }
 }
