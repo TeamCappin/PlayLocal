@@ -10,10 +10,17 @@ import org.testcontainers.DockerClientFactory;
  */
 public class DockerOrExternalDbCondition implements ExecutionCondition {
 
+    private static boolean hasExternalDb() {
+        String springDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL");
+        String databaseUrl = System.getenv("DATABASE_URL");
+        return (springDatasourceUrl != null && !springDatasourceUrl.isBlank())
+                || (databaseUrl != null && !databaseUrl.isBlank());
+    }
+
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
-        if (System.getenv("SPRING_DATASOURCE_URL") != null) {
-            return ConditionEvaluationResult.enabled("SPRING_DATASOURCE_URL is configured");
+        if (hasExternalDb()) {
+            return ConditionEvaluationResult.enabled("External datasource is configured");
         }
 
         boolean dockerAvailable;

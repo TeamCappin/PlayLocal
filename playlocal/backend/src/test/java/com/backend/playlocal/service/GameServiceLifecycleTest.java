@@ -170,11 +170,79 @@ class GameServiceLifecycleTest {
     }
 
     @Test
+    void completeGame_WhenCancelled_Throws() {
+        game.setStatus(Game.GameStatus.CANCELLED);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        assertThatThrownBy(() -> gameService.completeGame(gameId, organizer.getUserId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cancelled");
+    }
+
+    @Test
+    void completeGame_WhenArchived_Throws() {
+        game.setStatus(Game.GameStatus.ARCHIVED);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        assertThatThrownBy(() -> gameService.completeGame(gameId, organizer.getUserId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("archived");
+    }
+
+    @Test
+    void completeGame_GameMissing_ThrowsNotFound() {
+        when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> gameService.completeGame(gameId, organizer.getUserId()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
     void archiveGame_WhenScheduled_Throws() {
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
         assertThatThrownBy(() -> gameService.archiveGame(gameId, organizer.getUserId()))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void archiveGame_WhenInProgress_Throws() {
+        game.setStatus(Game.GameStatus.IN_PROGRESS);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        assertThatThrownBy(() -> gameService.archiveGame(gameId, organizer.getUserId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("in_progress");
+    }
+
+    @Test
+    void archiveGame_WhenCompleted_Archives() {
+        game.setStatus(Game.GameStatus.COMPLETED);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        gameService.archiveGame(gameId, organizer.getUserId());
+
+        ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
+        verify(gameRepository).save(gameCaptor.capture());
+        assertThat(gameCaptor.getValue().getStatus()).isEqualTo(Game.GameStatus.ARCHIVED);
+    }
+
+    @Test
+    void archiveGame_WhenAlreadyArchived_DoesNotSave() {
+        game.setStatus(Game.GameStatus.ARCHIVED);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        gameService.archiveGame(gameId, organizer.getUserId());
+
+        verify(gameRepository, times(0)).save(any(Game.class));
+    }
+
+    @Test
+    void archiveGame_GameMissing_ThrowsNotFound() {
+        when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> gameService.archiveGame(gameId, organizer.getUserId()))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

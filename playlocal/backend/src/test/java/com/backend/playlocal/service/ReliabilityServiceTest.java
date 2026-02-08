@@ -347,6 +347,40 @@ class ReliabilityServiceTest {
         }
 
         @Test
+        @DisplayName("Should throw exception when game is cancelled")
+        void confirmAttendance_whenGameCancelled_shouldThrowException() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.CANCELLED);
+            AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
+                    .attendances(List.of())
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("cancelled game");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when game is archived")
+        void confirmAttendance_whenGameArchived_shouldThrowException() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.ARCHIVED);
+            AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
+                    .attendances(List.of())
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("archived game");
+        }
+
+        @Test
         @DisplayName("Should be idempotent - skip already confirmed attendance")
         void confirmAttendance_whenAlreadyConfirmed_shouldSkip() {
             // Arrange - participation already confirmed

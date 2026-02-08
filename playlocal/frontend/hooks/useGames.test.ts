@@ -15,6 +15,8 @@ jest.mock("@/lib/api", () => {
       leave: jest.fn(),
       create: jest.fn(),
       cancel: jest.fn(),
+      complete: jest.fn(),
+      archive: jest.fn(),
       getGameParticipation: jest.fn(),
     },
     organizerQualityApi: {
@@ -45,6 +47,12 @@ const mockGetRoster = gamesApi.getRoster as jest.MockedFunction<
 >;
 const mockJoin = gamesApi.join as jest.MockedFunction<typeof gamesApi.join>;
 const mockLeave = gamesApi.leave as jest.MockedFunction<typeof gamesApi.leave>;
+const mockComplete = gamesApi.complete as jest.MockedFunction<
+  typeof gamesApi.complete
+>;
+const mockArchive = gamesApi.archive as jest.MockedFunction<
+  typeof gamesApi.archive
+>;
 const mockGetPastByUserNeedingAttendanceUpdate =
   gamesApi.getPastByUserNeedingAttendanceUpdate as jest.MockedFunction<
     typeof gamesApi.getPastByUserNeedingAttendanceUpdate
@@ -553,5 +561,67 @@ describe("useGame - cancelGame", () => {
     }).rejects.toThrow("Not authorized");
 
     expect(mockCancel).toHaveBeenCalledWith(gameId);
+  });
+});
+
+describe("useGame - completeGame and archiveGame", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockComplete.mockClear();
+    mockArchive.mockClear();
+  });
+
+  it("completes a game successfully and refreshes data", async () => {
+    const gameId = "game-789";
+    const completedGame = {
+      ...mockGame,
+      gameId,
+      status: "COMPLETED",
+    } as any;
+
+    mockGetById.mockResolvedValueOnce(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockComplete.mockResolvedValue(completedGame);
+    mockGetById.mockResolvedValueOnce(completedGame);
+
+    const { result } = renderHook(() => useGame(gameId));
+
+    await waitFor(() => {
+      expect(result.current.game).toBeDefined();
+    });
+
+    await act(async () => {
+      await result.current.completeGame();
+    });
+
+    expect(mockComplete).toHaveBeenCalledWith(gameId);
+    expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it("archives a game successfully and refreshes data", async () => {
+    const gameId = "game-900";
+    const archivedGame = {
+      ...mockGame,
+      gameId,
+      status: "ARCHIVED",
+    } as any;
+
+    mockGetById.mockResolvedValueOnce(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockArchive.mockResolvedValue(archivedGame);
+    mockGetById.mockResolvedValueOnce(archivedGame);
+
+    const { result } = renderHook(() => useGame(gameId));
+
+    await waitFor(() => {
+      expect(result.current.game).toBeDefined();
+    });
+
+    await act(async () => {
+      await result.current.archiveGame();
+    });
+
+    expect(mockArchive).toHaveBeenCalledWith(gameId);
+    expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 });

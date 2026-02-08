@@ -108,6 +108,8 @@ export function GameRoom() {
     joinGame,
     leaveGame,
     cancelGame,
+    completeGame,
+    archiveGame,
     refetch,
   } = useGame(id);
 
@@ -282,10 +284,6 @@ export function GameRoom() {
   };
 
   const handleJoin = async () => {
-    if (!isAuthenticated) {
-      navigate.push("/login");
-      return;
-    }
     const meetsReliabilityRequirement =
       game.minReliabilityRequired == null ||
       !user ||
