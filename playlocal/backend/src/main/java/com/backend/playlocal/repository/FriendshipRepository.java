@@ -41,4 +41,17 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
      */
     @Query("SELECT COUNT(f) > 0 FROM Friendship f WHERE f.status = 'ACCEPTED' AND ((f.requester.userId = :userId1 AND f.addressee.userId = :userId2) OR (f.requester.userId = :userId2 AND f.addressee.userId = :userId1))")
     boolean areFriends(UUID userId1, UUID userId2);
+
+    /**
+     * US-32: Accepted friend user IDs for a single user (for mutual count).
+     */
+    @Query("SELECT CASE WHEN f.requester.userId = :userId THEN f.addressee.userId ELSE f.requester.userId END FROM Friendship f WHERE f.status = 'ACCEPTED' AND (f.requester.userId = :userId OR f.addressee.userId = :userId)")
+    List<UUID> findAcceptedFriendUserIds(UUID userId);
+
+    /**
+     * US-32: All accepted friend pairs where at least one user is in :userIds (for batch mutual counts).
+     * Returns [requesterId, addresseeId] per row.
+     */
+    @Query("SELECT f.requester.userId, f.addressee.userId FROM Friendship f WHERE f.status = 'ACCEPTED' AND (f.requester.userId IN :userIds OR f.addressee.userId IN :userIds)")
+    List<Object[]> findAcceptedFriendPairsForUserIds(java.util.List<UUID> userIds);
 }

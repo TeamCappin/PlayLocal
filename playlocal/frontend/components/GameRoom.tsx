@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
-import { gamesApi, UpdateGameRequest, endorsementsApi } from "@/lib/api";
+import { gamesApi, UpdateGameRequest, endorsementsApi, usersApi, ConnectionSignals } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
@@ -118,6 +118,8 @@ export function GameRoom() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  // US-32: Connection signals per player (batch-fetched for roster)
+  const [connectionSignalsByUserId, setConnectionSignalsByUserId] = useState<Record<string, ConnectionSignals>>({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -128,6 +130,26 @@ export function GameRoom() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+
+  // US-32: Batch-fetch connection signals for roster when logged in (no N+1)
+  useEffect(() => {
+    if (!isAuthenticated || !user?.userId || !apiRoster) {
+      setConnectionSignalsByUserId({});
+      return;
+    }
+    const allIds = [
+      ...apiRoster.confirmed.map((p) => p.userId),
+      ...apiRoster.waitlisted.map((p) => p.userId),
+    ].filter((uid) => uid !== user.userId);
+    if (allIds.length === 0) {
+      setConnectionSignalsByUserId({});
+      return;
+    }
+    usersApi
+      .getConnectionSignalsBatch(allIds)
+      .then((res) => setConnectionSignalsByUserId(res.signalsByUserId || {}))
+      .catch(() => setConnectionSignalsByUserId({}));
+  }, [isAuthenticated, user?.userId, apiRoster]);
 
   // CRITICAL: Check loading state FIRST before accessing any data
   if (isLoading) {
@@ -745,10 +767,35 @@ export function GameRoom() {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
+                              <div className="flex items-center gap-2 text-sm flex-wrap">
                                 <span className="text-gray-600">
                                   Reliability: {Math.round(player.reliabilityScore)}%
                                 </span>
+                                {/* US-32: Connection signals (only for logged-in viewers, exclude self) */}
+                                {isAuthenticated && player.userId !== user?.userId && (
+                                  <span className="text-gray-500 text-xs">
+                                    {(() => {
+                                      const sig = connectionSignalsByUserId[player.userId];
+                                      if (!sig) return null;
+                                      const mutual =
+                                        sig.mutualFriendCount > 0
+                                          ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? "s" : ""}`
+                                          : "No mutuals yet";
+                                      const coPlay =
+                                        sig.coPlayCount > 0
+                                          ? `Played together ${sig.coPlayCount}× (60d)`
+                                          : "No games together yet";
+                                      return (
+                                        <>
+                                          <span className="mr-2">·</span>
+                                          <span title={coPlay}>{mutual}</span>
+                                          <span className="mx-1">·</span>
+                                          <span title={mutual}>{coPlay}</span>
+                                        </>
+                                      );
+                                    })()}
+                                  </span>
+                                )}
                               </div>
                             </div>
 
@@ -805,6 +852,17 @@ export function GameRoom() {
                                   <div className="text-sm text-gray-600">
                                     Reliability: {Math.round(player.reliabilityScore)}%
                                   </div>
+                                  {/* US-32: Connection signals on waitlist */}
+                                  {isAuthenticated && player.userId !== user?.userId && connectionSignalsByUserId[player.userId] && (
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      {(() => {
+                                        const sig = connectionSignalsByUserId[player.userId];
+                                        const mutual = sig.mutualFriendCount > 0 ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? "s" : ""}` : "No mutuals yet";
+                                        const coPlay = sig.coPlayCount > 0 ? `Played together ${sig.coPlayCount}× (60d)` : "No games together yet";
+                                        return <span>{mutual} · {coPlay}</span>;
+                                      })()}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <span className="text-sm text-gray-500">

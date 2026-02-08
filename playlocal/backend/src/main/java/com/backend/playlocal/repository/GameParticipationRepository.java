@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,4 +80,12 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
      */
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId = :gameId")
     List<GameParticipation> findByGameId(@Param("gameId") UUID gameId);
+
+    /**
+     * US-32: (userId, gameId) for completed games in the last 60 days where user attended.
+     * Used to compute co-play count between viewer and targets.
+     */
+    @Query("SELECT gp.user.userId, gp.game.gameId FROM GameParticipation gp WHERE gp.game.status = com.backend.playlocal.model.entity.Game.GameStatus.COMPLETED " +
+            "AND gp.attendanceStatus = 'ATTENDED' AND gp.game.startTime >= :since AND gp.user.userId IN :userIds")
+    List<Object[]> findAttendedCompletedGamePairsSince(java.util.List<UUID> userIds, Instant since);
 }

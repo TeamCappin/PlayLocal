@@ -162,30 +162,26 @@ function reconcileOptimistic(
   return next;
 }
 
-  // Runtime-safe WS base:
   const wsEndpoint = useMemo(() => {
     const env = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
-    if (env) return env.endsWith("/ws") ? env : `${env}/ws`;
-
-    if (typeof window === "undefined") return "/ws";
-
+    const toWs = (u: string) => u.replace(/^https/, "wss").replace(/^http/, "ws");
+    if (env) return env.endsWith("/ws") ? toWs(env) : `${toWs(env)}/ws`;
+    if (typeof window === "undefined") return "http://localhost:8080/ws";
     const url = new URL(window.location.href);
     url.port = "8080";
     url.pathname = "/ws";
     url.search = "";
     url.hash = "";
-    return url.toString();
+    return url.toString().replace(/^http/, "ws");
   }, []);
 
-  // Runtime-safe API base for history
   const historyBase = useMemo(() => {
     const env = historyBaseUrl || process.env.NEXT_PUBLIC_CHAT_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
     if (env) return env;
-
-    if (typeof window === "undefined") return "";
+    if (typeof window === "undefined") return "http://localhost:8080/api/v1";
     const url = new URL(window.location.href);
     url.port = "8080";
-    url.pathname = "";
+    url.pathname = "/api/v1";
     url.search = "";
     url.hash = "";
     return url.toString();

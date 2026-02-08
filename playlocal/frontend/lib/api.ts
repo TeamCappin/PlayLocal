@@ -190,7 +190,26 @@ export const usersApi = {
     apiFetch<SearchUsersResponse>(
       `/users/search?q=${encodeURIComponent(query || "")}&page=${page}&size=${size}`,
     ),
+
+  getConnectionSignals: (targetUserId: string) =>
+    apiFetch<ConnectionSignals>(`/users/${targetUserId}/connection-signals`),
+
+  getConnectionSignalsBatch: (userIds: string[]) =>
+    apiFetch<ConnectionSignalsBatchResponse>("/users/connection-signals", {
+      method: "POST",
+      body: JSON.stringify({ userIds }),
+    }),
 };
+
+
+export interface ConnectionSignals {
+  mutualFriendCount: number;
+  coPlayCount: number;
+}
+
+export interface ConnectionSignalsBatchResponse {
+  signalsByUserId: Record<string, ConnectionSignals>;
+}
 
 // ============================================
 // FRIENDS API

@@ -47,9 +47,6 @@ services:
     container_name: playlocal-frontend
     depends_on:
       - backend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
-      NEXT_PUBLIC_WS_URL: http://localhost:8080/ws
     ports:
       - "3000:3000"
     networks:
