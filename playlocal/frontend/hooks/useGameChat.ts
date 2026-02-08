@@ -163,23 +163,25 @@ function reconcileOptimistic(
 }
 
   // Runtime-safe WS base:
-  const wsEndpoint = useMemo(() => {
-    const env = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
-    if (env) return env.endsWith("/ws") ? env : `${env}/ws`;
+const wsEndpoint = useMemo(() => {
+  const env = process.env.NEXT_PUBLIC_WS_URL;
+  if (env) return env.endsWith("/ws") ? env : `${env}/ws`;
 
-    if (typeof window === "undefined") return "/ws";
+  // local-only fallback
+  if (typeof window !== "undefined") {
+    const isLocalhost =
+      window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    if (isLocalhost) return "http://localhost:8080/ws";
+  }
 
-    const url = new URL(window.location.href);
-    url.port = "8080";
-    url.pathname = "/ws";
-    url.search = "";
-    url.hash = "";
-    return url.toString();
-  }, []);
+  // production: no guessing
+  return "https://playlocalcapstone.onrender.com/ws";
+}, []);
+
 
   // Runtime-safe API base for history
   const historyBase = useMemo(() => {
-    const env = historyBaseUrl || process.env.NEXT_PUBLIC_CHAT_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+    const env = historyBaseUrl || process.env.NEXT_PUBLIC_CHAT_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1" || "https://playlocalcapstone.onrender.com/api/v1";
     if (env) return env;
 
     if (typeof window === "undefined") return "";

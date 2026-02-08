@@ -41,13 +41,13 @@ public class Game {
 
     private String description;
 
-    @Column(name = "indoor_outdoor")
+    @Column(name = "indoor_outdoor", columnDefinition = "TEXT")
     private String indoorOutdoor;
 
-    @Column(name = "intensity_band")
+    @Column(name = "intensity_band", columnDefinition = "TEXT")
     private String intensityBand;
 
-    @Column(name = "skill_band")
+    @Column(name = "skill_band", columnDefinition = "TEXT")
     private String skillBand;
 
     @Column(name = "min_players", nullable = false)
@@ -65,7 +65,6 @@ public class Game {
     @Column(name = "min_reliability_required")
     private Float minReliabilityRequired;
 
-    // US-4.2: Age requirements for community-specific games
     @Column(name = "min_age")
     private Integer minAge;
 
