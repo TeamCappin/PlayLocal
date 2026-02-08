@@ -19,9 +19,10 @@ public class Sport {
     @Column(name = "sport_id")
     private UUID sportId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String name;
 
+    @Column(length = 100)
     private String category;
 
     @Column(name = "supports_positions")
