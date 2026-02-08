@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -337,6 +338,14 @@ class GameControllerAuthTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getStatus()).isEqualTo("CANCELLED");
             assertThat(response.getBody().getGameId()).isEqualTo(gameId.toString());
+        }
+
+        @Test
+        @DisplayName("cancelGame with null authentication should throw bad credentials")
+        void cancelGame_NullAuthentication_ShouldThrowBadCredentials() {
+            assertThatThrownBy(() -> gameController.cancelGame(gameId, null))
+                    .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class)
+                    .hasMessage("Authentication is required");
         }
     }
 

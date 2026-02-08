@@ -18,18 +18,6 @@ PlayLocal addresses these issues by creating a platform that prioritizes reliabi
 connections. We are committed to building an inclusive and safe environment, ensuring
 everyone can find a group where they feel comfortable and respected.
 
-## User Stories
-
-### US-3.3: Game Lifecycle States
-
-Description:
-As the system, I want explicit game lifecycle states so that the UI and backend can behave consistently across the end-to-end reliability loop.
-
-Acceptance Criteria:
-- Game state includes at minimum: SCHEDULED, COMPLETED, CANCELLED, ARCHIVED.
-- Only organizer can cancel; cancelling prevents further joins and notifies participants.
-- Completion occurs when the end time passes (or organizer marks completed if manual).
-- Archived games are read-only and excluded from default Discover results.
 
 ### Team Members
 
