@@ -130,7 +130,6 @@ export function GameRoom() {
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 

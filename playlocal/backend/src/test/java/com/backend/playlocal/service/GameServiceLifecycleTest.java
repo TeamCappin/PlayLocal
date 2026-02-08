@@ -58,6 +58,8 @@ class GameServiceLifecycleTest {
     @Mock
     private NotificationService notificationService;
     @Mock
+    private OrganizerQualityService oqsService;
+    @Mock
     private EndorsementRepository endorsementRepository;
     @Mock
     private GameTagRepository tagRepository;

@@ -109,6 +109,7 @@ jest.mock("lucide-react", () => ({
   UserMinus: () => <span data-testid="icon-userminus" />,
   LogIn: () => <span data-testid="icon-login" />,
   Flag: () => <span data-testid="icon-flag" />,
+  Edit: () => <span data-testid="icon-edit" />,
   Medal: () => <span data-testid="icon-medal" />,
   XCircle: () => <span data-testid="icon-xcircle" />,
   Copy: () => <span data-testid="icon-copy" />,
@@ -185,7 +186,7 @@ describe("GameRoom Component", () => {
     skillBand: "Intermediate",
     intensityBand: "Competitive",
     indoorOutdoor: "outdoor",
-    status: "UPCOMING",
+    status: "SCHEDULED",
   };
 
   const mockRoster = {

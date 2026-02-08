@@ -21,7 +21,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for Community Tags API (US-4.2).
  */
 @AutoConfigureMockMvc
-@Testcontainers(disabledWithoutDocker = true)
 @Tag("integration")
 class GameTagIntegrationTest extends IntegrationTestBase {
 
