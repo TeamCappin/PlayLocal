@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { GameRoom } from "../components/GameRoom";
+import { GameRoom } from "../../components/GameRoom";
 import "@testing-library/jest-dom";
 
 // Mock dependencies
@@ -9,17 +9,17 @@ jest.mock("next/navigation", () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock("../context/AuthContext", () => ({
+jest.mock("../../context/AuthContext", () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock("../hooks/useGames", () => ({
+jest.mock("../../hooks/useGames", () => ({
   useGame: jest.fn(),
 }));
 
 const mockGamesApiUpdate = jest.fn();
         
-jest.mock("../lib/api", () => {
+jest.mock("../../lib/api", () => {
   const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
   const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
   
@@ -120,11 +120,11 @@ jest.mock("lucide-react", () => ({
   ChevronUp: () => <div data-testid="icon-chevronup" />,
 }));
 
-jest.mock("../components/chat/ChatPanel", () => ({
+jest.mock("../../components/chat/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel" />,
 }));
 
-jest.mock("../components/ReportModal", () => ({
+jest.mock("../../components/ReportModal", () => ({
   ReportModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? (
       <div data-testid="report-modal">
@@ -134,7 +134,7 @@ jest.mock("../components/ReportModal", () => ({
     ) : null,
 }));
 
-jest.mock("../components/JoinConfirmationModal", () => ({
+jest.mock("../../components/JoinConfirmationModal", () => ({
   JoinConfirmationModal: ({ isOpen, onConfirm, onClose }: any) =>
     isOpen ? (
       <div data-testid="join-confirmation-modal">
@@ -144,15 +144,15 @@ jest.mock("../components/JoinConfirmationModal", () => ({
     ) : null,
 }));
 
-jest.mock("../components/OrganizerQualityBadge", () => ({
+jest.mock("../../components/OrganizerQualityBadge", () => ({
   OrganizerQualityBadge: () => <div data-testid="organizer-quality-badge" />,
 }));
 
-jest.mock("../components/photos/PhotosPanel", () => ({
+jest.mock("../../components/photos/PhotosPanel", () => ({
   PhotosPanel: () => <div data-testid="photos-panel">Photos Panel</div>,
 }));
 
-jest.mock("../components/ui/dialog", () => ({
+jest.mock("../../components/ui/dialog", () => ({
   Dialog: ({ children, open }: any) => (open ? <div data-testid="dialog">{children}</div> : null),
   DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
   DialogHeader: ({ children }: any) => <div>{children}</div>,
@@ -161,10 +161,10 @@ jest.mock("../components/ui/dialog", () => ({
   DialogFooter: ({ children }: any) => <div>{children}</div>,
 }));
 
-import { useAuth } from "../context/AuthContext";
-import { useGame } from "../hooks/useGames";
+import { useAuth } from "../../context/AuthContext";
+import { useGame } from "../../hooks/useGames";
 import { useParams, useRouter } from "next/navigation";
-import { endorsementsApi } from "../lib/api";
+import { endorsementsApi } from "../../lib/api";
 
 describe("GameRoom Component", () => {
   const mockPush = jest.fn();

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { MatchHistoryList } from './MatchHistoryList';
+import { MatchHistoryList } from '../../components/sub-components/MatchHistoryList';
 import { gamesApi } from '@/lib/api';
 
 jest.mock('next/link', () => {

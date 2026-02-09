@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { GameRoom } from '../components/GameRoom';
+import { GameRoom } from '../../components/GameRoom';
 import '@testing-library/jest-dom';
 
 // Mock dependencies
@@ -9,15 +9,15 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock('../context/AuthContext', () => ({
+jest.mock('../../context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('../hooks/useGames', () => ({
+jest.mock('../../hooks/useGames', () => ({
   useGame: jest.fn(),
 }));
 
-jest.mock('../lib/api', () => {
+jest.mock('../../lib/api', () => {
   const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
   const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
   
@@ -115,13 +115,13 @@ jest.mock('lucide-react', () => ({
 }));
 
 // Mock ChatPanel to avoid complex sub-component rendering
-jest.mock('../components/chat/ChatPanel', () => ({
+jest.mock('../../components/chat/ChatPanel', () => ({
     ChatPanel: () => <div data-testid="chat-panel" />
 }));
 
-import { useAuth } from '../context/AuthContext';
-import { useGame } from '../hooks/useGames';
-import { endorsementsApi } from '../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import { useGame } from '../../hooks/useGames';
+import { endorsementsApi } from '../../lib/api';
 
 describe('GameRoom Endorsement UI', () => {
   const mockUser = { userId: 'organizer-id', displayName: 'Organizer', email: 'org@example.com' };

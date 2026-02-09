@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { OrganizerQualityBadge } from '../components/OrganizerQualityBadge';
+import { OrganizerQualityBadge } from '../../components/OrganizerQualityBadge';
 import { organizerQualityApi } from '@/lib/api';
 
 // Mock the API

@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 import type { ChatMessage } from "@/lib/chat/types";
-import { ChatMessageRow } from "../components/chat/ChatMessageRow";
+import { ChatMessageRow } from "../../components/chat/ChatMessageRow";
 
 // Mock the timestamp formatter so tests are stable
 jest.mock("@/lib/chat/time", () => ({

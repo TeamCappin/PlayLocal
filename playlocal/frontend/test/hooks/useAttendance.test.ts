@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useAttendance } from './useAttendance';
+import { useAttendance } from '../../hooks/useAttendance';
 import { attendanceApi } from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({

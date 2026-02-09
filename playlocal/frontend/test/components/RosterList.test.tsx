@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { RosterList } from './RosterList';
+import { RosterList } from '../../components/sub-components/RosterList';
 import { usersApi } from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({
