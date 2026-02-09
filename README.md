@@ -18,6 +18,7 @@ PlayLocal addresses these issues by creating a platform that prioritizes reliabi
 connections. We are committed to building an inclusive and safe environment, ensuring
 everyone can find a group where they feel comfortable and respected.
 
+
 ### Team Members
 
 | Name                     | Student Number | GitHub Username       |

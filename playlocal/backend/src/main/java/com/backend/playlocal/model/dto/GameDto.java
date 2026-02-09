@@ -31,8 +31,13 @@ public class GameDto {
 
         // Location details
         @NotBlank(message = "Location name is required")
+        @Size(max = 255, message = "Location name must be at most 255 characters")
         private String locationName;
+
+        @Size(max = 500, message = "Address line must be at most 500 characters")
         private String addressLine;
+
+        @Size(max = 100, message = "City must be at most 100 characters")
         private String city;
         private Float latitude;
         private Float longitude;

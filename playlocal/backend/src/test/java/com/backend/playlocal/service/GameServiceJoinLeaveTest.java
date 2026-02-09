@@ -572,6 +572,20 @@ class GameServiceJoinLeaveTest {
                 }
 
                 @Test
+                @DisplayName("Should prevent joins when game is cancelled")
+                void joinGame_WhenCancelled_ShouldThrow() {
+                        // Given
+                        testGame.setStatus(Game.GameStatus.CANCELLED);
+                        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
+                        when(gameRepository.findByIdWithLock(gameId)).thenReturn(Optional.of(testGame));
+
+                        // When/Then
+                        assertThatThrownBy(() -> gameService.joinGame(gameId, userId))
+                                        .isInstanceOf(IllegalStateException.class)
+                                        .hasMessageContaining("not scheduled");
+                }
+
+                @Test
                 @DisplayName("Should throw AccessDeniedException when reliability too low")
                 void joinGame_WhenReliabilityTooLow_ShouldThrow() {
                         // Given

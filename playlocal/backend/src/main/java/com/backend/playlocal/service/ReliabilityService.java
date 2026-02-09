@@ -80,6 +80,9 @@ public class ReliabilityService {
         if (game.getStatus() == Game.GameStatus.CANCELLED) {
             throw new IllegalStateException("Cannot confirm attendance for cancelled game");
         }
+        if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+            throw new IllegalStateException("Cannot confirm attendance for archived game");
+        }
 
         User organizer = game.getCreatedBy();
 
@@ -267,6 +270,9 @@ public class ReliabilityService {
 
         if (!game.getCreatedBy().getUserId().equals(organizerId)) {
             throw new AccessDeniedException("Only the organizer can view attendance");
+        }
+        if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+            throw new IllegalStateException("Archived games are read-only");
         }
 
         return participationRepository

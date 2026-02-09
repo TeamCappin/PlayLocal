@@ -25,6 +25,11 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+# Game lifecycle
+game:
+  lifecycle:
+    update-interval-ms: 60000
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production-minimum-32-chars}

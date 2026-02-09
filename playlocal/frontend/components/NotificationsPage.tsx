@@ -41,6 +41,7 @@ const getNotificationIcon = (type: string) => {
     RATING_UPDATE: <TrendingUp className="w-5 h-5 text-emerald-600" />,
     WAITLIST_PROMOTED: <CheckCircle className="w-5 h-5 text-emerald-600" />,
     ATTENDANCE_CONFIRMATION: <CheckCircle className="w-5 h-5 text-emerald-600" />,
+    ATTENDANCE_PROMPT: <CheckCircle className="w-5 h-5 text-emerald-600" />,
   };
   return icons[type] || <Bell className="w-5 h-5 text-gray-600" />;
 };

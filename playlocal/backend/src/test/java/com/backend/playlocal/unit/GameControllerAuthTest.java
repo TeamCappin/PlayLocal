@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -337,6 +338,57 @@ class GameControllerAuthTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getStatus()).isEqualTo("CANCELLED");
             assertThat(response.getBody().getGameId()).isEqualTo(gameId.toString());
+        }
+
+        @Test
+        @DisplayName("cancelGame with null authentication should throw bad credentials")
+        void cancelGame_NullAuthentication_ShouldThrowBadCredentials() {
+            assertThatThrownBy(() -> gameController.cancelGame(gameId, null))
+                    .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class)
+                    .hasMessage("Authentication is required");
+        }
+    }
+
+    @Nested
+    @DisplayName("US-2.5: Complete and Archive Game")
+    class CompleteAndArchiveTests {
+
+        @Test
+        @DisplayName("completeGame should call service with authenticated userId")
+        void completeGame_Authenticated_ShouldCallService() {
+            UUID userId = UUID.randomUUID();
+            GameDto.GameResponse completedGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .status("COMPLETED")
+                    .build();
+
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.completeGame(gameId, userId)).thenReturn(completedGame);
+
+            ResponseEntity<GameDto.GameResponse> response = gameController.completeGame(gameId, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(completedGame);
+            verify(gameService).completeGame(gameId, userId);
+        }
+
+        @Test
+        @DisplayName("archiveGame should call service with authenticated userId")
+        void archiveGame_Authenticated_ShouldCallService() {
+            UUID userId = UUID.randomUUID();
+            GameDto.GameResponse archivedGame = GameDto.GameResponse.builder()
+                    .gameId(gameId.toString())
+                    .status("ARCHIVED")
+                    .build();
+
+            when(authentication.getName()).thenReturn(userId.toString());
+            when(gameService.archiveGame(gameId, userId)).thenReturn(archivedGame);
+
+            ResponseEntity<GameDto.GameResponse> response = gameController.archiveGame(gameId, authentication);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(archivedGame);
+            verify(gameService).archiveGame(gameId, userId);
         }
     }
 

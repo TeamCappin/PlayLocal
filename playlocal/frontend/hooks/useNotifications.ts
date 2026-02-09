@@ -3,9 +3,81 @@ import { notificationsApi, NotificationDto } from '@/lib/api';
 
 import { useAuth } from '@/context/AuthContext';
 
+type NotificationPayload = {
+    message?: string;
+    gameId?: string;
+    gameTitle?: string;
+    [key: string]: unknown;
+};
+
+export interface UINotification extends NotificationDto {
+    title: string;
+    message: string;
+    createdAt: string;
+    read: boolean;
+    link?: string;
+}
+
+function normalizeType(type: string): string {
+    return (type || 'NOTIFICATION').toUpperCase();
+}
+
+function safeParsePayload(payload: string): NotificationPayload {
+    if (!payload) return {};
+    try {
+        const parsed = JSON.parse(payload) as NotificationPayload;
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function humanizeType(type: string): string {
+    return type
+        .toLowerCase()
+        .split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function buildNotificationTitle(type: string): string {
+    switch (type) {
+        case 'GAME_CANCELLED':
+            return 'Game cancelled';
+        case 'GAME_UPDATED':
+            return 'Game updated';
+        case 'GAME_REMOVED_REQUIREMENTS':
+            return 'Removed from game';
+        case 'ATTENDANCE_PROMPT':
+            return 'Attendance reminder';
+        default:
+            return humanizeType(type);
+    }
+}
+
+function toUINotification(notification: NotificationDto): UINotification {
+    const payload = safeParsePayload(notification.payload);
+    const type = normalizeType(notification.type);
+    const createdAt = notification.sentAt || notification.scheduledFor;
+    const title = payload.title || buildNotificationTitle(type);
+    const message = payload.message
+        || (payload.gameTitle ? `Update for ${payload.gameTitle}` : title);
+    const link = payload.link || (payload.gameId ? `/games/${payload.gameId}` : undefined);
+
+    return {
+        ...notification,
+        type,
+        title,
+        message,
+        createdAt,
+        read: notification.status === 'READ',
+        link,
+    };
+}
+
 export function useNotifications() {
     const { isAuthenticated } = useAuth();
-    const [notifications, setNotifications] = useState<NotificationDto[]>([]);
+    const [notifications, setNotifications] = useState<UINotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -20,30 +92,7 @@ export function useNotifications() {
                 notificationsApi.getAll(),
                 notificationsApi.getUnreadCount(),
             ]);
-            // Enrich with display fields from payload (title, message, link) for frontend
-            const enriched = (notifs || []).map((n: { payload?: string; type: string; scheduledFor?: string; sentAt?: string; status: string }) => {
-                let title = n.type?.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) || '';
-                let message = '';
-                let link: string | undefined;
-                if (n.payload) {
-                    try {
-                        const p = JSON.parse(n.payload);
-                        if (p.title) title = p.title;
-                        if (p.message) message = p.message;
-                        if (p.link) link = p.link;
-                        else if (p.gameId) link = `/games/${p.gameId}`;
-                    } catch { /* ignore */ }
-                }
-                return {
-                    ...n,
-                    title,
-                    message,
-                    link,
-                    createdAt: n.sentAt || n.scheduledFor,
-                    read: n.status === 'READ',
-                };
-            });
-            setNotifications(enriched);
+            setNotifications((notifs || []).map(toUINotification));
             setUnreadCount(countData.count);
         } catch (err) {
             setError('Failed to load notifications');
@@ -75,7 +124,7 @@ export function useNotifications() {
             setNotifications(prev =>
                 prev.map(n =>
                     n.notificationId === notificationId
-                        ? { ...n, status: 'READ' }
+                        ? { ...n, status: 'READ', read: true }
                         : n
                 )
             );
@@ -91,7 +140,7 @@ export function useNotifications() {
     const markAllAsRead = async () => {
         try {
             await notificationsApi.markAllAsRead();
-            setNotifications(prev => prev.map(n => ({ ...n, status: 'READ' })));
+            setNotifications(prev => prev.map(n => ({ ...n, status: 'READ', read: true })));
             setUnreadCount(0);
             if (typeof window !== "undefined") {
                 window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));

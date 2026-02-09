@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -52,5 +53,13 @@ class ProfileSecurityIntegrationTest {
                         throw new AssertionError("Expected access allowed (not 401/403) but got " + s);
                     }
                 });
+    }
+
+    @Test
+    void cancelGame_AsAnonymous_ReturnsUnauthorized() throws Exception {
+        UUID randomGameId = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/v1/games/" + randomGameId))
+                .andExpect(status().isUnauthorized());
     }
 }

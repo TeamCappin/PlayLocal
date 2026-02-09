@@ -285,6 +285,7 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
+export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 export interface UpdateGameRequest {
   title?: string;
   description?: string;
@@ -444,6 +445,11 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  complete: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: "POST" }),
+
+  archive: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: "POST" }),
   // US-4.1: Update game settings (min reliability, etc.)
   update: (gameId: string, data: UpdateGameRequest) =>
     apiFetch<GameResponse>(`/games/${gameId}`, {

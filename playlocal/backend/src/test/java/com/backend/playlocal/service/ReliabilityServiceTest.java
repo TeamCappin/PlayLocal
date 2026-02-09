@@ -182,6 +182,22 @@ class ReliabilityServiceTest {
             verify(gameRepository).findById(gameId);
             verify(participationRepository, never()).findForAttendanceConfirmation(any());
         }
+
+        @Test
+        @DisplayName("Should throw when game is archived")
+        void getPendingAttendance_whenArchived_shouldThrow() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.ARCHIVED);
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerId))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Archived games are read-only");
+
+            verify(gameRepository).findById(gameId);
+            verify(participationRepository, never()).findForAttendanceConfirmation(any());
+        }
     }
 
     @Nested
@@ -344,6 +360,40 @@ class ReliabilityServiceTest {
             assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, nonOrganizerId, request))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Only the organizer");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when game is cancelled")
+        void confirmAttendance_whenGameCancelled_shouldThrowException() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.CANCELLED);
+            AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
+                    .attendances(List.of())
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("cancelled game");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when game is archived")
+        void confirmAttendance_whenGameArchived_shouldThrowException() {
+            UUID gameId = game.getGameId();
+            UUID organizerId = organizer.getUserId();
+            game.setStatus(Game.GameStatus.ARCHIVED);
+            AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
+                    .attendances(List.of())
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("archived game");
         }
 
         @Test
