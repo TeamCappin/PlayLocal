@@ -17,13 +17,13 @@ function jsonResponse(body: unknown): Response {
 }
 
 describe("gamesApi lifecycle endpoints", () => {
-  let gamesApi: typeof import("./api").gamesApi;
-  let setAuthToken: typeof import("./api").setAuthToken;
+  let gamesApi: typeof import("../../lib/api").gamesApi;
+  let setAuthToken: typeof import("../../lib/api").setAuthToken;
 
   beforeEach(() => {
     jest.resetModules();
     jest.unmock("@/lib/api");
-    const apiModule = require("./api") as typeof import("./api");
+    const apiModule = require("../../lib/api") as typeof import("../../lib/api");
     gamesApi = apiModule.gamesApi;
     setAuthToken = apiModule.setAuthToken;
     setAuthToken(null);

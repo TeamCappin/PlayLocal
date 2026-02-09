@@ -2,7 +2,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { PhotosPanel } from "../components/photos/PhotosPanel"; // <-- adjust if needed
+import { PhotosPanel } from "../../components/photos/PhotosPanel"; // <-- adjust if needed
 
 // Mock api module used by PhotosPanel (alias import)
 const mockListByGame = jest.fn();

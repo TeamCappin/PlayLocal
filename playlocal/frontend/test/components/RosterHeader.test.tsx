@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { RosterHeader } from './RosterHeader';
+import { RosterHeader } from '../../components/sub-components/RosterHeader';
 
 describe('RosterHeader', () => {
   it('renders game title, sport, and location when game is provided', () => {

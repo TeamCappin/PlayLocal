@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ActionsRequired } from './ActionsRequired';
+import { ActionsRequired } from '../../components/sub-components/ActionsRequired';
 
 const mockPush = jest.fn();
 

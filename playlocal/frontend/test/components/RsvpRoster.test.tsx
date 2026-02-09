@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { RsvpRoster } from './RsvpRoster';
+import { RsvpRoster } from '../../components/RsvpRoster';
 
 const mockPush = jest.fn();
 const mockRefetch = jest.fn();
@@ -45,9 +45,9 @@ jest.mock('@/lib/api', () => ({
   usersApi: { getProfile: jest.fn().mockResolvedValue({ displayName: 'Alice', defaultIntensity: 'Casual' }) },
 }));
 
-const useAuth = require('@/context/AuthContext').useAuth;
-const useGame = require('@/hooks/useGames').useGame;
-const useAttendance = require('@/hooks/useAttendance').useAttendance;
+const useAuth = require('../../context/AuthContext').useAuth;
+const useGame = require('../../hooks/useGames').useGame;
+const useAttendance = require('../../hooks/useAttendance').useAttendance;
 
 function setDefaultMocks() {
   useAuth.mockReturnValue({ isAuthenticated: true, user: { userId: 'u1' } });

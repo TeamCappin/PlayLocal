@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { UserProfile } from '../components/UserProfile';
+import { UserProfile } from '../../components/UserProfile';
 import '@testing-library/jest-dom';
-import { usersApi, endorsementsApi } from '../lib/api';
-import { useAuth } from '../context/AuthContext';
+import { usersApi, endorsementsApi } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
@@ -11,11 +11,11 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock('../context/AuthContext', () => ({
+jest.mock('../../context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('../lib/api', () => {
+jest.mock('../../lib/api', () => {
   const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
   const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
   
@@ -217,4 +217,46 @@ describe('UserProfile Endorsements', () => {
       expect(mockRefreshUser).toHaveBeenCalled();
     });
   });
+
+  it('shows "View All (N)" when endorsements > 5', async () => {
+    // Arrange
+    const manyEndorsements = Array.from({ length: 6 }).map((_, i) => ({
+      endorsementId: String(i + 1),
+      endorserName: `Organizer ${i + 1}`,
+      gameTitle: `Game ${i + 1}`,
+      gameDate: '2023-11-15T10:00:00',
+    }));
+
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue(manyEndorsements);
+
+    // Act
+    render(<UserProfile />);
+
+    // Assert
+    await waitFor(() => {
+      expect(endorsementsApi.getUserEndorsements).toHaveBeenCalledWith(101);
+    });
+
+    expect(screen.getByText('View All (6)')).toBeInTheDocument();
+  });
+
+  it('handles username param as array (uses first element)', async () => {
+    // Arrange: username array case
+    jest.spyOn(require('next/navigation'), 'useParams').mockReturnValue({ username: ['test-user'] });
+
+    const refreshUserSpy = jest.fn();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      refreshUser: refreshUserSpy,
+    });
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue([]);
+
+    // Act
+    render(<UserProfile />);
+
+    // Assert: still treated as own profile -> refreshUser called
+    await waitFor(() => expect(refreshUserSpy).toHaveBeenCalled());
+  });
+
 });

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { useGame, usePastGamesByUserNeedingAttendanceUpdate } from "./useGames";
+import { useGame, usePastGamesByUserNeedingAttendanceUpdate } from "../../hooks/useGames";
 import { gamesApi } from "@/lib/api";
 
 jest.mock("@/lib/api", () => {
@@ -38,6 +38,8 @@ jest.mock("@/lib/api", () => {
     scoreHistoryApi: {},
   };
 });
+
+const hooksPath = "../../hooks/useGames";
 
 const mockGetById = gamesApi.getById as jest.MockedFunction<
   typeof gamesApi.getById
@@ -304,7 +306,9 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
   });
 });
 
-// Additional tests for useGames and usePastGames hooks
+// ---------------------------------------------
+// useGames
+// ---------------------------------------------
 describe("useGames", () => {
   const mockGetUpcoming = gamesApi.getUpcoming as jest.MockedFunction<
     typeof gamesApi.getUpcoming
@@ -315,59 +319,66 @@ describe("useGames", () => {
   });
 
   it("fetches upcoming games on mount", async () => {
-    mockGetUpcoming.mockResolvedValue([mockGame]);
+    // Arrange
+    mockGetUpcoming.mockResolvedValue([mockGame] as any);
 
-    const { result } = renderHook(() => require("./useGames").useGames());
+    // Act
+    const { result } = renderHook(() => require(hooksPath).useGames());
 
+    // Assert
     expect(result.current.isLoading).toBe(true);
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(mockGetUpcoming).toHaveBeenCalled();
+    expect(mockGetUpcoming).toHaveBeenCalledTimes(1);
+    // hook calls getUpcoming(filters) where filters is undefined
+    expect(mockGetUpcoming).toHaveBeenCalledWith(undefined);
+
     expect(result.current.games).toEqual([mockGame]);
     expect(result.current.error).toBeNull();
   });
 
   it("sets error when fetch fails", async () => {
+    // Arrange
     mockGetUpcoming.mockRejectedValue(new Error("Network error"));
 
-    const { result } = renderHook(() => require("./useGames").useGames());
+    // Act
+    const { result } = renderHook(() => require(hooksPath).useGames());
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    // Assert
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.error).toBe("Failed to load games");
     expect(result.current.games).toEqual([]);
   });
 
   it("refetch reloads games", async () => {
-    mockGetUpcoming.mockResolvedValue([mockGame]);
+    // Arrange
+    mockGetUpcoming.mockResolvedValue([mockGame] as any);
 
-    const { result } = renderHook(() => require("./useGames").useGames());
+    const { result } = renderHook(() => require(hooksPath).useGames());
 
-    await waitFor(() => {
-      expect(result.current.games).toHaveLength(1);
-    });
+    await waitFor(() => expect(result.current.games).toHaveLength(1));
 
     mockGetUpcoming.mockResolvedValue([
       mockGame,
       { ...mockGame, gameId: "g2" } as any,
     ]);
 
+    // Act
     await act(async () => {
-      result.current.refetch();
+      await result.current.refetch(); // ✅ await the async refetch
     });
 
-    await waitFor(() => {
-      expect(result.current.games).toHaveLength(2);
-    });
+    // Assert
+    await waitFor(() => expect(result.current.games).toHaveLength(2));
     expect(mockGetUpcoming).toHaveBeenCalledTimes(2);
   });
 });
 
+// ---------------------------------------------
+// usePastGames
+// ---------------------------------------------
 describe("usePastGames", () => {
   const mockGetPast = gamesApi.getPast as jest.MockedFunction<
     typeof gamesApi.getPast
@@ -378,70 +389,72 @@ describe("usePastGames", () => {
   });
 
   it("fetches past games on mount", async () => {
-    mockGetPast.mockResolvedValue([mockGame]);
+    // Arrange
+    mockGetPast.mockResolvedValue([mockGame] as any);
 
-    const { result } = renderHook(() => require("./useGames").usePastGames());
+    // Act
+    const { result } = renderHook(() => require(hooksPath).usePastGames());
 
+    // Assert
     expect(result.current.isLoading).toBe(true);
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(mockGetPast).toHaveBeenCalled();
+    expect(mockGetPast).toHaveBeenCalledTimes(1);
     expect(result.current.games).toEqual([mockGame]);
     expect(result.current.error).toBeNull();
   });
 
   it("sets error when fetch fails", async () => {
+    // Arrange
     mockGetPast.mockRejectedValue(new Error("Server error"));
 
-    const { result } = renderHook(() => require("./useGames").usePastGames());
+    // Act
+    const { result } = renderHook(() => require(hooksPath).usePastGames());
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    // Assert
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.error).toBe("Failed to load past games");
     expect(result.current.games).toEqual([]);
   });
 
   it("refetch reloads past games", async () => {
-    mockGetPast.mockResolvedValue([mockGame]);
+    // Arrange
+    mockGetPast.mockResolvedValue([mockGame] as any);
 
-    const { result } = renderHook(() => require("./useGames").usePastGames());
+    const { result } = renderHook(() => require(hooksPath).usePastGames());
 
-    await waitFor(() => {
-      expect(result.current.games).toHaveLength(1);
-    });
+    await waitFor(() => expect(result.current.games).toHaveLength(1));
 
     mockGetPast.mockResolvedValue([
       mockGame,
       { ...mockGame, gameId: "g3" } as any,
     ]);
 
+    // Act
     await act(async () => {
-      result.current.refetch();
+      await result.current.refetch(); // ✅ await
     });
 
-    await waitFor(() => {
-      expect(result.current.games).toHaveLength(2);
-    });
+    // Assert
+    await waitFor(() => expect(result.current.games).toHaveLength(2));
     expect(mockGetPast).toHaveBeenCalledTimes(2);
   });
 });
 
+// ---------------------------------------------
+// useCreateGame
+// ---------------------------------------------
 describe("useCreateGame", () => {
-  const mockCreate = gamesApi.create as jest.MockedFunction<
-    typeof gamesApi.create
-  >;
+  const mockCreate = gamesApi.create as jest.MockedFunction<typeof gamesApi.create>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreate.mockClear();
   });
 
   it("creates a game successfully", async () => {
+    // Arrange
     const gameData = {
       title: "New Game",
       sportName: "Basketball",
@@ -449,45 +462,41 @@ describe("useCreateGame", () => {
       maxPlayers: 10,
     } as any;
 
-    mockCreate.mockResolvedValue(mockGame);
+    mockCreate.mockResolvedValue(mockGame as any);
 
-    const { result } = renderHook(() => require("./useGames").useCreateGame());
-
+    const { result } = renderHook(() => require(hooksPath).useCreateGame());
     expect(result.current.isCreating).toBe(false);
 
+    // Act
     let createdGame: any;
     await act(async () => {
       createdGame = await result.current.createGame(gameData);
     });
 
+    // Assert
+    expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockCreate).toHaveBeenCalledWith(gameData);
     expect(createdGame).toEqual(mockGame);
-    expect(result.current.isCreating).toBe(false);
+
+    await waitFor(() => expect(result.current.isCreating).toBe(false));
     expect(result.current.error).toBeNull();
   });
 
   it("sets error when create fails", async () => {
-    const gameData = {
-      title: "New Game",
-      sportName: "Basketball",
-    } as any;
-
+    // Arrange
+    const gameData = { title: "New Game", sportName: "Basketball" } as any;
     mockCreate.mockRejectedValue(new Error("Validation error"));
 
-    const { result } = renderHook(() => require("./useGames").useCreateGame());
+    const { result } = renderHook(() => require(hooksPath).useCreateGame());
 
-    let error: any;
+    // Act
     await act(async () => {
-      try {
-        await result.current.createGame(gameData);
-      } catch (e) {
-        error = e;
-      }
+      await expect(result.current.createGame(gameData)).rejects.toBeDefined();
     });
 
-    expect(error).toBeDefined();
+    // Assert
     expect(result.current.error).toBe("Failed to create game");
-    expect(result.current.isCreating).toBe(false);
+    await waitFor(() => expect(result.current.isCreating).toBe(false));
   });
 });
 

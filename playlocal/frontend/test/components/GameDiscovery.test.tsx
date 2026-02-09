@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { GameDiscovery } from "../components/GameDiscovery";
+import { GameDiscovery } from "../../components/GameDiscovery";
 import "@testing-library/jest-dom";
 
 // Mock dependencies
@@ -10,7 +10,7 @@ jest.mock("next/link", () => {
   };
 });
 
-jest.mock("../hooks/useGames", () => ({
+jest.mock("../../hooks/useGames", () => ({
   useGames: jest.fn(),
 }));
 
@@ -29,7 +29,7 @@ jest.mock("lucide-react", () => ({
   Search: () => <div data-testid="icon-search" />,
 }));
 
-import { useGames } from "../hooks/useGames";
+import { useGames } from "../../hooks/useGames";
 
 describe("GameDiscovery Component", () => {
   beforeEach(() => {
