@@ -1,6 +1,15 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require("@testing-library/jest-dom");
 
+// ResizeObserver is not available in jsdom (required by Radix Slider and similar)
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // Global API mocks to prevent undefined errors in tests
 // Individual test files can override these with jest.mock() if needed
 // Using factory function to ensure each test gets fresh mocks
