@@ -40,11 +40,16 @@ everyone can find a group where they feel comfortable and respected.
 
 ### Release 1
 
-Release 1 video: 
-
-Release 1 Presentation: 
+Pivot to a new project 
 
 ### Release 2
+
+Release 2 Presentation video: 
+
+Release 2 Live-Demo: 
+
+Release 2 Presentation: [PlayLocal - 490 Release 2 Presentation.pdf](https://github.com/user-attachments/files/25198789/PlayLocal.-.490.Release.2.Presentation.pdf)
+
 
 ### Release 3
 
