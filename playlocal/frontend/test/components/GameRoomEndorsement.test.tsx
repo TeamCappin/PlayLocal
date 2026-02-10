@@ -64,6 +64,7 @@ jest.mock('../../lib/api', () => {
       getPastByUserNeedingAttendanceUpdate: createMockArrayFn(),
       getById: createMockObjectFn(),
       getRoster: createMockObjectFn(),
+      getTags: createMockArrayFn(),
       create: createMockObjectFn(),
       join: createMockObjectFn(),
       leave: createMockObjectFn(),

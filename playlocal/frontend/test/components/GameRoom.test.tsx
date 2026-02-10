@@ -66,6 +66,7 @@ jest.mock("../../lib/api", () => {
       getPastByUserNeedingAttendanceUpdate: createMockArrayFn(),
       getById: createMockObjectFn(),
       getRoster: createMockObjectFn(),
+      getTags: createMockArrayFn(),
       create: createMockObjectFn(),
       join: createMockObjectFn(),
       leave: createMockObjectFn(),
@@ -731,12 +732,12 @@ describe("GameRoom Component", () => {
         isAuthenticated: true,
       });
       render(<GameRoom />);
-      fireEvent.click(screen.getByTitle("Edit game settings"));
-      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
-      const minReliabilityInput = screen.getByLabelText(/Minimum Reliability Score/i);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const minReliabilityInput = screen.getByLabelText(/Minimum reliability/i);
       fireEvent.change(minReliabilityInput, { target: { value: "90" } });
       fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
-      await waitFor(() => expect(screen.queryByText("Edit Game Settings")).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 
     it("organizer cancel game shows confirm then success", async () => {
@@ -757,10 +758,10 @@ describe("GameRoom Component", () => {
         isAuthenticated: true,
       });
       render(<GameRoom />);
-      fireEvent.click(screen.getByRole("button", { name: /Cancel Game/i }));
-      await waitFor(() => expect(screen.getByText(/Are you sure you want to cancel/i)).toBeInTheDocument());
-      fireEvent.click(screen.getByRole("button", { name: /Yes, Cancel/i }));
-      await waitFor(() => expect(screen.getByText("Game has been cancelled")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Delete Game/i }));
+      await waitFor(() => expect(screen.getByText(/Delete this game\?/i)).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Yes, Delete/i }));
+      await waitFor(() => expect(screen.getByText("Game has been deleted.")).toBeInTheDocument());
     });
 
     it("organizer save edit modal calls update and shows success", async () => {
@@ -782,10 +783,10 @@ describe("GameRoom Component", () => {
         isAuthenticated: true,
       });
       render(<GameRoom />);
-      fireEvent.click(screen.getByTitle("Edit game settings"));
-      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
-      await waitFor(() => expect(screen.getByText("Game settings updated successfully!")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("Changes saved.")).toBeInTheDocument());
       expect(mockGamesApiUpdate).toHaveBeenCalledWith("game-123", expect.objectContaining({ minReliabilityRequired: 80 }));
       expect(mockRefetch).toHaveBeenCalled();
     });
@@ -809,7 +810,7 @@ describe("GameRoom Component", () => {
       });
       render(<GameRoom />);
       fireEvent.click(screen.getByTitle("Edit game settings"));
-      await waitFor(() => expect(screen.getByText("Edit Game Settings")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
       fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
       await waitFor(() => expect(screen.getByText("Network error")).toBeInTheDocument());
     });
@@ -1277,7 +1278,7 @@ describe("GameRoom Component", () => {
       });
 
       render(<GameRoom />);
-      expect(screen.getByText("Cancel Game")).toBeInTheDocument();
+      expect(screen.getByText("Delete Game")).toBeInTheDocument();
     });
 
     it("should not show cancel button for non-organizer", () => {
@@ -1315,7 +1316,7 @@ describe("GameRoom Component", () => {
       });
 
       render(<GameRoom />);
-      expect(screen.queryByText("Cancel Game")).not.toBeInTheDocument();
+      expect(screen.queryByText("Delete Game")).not.toBeInTheDocument();
     });
 
     it("should show confirmation dialog when cancel button clicked", async () => {
@@ -1354,12 +1355,12 @@ describe("GameRoom Component", () => {
 
       render(<GameRoom />);
 
-      fireEvent.click(screen.getByText("Cancel Game"));
+      fireEvent.click(screen.getByText("Delete Game"));
 
       await waitFor(() => {
-        expect(screen.getByText(/Are you sure you want to cancel this game/i)).toBeInTheDocument();
-        expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
-        expect(screen.getByText("No, Keep")).toBeInTheDocument();
+        expect(screen.getByText(/Delete this game\?/i)).toBeInTheDocument();
+        expect(screen.getByText("Yes, Delete")).toBeInTheDocument();
+        expect(screen.getByText("Keep Game")).toBeInTheDocument();
       });
     });
 
@@ -1399,16 +1400,16 @@ describe("GameRoom Component", () => {
 
       render(<GameRoom />);
 
-      fireEvent.click(screen.getByText("Cancel Game"));
+      fireEvent.click(screen.getByText("Delete Game"));
 
       await waitFor(() => {
-        expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
+        expect(screen.getByText("Yes, Delete")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText("No, Keep"));
+      fireEvent.click(screen.getByText("Keep Game"));
 
       await waitFor(() => {
-        expect(screen.queryByText(/Are you sure you want to cancel this game/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Delete this game\?/i)).not.toBeInTheDocument();
       });
 
       expect(mockCancelGame).not.toHaveBeenCalled();
@@ -1452,17 +1453,17 @@ describe("GameRoom Component", () => {
 
       render(<GameRoom />);
 
-      fireEvent.click(screen.getByText("Cancel Game"));
+      fireEvent.click(screen.getByText("Delete Game"));
 
       await waitFor(() => {
-        expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
+        expect(screen.getByText("Yes, Delete")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText("Yes, Cancel"));
+      fireEvent.click(screen.getByText("Yes, Delete"));
 
       await waitFor(() => {
         expect(mockCancelGame).toHaveBeenCalled();
-        expect(screen.getByText("Game has been cancelled")).toBeInTheDocument();
+        expect(screen.getByText("Game has been deleted.")).toBeInTheDocument();
       });
     });
 
@@ -1504,13 +1505,13 @@ describe("GameRoom Component", () => {
 
       render(<GameRoom />);
 
-      fireEvent.click(screen.getByText("Cancel Game"));
+      fireEvent.click(screen.getByText("Delete Game"));
 
       await waitFor(() => {
-        expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
+        expect(screen.getByText("Yes, Delete")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText("Yes, Cancel"));
+      fireEvent.click(screen.getByText("Yes, Delete"));
 
       await waitFor(() => {
         expect(screen.getByText("Only the organizer can cancel this game")).toBeInTheDocument();
@@ -1553,7 +1554,7 @@ describe("GameRoom Component", () => {
 
       render(<GameRoom />);
 
-      expect(screen.getByText("This game has been cancelled")).toBeInTheDocument();
+      expect(screen.getByText("This game has been deleted")).toBeInTheDocument();
     });
 
     it("should not show cancel button for cancelled game", () => {
@@ -1825,9 +1826,9 @@ describe("Additional coverage: Edit modal clear + update undefined", () => {
     render(<GameRoom />);
 
     // Open edit modal
-    fireEvent.click(screen.getByTitle("Edit game settings"));
+    fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
     await waitFor(() =>
-      expect(screen.getByText("Edit Game Settings")).toBeInTheDocument(),
+      expect(screen.getByRole("dialog")).toBeInTheDocument(),
     );
 
     // Clear input using the "Clear" button (branch coverage)
