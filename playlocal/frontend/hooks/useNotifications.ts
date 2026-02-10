@@ -44,6 +44,10 @@ function buildNotificationTitle(type: string): string {
     switch (type) {
         case 'GAME_CANCELLED':
             return 'Game cancelled';
+        case 'GAME_UPDATED':
+            return 'Game updated';
+        case 'GAME_REMOVED_REQUIREMENTS':
+            return 'Removed from game';
         case 'ATTENDANCE_PROMPT':
             return 'Attendance reminder';
         default:
@@ -55,10 +59,10 @@ function toUINotification(notification: NotificationDto): UINotification {
     const payload = safeParsePayload(notification.payload);
     const type = normalizeType(notification.type);
     const createdAt = notification.sentAt || notification.scheduledFor;
-    const title = buildNotificationTitle(type);
+    const title = payload.title || buildNotificationTitle(type);
     const message = payload.message
         || (payload.gameTitle ? `Update for ${payload.gameTitle}` : title);
-    const link = payload.gameId ? `/games/${payload.gameId}` : undefined;
+    const link = payload.link || (payload.gameId ? `/games/${payload.gameId}` : undefined);
 
     return {
         ...notification,
@@ -88,7 +92,7 @@ export function useNotifications() {
                 notificationsApi.getAll(),
                 notificationsApi.getUnreadCount(),
             ]);
-            setNotifications(notifs.map(toUINotification));
+            setNotifications((notifs || []).map(toUINotification));
             setUnreadCount(countData.count);
         } catch (err) {
             setError('Failed to load notifications');
@@ -107,6 +111,13 @@ export function useNotifications() {
         }
     }, [isAuthenticated, fetchNotifications]);
 
+    // US-4.3: Refresh notification count when game is edited or deleted (so bell icon updates)
+    useEffect(() => {
+        const handler = () => fetchNotifications();
+        window.addEventListener("playlocal-refresh-notifications", handler);
+        return () => window.removeEventListener("playlocal-refresh-notifications", handler);
+    }, [fetchNotifications]);
+
     const markAsRead = async (notificationId: string) => {
         try {
             await notificationsApi.markAsRead(notificationId);
@@ -118,6 +129,9 @@ export function useNotifications() {
                 )
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+            }
         } catch (err) {
             console.error('Error marking notification as read:', err);
         }
@@ -128,6 +142,9 @@ export function useNotifications() {
             await notificationsApi.markAllAsRead();
             setNotifications(prev => prev.map(n => ({ ...n, status: 'READ', read: true })));
             setUnreadCount(0);
+            if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+            }
         } catch (err) {
             console.error('Error marking all notifications as read:', err);
         }

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { useNotifications } from "../../hooks/useNotifications";
 import { notificationsApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -61,6 +61,110 @@ describe("useNotifications", () => {
       link: "/games/g1",
     });
     expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("maps GAME_UPDATED notification to 'Game updated' title", async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: "n1",
+        type: "GAME_UPDATED",
+        payload: '{"gameId":"g1","gameTitle":"Basketball"}',
+        status: "SENT",
+        sentAt: "2026-02-08T10:00:00Z",
+      },
+    ]);
+    mockGetUnreadCount.mockResolvedValue({ count: 1 });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.notifications[0].title).toBe("Game updated");
+  });
+
+  it("maps GAME_REMOVED_REQUIREMENTS notification to 'Removed from game' title", async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: "n1",
+        type: "GAME_REMOVED_REQUIREMENTS",
+        payload: "{}",
+        status: "SENT",
+        sentAt: "2026-02-08T10:00:00Z",
+      },
+    ]);
+    mockGetUnreadCount.mockResolvedValue({ count: 1 });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.notifications[0].title).toBe("Removed from game");
+  });
+
+  it("markAsRead dispatches playlocal-refresh-notifications event on success", async () => {
+    const addEventListenerSpy = jest.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
+    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: "n1",
+        type: "GAME_CANCELLED",
+        payload: "{}",
+        status: "SENT",
+        sentAt: "2026-02-08T10:00:00Z",
+      },
+    ]);
+    mockGetUnreadCount.mockResolvedValue({ count: 1 });
+    (notificationsApi.markAsRead as jest.Mock).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAsRead("n1");
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "playlocal-refresh-notifications" })
+    );
+
+    dispatchSpy.mockRestore();
+  });
+
+  it("markAllAsRead dispatches playlocal-refresh-notifications event on success", async () => {
+    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([]);
+    mockGetUnreadCount.mockResolvedValue({ count: 0 });
+    (notificationsApi.markAllAsRead as jest.Mock).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAllAsRead();
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "playlocal-refresh-notifications" })
+    );
+
+    dispatchSpy.mockRestore();
   });
 
   it("falls back safely for invalid payload and read status", async () => {

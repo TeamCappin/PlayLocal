@@ -287,15 +287,27 @@ export interface CreateGameRequest {
 
 export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 export interface UpdateGameRequest {
-    title?: string;
-    description?: string;
-    indoorOutdoor?: string;
-    intensityBand?: string;
-    skillBand?: string;
-    minPlayers?: number;
-    maxPlayers?: number;
-    allowWaitlist?: boolean;
-    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+  title?: string;
+  description?: string;
+  indoorOutdoor?: string;
+  intensityBand?: string;
+  skillBand?: string;
+  minPlayers?: number;
+  maxPlayers?: number;
+  allowWaitlist?: boolean;
+  minReliabilityRequired?: number;
+  // US-4.3: Full edit (location, date/time, visibility, tags, age)
+  locationName?: string;
+  addressLine?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  startTime?: string; // ISO
+  endTime?: string; // ISO
+  visibility?: string;
+  tagNames?: string[];
+  minAge?: number;
+  maxAge?: number;
 }
 
 export interface GameResponse {

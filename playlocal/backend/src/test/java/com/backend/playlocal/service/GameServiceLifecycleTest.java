@@ -323,7 +323,8 @@ class GameServiceLifecycleTest {
                 tagAssignmentRepository,
                 tagConfirmationRepository,
                 null,
-                oqsService);
+                oqsService,
+                locationRepository);
 
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(participationRepository.findConfirmedByGame(gameId))

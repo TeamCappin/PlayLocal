@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -174,6 +175,61 @@ class GameServiceCreateTest {
     }
 
     @Test
+    @DisplayName("createGame throws when sport not found")
+    void createGame_SportNotFound_ShouldThrow() {
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("No Sport")
+                .sportName("UnknownSport")
+                .locationName("Park")
+                .city("Montreal")
+                .startTime(Instant.now().plusSeconds(3600))
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("UnknownSport")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Sport not found: UnknownSport");
+    }
+
+    @Test
+    @DisplayName("createGame with null maxPlayers uses default 20")
+    void createGame_WithNullMaxPlayers_UsesDefaultTwenty() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Default Max Game")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .minPlayers(4)
+                .maxPlayers(null)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+        when(gameVisibilityRepository.findByCode("public")).thenReturn(Optional.of(visibility));
+        when(gameRepository.save(any(Game.class))).thenAnswer(inv -> {
+            Game g = inv.getArgument(0);
+            if (g.getGameId() == null) {
+                g.setGameId(UUID.randomUUID());
+                g.setCreatedAt(Instant.now());
+            }
+            return g;
+        });
+        when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
+        when(participationRepository.findWaitlistedByGame(any())).thenReturn(java.util.Collections.emptyList());
+        when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+
+        gameService.createGame(request, organizerId);
+
+        ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
+        verify(gameRepository).save(gameCaptor.capture());
+        assertThat(gameCaptor.getValue().getMaxPlayers()).isEqualTo(20);
+    }
+
+    @Test
     @DisplayName("createGame with null allowWaitlist defaults to true")
     void createGame_WithNullAllowWaitlist_DefaultsTrue() {
         Instant start = Instant.now().plusSeconds(3600);
@@ -211,5 +267,44 @@ class GameServiceCreateTest {
         ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
         verify(gameRepository).save(gameCaptor.capture());
         assertThat(gameCaptor.getValue().getAllowWaitlist()).isTrue();
+    }
+
+    @Test
+    @DisplayName("createGame with tagNames assigns tags to game")
+    void createGame_WithTagNames_AssignsTags() {
+        GameTag tag = GameTag.builder()
+                .tagId(UUID.randomUUID())
+                .name("women")
+                .isSystemTag(true)
+                .build();
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Tagged Game")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .startTime(start)
+                .tagNames(java.util.List.of("women"))
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+        when(gameVisibilityRepository.findByCode("public")).thenReturn(Optional.of(visibility));
+        when(gameRepository.save(any(Game.class))).thenAnswer(inv -> {
+            Game g = inv.getArgument(0);
+            if (g.getGameId() == null) {
+                g.setGameId(UUID.randomUUID());
+                g.setCreatedAt(Instant.now());
+            }
+            return g;
+        });
+        when(tagRepository.findByName("women")).thenReturn(Optional.of(tag));
+        when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
+        when(participationRepository.findWaitlistedByGame(any())).thenReturn(java.util.Collections.emptyList());
+        when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+
+        gameService.createGame(request, organizerId);
+
+        verify(tagAssignmentRepository).save(any(GameTagAssignment.class));
     }
 }
