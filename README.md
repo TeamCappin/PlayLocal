@@ -44,7 +44,7 @@ everyone can find a group where they feel comfortable and respected.
 
 Release 2 Presentation video: 
 
-Release 2 Live-Demo: 
+Release 2 Live-Demo: https://drive.google.com/file/d/1PNaAeSPwOFa7_IYM0w3t6a3zuS-GDuko/view?usp=drive_link
 
 Release 2 Presentation: [PlayLocal - 490 Release 2 Presentation.pdf](https://github.com/user-attachments/files/25198789/PlayLocal.-.490.Release.2.Presentation.pdf)
 
