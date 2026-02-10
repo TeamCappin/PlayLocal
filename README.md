@@ -38,9 +38,7 @@ everyone can find a group where they feel comfortable and respected.
 
 ## Release Demos 
 
-### Release 1
-
-Pivot to a new project 
+### Release 1 : https://github.com/TeamCappin/PlayLocal/tree/dev/Admin/Release-1-Presentation
 
 ### Release 2
 
