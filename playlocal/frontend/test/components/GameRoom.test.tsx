@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { GameRoom } from "../../components/GameRoom";
 import "@testing-library/jest-dom";
 
@@ -789,6 +789,181 @@ describe("GameRoom Component", () => {
       await waitFor(() => expect(screen.getByText("Changes saved.")).toBeInTheDocument());
       expect(mockGamesApiUpdate).toHaveBeenCalledWith("game-123", expect.objectContaining({ minReliabilityRequired: 80 }));
       expect(mockRefetch).toHaveBeenCalled();
+    });
+
+    it("edit form validation: min players < 2 shows error", async () => {
+      mockGamesApiUpdate.mockResolvedValue(undefined);
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const minPlayersInput = screen.getByLabelText(/Min players/i);
+      fireEvent.change(minPlayersInput, { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+      await waitFor(() =>
+        expect(screen.getByText("Minimum players must be at least 2")).toBeInTheDocument()
+      );
+      expect(mockGamesApiUpdate).not.toHaveBeenCalled();
+    });
+
+    it("edit form validation: max players < min shows error", async () => {
+      mockGamesApiUpdate.mockResolvedValue(undefined);
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const minPlayersInput = screen.getByLabelText(/Min players/i);
+      const maxPlayersInput = screen.getByLabelText(/Max players/i);
+      fireEvent.change(minPlayersInput, { target: { value: "10" } });
+      fireEvent.change(maxPlayersInput, { target: { value: "5" } });
+      fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+      await waitFor(() =>
+        expect(screen.getByText("Maximum players must be at least the minimum")).toBeInTheDocument()
+      );
+      expect(mockGamesApiUpdate).not.toHaveBeenCalled();
+    });
+
+    it("edit form fields: fills location, date/time, description, selects, and saves", async () => {
+      mockGamesApiUpdate.mockResolvedValue(undefined);
+      mockRefetch.mockResolvedValue(undefined);
+      const scheduledGame = {
+        ...mockGame,
+        status: "SCHEDULED",
+        startTime: futureStart(),
+        endTime: futureEnd(),
+        indoorOutdoor: "outdoor",
+        skillBand: "INTERMEDIATE",
+        intensityBand: "COMPETITIVE",
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const dialog = screen.getByRole("dialog");
+
+      fireEvent.change(within(dialog).getByLabelText(/^Location$/i), { target: { value: "New Venue" } });
+      fireEvent.change(within(dialog).getByPlaceholderText(/Street address/i), { target: { value: "123 Main St" } });
+      fireEvent.change(within(dialog).getByPlaceholderText(/^City \(optional\)$/i), { target: { value: "Boston" } });
+      fireEvent.change(within(dialog).getByLabelText(/^Date$/i), { target: { value: "2026-03-15" } });
+      fireEvent.change(within(dialog).getByLabelText(/Start time/i), { target: { value: "14:00" } });
+      fireEvent.change(within(dialog).getByLabelText(/End time/i), { target: { value: "16:00" } });
+      fireEvent.change(within(dialog).getByLabelText(/^Description$/i), { target: { value: "Updated description" } });
+      fireEvent.change(within(dialog).getByLabelText(/Location type/i), { target: { value: "INDOOR" } });
+      fireEvent.change(within(dialog).getByLabelText(/Skill level/i), { target: { value: "ADVANCED" } });
+      fireEvent.change(within(dialog).getByLabelText(/^Intensity$/i), { target: { value: "CASUAL" } });
+      fireEvent.change(within(dialog).getByLabelText(/Min players/i), { target: { value: "4" } });
+      fireEvent.change(within(dialog).getByLabelText(/Max players/i), { target: { value: "12" } });
+      fireEvent.click(within(dialog).getByLabelText(/Allow waitlist/i));
+      fireEvent.change(within(dialog).getByLabelText(/Game visibility/i), { target: { value: "friends" } });
+      fireEvent.change(within(dialog).getByLabelText(/Min age/i), { target: { value: "18" } });
+      fireEvent.change(within(dialog).getByLabelText(/Max age/i), { target: { value: "65" } });
+
+      fireEvent.click(within(dialog).getByRole("button", { name: /Save Changes/i }));
+      await waitFor(() => expect(screen.getByText("Changes saved.")).toBeInTheDocument());
+      expect(mockGamesApiUpdate).toHaveBeenCalledWith("game-123", expect.objectContaining({
+        locationName: "New Venue",
+        addressLine: "123 Main St",
+        city: "Boston",
+        description: "Updated description",
+        indoorOutdoor: "INDOOR",
+        skillBand: "ADVANCED",
+        intensityBand: "CASUAL",
+        minPlayers: 4,
+        maxPlayers: 12,
+        allowWaitlist: false,
+        visibility: "friends",
+        minAge: 18,
+        maxAge: 65,
+      }));
+    });
+
+    it("edit modal closes when clicking backdrop", async () => {
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const backdrop = document.querySelector('[aria-hidden="true"]');
+      expect(backdrop).toBeTruthy();
+      fireEvent.click(backdrop!);
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
+
+    it("edit modal closes when clicking Close button", async () => {
+      const scheduledGame = { ...mockGame, status: "SCHEDULED", startTime: futureStart(), endTime: futureEnd() };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 
     it("organizer save edit shows error when update fails", async () => {

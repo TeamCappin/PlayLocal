@@ -290,6 +290,30 @@ describe("NotificationsPage", () => {
     expect(screen.getByText("1 unread notification")).toBeInTheDocument();
   });
 
+  test("clicking View link on unread notification calls onMarkAsRead", async () => {
+    const { markAsRead } = setup();
+
+    render(<NotificationsPage />);
+
+    const viewLinks = screen.getAllByRole("link", { name: /View →/i });
+    expect(viewLinks.length).toBeGreaterThan(0);
+    fireEvent.click(viewLinks[0]);
+
+    expect(markAsRead).toHaveBeenCalledTimes(1);
+    expect(["n1", "n2", "n3"]).toContain(markAsRead.mock.calls[0][0]);
+  });
+
+  test("loadDismissedFromStorage returns empty set when localStorage has no data", () => {
+    const getItemSpy = jest.spyOn(Storage.prototype, "getItem").mockReturnValue(null);
+
+    setup();
+    render(<NotificationsPage />);
+
+    expect(getItemSpy).toHaveBeenCalledWith("playlocal-dismissed-notifications");
+
+    getItemSpy.mockRestore();
+  });
+
   test("shows empty state when no notifications (and not loading)", () => {
     setup({ notifications: [] });
 
