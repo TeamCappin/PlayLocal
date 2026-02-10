@@ -314,6 +314,21 @@ describe("NotificationsPage", () => {
     getItemSpy.mockRestore();
   });
 
+  test("loadDismissedFromStorage loads and parses valid JSON from localStorage", () => {
+    const getItemSpy = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockReturnValue(JSON.stringify(["n1", "n2"]));
+
+    setup();
+    render(<NotificationsPage />);
+
+    expect(getItemSpy).toHaveBeenCalledWith("playlocal-dismissed-notifications");
+    const dismissBtn = screen.getAllByTitle("Dismiss")[0];
+    expect(dismissBtn).toBeInTheDocument();
+
+    getItemSpy.mockRestore();
+  });
+
   test("shows empty state when no notifications (and not loading)", () => {
     setup({ notifications: [] });
 

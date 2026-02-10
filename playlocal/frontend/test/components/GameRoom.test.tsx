@@ -2339,7 +2339,120 @@ describe("Additional coverage: Join when user is missing but authenticated", () 
   });
 });
 
-describe("Additional coverage: Spots Available Full label", () => {
+  describe("Additional coverage: statusKey, endTime fallback, tags filter", () => {
+    const futureStart = () => new Date(Date.now() + 86400000).toISOString();
+
+    it("handles game with null status (statusKey fallback to SCHEDULED)", () => {
+      const gameNullStatus = { ...mockGame, status: null as any };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameNullStatus,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      render(<GameRoom />);
+      expect(screen.getByText(/About this game/i)).toBeInTheDocument();
+    });
+
+    it("handles game with null endTime when opening edit modal", async () => {
+      const gameNoEndTime = {
+        ...mockGame,
+        startTime: futureStart(),
+        endTime: null as any,
+        indoorOutdoor: "outdoor",
+        skillBand: "INTERMEDIATE",
+        intensityBand: "COMPETITIVE",
+        minAge: 18,
+        maxAge: 65,
+        tags: [{ tagId: "t1", name: "women", isRestricted: true }],
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameNoEndTime,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      const minAgeInput = screen.getByLabelText(/Min age/i) as HTMLInputElement;
+      const maxAgeInput = screen.getByLabelText(/Max age/i) as HTMLInputElement;
+      expect(String(minAgeInput.value)).toBe("18");
+      expect(String(maxAgeInput.value)).toBe("65");
+    });
+
+    it("passes restricted tags to JoinConfirmationModal when game has isRestricted tags", async () => {
+      const gameWithRestrictedTags = {
+        ...mockGame,
+        tags: [
+          { tagId: "t1", name: "women", isRestricted: true },
+          { tagId: "t2", name: "casual", isRestricted: false },
+        ],
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameWithRestrictedTags,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+      });
+      render(<GameRoom />);
+      const joinButton = screen.getAllByRole("button").find((btn) => btn.textContent?.includes("Join"));
+      expect(joinButton).toBeDefined();
+      fireEvent.click(joinButton!);
+      await waitFor(() => expect(screen.getByTestId("join-confirmation-modal")).toBeInTheDocument());
+    });
+  });
+
+  describe("Additional coverage: handleUpdateGame early return when no id", () => {
+    const futureStart = () => new Date(Date.now() + 86400000).toISOString();
+
+    it("handleUpdateGame returns early when id is missing", async () => {
+      (useParams as jest.Mock).mockReturnValue({});
+      mockGamesApiUpdate.mockClear();
+      const scheduledGame = {
+        ...mockGame,
+        status: "SCHEDULED",
+        startTime: futureStart(),
+        endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(),
+      };
+      (useGame as jest.Mock).mockReturnValue({
+        game: scheduledGame,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+      });
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...mockUser, userId: "organizer-1" },
+        isAuthenticated: true,
+      });
+      render(<GameRoom />);
+      fireEvent.click(screen.getByRole("button", { name: /^Edit Game$/i }));
+      await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Save Changes/i }));
+      expect(mockGamesApiUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Additional coverage: Spots Available Full label", () => {
   it('shows "Full" when spotsAvailable is 0', () => {
     const fullGame = { ...mockGame, maxPlayers: 1 };
     const fullRoster = {
