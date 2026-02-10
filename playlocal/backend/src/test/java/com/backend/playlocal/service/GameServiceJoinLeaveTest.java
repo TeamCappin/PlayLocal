@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -363,6 +364,31 @@ class GameServiceJoinLeaveTest {
                         assertThat(waitlistedParticipation.getJoinStatus())
                                         .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
                         verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 2);
+                }
+
+                @Test
+                @DisplayName("Should NOT decrement waitlist when waitlisted user at position 0 leaves")
+                void leaveGame_WhenWaitlistedAtPositionZero_ShouldNotDecrement() {
+                        // Given
+                        GameParticipation waitlistedParticipation = GameParticipation.builder()
+                                        .participationId(UUID.randomUUID())
+                                        .game(testGame)
+                                        .user(testUser)
+                                        .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                                        .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                                        .waitlistPosition(0)
+                                        .build();
+
+                        when(participationRepository.findByGameAndUser(gameId, userId))
+                                        .thenReturn(Optional.of(waitlistedParticipation));
+
+                        // When
+                        gameService.leaveGame(gameId, userId);
+
+                        // Then
+                        assertThat(waitlistedParticipation.getJoinStatus())
+                                        .isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+                        verify(participationRepository, never()).decrementWaitlistPositionsAfter(any(), anyInt());
                 }
 
                 @Test

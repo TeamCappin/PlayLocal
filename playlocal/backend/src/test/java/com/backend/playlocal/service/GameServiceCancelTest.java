@@ -407,6 +407,95 @@ class GameServiceCancelTest {
         }
 
         @Test
+        @DisplayName("US-4.3: Raising min reliability removes confirmed participant and promotes first waitlisted")
+        void updateGame_RaisesMinReliability_RemovesConfirmed_PromotesWaitlisted() {
+            organizer.setReliabilityScore(100.0f);
+            testGame.setMinReliabilityRequired(85.0f);
+            GameParticipation orgPart = GameParticipation.builder()
+                    .game(testGame)
+                    .user(organizer)
+                    .sport(testSport)
+                    .participationRole(GameParticipation.ParticipationRole.ORGANIZER)
+                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                    .build();
+            User lowScoreUser = User.builder().userId(UUID.randomUUID()).displayName("LowScore").reliabilityScore(80.0f).build();
+            User waitlistedUser = User.builder().userId(UUID.randomUUID()).displayName("Waitlisted").reliabilityScore(95.0f).build();
+            GameParticipation confirmedLow = GameParticipation.builder()
+                    .game(testGame)
+                    .user(lowScoreUser)
+                    .sport(testSport)
+                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                    .build();
+            GameParticipation waitlisted = GameParticipation.builder()
+                    .game(testGame)
+                    .user(waitlistedUser)
+                    .sport(testSport)
+                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                    .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                    .waitlistPosition(1)
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            when(participationRepository.findConfirmedByGame(gameId)).thenReturn(java.util.List.of(orgPart, confirmedLow));
+            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.List.of(waitlisted));
+            when(participationRepository.findFirstWaitlisted(gameId)).thenReturn(java.util.List.of(waitlisted));
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+            when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(90.0f)
+                    .build();
+
+            gameService.updateGame(gameId, organizerId, request);
+
+            assertThat(confirmedLow.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+            assertThat(waitlisted.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+            assertThat(waitlisted.getWaitlistPosition()).isNull();
+            verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 1);
+            verify(notificationService).createInAppNotification(eq(lowScoreUser.getUserId()), eq("GAME_REMOVED_REQUIREMENTS"), any(Map.class));
+        }
+
+        @Test
+        @DisplayName("US-4.3: Raising min reliability removes waitlisted participant with position > 0 and decrements positions")
+        void updateGame_RaisesMinReliability_RemovesWaitlistedWithPosition_DecrementsPositions() {
+            organizer.setReliabilityScore(100.0f);
+            testGame.setMinReliabilityRequired(80.0f);
+            GameParticipation orgPart = GameParticipation.builder()
+                    .game(testGame)
+                    .user(organizer)
+                    .sport(testSport)
+                    .participationRole(GameParticipation.ParticipationRole.ORGANIZER)
+                    .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                    .build();
+            User lowScoreWaitlisted = User.builder().userId(UUID.randomUUID()).displayName("LowWait").reliabilityScore(75.0f).build();
+            GameParticipation waitlistedLow = GameParticipation.builder()
+                    .game(testGame)
+                    .user(lowScoreWaitlisted)
+                    .sport(testSport)
+                    .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                    .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                    .waitlistPosition(2)
+                    .build();
+
+            when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
+            when(participationRepository.findConfirmedByGame(gameId)).thenReturn(java.util.List.of(orgPart));
+            when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.List.of(waitlistedLow));
+            when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
+            when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            GameDto.UpdateRequest request = GameDto.UpdateRequest.builder()
+                    .minReliabilityRequired(90.0f)
+                    .build();
+
+            gameService.updateGame(gameId, organizerId, request);
+
+            assertThat(waitlistedLow.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CANCELLED);
+            verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 2);
+            verify(notificationService).createInAppNotification(eq(lowScoreWaitlisted.getUserId()), eq("GAME_REMOVED_REQUIREMENTS"), any(Map.class));
+        }
+
+        @Test
         @DisplayName("Organizer can update all optional fields")
         void updateGame_OrganizerUpdatesAllFields_ShouldSucceed() {
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(testGame));
