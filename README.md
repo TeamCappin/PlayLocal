@@ -42,7 +42,7 @@ everyone can find a group where they feel comfortable and respected.
 
 ### Release 2
 
-Release 2 Presentation video: 
+Release 2 Presentation video: https://drive.google.com/file/d/1mFgsqjgU6McoWA14zVe59H-5EelsNpwP/view?usp=drive_link
 
 Release 2 Live-Demo: https://drive.google.com/file/d/1PNaAeSPwOFa7_IYM0w3t6a3zuS-GDuko/view?usp=drive_link
 
