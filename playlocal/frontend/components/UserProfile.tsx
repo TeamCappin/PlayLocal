@@ -36,21 +36,27 @@ export function UserProfile() {
   const [loadingConnectionSignals, setLoadingConnectionSignals] = useState(false);
 
 
-  // Check if viewing own profile
-  const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  // Check if viewing own profile (no param, "me", or slug matches current user)
+  const currentUserSlug = currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  const isOwnProfile = !usernameStr || usernameStr === 'me' || usernameStr === currentUserSlug;
+
+  // UUID regex for profile links that use userId (Friends, PlayerSearch, etc.)
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
   // Fetch other user's profile if not own profile [US-1.3]
   useEffect(() => {
     if (!isOwnProfile && usernameStr) {
       const fetchData = async () => {
         setLoadingProfile(true);
-        setProfileError(null);  // Reset error on new fetch
+        setProfileError(null);
         try {
-          // Try slug-based lookup first (US 1.3 + 1.4 merge)
-          const data = await usersApi.getProfileBySlug(usernameStr);
+          // Support both slug (john-doe) and userId (UUID) from URL
+          const data = isUuid(usernameStr)
+            ? await usersApi.getProfile(usernameStr)
+            : await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
         } catch (err) {
           console.error("Failed to fetch profile", err);
-          // Copilot fix #4: Set error state for user feedback
           setProfileError("Failed to load profile. Please try again later.");
         } finally {
           setLoadingProfile(false);
