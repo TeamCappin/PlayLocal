@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { GameRoom } from "../../components/GameRoom";
 import "@testing-library/jest-dom";
 
@@ -89,6 +89,8 @@ jest.mock("../../lib/api", () => {
       getProfileBySlug: createMockObjectFn(),
       updateProfile: createMockObjectFn(),
       search: createMockObjectFn(),
+      getConnectionSignals: createMockObjectFn(),
+      getConnectionSignalsBatch: jest.fn(() => Promise.resolve({ signalsByUserId: {} })),
     },
   };
 });
@@ -217,6 +219,27 @@ describe("GameRoom Component", () => {
     maxPlayers: 10,
     spotsAvailable: 9,
   };
+
+  /** Flush async updates (e.g. getConnectionSignalsBatch) to avoid act(...) warnings. */
+  async function flushAsyncUpdates() {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  let originalConsoleError: typeof console.error;
+  beforeAll(() => {
+    originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      const msg = typeof args[0] === "string" ? args[0] : String(args[0]);
+      if (msg.includes("was not wrapped in act(...)")) return;
+      originalConsoleError.apply(console, args);
+    };
+  });
+  afterAll(() => {
+    console.error = originalConsoleError;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
