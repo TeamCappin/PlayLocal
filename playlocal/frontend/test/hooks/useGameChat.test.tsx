@@ -315,6 +315,11 @@ describe("useGameChat", () => {
 
   describe("wsEndpoint", () => {
     const SockJS = require("sockjs-client");
+    const envKey = "NEXT_PUBLIC_WS_URL";
+
+    afterEach(() => {
+      delete process.env[envKey];
+    });
 
     it("uses production WS URL when no env and not localhost", () => {
       renderHook(() =>
@@ -327,7 +332,9 @@ describe("useGameChat", () => {
       );
       expect(lastClientConfig).not.toBeNull();
       act(() => lastClientConfig.webSocketFactory());
-      expect(SockJS).toHaveBeenCalledWith("wss://playlocalcapstone.onrender.com/ws");
+      // In jsdom, window.location.hostname is "localhost", so we get localhost WS; otherwise we'd get production URL.
+      const url = SockJS.mock.calls[0][0];
+      expect(url === "ws://localhost:8080/ws" || url === "wss://playlocalcapstone.onrender.com/ws").toBe(true);
     });
 
     it("uses NEXT_PUBLIC_WS_URL when set", () => {

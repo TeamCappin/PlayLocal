@@ -243,6 +243,7 @@ describe("GameRoom Component", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({ signalsByUserId: {} });
     (useParams as jest.Mock).mockReturnValue({ id: "game-123" });
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (useAuth as jest.Mock).mockReturnValue({
