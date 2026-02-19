@@ -56,6 +56,7 @@ jest.mock('../../lib/api', () => {
     usersApi: {
       getProfile: jest.fn(),
       getProfileBySlug: jest.fn(),
+      getConnectionSignals: jest.fn(() => Promise.resolve(null)),
     },
     endorsementsApi: {
       getUserEndorsements: jest.fn(),
@@ -101,11 +102,9 @@ jest.mock('recharts', () => ({
   Radar: () => <div>Radar</div>,
 }));
 
-// Mock Lucide icons
+// Mock Lucide icons (UserProfile imports: MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2)
 jest.mock('lucide-react', () => ({
   Medal: () => <div data-testid="icon-medal" />,
-  // Add other icons used in UserProfile as needed, or just a generic proxy if possible.
-  // For now simple mocks for icons to avoid errors
   MapPin: () => <div />,
   Calendar: () => <div />,
   TrendingUp: () => <div />,
@@ -118,7 +117,8 @@ jest.mock('lucide-react', () => ({
   Flag: () => <div />,
   Loader2: () => <div />,
   AlertCircle: () => <div />,
-  // Icons used by OrganizerQualityBadge
+  UserPlus: () => <div />,
+  Gamepad2: () => <div />,
   Info: () => <div />,
   XCircle: () => <div />,
   ChevronDown: () => <div />,

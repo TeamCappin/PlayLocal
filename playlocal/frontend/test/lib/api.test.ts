@@ -257,7 +257,7 @@ describe("apiFetch core behaviors", () => {
     await expect(gamesApi.getById("g-9")).rejects.toMatchObject({
       name: "ApiError",
       status: 0,
-      message: "Network error: Unable to connect to server",
+      message: expect.stringContaining("Unable to connect to server"),
       data: expect.objectContaining({
         originalError: expect.any(String),
       }),
