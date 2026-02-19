@@ -167,7 +167,7 @@ jest.mock("../../components/ui/dialog", () => ({
 import { useAuth } from "../../context/AuthContext";
 import { useGame } from "../../hooks/useGames";
 import { useParams, useRouter } from "next/navigation";
-import { endorsementsApi, usersApi } from "../../lib/api";
+import { endorsementsApi, usersApi, gamesApi } from "../../lib/api";
 
 describe("GameRoom Component", () => {
   const mockPush = jest.fn();
@@ -244,6 +244,7 @@ describe("GameRoom Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({ signalsByUserId: {} });
+    (gamesApi.getTags as jest.Mock).mockResolvedValue([]);
     (useParams as jest.Mock).mockReturnValue({ id: "game-123" });
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (useAuth as jest.Mock).mockReturnValue({
@@ -334,6 +335,103 @@ describe("GameRoom Component", () => {
         expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled();
       });
       expect(screen.getByText("Organizer")).toBeInTheDocument();
+    });
+
+    it("displays connection signals for waitlisted players when batch returns signals", async () => {
+      const rosterWithWaitlist = {
+        ...mockRoster,
+        confirmed: mockRoster.confirmed,
+        waitlisted: [
+          {
+            participationId: "w1",
+            userId: "waitlist-1",
+            displayName: "Waitlister",
+            role: "PLAYER",
+            joinStatus: "WAITLISTED",
+            attendanceStatus: null,
+            reliabilityScore: 70,
+            waitlistPosition: 1,
+          },
+        ],
+      };
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({
+        signalsByUserId: {
+          "waitlist-1": { mutualFriendCount: 1, coPlayCount: 0 },
+        },
+      });
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: rosterWithWaitlist,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled());
+      await flushAsyncUpdates();
+
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/ }));
+      expect(await screen.findByText("Waitlist (1)", {}, { timeout: 2000 })).toBeInTheDocument();
+      expect(await screen.findByText(/1 mutual/, {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.getByText(/No games together yet/)).toBeInTheDocument();
+    });
+  });
+
+  describe("Edit Game modal (US-4.3)", () => {
+    const futureStart = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const futureEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
+    const gameAsOrganizer = {
+      ...mockGame,
+      startTime: futureStart,
+      endTime: futureEnd,
+      organizer: { userId: "user-1", displayName: "Test User", reliabilityScore: 85 },
+    };
+
+    it("opens Edit Game modal, shows Community tags, toggles tag checkbox, and close button dismisses modal", async () => {
+      (gamesApi.getTags as jest.Mock).mockResolvedValue([
+        { tagId: "t1", name: "casual", isRestricted: false },
+        { tagId: "t2", name: "competitive", isRestricted: true },
+      ]);
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameAsOrganizer,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(gamesApi.getTags).toHaveBeenCalled());
+
+      const editButton = screen.getByText("Edit Game").closest("button");
+      expect(editButton).toBeInTheDocument();
+      fireEvent.click(editButton!);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Community tags")).toBeInTheDocument();
+      expect(screen.getByText("Casual")).toBeInTheDocument();
+      expect(screen.getByText("Competitive")).toBeInTheDocument();
+      expect(screen.getByText("!")).toBeInTheDocument();
+
+      const casualCheckbox = screen.getByRole("checkbox", { name: /casual/i });
+      expect(casualCheckbox).not.toBeChecked();
+      fireEvent.click(casualCheckbox);
+      expect(casualCheckbox).toBeChecked();
+      fireEvent.click(casualCheckbox);
+      expect(casualCheckbox).not.toBeChecked();
+
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
   });
 
