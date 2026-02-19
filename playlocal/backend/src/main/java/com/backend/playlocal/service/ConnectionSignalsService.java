@@ -1,6 +1,7 @@
 package com.backend.playlocal.service;
 
 import com.backend.playlocal.model.dto.UserDto;
+import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.GameParticipationRepository;
 import lombok.RequiredArgsConstructor;
@@ -87,7 +88,7 @@ public class ConnectionSignalsService {
         Instant since = Instant.now().minus(CO_PLAY_DAYS, ChronoUnit.DAYS);
         List<UUID> userIdsForCoPlay = new ArrayList<>(targetSet);
         userIdsForCoPlay.add(viewerId);
-        List<Object[]> attendedPairs = gameParticipationRepository.findAttendedCompletedGamePairsSince(userIdsForCoPlay, since);
+        List<Object[]> attendedPairs = gameParticipationRepository.findAttendedCompletedGamePairsSince(userIdsForCoPlay, since, Game.GameStatus.COMPLETED);
 
         Map<UUID, Set<UUID>> gamesByUser = new HashMap<>();
         for (UUID u : userIdsForCoPlay) {

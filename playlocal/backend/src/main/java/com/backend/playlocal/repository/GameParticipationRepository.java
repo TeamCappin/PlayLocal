@@ -1,5 +1,6 @@
 package com.backend.playlocal.repository;
 
+import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.GameParticipation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -85,7 +86,7 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
      * US-32: (userId, gameId) for completed games in the last 60 days where user attended.
      * Used to compute co-play count between viewer and targets.
      */
-    @Query("SELECT gp.user.userId, gp.game.gameId FROM GameParticipation gp WHERE gp.game.status = com.backend.playlocal.model.entity.Game.GameStatus.COMPLETED " +
+    @Query("SELECT gp.user.userId, gp.game.gameId FROM GameParticipation gp WHERE gp.game.status = :completedStatus " +
             "AND gp.attendanceStatus = 'ATTENDED' AND gp.game.startTime >= :since AND gp.user.userId IN :userIds")
-    List<Object[]> findAttendedCompletedGamePairsSince(java.util.List<UUID> userIds, Instant since);
+    List<Object[]> findAttendedCompletedGamePairsSince(@Param("userIds") List<UUID> userIds, @Param("since") Instant since, @Param("completedStatus") Game.GameStatus completedStatus);
 }

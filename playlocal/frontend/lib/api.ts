@@ -44,9 +44,14 @@ async function apiFetch<T>(
     });
   } catch (networkError: any) {
     // Handle network errors (no connection, CORS, etc.)
-    throw new ApiError(0, "Network error: Unable to connect to server", {
-      originalError: networkError.message || "Network request failed",
-    });
+    const base = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    throw new ApiError(
+      0,
+      "Unable to connect to server. Ensure the backend is running (e.g. at " +
+        base +
+        ") and try again.",
+      { originalError: networkError.message || "Network request failed" },
+    );
   }
 
   if (!response.ok) {
