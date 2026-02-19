@@ -162,17 +162,19 @@ function reconcileOptimistic(
   return next;
 }
 
+  // Runtime-safe WS base: env override, then localhost, then production
   const wsEndpoint = useMemo(() => {
-    const env = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
     const toWs = (u: string) => u.replace(/^https/, "wss").replace(/^http/, "ws");
+    const env = process.env.NEXT_PUBLIC_WS_URL;
     if (env) return env.endsWith("/ws") ? toWs(env) : `${toWs(env)}/ws`;
-    if (typeof window === "undefined") return "http://localhost:8080/ws";
-    const url = new URL(window.location.href);
-    url.port = "8080";
-    url.pathname = "/ws";
-    url.search = "";
-    url.hash = "";
-    return url.toString().replace(/^http/, "ws");
+
+    if (typeof window !== "undefined") {
+      const isLocalhost =
+        window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      if (isLocalhost) return "ws://localhost:8080/ws";
+    }
+
+    return "wss://playlocalcapstone.onrender.com/ws";
   }, []);
 
   const historyBase = useMemo(() => {
