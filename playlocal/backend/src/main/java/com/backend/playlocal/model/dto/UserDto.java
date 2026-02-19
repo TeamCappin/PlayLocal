@@ -1,5 +1,6 @@
 package com.backend.playlocal.model.dto;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,5 +46,35 @@ public class UserDto {
         private long totalElements;
         private int totalPages;
         private int currentPage;
+    }
+
+    /**
+     * US-32: Mutual connections and recent co-play signals.
+     * Visible only to logged-in users.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConnectionSignals {
+        private int mutualFriendCount;
+        private int coPlayCount;
+    }
+
+    /** Request body for batch connection signals (e.g. roster). */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConnectionSignalsBatchRequest {
+        @NotNull(message = "userIds is required")
+        private List<String> userIds;
+    }
+
+    /** Response: map of target userId -> ConnectionSignals. */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ConnectionSignalsBatchResponse {
+        private java.util.Map<String, ConnectionSignals> signalsByUserId;
     }
 }

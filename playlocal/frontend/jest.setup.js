@@ -42,10 +42,12 @@ jest.mock("@/lib/api", () => {
       getWeights: createMockObjectFn(), 
     },
     usersApi: {
-      getProfile: createMockObjectFn(), 
-      getProfileBySlug: createMockObjectFn(), 
-      updateProfile: createMockObjectFn(), 
-      search: createMockObjectFn(), 
+      getProfile: createMockObjectFn(),
+      getProfileBySlug: createMockObjectFn(),
+      updateProfile: createMockObjectFn(),
+      search: createMockObjectFn(),
+      getConnectionSignals: createMockObjectFn(),
+      getConnectionSignalsBatch: jest.fn(() => Promise.resolve({ signalsByUserId: {} })),
     },
     // Export other APIs with mock functions to prevent undefined errors
     attendanceApi: {

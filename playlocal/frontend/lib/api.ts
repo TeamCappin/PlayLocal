@@ -44,9 +44,14 @@ async function apiFetch<T>(
     });
   } catch (networkError: any) {
     // Handle network errors (no connection, CORS, etc.)
-    throw new ApiError(0, "Network error: Unable to connect to server", {
-      originalError: networkError.message || "Network request failed",
-    });
+    const base = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    throw new ApiError(
+      0,
+      "Unable to connect to server. Ensure the backend is running (e.g. at " +
+        base +
+        ") and try again.",
+      { originalError: networkError.message || "Network request failed" },
+    );
   }
 
   if (!response.ok) {
@@ -201,7 +206,26 @@ export const usersApi = {
     apiFetch<SearchUsersResponse>(
       `/users/search?q=${encodeURIComponent(query || "")}&page=${page}&size=${size}`,
     ),
+
+  getConnectionSignals: (targetUserId: string) =>
+    apiFetch<ConnectionSignals>(`/users/${targetUserId}/connection-signals`),
+
+  getConnectionSignalsBatch: (userIds: string[]) =>
+    apiFetch<ConnectionSignalsBatchResponse>("/users/connection-signals", {
+      method: "POST",
+      body: JSON.stringify({ userIds }),
+    }),
 };
+
+
+export interface ConnectionSignals {
+  mutualFriendCount: number;
+  coPlayCount: number;
+}
+
+export interface ConnectionSignalsBatchResponse {
+  signalsByUserId: Record<string, ConnectionSignals>;
+}
 
 // ============================================
 // FRIENDS API

@@ -84,6 +84,12 @@ services:
       S3_BUCKET: uploads
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     networks:
       - playlocal-net
 
@@ -93,10 +99,8 @@ services:
       dockerfile: Dockerfile
     container_name: playlocal-frontend
     depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
-      NEXT_PUBLIC_WS_URL: http://localhost:8080/ws
+      backend:
+        condition: service_healthy
     ports:
       - "3000:3000"
     networks:

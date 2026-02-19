@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { GameRoom } from "../../components/GameRoom";
 import "@testing-library/jest-dom";
 
@@ -89,6 +89,8 @@ jest.mock("../../lib/api", () => {
       getProfileBySlug: createMockObjectFn(),
       updateProfile: createMockObjectFn(),
       search: createMockObjectFn(),
+      getConnectionSignals: createMockObjectFn(),
+      getConnectionSignalsBatch: jest.fn(() => Promise.resolve({ signalsByUserId: {} })),
     },
   };
 });
@@ -165,7 +167,7 @@ jest.mock("../../components/ui/dialog", () => ({
 import { useAuth } from "../../context/AuthContext";
 import { useGame } from "../../hooks/useGames";
 import { useParams, useRouter } from "next/navigation";
-import { endorsementsApi } from "../../lib/api";
+import { endorsementsApi, usersApi, gamesApi } from "../../lib/api";
 
 describe("GameRoom Component", () => {
   const mockPush = jest.fn();
@@ -218,8 +220,31 @@ describe("GameRoom Component", () => {
     spotsAvailable: 9,
   };
 
+  /** Flush async updates (e.g. getConnectionSignalsBatch) to avoid act(...) warnings. */
+  async function flushAsyncUpdates() {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  let originalConsoleError: typeof console.error;
+  beforeAll(() => {
+    originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      const msg = typeof args[0] === "string" ? args[0] : String(args[0]);
+      if (msg.includes("was not wrapped in act(...)")) return;
+      originalConsoleError.apply(console, args);
+    };
+  });
+  afterAll(() => {
+    console.error = originalConsoleError;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({ signalsByUserId: {} });
+    (gamesApi.getTags as jest.Mock).mockResolvedValue([]);
     (useParams as jest.Mock).mockReturnValue({ id: "game-123" });
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     (useAuth as jest.Mock).mockReturnValue({
@@ -255,6 +280,158 @@ describe("GameRoom Component", () => {
       render(<GameRoom />);
       expect(screen.getByText("Loading game...")).toBeInTheDocument();
       expect(screen.getByTestId("icon-loader")).toBeInTheDocument();
+    });
+  });
+
+  describe("Connection signals (US-32)", () => {
+    it("displays mutual and co-play counts for other roster players when batch returns signals", async () => {
+      const rosterWithOtherPlayer = {
+        ...mockRoster,
+        confirmed: [
+          mockRoster.confirmed[0],
+          {
+            participationId: "p2",
+            userId: "player-2",
+            displayName: "Other Player",
+            role: "PLAYER",
+            joinStatus: "CONFIRMED",
+            attendanceStatus: "ATTENDED",
+            reliabilityScore: 80,
+          },
+        ],
+      };
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({
+        signalsByUserId: {
+          "player-2": { mutualFriendCount: 2, coPlayCount: 3 },
+        },
+      });
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: rosterWithOtherPlayer,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled());
+      await flushAsyncUpdates();
+
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/ }));
+      expect(await screen.findByText("2 mutuals", {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.getByText("Played together 3× (60d)")).toBeInTheDocument();
+    });
+
+    it("handles getConnectionSignalsBatch rejection by showing no signals", async () => {
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockRejectedValue(new Error("network"));
+      render(<GameRoom />);
+      await flushAsyncUpdates();
+      await waitFor(() => {
+        expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled();
+      });
+      expect(screen.getByText("Organizer")).toBeInTheDocument();
+    });
+
+    it("displays connection signals for waitlisted players when batch returns signals", async () => {
+      const rosterWithWaitlist = {
+        ...mockRoster,
+        confirmed: mockRoster.confirmed,
+        waitlisted: [
+          {
+            participationId: "w1",
+            userId: "waitlist-1",
+            displayName: "Waitlister",
+            role: "PLAYER",
+            joinStatus: "WAITLISTED",
+            attendanceStatus: null,
+            reliabilityScore: 70,
+            waitlistPosition: 1,
+          },
+        ],
+      };
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({
+        signalsByUserId: {
+          "waitlist-1": { mutualFriendCount: 1, coPlayCount: 0 },
+        },
+      });
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: rosterWithWaitlist,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled());
+      await flushAsyncUpdates();
+
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/ }));
+      expect(await screen.findByText("Waitlist (1)", {}, { timeout: 2000 })).toBeInTheDocument();
+      expect(await screen.findByText(/1 mutual/, {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.getByText(/No games together yet/)).toBeInTheDocument();
+    });
+  });
+
+  describe("Edit Game modal (US-4.3)", () => {
+    const futureStart = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const futureEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString();
+    const gameAsOrganizer = {
+      ...mockGame,
+      startTime: futureStart,
+      endTime: futureEnd,
+      organizer: { userId: "user-1", displayName: "Test User", reliabilityScore: 85 },
+    };
+
+    it("opens Edit Game modal, shows Community tags, toggles tag checkbox, and close button dismisses modal", async () => {
+      (gamesApi.getTags as jest.Mock).mockResolvedValue([
+        { tagId: "t1", name: "casual", isRestricted: false },
+        { tagId: "t2", name: "competitive", isRestricted: true },
+      ]);
+      (useGame as jest.Mock).mockReturnValue({
+        game: gameAsOrganizer,
+        roster: mockRoster,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(gamesApi.getTags).toHaveBeenCalled());
+
+      const editButton = screen.getByText("Edit Game").closest("button");
+      expect(editButton).toBeInTheDocument();
+      fireEvent.click(editButton!);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByText("Community tags")).toBeInTheDocument();
+      expect(screen.getByText("Casual")).toBeInTheDocument();
+      expect(screen.getByText("Competitive")).toBeInTheDocument();
+      expect(screen.getByText("!")).toBeInTheDocument();
+
+      const casualCheckbox = screen.getByRole("checkbox", { name: /casual/i });
+      expect(casualCheckbox).not.toBeChecked();
+      fireEvent.click(casualCheckbox);
+      expect(casualCheckbox).toBeChecked();
+      fireEvent.click(casualCheckbox);
+      expect(casualCheckbox).not.toBeChecked();
+
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
   });
 

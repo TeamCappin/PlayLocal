@@ -312,4 +312,207 @@ describe("useGameChat", () => {
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
     expect(mockDeactivate).toHaveBeenCalledTimes(1);
   });
+
+  it("onWebSocketError sets error and disconnected state", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    expect(result.current.connected).toBe(true);
+    act(() => lastClientConfig.onWebSocketError());
+    await waitFor(() => expect(result.current.error).toBe("WebSocket connection failed."));
+    expect(result.current.connected).toBe(false);
+  });
+
+  it("onStompError sets error and disconnected state", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    act(() => lastClientConfig.onStompError());
+    await waitFor(() => expect(result.current.error).toBe("WebSocket/STOMP error."));
+    expect(result.current.connected).toBe(false);
+  });
+
+  it("loadHistory does not set messages when response is not ok", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("loadHistory does not set messages when response body is not an array", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ not: "array" }),
+    });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("onDisconnect sets connected to false", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    expect(result.current.connected).toBe(true);
+    act(() => lastClientConfig.onDisconnect?.());
+    await waitFor(() => expect(result.current.connected).toBe(false));
+  });
+
+  it("loadHistory normalizes messages with timestamp number when createdAt missing", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [
+        {
+          messageId: "m-ts",
+          senderId: "u-2",
+          senderName: "Other",
+          content: "ts msg",
+          timestamp: 1609459200000,
+        },
+      ],
+    });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0].content).toBe("ts msg");
+    expect(result.current.messages[0].createdAt).toBeDefined();
+  });
+
+  it("reconciles optimistic message when server echoes with same clientMessageId", async () => {
+    const clientMsgId = "client-echo-1";
+    (globalThis as any).crypto = { randomUUID: () => clientMsgId };
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    act(() => result.current.sendMessage("hello"));
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0].id.startsWith("tmp-")).toBe(true);
+
+    act(() => {
+      lastSubscribeCallback?.({
+        body: JSON.stringify(
+          makeInbound({
+            messageId: "server-echo-1",
+            senderId: ME.id,
+            senderName: ME.name,
+            content: "hello",
+            createdAt: result.current.messages[0].createdAt,
+            clientMessageId: clientMsgId,
+          }),
+        ),
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages.some((m) => m.id === "server-echo-1")).toBe(true);
+      expect(result.current.messages.filter((m) => m.content === "hello")).toHaveLength(1);
+    });
+  });
+
+  describe("wsEndpoint", () => {
+    const SockJS = require("sockjs-client");
+    const envKey = "NEXT_PUBLIC_WS_URL";
+
+    afterEach(() => {
+      delete process.env[envKey];
+    });
+
+    it("uses production WS URL when no env and not localhost", () => {
+      renderHook(() =>
+        useGameChat({
+          gameId: GAME_ID,
+          me: ME,
+          enabled: true,
+          historyBaseUrl: "http://test.api",
+        }),
+      );
+      expect(lastClientConfig).not.toBeNull();
+      act(() => lastClientConfig.webSocketFactory());
+      // In jsdom, window.location.hostname is "localhost", so we get localhost WS; otherwise we'd get production URL.
+      const url = SockJS.mock.calls[0][0];
+      expect(url === "ws://localhost:8080/ws" || url === "wss://playlocalcapstone.onrender.com/ws").toBe(true);
+    });
+
+    it("uses NEXT_PUBLIC_WS_URL when set", () => {
+      const orig = process.env.NEXT_PUBLIC_WS_URL;
+      process.env.NEXT_PUBLIC_WS_URL = "https://api.example.com";
+      try {
+        renderHook(() =>
+          useGameChat({
+            gameId: GAME_ID,
+            me: ME,
+            enabled: true,
+            historyBaseUrl: "http://test.api",
+          }),
+        );
+        act(() => lastClientConfig.webSocketFactory());
+        expect(SockJS).toHaveBeenCalledWith("wss://api.example.com/ws");
+      } finally {
+        process.env.NEXT_PUBLIC_WS_URL = orig;
+      }
+    });
+
+    it("uses NEXT_PUBLIC_WS_URL with /ws suffix when URL already ends with /ws", () => {
+      const orig = process.env.NEXT_PUBLIC_WS_URL;
+      process.env.NEXT_PUBLIC_WS_URL = "wss://chat.example.com/ws";
+      try {
+        renderHook(() =>
+          useGameChat({
+            gameId: GAME_ID,
+            me: ME,
+            enabled: true,
+            historyBaseUrl: "http://test.api",
+          }),
+        );
+        act(() => lastClientConfig.webSocketFactory());
+        expect(SockJS).toHaveBeenCalledWith("wss://chat.example.com/ws");
+      } finally {
+        process.env.NEXT_PUBLIC_WS_URL = orig;
+      }
+    });
+  });
 });

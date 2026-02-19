@@ -75,11 +75,14 @@ describe("ReportModal", () => {
       expect(screen.getByText("Report User")).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByDisplayValue("Select a reason").closest("select")!, {
-      target: { value: "OTHER" },
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue("Select a reason").closest("select")!, {
+        target: { value: "OTHER" },
+      });
     });
-
-    fireEvent.click(screen.getByText("Submit Report"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("Submit Report"));
+    });
 
     // Assert
     expect(

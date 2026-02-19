@@ -86,6 +86,8 @@ jest.mock('../../lib/api', () => {
       getProfileBySlug: createMockObjectFn(),
       updateProfile: createMockObjectFn(),
       search: createMockObjectFn(),
+      getConnectionSignals: createMockObjectFn(),
+      getConnectionSignalsBatch: jest.fn(() => Promise.resolve({ signalsByUserId: {} })),
     },
   };
 });

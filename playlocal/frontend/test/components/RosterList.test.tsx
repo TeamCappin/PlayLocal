@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RosterList } from '../../components/sub-components/RosterList';
 import { usersApi } from '@/lib/api';
 
@@ -39,7 +39,9 @@ describe('RosterList', () => {
     expect(screen.getByText('Attended')).toBeInTheDocument();
     expect(screen.getByText('No show')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Attended'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Attended'));
+    });
     expect(onStatusChange).toHaveBeenCalledWith('p1', 'ATTENDED');
   });
 
@@ -59,7 +61,9 @@ describe('RosterList', () => {
       expect(screen.getByText('John')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('No show'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('No show'));
+    });
     expect(onStatusChange).toHaveBeenCalledWith('p2', 'NO_SHOW');
   });
 

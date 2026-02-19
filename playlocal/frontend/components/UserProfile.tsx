@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal } from 'lucide-react';
+import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
-import { usersApi, UserDto, endorsementsApi, EndorsementResponse } from '@/lib/api'; // Assume usersApi has method getProfile
+import { usersApi, UserDto, endorsementsApi, EndorsementResponse, ConnectionSignals } from '@/lib/api';
 import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
@@ -31,23 +31,32 @@ export function UserProfile() {
   const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
   const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
   const { games: pastGames} = usePastGames();
+  // US-32: Connection signals when viewing another user
+  const [connectionSignals, setConnectionSignals] = useState<ConnectionSignals | null>(null);
+  const [loadingConnectionSignals, setLoadingConnectionSignals] = useState(false);
 
 
-  // Check if viewing own profile
-  const isOwnProfile = !usernameStr || usernameStr === currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  // Check if viewing own profile (no param, "me", or slug matches current user)
+  const currentUserSlug = currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
+  const isOwnProfile = !usernameStr || usernameStr === 'me' || usernameStr === currentUserSlug;
+
+  // UUID regex for profile links that use userId (Friends, PlayerSearch, etc.)
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
   // Fetch other user's profile if not own profile [US-1.3]
   useEffect(() => {
     if (!isOwnProfile && usernameStr) {
       const fetchData = async () => {
         setLoadingProfile(true);
-        setProfileError(null);  // Reset error on new fetch
+        setProfileError(null);
         try {
-          // Try slug-based lookup first (US 1.3 + 1.4 merge)
-          const data = await usersApi.getProfileBySlug(usernameStr);
+          // Support both slug (john-doe) and userId (UUID) from URL
+          const data = isUuid(usernameStr)
+            ? await usersApi.getProfile(usernameStr)
+            : await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
         } catch (err) {
           console.error("Failed to fetch profile", err);
-          // Copilot fix #4: Set error state for user feedback
           setProfileError("Failed to load profile. Please try again later.");
         } finally {
           setLoadingProfile(false);
@@ -108,6 +117,19 @@ export function UserProfile() {
       averageRating: 0,
     },
   };
+
+  // US-32: Fetch connection signals when viewing another user
+  useEffect(() => {
+    if (!isOwnProfile && isAuthenticated && otherUser?.userId) {
+      setLoadingConnectionSignals(true);
+      usersApi.getConnectionSignals(otherUser.userId)
+        .then(setConnectionSignals)
+        .catch(() => setConnectionSignals(null))
+        .finally(() => setLoadingConnectionSignals(false));
+    } else {
+      setConnectionSignals(null);
+    }
+  }, [isOwnProfile, isAuthenticated, otherUser?.userId]);
 
   // Fetch endorsements
   // US 3.3 Organizer Endorsements
@@ -452,6 +474,49 @@ export function UserProfile() {
               </div>
 
               <div className="space-y-6">
+                {/* US-32: Connection signals (mutual friends + co-play) - only when viewing another user and logged in */}
+                {!isOwnProfile && isAuthenticated && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 className="text-xl text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-emerald-600" />
+                      Connection
+                    </h2>
+                    {loadingConnectionSignals ? (
+                      <div className="flex items-center gap-2 text-gray-500 py-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <UserPlus className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          <div>
+                            {connectionSignals && connectionSignals.mutualFriendCount > 0 ? (
+                              <span className="text-gray-900">
+                                {connectionSignals.mutualFriendCount} mutual friend{connectionSignals.mutualFriendCount !== 1 ? "s" : ""}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">No mutuals yet</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Gamepad2 className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          <div>
+                            {connectionSignals && connectionSignals.coPlayCount > 0 ? (
+                              <span className="text-gray-900">
+                                Played together {connectionSignals.coPlayCount} time{connectionSignals.coPlayCount !== 1 ? "s" : ""} in last 60 days
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">No games together yet</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Endorsements - US 3.3 Organizer Endorsements */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
