@@ -101,4 +101,32 @@ class ConnectionSignalsServiceTest {
         assertThat(result).containsKey(targetId.toString());
         assertThat(result.get(targetId.toString()).getCoPlayCount()).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("getSignals returns batch result for single target when viewer != target")
+    void getSignals_whenViewerNotTarget_returnsBatchResult() {
+        when(friendshipRepository.findAcceptedFriendUserIds(viewerId)).thenReturn(List.of());
+        when(friendshipRepository.findAcceptedFriendPairsForUserIds(any())).thenReturn(List.of());
+        when(gameParticipationRepository.findAttendedCompletedGamePairsSince(any(), any(), eq(Game.GameStatus.COMPLETED)))
+                .thenReturn(List.of());
+
+        UserDto.ConnectionSignals result = connectionSignalsService.getSignals(viewerId, targetId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getMutualFriendCount()).isZero();
+        assertThat(result.getCoPlayCount()).isZero();
+        verify(gameParticipationRepository).findAttendedCompletedGamePairsSince(any(), any(), eq(Game.GameStatus.COMPLETED));
+    }
+
+    @Test
+    @DisplayName("getSignalsBatch puts zero signals for viewer when viewer is in targetIds")
+    void getSignalsBatch_whenViewerInTargetIds_putsZeroForViewer() {
+        Map<String, UserDto.ConnectionSignals> result =
+                connectionSignalsService.getSignalsBatch(viewerId, List.of(viewerId, targetId));
+
+        assertThat(result).containsKey(viewerId.toString());
+        assertThat(result.get(viewerId.toString()).getMutualFriendCount()).isZero();
+        assertThat(result.get(viewerId.toString()).getCoPlayCount()).isZero();
+        assertThat(result).containsKey(targetId.toString());
+    }
 }

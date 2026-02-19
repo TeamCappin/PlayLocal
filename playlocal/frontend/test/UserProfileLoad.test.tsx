@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { UserProfile } from '../components/UserProfile';
 import '@testing-library/jest-dom';
 import { usersApi } from '../lib/api';
@@ -194,5 +194,45 @@ describe('UserProfile load by slug vs userId', () => {
       expect(usersApi.getProfile).not.toHaveBeenCalled();
       expect(usersApi.getProfileBySlug).not.toHaveBeenCalled();
     });
+  });
+
+  it('calls getConnectionSignals when viewing another user and shows mutual/co-play when resolved', async () => {
+    mockUseParams.mockReturnValue({ username: 'other-user' });
+    (usersApi.getConnectionSignals as jest.Mock).mockResolvedValue({
+      mutualFriendCount: 2,
+      coPlayCount: 1,
+    });
+
+    render(<UserProfile />);
+
+    await waitFor(() => expect(usersApi.getProfileBySlug).toHaveBeenCalledWith('other-user'));
+    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalledWith(mockOtherUser.userId));
+
+    expect(await screen.findByText('2 mutual friends', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText(/Played together 1 time in last 60 days/)).toBeInTheDocument();
+  });
+
+  it('shows No mutuals yet and No games together yet when getConnectionSignals returns zeros', async () => {
+    mockUseParams.mockReturnValue({ username: 'other-user' });
+    (usersApi.getConnectionSignals as jest.Mock).mockResolvedValue({
+      mutualFriendCount: 0,
+      coPlayCount: 0,
+    });
+
+    render(<UserProfile />);
+
+    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalled());
+    expect(await screen.findByText('No mutuals yet', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText('No games together yet')).toBeInTheDocument();
+  });
+
+  it('shows profile error when getProfileBySlug fails', async () => {
+    mockUseParams.mockReturnValue({ username: 'other-user' });
+    (usersApi.getProfileBySlug as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+    render(<UserProfile />);
+
+    await waitFor(() => expect(usersApi.getProfileBySlug).toHaveBeenCalled());
+    expect(await screen.findByText(/Failed to load profile/, {}, { timeout: 3000 })).toBeInTheDocument();
   });
 });

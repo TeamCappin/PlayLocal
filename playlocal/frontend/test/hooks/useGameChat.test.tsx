@@ -313,6 +313,68 @@ describe("useGameChat", () => {
     expect(mockDeactivate).toHaveBeenCalledTimes(1);
   });
 
+  it("onWebSocketError sets error and disconnected state", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    expect(result.current.connected).toBe(true);
+    act(() => lastClientConfig.onWebSocketError());
+    await waitFor(() => expect(result.current.error).toBe("WebSocket connection failed."));
+    expect(result.current.connected).toBe(false);
+  });
+
+  it("onStompError sets error and disconnected state", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    act(() => lastClientConfig.onStompError());
+    await waitFor(() => expect(result.current.error).toBe("WebSocket/STOMP error."));
+    expect(result.current.connected).toBe(false);
+  });
+
+  it("loadHistory does not set messages when response is not ok", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("loadHistory does not set messages when response body is not an array", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ not: "array" }),
+    });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(result.current.messages).toHaveLength(0);
+  });
+
   describe("wsEndpoint", () => {
     const SockJS = require("sockjs-client");
     const envKey = "NEXT_PUBLIC_WS_URL";
