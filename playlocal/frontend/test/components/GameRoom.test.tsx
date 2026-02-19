@@ -167,7 +167,7 @@ jest.mock("../../components/ui/dialog", () => ({
 import { useAuth } from "../../context/AuthContext";
 import { useGame } from "../../hooks/useGames";
 import { useParams, useRouter } from "next/navigation";
-import { endorsementsApi } from "../../lib/api";
+import { endorsementsApi, usersApi } from "../../lib/api";
 
 describe("GameRoom Component", () => {
   const mockPush = jest.fn();
@@ -278,6 +278,61 @@ describe("GameRoom Component", () => {
       render(<GameRoom />);
       expect(screen.getByText("Loading game...")).toBeInTheDocument();
       expect(screen.getByTestId("icon-loader")).toBeInTheDocument();
+    });
+  });
+
+  describe("Connection signals (US-32)", () => {
+    it("displays mutual and co-play counts for other roster players when batch returns signals", async () => {
+      const rosterWithOtherPlayer = {
+        ...mockRoster,
+        confirmed: [
+          mockRoster.confirmed[0],
+          {
+            participationId: "p2",
+            userId: "player-2",
+            displayName: "Other Player",
+            role: "PLAYER",
+            joinStatus: "CONFIRMED",
+            attendanceStatus: "ATTENDED",
+            reliabilityScore: 80,
+          },
+        ],
+      };
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockResolvedValue({
+        signalsByUserId: {
+          "player-2": { mutualFriendCount: 2, coPlayCount: 3 },
+        },
+      });
+      (useGame as jest.Mock).mockReturnValue({
+        game: mockGame,
+        roster: rosterWithOtherPlayer,
+        isLoading: false,
+        error: null,
+        refetch: mockRefetch,
+        joinGame: mockJoinGame,
+        leaveGame: mockLeaveGame,
+        cancelGame: mockCancelGame,
+        completeGame: mockCompleteGame,
+        archiveGame: mockArchiveGame,
+      });
+
+      render(<GameRoom />);
+      await waitFor(() => expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled());
+      await flushAsyncUpdates();
+
+      fireEvent.click(screen.getByRole("button", { name: /Lineup/ }));
+      expect(await screen.findByText("2 mutuals", {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.getByText("Played together 3× (60d)")).toBeInTheDocument();
+    });
+
+    it("handles getConnectionSignalsBatch rejection by showing no signals", async () => {
+      (usersApi.getConnectionSignalsBatch as jest.Mock).mockRejectedValue(new Error("network"));
+      render(<GameRoom />);
+      await flushAsyncUpdates();
+      await waitFor(() => {
+        expect(usersApi.getConnectionSignalsBatch).toHaveBeenCalled();
+      });
+      expect(screen.getByText("Organizer")).toBeInTheDocument();
     });
   });
 

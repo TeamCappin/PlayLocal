@@ -312,4 +312,60 @@ describe("useGameChat", () => {
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
     expect(mockDeactivate).toHaveBeenCalledTimes(1);
   });
+
+  describe("wsEndpoint", () => {
+    const SockJS = require("sockjs-client");
+
+    it("uses production WS URL when no env and not localhost", () => {
+      renderHook(() =>
+        useGameChat({
+          gameId: GAME_ID,
+          me: ME,
+          enabled: true,
+          historyBaseUrl: "http://test.api",
+        }),
+      );
+      expect(lastClientConfig).not.toBeNull();
+      act(() => lastClientConfig.webSocketFactory());
+      expect(SockJS).toHaveBeenCalledWith("wss://playlocalcapstone.onrender.com/ws");
+    });
+
+    it("uses NEXT_PUBLIC_WS_URL when set", () => {
+      const orig = process.env.NEXT_PUBLIC_WS_URL;
+      process.env.NEXT_PUBLIC_WS_URL = "https://api.example.com";
+      try {
+        renderHook(() =>
+          useGameChat({
+            gameId: GAME_ID,
+            me: ME,
+            enabled: true,
+            historyBaseUrl: "http://test.api",
+          }),
+        );
+        act(() => lastClientConfig.webSocketFactory());
+        expect(SockJS).toHaveBeenCalledWith("wss://api.example.com/ws");
+      } finally {
+        process.env.NEXT_PUBLIC_WS_URL = orig;
+      }
+    });
+
+    it("uses NEXT_PUBLIC_WS_URL with /ws suffix when URL already ends with /ws", () => {
+      const orig = process.env.NEXT_PUBLIC_WS_URL;
+      process.env.NEXT_PUBLIC_WS_URL = "wss://chat.example.com/ws";
+      try {
+        renderHook(() =>
+          useGameChat({
+            gameId: GAME_ID,
+            me: ME,
+            enabled: true,
+            historyBaseUrl: "http://test.api",
+          }),
+        );
+        act(() => lastClientConfig.webSocketFactory());
+        expect(SockJS).toHaveBeenCalledWith("wss://chat.example.com/ws");
+      } finally {
+        process.env.NEXT_PUBLIC_WS_URL = orig;
+      }
+    });
+  });
 });
