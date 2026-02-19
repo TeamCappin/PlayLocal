@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
-import { gamesApi, UpdateGameRequest, endorsementsApi, usersApi, ConnectionSignals } from "@/lib/api";
+import { gamesApi, UpdateGameRequest, endorsementsApi, usersApi, ConnectionSignals, TagDto } from "@/lib/api";
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
@@ -122,6 +122,7 @@ export function GameRoom() {
   const [connectionSignalsByUserId, setConnectionSignalsByUserId] = useState<Record<string, ConnectionSignals>>({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [editFormData, setEditFormData] = useState({
     minReliabilityRequired: "",
   });
@@ -150,6 +151,10 @@ export function GameRoom() {
       .then((res) => setConnectionSignalsByUserId(res.signalsByUserId || {}))
       .catch(() => setConnectionSignalsByUserId({}));
   }, [isAuthenticated, user?.userId, apiRoster]);
+
+  useEffect(() => {
+    gamesApi.getTags().then(setAvailableTags).catch(() => {});
+  }, []);
 
   // CRITICAL: Check loading state FIRST before accessing any data
   if (isLoading) {
