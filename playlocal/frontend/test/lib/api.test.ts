@@ -413,6 +413,51 @@ describe("gamesApi query building + join body", () => {
   });
 });
 
+describe("usersApi connection signals", () => {
+  let usersApi: typeof import("../../lib/api").usersApi;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.restoreAllMocks();
+    (globalThis as any).window = globalThis;
+    (globalThis as any).localStorage = {
+      getItem: jest.fn(() => null),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+    };
+    const apiModule = require("../../lib/api") as typeof import("../../lib/api");
+    usersApi = apiModule.usersApi;
+  });
+
+  it("getConnectionSignals calls GET /users/:userId/connection-signals", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ mutualFriendCount: 2, coPlayCount: 1 }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    const res = await usersApi.getConnectionSignals("user-uuid-123");
+
+    expect(res).toEqual({ mutualFriendCount: 2, coPlayCount: 1 });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/users/user-uuid-123/connection-signals");
+  });
+
+  it("getConnectionSignalsBatch calls POST /users/connection-signals with userIds", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ signalsByUserId: { "u1": { mutualFriendCount: 0, coPlayCount: 2 } } }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    const res = await usersApi.getConnectionSignalsBatch(["u1", "u2"]);
+
+    expect(res.signalsByUserId).toEqual({ "u1": { mutualFriendCount: 0, coPlayCount: 2 } });
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain("/users/connection-signals");
+    expect((options as RequestInit).method).toBe("POST");
+    expect((options as RequestInit).body).toBe(JSON.stringify({ userIds: ["u1", "u2"] }));
+  });
+});
+
 describe("photosApi endpoints", () => {
   let photosApi: typeof import("../../lib/api").photosApi;
 

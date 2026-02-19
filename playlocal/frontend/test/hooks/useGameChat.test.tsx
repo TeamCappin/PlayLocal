@@ -375,6 +375,58 @@ describe("useGameChat", () => {
     expect(result.current.messages).toHaveLength(0);
   });
 
+  it("onDisconnect sets connected to false", async () => {
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    expect(result.current.connected).toBe(true);
+    act(() => lastClientConfig.onDisconnect?.());
+    await waitFor(() => expect(result.current.connected).toBe(false));
+  });
+
+  it("reconciles optimistic message when server echoes with same clientMessageId", async () => {
+    const clientMsgId = "client-echo-1";
+    (globalThis as any).crypto = { randomUUID: () => clientMsgId };
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    act(() => lastClientConfig.onConnect());
+    act(() => result.current.sendMessage("hello"));
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0].id.startsWith("tmp-")).toBe(true);
+
+    act(() => {
+      lastSubscribeCallback?.({
+        body: JSON.stringify(
+          makeInbound({
+            messageId: "server-echo-1",
+            senderId: ME.id,
+            senderName: ME.name,
+            content: "hello",
+            createdAt: result.current.messages[0].createdAt,
+            clientMessageId: clientMsgId,
+          }),
+        ),
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.messages.some((m) => m.id === "server-echo-1")).toBe(true);
+      expect(result.current.messages.filter((m) => m.content === "hello")).toHaveLength(1);
+    });
+  });
+
   describe("wsEndpoint", () => {
     const SockJS = require("sockjs-client");
     const envKey = "NEXT_PUBLIC_WS_URL";

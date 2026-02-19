@@ -235,4 +235,15 @@ describe('UserProfile load by slug vs userId', () => {
     await waitFor(() => expect(usersApi.getProfileBySlug).toHaveBeenCalled());
     expect(await screen.findByText(/Failed to load profile/, {}, { timeout: 3000 })).toBeInTheDocument();
   });
+
+  it('shows No mutuals yet when getConnectionSignals rejects', async () => {
+    mockUseParams.mockReturnValue({ username: 'other-user' });
+    (usersApi.getConnectionSignals as jest.Mock).mockRejectedValue(new Error('API error'));
+
+    render(<UserProfile />);
+
+    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalled());
+    expect(await screen.findByText('No mutuals yet', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText('No games together yet')).toBeInTheDocument();
+  });
 });
