@@ -164,7 +164,7 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("US-1.1: handleDataIntegrityViolation with unique constraint should return 409 with specific message")
+    @DisplayName("US-1.1: handleDataIntegrityViolation with unique constraint should return 409 with generic message")
     void handleDataIntegrityViolation_UniqueConstraint_Generic() {
         DataIntegrityViolationException ex = new DataIntegrityViolationException(
                 "unique constraint violation"
@@ -173,7 +173,7 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).containsEntry("status", 409);
-        assertThat(response.getBody()).containsEntry("message", "Friend request already exists between these users");
+        assertThat(response.getBody()).containsEntry("message", "A duplicate record already exists. Please try again.");
     }
 
     @Test

@@ -18,6 +18,7 @@ PlayLocal addresses these issues by creating a platform that prioritizes reliabi
 connections. We are committed to building an inclusive and safe environment, ensuring
 everyone can find a group where they feel comfortable and respected.
 
+
 ### Team Members
 
 | Name                     | Student Number | GitHub Username       |
@@ -37,13 +38,16 @@ everyone can find a group where they feel comfortable and respected.
 
 ## Release Demos 
 
-### Release 1
-
-Release 1 video: 
-
-Release 1 Presentation: 
+### Release 1 : https://github.com/TeamCappin/PlayLocal/tree/dev/Admin/Release-1-Presentation
 
 ### Release 2
+
+Release 2 Presentation video: https://drive.google.com/file/d/1mFgsqjgU6McoWA14zVe59H-5EelsNpwP/view?usp=drive_link
+
+Release 2 Product-Demo: https://drive.google.com/file/d/1PNaAeSPwOFa7_IYM0w3t6a3zuS-GDuko/view?usp=drive_link
+
+Release 2 Presentation: [PlayLocal - 490 Release 2 Presentation.pdf](https://github.com/user-attachments/files/25198789/PlayLocal.-.490.Release.2.Presentation.pdf)
+
 
 ### Release 3
 

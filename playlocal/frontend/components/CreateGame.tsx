@@ -54,6 +54,7 @@ function getVisibilityLabel(visibility: string): string {
 }
 
 export function CreateGame() {
+  const MAX_LOCATION_NAME_LENGTH = 255;
   const navigate = useRouter();
   const { isAuthenticated, user } = useAuth();
   const { createGame, isCreating, error: createError } = useCreateGame();
@@ -64,7 +65,6 @@ export function CreateGame() {
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const [isAddressValid, setIsAddressValid] = useState(false);
   const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [formData, setFormData] = useState({
     title: "",
@@ -135,9 +135,12 @@ export function CreateGame() {
   }, [formData.location, showSuggestions]);
 
   const handleAddressSelect = (address: any) => {
-    setFormData({ ...formData, location: address.display_name });
+    const selectedAddress = String(address.display_name || "").trim();
+    setFormData({
+      ...formData,
+      location: selectedAddress.slice(0, MAX_LOCATION_NAME_LENGTH),
+    });
     setShowSuggestions(false);
-    setIsAddressValid(true);
   };
 
   const validateStep1RequiredFields = (): boolean => {
@@ -151,10 +154,6 @@ export function CreateGame() {
     }
     if (!formData.location) {
       setError("Please enter a location");
-      return false;
-    }
-    if (!isAddressValid) {
-      setError("Please select a valid address from the suggestions");
       return false;
     }
     if (!formData.date) {
@@ -300,7 +299,7 @@ export function CreateGame() {
         title: formData.title,
         description: formData.description || undefined,
         sportName: formData.sport,
-        locationName: formData.location,
+        locationName: formData.location.trim().slice(0, MAX_LOCATION_NAME_LENGTH),
         city: "Montreal", // Could be extracted from location search
         indoorOutdoor: formData.indoor, // Now sends INDOOR/OUTDOOR
         intensityBand: formData.intensity, // Now sends BEGINNER/CASUAL/COMPETITIVE
@@ -451,9 +450,9 @@ export function CreateGame() {
                       type="text"
                       value={formData.location}
                       onChange={(e) => {
-                        setFormData({ ...formData, location: e.target.value });
+                        const nextLocation = e.target.value.slice(0, MAX_LOCATION_NAME_LENGTH);
+                        setFormData({ ...formData, location: nextLocation });
                         setShowSuggestions(true);
-                        setIsAddressValid(false);
                       }}
                       onFocus={() => setShowSuggestions(true)}
                       placeholder="Search address or venue..."

@@ -17,7 +17,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -41,8 +43,9 @@ public class GameService {
         private final GameTagRepository tagRepository;
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
+        private final NotificationService notificationService;
         private final OrganizerQualityService oqsService;
-
+        private final LocationRepository locationRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
@@ -50,7 +53,9 @@ public class GameService {
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
-                        OrganizerQualityService oqsService) {
+                        NotificationService notificationService,
+                        OrganizerQualityService oqsService,
+                        LocationRepository locationRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -60,7 +65,9 @@ public class GameService {
                 this.tagRepository = tagRepository;
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
+                this.notificationService = notificationService;
                 this.oqsService = oqsService;
+                this.locationRepository = locationRepository;
         }
 
 
@@ -397,6 +404,7 @@ public class GameService {
                 GameParticipation participation = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Participation not found"));
 
+                ensureNotArchived(participation.getGame());
                 if (participation.getParticipationRole() == GameParticipation.ParticipationRole.ORGANIZER) {
                         throw new IllegalStateException(
                                         "Organizer cannot leave their own game. Cancel the game instead.");
@@ -429,6 +437,155 @@ public class GameService {
                         // User was waitlisted - adjust positions
                         participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
                 }
+        }
+
+        /**
+         * US-4.3: When organizer raises min reliability, remove confirmed/waitlisted participants
+         * whose reliability is below the new threshold. Organizer is never removed.
+         * Process waitlisted first (by position), then confirmed, so promotions work correctly.
+         */
+        private void removeParticipantsBelowReliabilityThreshold(Game game, float newThreshold) {
+                UUID gameId = game.getGameId();
+                UUID organizerId = game.getCreatedBy().getUserId();
+
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+
+                List<GameParticipation> toRemove = new java.util.ArrayList<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId)) {
+                                float score = p.getUser().getReliabilityScore() != null
+                                                ? p.getUser().getReliabilityScore() : 0f;
+                                if (score < newThreshold) {
+                                        toRemove.add(p);
+                                }
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        float score = p.getUser().getReliabilityScore() != null
+                                        ? p.getUser().getReliabilityScore() : 0f;
+                        if (score < newThreshold) {
+                                toRemove.add(p);
+                        }
+                }
+
+                // Process waitlisted first (by position asc), then confirmed
+                toRemove.sort((a, b) -> {
+                        boolean aWait = a.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        boolean bWait = b.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        if (aWait != bWait) return aWait ? -1 : 1;
+                        if (aWait) {
+                                int posA = a.getWaitlistPosition() != null ? a.getWaitlistPosition() : 0;
+                                int posB = b.getWaitlistPosition() != null ? b.getWaitlistPosition() : 0;
+                                return Integer.compare(posA, posB);
+                        }
+                        return 0;
+                });
+
+                for (GameParticipation p : toRemove) {
+                        boolean wasConfirmed = p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED;
+                        int oldWaitlistPosition = p.getWaitlistPosition() != null ? p.getWaitlistPosition() : 0;
+
+                        p.setJoinStatus(GameParticipation.JoinStatus.CANCELLED);
+                        p.setLeftAt(Instant.now());
+                        p.setWaitlistPosition(null);
+                        participationRepository.save(p);
+
+                        if (wasConfirmed) {
+                                List<GameParticipation> firstWaitlisted = participationRepository.findFirstWaitlisted(gameId);
+                                if (!firstWaitlisted.isEmpty()) {
+                                        GameParticipation promoted = firstWaitlisted.get(0);
+                                        promoted.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
+                                        promoted.setWaitlistPosition(null);
+                                        participationRepository.save(promoted);
+                                        participationRepository.decrementWaitlistPositionsAfter(gameId, 1);
+                                }
+                        } else if (oldWaitlistPosition > 0) {
+                                participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
+                        }
+                        log.info("US-4.3 Removed participant userId={} from gameId={} (reliability {} < threshold {})",
+                                        p.getUser().getUserId(), gameId,
+                                        p.getUser().getReliabilityScore(), newThreshold);
+
+                        // US-4.3: Notify removed player they no longer meet the updated requirements
+                        if (notificationService != null) {
+                                Map<String, Object> payload = new java.util.HashMap<>();
+                                payload.put("title", "Removed from game");
+                                payload.put("message", String.format(
+                                                "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
+                                                game.getTitle()));
+                                payload.put("gameId", gameId.toString());
+                                payload.put("link", "/games/" + gameId.toString());
+                                notificationService.createInAppNotification(
+                                                p.getUser().getUserId(),
+                                                "GAME_REMOVED_REQUIREMENTS",
+                                                payload);
+                        }
+                }
+        }
+
+        /**
+         * US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer)
+         * that the game was updated.
+         */
+        private void notifyParticipantsGameUpdated(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameUpdatedNotification(Game game, UUID userId) {
+                if (notificationService == null) return;
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game updated");
+                payload.put("message", String.format("The game \"%s\" has been updated. Check the details for changes.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/games/" + game.getGameId().toString());
+                notificationService.createInAppNotification(userId, "GAME_UPDATED", payload);
+        }
+
+        /**
+         * US-4.3: Notify all joined players (confirmed + waitlisted, except organizer)
+         * that the game was cancelled.
+         */
+        private void notifyParticipantsGameCancelled(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameCancelledNotification(Game game, UUID userId) {
+                if (notificationService == null) return;
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game cancelled");
+                payload.put("message", String.format("The game \"%s\" has been cancelled by the organizer.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/discover");
+                notificationService.createInAppNotification(userId, "GAME_CANCELLED", payload);
         }
 
         /**
@@ -477,20 +634,61 @@ public class GameService {
                 }
                 // US-4.1: Allow updating minReliabilityRequired (changes apply immediately to new join attempts)
                 // Note: To clear the requirement, send -1 or omit the field entirely
-                // We'll use a special sentinel value to indicate "clear" - but for now, 
-                // only update if a non-null value is provided
+                // US-4.3: When raising the threshold, automatically remove participants below it
+                Float oldMinReliability = game.getMinReliabilityRequired();
                 if (request.getMinReliabilityRequired() != null) {
                         if (request.getMinReliabilityRequired() < 0) {
-                                // Special value to clear the requirement
                                 game.setMinReliabilityRequired(null);
                         } else {
                                 game.setMinReliabilityRequired(request.getMinReliabilityRequired());
                         }
                 }
+                Float newMinReliability = game.getMinReliabilityRequired();
+                // US-4.3: Remove participants below new threshold when organizer raises min reliability
+                if (newMinReliability != null && (oldMinReliability == null || newMinReliability > oldMinReliability)) {
+                        removeParticipantsBelowReliabilityThreshold(game, newMinReliability);
+                }
 
-                game = gameRepository.save(game);
-                log.info("US-4.1 Game updated: gameId={}, organizerId={}, minReliabilityRequired={}", 
-                        gameId, organizerId, game.getMinReliabilityRequired());
+                // US-4.3: Location (update existing location entity and persist)
+                if (request.getLocationName() != null || request.getAddressLine() != null
+                                || request.getCity() != null || request.getLatitude() != null
+                                || request.getLongitude() != null) {
+                        Location loc = game.getLocation();
+                        if (loc != null) {
+                                if (request.getLocationName() != null) loc.setName(request.getLocationName());
+                                if (request.getAddressLine() != null) loc.setAddressLine(request.getAddressLine());
+                                if (request.getCity() != null) loc.setCity(request.getCity());
+                                if (request.getLatitude() != null) loc.setLatitude(request.getLatitude());
+                                if (request.getLongitude() != null) loc.setLongitude(request.getLongitude());
+                                locationRepository.saveAndFlush(loc);
+                        }
+                }
+
+                if (request.getStartTime() != null) game.setStartTime(request.getStartTime());
+                if (request.getEndTime() != null) game.setEndTime(request.getEndTime());
+
+                if (request.getVisibility() != null && !request.getVisibility().isBlank()) {
+                        GameVisibility vis = gameVisibilityRepository.findByCode(request.getVisibility().trim().toLowerCase())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Visibility not found: " + request.getVisibility()));
+                        game.setVisibility(vis);
+                }
+
+                if (request.getTagNames() != null) {
+                        tagAssignmentRepository.deleteAllByGame(game);
+                        tagAssignmentRepository.flush();
+                        if (!request.getTagNames().isEmpty()) {
+                                assignTagsToGame(game, request.getTagNames());
+                        }
+                }
+
+                if (request.getMinAge() != null) game.setMinAge(request.getMinAge());
+                if (request.getMaxAge() != null) game.setMaxAge(request.getMaxAge());
+
+                game = gameRepository.saveAndFlush(game);
+                log.info("US-4.1/4.3 Game updated: gameId={}, organizerId={}", gameId, organizerId);
+
+                // US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer) that game was updated
+                notifyParticipantsGameUpdated(game, organizerId);
 
                 return mapToGameResponse(game, organizerId);
         }
@@ -547,9 +745,56 @@ public class GameService {
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
 
+                notifyCancellation(game);
                 // US-6.1: Recalculate OQS for the organizer after game cancellation
                 oqsService.onGameCancelled(gameId);
 
+                // US-4.3: Notify all joined players (confirmed + waitlisted, except organizer) that game was cancelled
+                notifyParticipantsGameCancelled(game, userId);
+
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Mark a game as completed (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse completeGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException(
+                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                game.setStatus(Game.GameStatus.COMPLETED);
+                game = gameRepository.save(game);
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Archive a game (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse archiveGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.SCHEDULED
+                                || game.getStatus() == Game.GameStatus.IN_PROGRESS) {
+                        throw new IllegalStateException(
+                                        "Cannot archive a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                if (game.getStatus() != Game.GameStatus.ARCHIVED) {
+                        game.setStatus(Game.GameStatus.ARCHIVED);
+                        game = gameRepository.save(game);
+                }
 
                 return mapToGameResponse(game, userId);
         }
@@ -775,5 +1020,52 @@ public class GameService {
                                 .tagType(tag.getTagType())
                                 .isRestricted(tag.getIsRestricted())
                                 .build();
+        }
+
+        private void assertOrganizer(Game game, UUID organizerId) {
+                if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+                        throw new AccessDeniedException("Only the organizer can modify this game");
+                }
+        }
+
+        private void ensureNotArchived(Game game) {
+                if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Archived games are read-only");
+                }
+        }
+
+        private void notifyCancellation(Game game) {
+                List<GameParticipation> confirmed = Optional
+                                .ofNullable(participationRepository.findConfirmedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                List<GameParticipation> waitlisted = Optional
+                                .ofNullable(participationRepository.findWaitlistedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                Set<UUID> notified = new HashSet<>();
+
+                Map<String, Object> payload = Map.of(
+                                "gameId", game.getGameId().toString(),
+                                "gameTitle", game.getTitle(),
+                                "status", game.getStatus().name(),
+                                "message", "Game cancelled: " + game.getTitle());
+
+                for (GameParticipation participation : confirmed) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+                for (GameParticipation participation : waitlisted) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+        }
+
+        private void addCancellationNotification(GameParticipation participation, Game game,
+                        Map<String, Object> payload, Set<UUID> notified) {
+                UUID userId = participation.getUser().getUserId();
+                if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
+                        return;
+                }
+                if (notificationService != null) {
+                        notificationService.createInAppNotification(userId, "game_cancelled", payload);
+                        notified.add(userId);
+                }
         }
 }

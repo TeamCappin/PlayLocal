@@ -25,6 +25,7 @@ import {
   XCircle,
   Copy,
   Check,
+  Archive,
 } from "lucide-react";
 import { useGame } from "@/hooks/useGames";
 import { useAuth } from "@/context/AuthContext";
@@ -32,7 +33,7 @@ import { gamesApi, UpdateGameRequest, endorsementsApi, usersApi, ConnectionSigna
 import { ReportModal } from "./ReportModal";
 import { JoinConfirmationModal } from "./JoinConfirmationModal";
 import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PhotosPanel } from "./photos/PhotosPanel";
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -106,15 +107,20 @@ export function GameRoom() {
     joinGame,
     leaveGame,
     cancelGame,
+    completeGame,
+    archiveGame,
     refetch,
   } = useGame(id);
 
-  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup">(
+  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup"| "photos">(
     "details",
   );
   const [message, setMessage] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -124,11 +130,27 @@ export function GameRoom() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [editFormData, setEditFormData] = useState({
+    description: "",
+    indoorOutdoor: "",
+    intensityBand: "",
+    skillBand: "",
+    minPlayers: "",
+    maxPlayers: "",
+    allowWaitlist: true,
     minReliabilityRequired: "",
+    locationName: "",
+    addressLine: "",
+    city: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    visibility: "public",
+    tagNames: [] as string[],
+    minAge: "",
+    maxAge: "",
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
@@ -212,6 +234,42 @@ export function GameRoom() {
     }
   };
 
+  const statusKey = (game.status || 'SCHEDULED').toUpperCase();
+  const statusMeta: Record<string, { label: string; pillClass: string; bannerClass?: string; bannerText?: string }> = {
+    SCHEDULED: { label: 'Scheduled', pillClass: 'bg-emerald-600 text-white' },
+    IN_PROGRESS: {
+      label: 'In Progress',
+      pillClass: 'bg-amber-600 text-white',
+      bannerClass: 'bg-amber-50 border-amber-200 text-amber-700',
+      bannerText: 'Game is in progress.',
+    },
+    COMPLETED: {
+      label: 'Completed',
+      pillClass: 'bg-gray-700 text-white',
+      bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+      bannerText: 'Game completed.',
+    },
+    CANCELLED: {
+      label: 'Cancelled',
+      pillClass: 'bg-red-600 text-white',
+      bannerClass: 'bg-red-50 border-red-200 text-red-700',
+      bannerText: 'Game cancelled by organizer.',
+    },
+    ARCHIVED: {
+      label: 'Archived',
+      pillClass: 'bg-gray-600 text-white',
+      bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+      bannerText: 'Game archived and read-only.',
+    },
+  };
+  const currentStatus = statusMeta[statusKey] || {
+    label: statusKey,
+    pillClass: 'bg-gray-600 text-white',
+    bannerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+    bannerText: `Game status: ${statusKey}`,
+  };
+  const isScheduled = statusKey === 'SCHEDULED';
+
   // Check if current user is in the game
   const currentUserParticipation =
     roster.confirmed.find((p) => p.userId === user?.userId) ||
@@ -242,26 +300,86 @@ export function GameRoom() {
 
   const canEdit = isOrganizer && game.status === "SCHEDULED" && startDate > new Date();
   const handleOpenEditModal = () => {
+    const start = new Date(game.startTime);
+    const end = game.endTime ? new Date(game.endTime) : start;
+    const pad = (n: number) => String(n).padStart(2, "0");
     setEditFormData({
+      description: game.description ?? "",
+      indoorOutdoor: game.indoorOutdoor ?? "",
+      intensityBand: game.intensityBand ?? "",
+      skillBand: game.skillBand ?? "",
+      minPlayers: String(game.minPlayers ?? 2),
+      maxPlayers: String(game.maxPlayers ?? 20),
+      allowWaitlist: game.allowWaitlist ?? true,
       minReliabilityRequired: game.minReliabilityRequired == null ? "" : String(game.minReliabilityRequired),
+      locationName: game.location?.name ?? "",
+      addressLine: game.location?.addressLine ?? "",
+      city: game.location?.city ?? "",
+      date: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
+      startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+      endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
+      visibility: "public",
+      tagNames: game.tags?.map((t: { name: string }) => t.name) ?? [],
+      minAge: game.minAge != null ? String(game.minAge) : "",
+      maxAge: game.maxAge != null ? String(game.maxAge) : "",
     });
     setShowEditModal(true);
   };
+
   const handleUpdateGame = async () => {
     if (!id) return;
+    const minP = Number.parseInt(editFormData.minPlayers, 10);
+    const maxP = Number.parseInt(editFormData.maxPlayers, 10);
+    if (Number.isNaN(minP) || minP < 2) {
+      setActionError("Minimum players must be at least 2");
+      return;
+    }
+    if (Number.isNaN(maxP) || maxP < minP) {
+      setActionError("Maximum players must be at least the minimum");
+      return;
+    }
+    const startISO = editFormData.date && editFormData.startTime
+      ? new Date(`${editFormData.date}T${editFormData.startTime}:00`).toISOString()
+      : undefined;
+    const endISO = editFormData.date && editFormData.endTime
+      ? new Date(`${editFormData.date}T${editFormData.endTime}:00`).toISOString()
+      : undefined;
     setIsUpdating(true);
     setActionError(null);
     try {
       const updateData: UpdateGameRequest = {
+        description: editFormData.description || undefined,
+        indoorOutdoor: editFormData.indoorOutdoor || undefined,
+        intensityBand: editFormData.intensityBand || undefined,
+        skillBand: editFormData.skillBand || undefined,
+        minPlayers: minP,
+        maxPlayers: maxP,
+        allowWaitlist: editFormData.allowWaitlist,
         minReliabilityRequired: editFormData.minReliabilityRequired
           ? Number.parseFloat(editFormData.minReliabilityRequired)
           : undefined,
+        locationName: editFormData.locationName || undefined,
+        addressLine: editFormData.addressLine || undefined,
+        city: editFormData.city || undefined,
+        startTime: startISO,
+        endTime: endISO,
+        visibility: editFormData.visibility || undefined,
+        tagNames: editFormData.tagNames ?? [],
+        minAge: editFormData.minAge ? Number.parseInt(editFormData.minAge, 10) : undefined,
+        maxAge: editFormData.maxAge ? Number.parseInt(editFormData.maxAge, 10) : undefined,
       };
       await gamesApi.update(id, updateData);
-      setActionSuccess("Game settings updated successfully!");
+      setActionError(null);
+      setActionSuccess("Changes saved.");
       setShowEditModal(false);
       await refetch();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+        window.dispatchEvent(new CustomEvent("playlocal-refresh-games"));
+      }
+      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
+      setActionSuccess(null);
       setActionError(err.message || "Failed to update game settings");
     } finally {
       setIsUpdating(false);
@@ -269,10 +387,6 @@ export function GameRoom() {
   };
 
   const handleJoin = async () => {
-    if (!isAuthenticated) {
-      navigate.push("/login");
-      return;
-    }
     const meetsReliabilityRequirement =
       game.minReliabilityRequired == null ||
       !user ||
@@ -300,6 +414,7 @@ export function GameRoom() {
 
   const performJoin = async (confirmedTagIds?: string[]) => {
     setActionError(null);
+    setActionSuccess(null);
     setIsJoining(true);
     try {
       const result = await joinGame(confirmedTagIds);
@@ -320,6 +435,7 @@ export function GameRoom() {
 
   const handleLeave = async () => {
     setActionError(null);
+    setActionSuccess(null);
     setIsLeaving(true);
     try {
       await leaveGame();
@@ -331,21 +447,63 @@ export function GameRoom() {
     }
   };
 
-  // US-2.4: Organizer cancel game
+  // US-4.3: Organizer delete (cancel) game
   const handleCancel = async () => {
     setActionError(null);
     setIsCancelling(true);
     try {
       await cancelGame();
-      setActionSuccess('Game has been cancelled');
+      setActionSuccess("Game has been deleted.");
       setShowCancelConfirm(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+      }
+      navigate.push("/discover");
     } catch (err: any) {
-      setActionError(err.message || 'Failed to cancel game');
+      setActionError(err.message || "Failed to delete game");
     } finally {
       setIsCancelling(false);
     }
   };
 
+  const handleComplete = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsCompleting(true);
+    try {
+      await completeGame();
+      setActionSuccess('Game marked as completed.');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to complete game');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    setActionError(null);
+    setActionSuccess(null);
+    setIsArchiving(true);
+    try {
+      await archiveGame();
+      setActionSuccess('Game archived.');
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to archive game');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <span className="text-gray-600">Loading game...</span>
+        </div>
+      </div>
+    );
+  }
   // US-2.4: Share game link
   const handleShare = async () => {
     const shareUrl = window.location.href;
@@ -495,6 +653,12 @@ export function GameRoom() {
                 {actionError}
               </div>
             )}
+            {currentStatus.bannerText && (
+              <div className={`p-4 border rounded-lg flex items-center gap-2 ${currentStatus.bannerClass}`}>
+                <AlertCircle className="w-5 h-5" />
+                <span>{currentStatus.bannerText}</span>
+              </div>
+            )}
 
             {/* Tabs */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -530,6 +694,17 @@ export function GameRoom() {
                       <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                     </div>
                   </button>
+                  <button
+                      onClick={() => setActiveTab("photos")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === "photos"
+                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
+                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                      }`}
+                    >
+                      Album
+                    </button>
+                  
                 </div>
               </div>
 
@@ -900,6 +1075,10 @@ export function GameRoom() {
                     </div>
                   </div>
                 )}
+
+                {activeTab === "photos" && (
+                  <PhotosPanel gameId={id} canUpload={isParticipant}/>
+                )}
               </div>
             </div>
           </div>
@@ -937,7 +1116,7 @@ export function GameRoom() {
                       </span>
                     </div>
                   </div>
-                  {!isOrganizer && (
+                  {!isOrganizer && isScheduled && (
                     <button
                       onClick={handleLeave}
                       disabled={isLeaving}
@@ -952,7 +1131,7 @@ export function GameRoom() {
                     </button>
                   )}
                 </>
-              ) : (
+              ) : isScheduled ? (
                 <>
                   {!isAuthenticated ? (
                     <button
@@ -977,6 +1156,48 @@ export function GameRoom() {
                     </button>
                   )}
                 </>
+              ) : (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>This game is no longer accepting players.</span>
+                </div>
+              )}
+
+              {isOrganizer && (
+                <div className="mt-4 border-t border-gray-200 pt-4 space-y-2">
+                  <p className="text-sm text-gray-500">Organizer actions</p>
+                  {(statusKey === 'SCHEDULED' || statusKey === 'IN_PROGRESS') && (
+                    <button
+                      onClick={handleComplete}
+                      disabled={isCompleting}
+                      className="w-full px-6 py-3 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isCompleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                      <span>Mark Completed</span>
+                    </button>
+                  )}
+                  {(statusKey === 'COMPLETED' || statusKey === 'CANCELLED') && (
+                    <button
+                      onClick={handleArchive}
+                      disabled={isArchiving}
+                      className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isArchiving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Archive className="w-5 h-5" />}
+                      <span>Archive Game</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* US-4.3: Organizer Edit Game - visible next to other actions */}
+              {canEdit && (
+                <button
+                  onClick={handleOpenEditModal}
+                  className="w-full px-6 py-3 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Edit className="w-5 h-5" />
+                  <span>Edit Game</span>
+                </button>
               )}
 
               <button
@@ -987,8 +1208,8 @@ export function GameRoom() {
                 <span>{shareSuccess ? 'Link Copied!' : 'Share Game'}</span>
               </button>
 
-              {/* US-2.4: Organizer Cancel Game Control */}
-              {isOrganizer && game.status === 'SCHEDULED' && (
+              {/* US-4.3: Organizer Delete Game */}
+              {isOrganizer && game.status === "SCHEDULED" && (
                 <>
                   {!showCancelConfirm ? (
                     <button
@@ -996,25 +1217,27 @@ export function GameRoom() {
                       className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                     >
                       <XCircle className="w-5 h-5" />
-                      <span>Cancel Game</span>
+                      <span>Delete Game</span>
                     </button>
                   ) : (
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-3">
-                      <p className="text-red-700 text-sm">Are you sure you want to cancel this game? This action cannot be undone.</p>
+                      <p className="text-red-700 text-sm">
+                        Delete this game? All participants will be notified. This cannot be undone.
+                      </p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowCancelConfirm(false)}
                           className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
                         >
-                          No, Keep
+                          Keep Game
                         </button>
                         <button
                           onClick={handleCancel}
                           disabled={isCancelling}
                           className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                          style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                          style={{ backgroundColor: "#dc2626", color: "#ffffff" }}
                         >
-                          {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+                          {isCancelling ? "Deleting..." : "Yes, Delete"}
                         </button>
                       </div>
                     </div>
@@ -1022,11 +1245,10 @@ export function GameRoom() {
                 </>
               )}
 
-              {/* Show cancelled badge if game is cancelled */}
-              {game.status === 'CANCELLED' && (
+              {game.status === "CANCELLED" && (
                 <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-center">
                   <XCircle className="w-5 h-5 inline mr-2" />
-                  This game has been cancelled
+                  This game has been deleted
                 </div>
               )}
 
@@ -1144,79 +1366,325 @@ export function GameRoom() {
         reportType="game"
       />
 
-      {/* Edit Game Settings Modal - US-4.1 */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Game Settings</DialogTitle>
-            <DialogDescription>
-              Update game settings before it starts. Changes apply immediately to new join attempts.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label htmlFor="min-reliability-edit" className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Reliability Score (Optional)
-              </label>
-              <div className="flex items-center gap-3">
+      {/* Edit Game Modal - US-4.3: custom modal so content is always visible (no Radix) */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-[9999]" role="dialog" aria-modal="true" aria-labelledby="edit-game-title">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => !isUpdating && setShowEditModal(false)}
+            aria-hidden="true"
+          />
+          {/* White panel - centered, always visible */}
+          <div className="absolute left-1/2 top-1/2 z-10 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border-2 border-gray-300 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 id="edit-game-title" className="text-xl font-semibold text-gray-900">Edit Game</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Title and sport cannot be changed. If you raise min reliability, players below it may be removed.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isUpdating && setShowEditModal(false)}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-lg bg-gray-100 p-3 border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Title (read-only)</p>
+                <p className="text-gray-900 font-medium">{game.title}</p>
+                <p className="text-xs text-gray-500 mt-2">Sport: {game.sportName}</p>
+              </div>
+
+              <div>
+                <label htmlFor="edit-location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                 <input
-                  id="min-reliability-edit"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={editFormData.minReliabilityRequired}
-                  onChange={(e) => setEditFormData({ ...editFormData, minReliabilityRequired: e.target.value })}
-                  placeholder="e.g., 85"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  id="edit-location"
+                  type="text"
+                  value={editFormData.locationName}
+                  onChange={(e) => setEditFormData({ ...editFormData, locationName: e.target.value })}
+                  placeholder="Venue or address"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
                 />
-                <span className="text-gray-600">%</span>
-                {editFormData.minReliabilityRequired && (
-                  <button
-                    type="button"
-                    onClick={() => setEditFormData({ ...editFormData, minReliabilityRequired: "" })}
-                    className="text-sm text-red-600 hover:text-red-700"
+                <input
+                  type="text"
+                  value={editFormData.addressLine}
+                  onChange={(e) => setEditFormData({ ...editFormData, addressLine: e.target.value })}
+                  placeholder="Street address (optional)"
+                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
+                />
+                <input
+                  type="text"
+                  value={editFormData.city}
+                  onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                  placeholder="City (optional)"
+                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="edit-date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    id="edit-date"
+                    type="date"
+                    value={editFormData.date}
+                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-start-time" className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+                  <input
+                    id="edit-start-time"
+                    type="time"
+                    value={editFormData.startTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-end-time" className="block text-sm font-medium text-gray-700 mb-1">End time</label>
+                  <input
+                    id="edit-end-time"
+                    type="time"
+                    value={editFormData.endTime}
+                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  id="edit-description"
+                  rows={3}
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  placeholder="Optional details"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="edit-indoor" className="block text-sm font-medium text-gray-700 mb-1">Location type</label>
+                  <select
+                    id="edit-indoor"
+                    value={editFormData.indoorOutdoor}
+                    onChange={(e) => setEditFormData({ ...editFormData, indoorOutdoor: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   >
-                    Clear
-                  </button>
+                    <option value="">Select</option>
+                    <option value="OUTDOOR">Outdoor</option>
+                    <option value="INDOOR">Indoor</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="edit-skill" className="block text-sm font-medium text-gray-700 mb-1">Skill level</label>
+                  <select
+                    id="edit-skill"
+                    value={editFormData.skillBand}
+                    onChange={(e) => setEditFormData({ ...editFormData, skillBand: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  >
+                    <option value="">Select</option>
+                    <option value="ALL_LEVELS">All Levels</option>
+                    <option value="BEGINNER">Beginner</option>
+                    <option value="INTERMEDIATE">Intermediate</option>
+                    <option value="ADVANCED">Advanced</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="edit-intensity" className="block text-sm font-medium text-gray-700 mb-1">Intensity</label>
+                <select
+                  id="edit-intensity"
+                  value={editFormData.intensityBand}
+                  onChange={(e) => setEditFormData({ ...editFormData, intensityBand: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                >
+                  <option value="">Select</option>
+                  <option value="CASUAL">Casual</option>
+                  <option value="COMPETITIVE">Competitive</option>
+                  <option value="BEGINNER">Beginner-Friendly</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="edit-min-players" className="block text-sm font-medium text-gray-700 mb-1">Min players</label>
+                  <input
+                    id="edit-min-players"
+                    type="number"
+                    min={2}
+                    value={editFormData.minPlayers}
+                    onChange={(e) => setEditFormData({ ...editFormData, minPlayers: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-max-players" className="block text-sm font-medium text-gray-700 mb-1">Max players</label>
+                  <input
+                    id="edit-max-players"
+                    type="number"
+                    min={2}
+                    value={editFormData.maxPlayers}
+                    onChange={(e) => setEditFormData({ ...editFormData, maxPlayers: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="edit-allow-waitlist"
+                  type="checkbox"
+                  checked={editFormData.allowWaitlist}
+                  onChange={(e) => setEditFormData({ ...editFormData, allowWaitlist: e.target.checked })}
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <label htmlFor="edit-allow-waitlist" className="text-sm text-gray-700">Allow waitlist</label>
+              </div>
+
+              <div>
+                <label htmlFor="edit-visibility" className="block text-sm font-medium text-gray-700 mb-1">Game visibility</label>
+                <select
+                  id="edit-visibility"
+                  value={editFormData.visibility}
+                  onChange={(e) => setEditFormData({ ...editFormData, visibility: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                >
+                  <option value="public">Public - Anyone can see and join</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="invite">Invite Only</option>
+                </select>
+              </div>
+
+              {availableTags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Community tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.map((tag) => (
+                      <label
+                        key={tag.tagId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={editFormData.tagNames.includes(tag.name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditFormData({ ...editFormData, tagNames: [...editFormData.tagNames, tag.name] });
+                            } else {
+                              setEditFormData({ ...editFormData, tagNames: editFormData.tagNames.filter((t) => t !== tag.name) });
+                            }
+                          }}
+                          className="rounded border-gray-300 text-emerald-600"
+                        />
+                        <span className="capitalize">{tag.name.replace(/-/g, " ")}</span>
+                        {tag.isRestricted && <span className="text-red-600 text-xs">!</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="edit-min-age" className="block text-sm font-medium text-gray-700 mb-1">Min age (optional)</label>
+                  <input
+                    id="edit-min-age"
+                    type="number"
+                    min={13}
+                    max={120}
+                    value={editFormData.minAge}
+                    onChange={(e) => setEditFormData({ ...editFormData, minAge: e.target.value })}
+                    placeholder="e.g. 18"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-max-age" className="block text-sm font-medium text-gray-700 mb-1">Max age (optional)</label>
+                  <input
+                    id="edit-max-age"
+                    type="number"
+                    min={13}
+                    max={120}
+                    value={editFormData.maxAge}
+                    onChange={(e) => setEditFormData({ ...editFormData, maxAge: e.target.value })}
+                    placeholder="e.g. 65"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="edit-min-reliability" className="block text-sm font-medium text-gray-700 mb-1">
+                  Minimum reliability % (optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="edit-min-reliability"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={editFormData.minReliabilityRequired}
+                    onChange={(e) => setEditFormData({ ...editFormData, minReliabilityRequired: e.target.value })}
+                    placeholder="e.g. 85"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
+                  />
+                  <span className="text-gray-600">%</span>
+                  {editFormData.minReliabilityRequired && (
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, minReliabilityRequired: "" })}
+                      className="text-sm text-red-600 hover:text-red-700"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Increasing this may remove players below the new threshold.</p>
+                {user && (
+                  <p className="text-xs text-emerald-700 mt-1">Your score: {user.reliabilityScore}%</p>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Players with a score below this threshold cannot join. Leave empty to allow all players.
-              </p>
-              {user && (
-                <p className="text-xs text-emerald-700 mt-1">
-                  Your reliability score: <span className="font-semibold">{user.reliabilityScore}%</span>
-                </p>
-              )}
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={isUpdating}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateGame}
+                disabled={isUpdating}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <span>Save Changes</span>
+                )}
+              </button>
             </div>
           </div>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setShowEditModal(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              disabled={isUpdating}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleUpdateGame}
-              disabled={isUpdating}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Updating...</span>
-                </>
-              ) : (
-                <span>Save Changes</span>
-              )}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
       {/* Join Confirmation Modal */}
       <JoinConfirmationModal
         isOpen={showJoinConfirmationModal}

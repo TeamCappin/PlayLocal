@@ -47,10 +47,14 @@ public class SecurityConfig {
                         // Endorsements require authentication
                         .requestMatchers("/api/v1/endorsements/**").authenticated()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/tags").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/*/roster").permitAll()
+                        .requestMatchers("/api/v1/games/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()
                         // For attendance confirmation testing [US-3.3]
                         .requestMatchers(HttpMethod.POST, "/api/v1/games/*/attendance").authenticated()
-                        .requestMatchers("/api/v1/games/**").permitAll()
                         // Profiles require authentication to view [US-1.3 Privacy Defaults]
                         .requestMatchers("/api/v1/users/*/profile").authenticated()
                         .requestMatchers("/api/v1/users/*/endorsements").authenticated()

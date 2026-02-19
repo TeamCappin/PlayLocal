@@ -74,11 +74,22 @@ async function apiFetch<T>(
 
   // Handle 204 No Content
   if (response.status === 204) {
-    return {} as T;
+    return undefined as T;
+  }
+
+  const contentLength = response.headers.get("content-length");
+  if (contentLength === "0") {
+    return undefined as T;
+  }
+
+  const ct = response.headers.get("content-type") || "";
+  if (!ct.includes("application/json")) {
+    // Some endpoints return empty string even with 200
+    return undefined as T;
   }
 
   try {
-    return await response.json();
+    return (await response.json()) as T;
   } catch (e) {
     throw new ApiError(response.status, "Invalid JSON response", {
       originalError: e,
@@ -298,16 +309,29 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
+export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 export interface UpdateGameRequest {
-    title?: string;
-    description?: string;
-    indoorOutdoor?: string;
-    intensityBand?: string;
-    skillBand?: string;
-    minPlayers?: number;
-    maxPlayers?: number;
-    allowWaitlist?: boolean;
-    minReliabilityRequired?: number; // US-4.1: Can be updated before game starts
+  title?: string;
+  description?: string;
+  indoorOutdoor?: string;
+  intensityBand?: string;
+  skillBand?: string;
+  minPlayers?: number;
+  maxPlayers?: number;
+  allowWaitlist?: boolean;
+  minReliabilityRequired?: number;
+  // US-4.3: Full edit (location, date/time, visibility, tags, age)
+  locationName?: string;
+  addressLine?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  startTime?: string; // ISO
+  endTime?: string; // ISO
+  visibility?: string;
+  tagNames?: string[];
+  minAge?: number;
+  maxAge?: number;
 }
 
 export interface GameResponse {
@@ -445,6 +469,11 @@ export const gamesApi = {
   leave: (gameId: string) =>
     apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
 
+  complete: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: "POST" }),
+
+  archive: (gameId: string) =>
+    apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: "POST" }),
   // US-4.1: Update game settings (min reliability, etc.)
   update: (gameId: string, data: UpdateGameRequest) =>
     apiFetch<GameResponse>(`/games/${gameId}`, {
@@ -769,11 +798,54 @@ export const organizerQualityApi = {
   getWeights: () =>
     apiFetch<OqsWeights>(`/oqs/weights`),
 };
+// ============================================
+// Photos API
+// ============================================
+
+export interface UploadSlotReq {
+  fileName: string;
+  contentType: string;   // MUST be image/*
+  sizeBytes: number;
+}
+
+export interface UploadSlotRes {
+  mediaId: string;
+  storageKey: string;
+  uploadUrl: string;
+}
+
+export interface PhotoItem {
+  mediaId: string;
+  url: string;
+  createdAt: string;
+  uploaderUserId: string; // (or number if your backend returns numeric)
+}
+
+export const photosApi = {
+  // List photos for a game
+  listByGame: (gameId: string) =>
+    apiFetch<PhotoItem[]>(`/games/${gameId}/media/photos`),
+
+  // Create an upload slot (backend returns presigned PUT URL)
+  requestUploadSlot: (gameId: string, data: UploadSlotReq) =>
+    apiFetch<UploadSlotRes>(`/games/${gameId}/media/photos/upload-slot`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Finalize upload
+  finalizeUpload: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
+      method: "POST",
+    }),
+};
+
 
 
 export default {
   auth: authApi,
   games: gamesApi,
+  photos: photosApi,
   attendance: attendanceApi,
   reports: reportsApi,
   notifications: notificationsApi,

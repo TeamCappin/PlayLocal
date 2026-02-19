@@ -2,6 +2,8 @@ package com.backend.playlocal.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,7 +34,8 @@ public class Notification {
     @Column(name = "notif_type", nullable = false)
     private String notifType; // game_reminder, attendance_prompt, friend_request, etc.
 
-    @Column(name = "payload_json", columnDefinition = "text")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload_json")
     private String payloadJson;
 
     @Column(name = "scheduled_for")

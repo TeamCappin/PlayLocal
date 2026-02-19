@@ -223,6 +223,21 @@ class GameServiceDiscoveryTest {
         }
 
         @Test
+        @DisplayName("getPastGames returns mapped games for user")
+        void getPastGames_ShouldReturnMappedGames() {
+                when(gameRepository.findPastGames(eq(userId), any(Instant.class)))
+                                .thenReturn(List.of(game));
+                mockMapToGameResponseDependencies();
+
+                List<GameDto.GameResponse> result = gameService.getPastGames(userId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getTitle()).isEqualTo("Test Game");
+                assertThat(result.get(0).getSportName()).isEqualTo("Basketball");
+                verify(gameRepository).findPastGames(eq(userId), any(Instant.class));
+        }
+
+        @Test
         @DisplayName("getUpcomingGames with null userId still maps response")
         void getUpcomingGames_NullUserId_MapsResponse() {
                 when(gameRepository.findUpcomingGamesWithFilters(

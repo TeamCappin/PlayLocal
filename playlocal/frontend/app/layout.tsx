@@ -1,19 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "./providers";
 import { Navigation } from "@/components/Navigation";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Use system font stack so Docker build does not require network (Google Fonts fetch)
+const fontClass =
+  "antialiased font-sans [--font-geist-sans:ui-sans-serif,system-ui,sans-serif] [--font-geist-mono:ui-monospace,monospace]";
 
 export const metadata: Metadata = {
   title: "PlayLocal - Find Your Game",
@@ -27,8 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      <body className={fontClass}
       >
         <Providers>
           <Navigation />
