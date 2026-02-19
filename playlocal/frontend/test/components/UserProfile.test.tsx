@@ -259,4 +259,12 @@ describe('UserProfile Endorsements', () => {
     await waitFor(() => expect(refreshUserSpy).toHaveBeenCalled());
   });
 
+  it('handles endorsements load failure and still shows profile', async () => {
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+    render(<UserProfile />);
+
+    await waitFor(() => expect(endorsementsApi.getUserEndorsements).toHaveBeenCalled());
+    expect(screen.getAllByText('Endorsements').length).toBeGreaterThanOrEqual(1);
+  });
 });

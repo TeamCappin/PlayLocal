@@ -390,6 +390,32 @@ describe("useGameChat", () => {
     await waitFor(() => expect(result.current.connected).toBe(false));
   });
 
+  it("loadHistory normalizes messages with timestamp number when createdAt missing", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [
+        {
+          messageId: "m-ts",
+          senderId: "u-2",
+          senderName: "Other",
+          content: "ts msg",
+          timestamp: 1609459200000,
+        },
+      ],
+    });
+    const { result } = renderHook(() =>
+      useGameChat({
+        gameId: GAME_ID,
+        me: ME,
+        enabled: true,
+        historyBaseUrl: "http://test.api",
+      }),
+    );
+    await waitFor(() => expect(result.current.messages).toHaveLength(1));
+    expect(result.current.messages[0].content).toBe("ts msg");
+    expect(result.current.messages[0].createdAt).toBeDefined();
+  });
+
   it("reconciles optimistic message when server echoes with same clientMessageId", async () => {
     const clientMsgId = "client-echo-1";
     (globalThis as any).crypto = { randomUUID: () => clientMsgId };

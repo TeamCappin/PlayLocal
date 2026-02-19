@@ -456,6 +456,82 @@ describe("usersApi connection signals", () => {
     expect((options as RequestInit).method).toBe("POST");
     expect((options as RequestInit).body).toBe(JSON.stringify({ userIds: ["u1", "u2"] }));
   });
+
+  it("getProfile calls GET /users/:userId/profile", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ userId: "u-1", displayName: "Test", email: "t@t.com", reliabilityScore: 90 }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    const res = await usersApi.getProfile("u-1");
+
+    expect(res.displayName).toBe("Test");
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/users/u-1/profile");
+  });
+
+  it("getProfileBySlug calls GET /users/slug/:slug/profile", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ userId: "u-2", displayName: "Jane", slug: "jane-doe" }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    const res = await usersApi.getProfileBySlug("jane-doe");
+
+    expect(res.displayName).toBe("Jane");
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/users/slug/jane-doe/profile");
+  });
+
+  it("updateProfile calls PUT /users/profile with body", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ userId: "u-1", displayName: "Updated Name", bio: "New bio" }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    await usersApi.updateProfile({ displayName: "Updated Name", bio: "New bio" });
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect((options as RequestInit).method).toBe("PUT");
+    expect((options as RequestInit).body).toBe(JSON.stringify({ displayName: "Updated Name", bio: "New bio" }));
+  });
+
+  it("search calls GET /users/search with query params", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ users: [], totalElements: 0, totalPages: 0, currentPage: 0 }),
+    );
+    (globalThis as any).fetch = fetchMock;
+
+    await usersApi.search("john", 1, 10);
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/users/search");
+    expect(url).toContain("page=1");
+    expect(url).toContain("size=10");
+  });
+});
+
+describe("friendsApi endpoints", () => {
+  let friendsApi: typeof import("../../lib/api").friendsApi;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.restoreAllMocks();
+    (globalThis as any).window = globalThis;
+    (globalThis as any).localStorage = { getItem: jest.fn(() => null), setItem: jest.fn(), removeItem: jest.fn() };
+    const apiModule = require("../../lib/api") as typeof import("../../lib/api");
+    friendsApi = apiModule.friendsApi;
+  });
+
+  it("getFriends calls GET /friends", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ friends: [], totalElements: 0 }));
+    (globalThis as any).fetch = fetchMock;
+
+    await friendsApi.getFriends();
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain("/friends");
+  });
 });
 
 describe("photosApi endpoints", () => {
