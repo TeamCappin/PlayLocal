@@ -54,6 +54,8 @@ function transformApiGame(game: GameResponse) {
     image: getSportImage(game.sportName),
     status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
     minReliabilityRequired: game.minReliabilityRequired, // US-4.1: Reputation-gated games
+    lat: (game.hasExactLocationAccess && game.location?.latitude != null) ? game.location.latitude : undefined,
+    lng: (game.hasExactLocationAccess && game.location?.longitude != null) ? game.location.longitude : undefined,
   };
 }
 
@@ -539,7 +541,7 @@ export function GameDiscovery() {
           </>
 
         ) : (
-          <MapView />
+          <MapView games={displayGames} />
         )}
       </div>
     </div>
@@ -564,6 +566,8 @@ interface GameDisplay {
   image: string;
   status: string;
   minReliabilityRequired?: number; // US-4.1: Reputation-gated games
+  lat?: number;
+  lng?: number;
 }
 
 function GameCard({ game }: { game: GameDisplay }) {
