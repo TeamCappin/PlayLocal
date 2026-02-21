@@ -224,7 +224,15 @@ interface FilterState {
 }
 
 export function GameDiscovery() {
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>(() => {
+    if (typeof window !== 'undefined') {
+      const savedViewMode = sessionStorage.getItem('playlocal-view-mode');
+      if (savedViewMode === 'grid' || savedViewMode === 'map') {
+        return savedViewMode;
+      }
+    }
+    return 'grid';
+  });
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -241,6 +249,12 @@ export function GameDiscovery() {
     locationType: 'any',
     intensity: 'any',
   });
+
+  // Save view mode preference to session storage when it changes
+  const handleViewModeChange = (mode: 'grid' | 'map') => {
+    setViewMode(mode);
+    sessionStorage.setItem('playlocal-view-mode', mode);
+  };
 
   // Get user location on mount (optional)
   useEffect(() => {
@@ -343,7 +357,7 @@ export function GameDiscovery() {
               </button>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleViewModeChange('grid')}
                   className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'grid'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -352,7 +366,7 @@ export function GameDiscovery() {
                   <Calendar className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setViewMode('map')}
+                  onClick={() => handleViewModeChange('map')}
                   className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'map'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
