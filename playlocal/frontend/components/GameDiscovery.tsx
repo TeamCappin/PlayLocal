@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
+import MapView from './MapView';
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -261,7 +262,7 @@ export function GameDiscovery() {
 
   // Convert filter state to API format
   const apiFilters = useMemo(() => {
-    const apiFilter: any = {};
+    const apiFilter: Record<string, string | number | boolean> = {};
 
     if (appliedFilters.sportName.trim()) {
       apiFilter.sportName = appliedFilters.sportName.trim();
@@ -507,12 +508,12 @@ export function GameDiscovery() {
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl text-gray-900 mb-2">No games available</h3>
                 <p className="text-gray-600 mb-6">Be the first to create a game in your area!</p>
-                <a
+                <Link
                   href="/games/create"
                   className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Create a Game
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -524,13 +525,7 @@ export function GameDiscovery() {
           </>
 
         ) : (
-          <div className="h-[600px] bg-gray-200 rounded-xl flex items-center justify-center">
-            <div className="text-center">
-              <MapIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Interactive map view would appear here</p>
-              <p className="text-sm text-gray-500">Showing game locations with clusters</p>
-            </div>
-          </div>
+          <MapView />
         )}
       </div>
     </div>

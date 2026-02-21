@@ -59,10 +59,10 @@ function toUINotification(notification: NotificationDto): UINotification {
     const payload = safeParsePayload(notification.payload);
     const type = normalizeType(notification.type);
     const createdAt = notification.sentAt || notification.scheduledFor;
-    const title = payload.title || buildNotificationTitle(type);
-    const message = payload.message
-        || (payload.gameTitle ? `Update for ${payload.gameTitle}` : title);
-    const link = payload.link || (payload.gameId ? `/games/${payload.gameId}` : undefined);
+    const title = (typeof payload.title === 'string' ? payload.title : '') || buildNotificationTitle(type);
+    const message = (typeof payload.message === 'string' ? payload.message : '')
+        || (typeof payload.gameTitle === 'string' ? `Update for ${payload.gameTitle}` : title);
+    const link = (typeof payload.link === 'string' ? payload.link : '') || (typeof payload.gameId === 'string' ? `/games/${payload.gameId}` : undefined);
 
     return {
         ...notification,
