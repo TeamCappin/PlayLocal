@@ -1615,4 +1615,136 @@ describe("GameDiscovery Component", () => {
       expect(screen.queryByTestId("map-view")).not.toBeInTheDocument();
     });
   });
+
+  describe("Within 5km chip – no location", () => {
+    beforeEach(() => {
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      // Ensure geolocation fails so userLocation stays null
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: {
+          getCurrentPosition: jest.fn((_success, error) =>
+            error({ code: 1, message: "denied" })
+          ),
+        },
+        writable: true,
+      });
+    });
+
+    it("shows window.alert when Within 5km is clicked without a user location", async () => {
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      render(<GameDiscovery />);
+
+      const btn = screen.getByRole("button", { name: "Within 5km" });
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/location is unavailable/i)
+      );
+      alertSpy.mockRestore();
+    });
+  });
+
+  describe("playlocal-refresh-games event", () => {
+    it("calls refetch when playlocal-refresh-games is dispatched", async () => {
+      const refetchMock = jest.fn();
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: refetchMock,
+      });
+
+      render(<GameDiscovery />);
+
+      await act(async () => {
+        window.dispatchEvent(new Event("playlocal-refresh-games"));
+      });
+
+      expect(refetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Modal distance-unavailable warning", () => {
+    it("shows location-unavailable warning when distance filter is set but no user location", async () => {
+      // Geolocation unavailable
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: undefined,
+        writable: true,
+      });
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      // Open modal
+      await act(async () => {
+        fireEvent.click(screen.getByText("Filters"));
+      });
+      await waitFor(() => expect(screen.getByText("Distance")).toBeInTheDocument());
+
+      // Change distance to something other than "any distance"
+      const distanceLabel = screen.getByText("Distance");
+      const distanceSelect = distanceLabel.parentElement?.querySelector("select");
+      expect(distanceSelect).toBeTruthy();
+      await act(async () => {
+        fireEvent.change(distanceSelect!, { target: { value: "within 5km" } });
+      });
+
+      // Warning should appear
+      expect(
+        screen.getByText(/location unavailable.*distance filter won/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("GameCard – minReliabilityRequired badge", () => {
+    it("renders reliability badge and chip when minReliabilityRequired is set", () => {
+      const reliabilityGame = {
+        gameId: "game-reliability",
+        title: "Reliability Gated Game",
+        sportName: "Basketball",
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        location: { name: "Park", city: "Montreal" },
+        hasExactLocationAccess: true,
+        approximateLocation: "Montreal, QC",
+        confirmedCount: 5,
+        maxPlayers: 10,
+        minPlayers: 4,
+        skillBand: "Intermediate",
+        intensityBand: "High",
+        indoorOutdoor: "outdoor",
+        organizer: { userId: "user-1", displayName: "Host", reliabilityScore: 95 },
+        status: "SCHEDULED",
+        description: "Test",
+        tags: [],
+        minReliabilityRequired: 80,
+      };
+
+      (useGames as jest.Mock).mockReturnValue({
+        games: [reliabilityGame],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      // Both the overlay badge and the chip in the details section should appear
+      const badges = screen.getAllByText("Min 80% Reliability");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

@@ -13,6 +13,8 @@ interface GameMapPin {
   date: string;
   locationArea?: string;
   location: string;
+  /** Optional distance field — present when sourced from GameDisplay but not used by MapView. */
+  distance?: string;
 }
 
 interface MapViewProps {
@@ -124,7 +126,7 @@ export default function MapView({
 
           {selectedGame && (
             <InfoWindow
-              position={{ lat: selectedGame.lat as number, lng: selectedGame.lng as number }}
+              position={{ lat: selectedGame.lat, lng: selectedGame.lng }}
               onCloseClick={() => setSelectedId(null)}
               pixelOffset={[0, -36]}
             >

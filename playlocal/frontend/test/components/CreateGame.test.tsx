@@ -167,10 +167,10 @@ async function fillStep2Valid(overrides?: Partial<{
   skill: string;
   intensity: string;
 }>) {
-  fireEvent.change(screen.getByPlaceholderText(/e\.g\.,\s*6/i), {
+  fireEvent.change(screen.getByPlaceholderText("e.g., 6"), {
     target: { value: overrides?.minPlayers ?? "6" },
   });
-  fireEvent.change(screen.getByPlaceholderText(/e\.g\.,\s*10/i), {
+  fireEvent.change(screen.getByPlaceholderText("e.g., 10"), {
     target: { value: overrides?.maxPlayers ?? "10" },
   });
 
@@ -500,6 +500,190 @@ describe("CreateGame", () => {
 
     expect(locationInput.value).toBe("123 Main St, Montreal");
     expect(screen.queryByText("124 Main St, Montreal")).not.toBeInTheDocument();
+  });
+
+  it("address autocomplete: selecting a suggestion with lat/lon stores coordinates", async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, user: { reliabilityScore: 80 } });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: "new-game-1" });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      json: async () => [
+        { display_name: "123 Main St, Montreal", lat: "45.5017", lon: "-73.5673" },
+      ],
+    });
+
+    render(<CreateGame />);
+
+    const locationInput = getLocationInput();
+    fireEvent.focus(locationInput);
+    fireEvent.change(locationInput, { target: { value: "Main" } });
+
+    await act(async () => { jest.advanceTimersByTime(500); });
+    await flushPromises();
+
+    expect(await screen.findByText("123 Main St, Montreal")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /123 main st/i }));
+
+    // Fill remaining step 1 fields
+    fireEvent.change(getTitleInput(), { target: { value: "5v5 Basketball Pickup" } });
+    fireEvent.change(getSportSelect(), { target: { value: "Basketball" } });
+    fireEvent.change(getDateInput(), { target: { value: "2026-02-10" } });
+    fireEvent.change(getIndoorSelect(), { target: { value: "INDOOR" } });
+    const { start, end } = getTimeSelects();
+    fireEvent.change(start, { target: { value: "10:00" } });
+    fireEvent.change(end, { target: { value: "11:00" } });
+
+    // Step 1 → 2
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game details/i);
+
+    // Step 2 → 3
+    await fillStep2Valid();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game settings/i);
+
+    // Advance past the 1-second submit cooldown (set by handleContinue)
+    act(() => { jest.advanceTimersByTime(1000); });
+
+    // Submit
+    fireEvent.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => {
+      expect(createGameMock).toHaveBeenCalledWith(
+        expect.objectContaining({ latitude: 45.5017, longitude: -73.5673 })
+      );
+    });
+  });
+
+  it("address autocomplete: typing in the location field after selecting clears lat/lon", async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, user: { reliabilityScore: 80 } });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: "new-game-2" });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      json: async () => [
+        { display_name: "123 Main St, Montreal", lat: "45.5017", lon: "-73.5673" },
+      ],
+    });
+
+    render(<CreateGame />);
+
+    const locationInput = getLocationInput();
+    fireEvent.focus(locationInput);
+    fireEvent.change(locationInput, { target: { value: "Main" } });
+
+    await act(async () => { jest.advanceTimersByTime(500); });
+    await flushPromises();
+
+    await screen.findByText("123 Main St, Montreal");
+    fireEvent.click(screen.getByRole("button", { name: /123 main st/i }));
+
+    // Now type something new — locationChanged=true → lat/lon should be cleared
+    fireEvent.change(locationInput, { target: { value: "Different Address" } });
+
+    // Fill remaining step 1 fields
+    fireEvent.change(getTitleInput(), { target: { value: "5v5 Basketball Pickup" } });
+    fireEvent.change(getSportSelect(), { target: { value: "Basketball" } });
+    fireEvent.change(getDateInput(), { target: { value: "2026-02-10" } });
+    fireEvent.change(getIndoorSelect(), { target: { value: "INDOOR" } });
+    const { start, end } = getTimeSelects();
+    fireEvent.change(start, { target: { value: "10:00" } });
+    fireEvent.change(end, { target: { value: "11:00" } });
+
+    // Step 1 → 2
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game details/i);
+
+    // Step 2 → 3
+    await fillStep2Valid();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game settings/i);
+
+    // Advance past the 1-second submit cooldown
+    act(() => { jest.advanceTimersByTime(1000); });
+
+    // Submit
+    fireEvent.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => {
+      expect(createGameMock).toHaveBeenCalledWith(
+        expect.objectContaining({ latitude: undefined, longitude: undefined })
+      );
+    });
+  });
+
+  it("address onChange: typing the same text that is already in the input preserves existing lat/lon (locationChanged=false)", async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true, user: { reliabilityScore: 80 } });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: "new-game-3" });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      json: async () => [
+        { display_name: "My Gym", lat: "45.5", lon: "-73.6" },
+      ],
+    });
+
+    render(<CreateGame />);
+
+    const locationInput = getLocationInput();
+    fireEvent.focus(locationInput);
+    fireEvent.change(locationInput, { target: { value: "My G" } });
+
+    await act(async () => { jest.advanceTimersByTime(500); });
+    await flushPromises();
+
+    await screen.findByText("My Gym");
+    fireEvent.click(screen.getByRole("button", { name: /my gym/i }));
+    // location is now "My Gym", lat=45.5 lon=-73.6
+
+    // Fire onChange with the SAME value — locationChanged=false → lat/lon preserved
+    fireEvent.change(locationInput, { target: { value: "My Gym" } });
+
+    // Fill remaining step 1 fields
+    fireEvent.change(getTitleInput(), { target: { value: "5v5 Basketball Pickup" } });
+    fireEvent.change(getSportSelect(), { target: { value: "Basketball" } });
+    fireEvent.change(getDateInput(), { target: { value: "2026-02-10" } });
+    fireEvent.change(getIndoorSelect(), { target: { value: "INDOOR" } });
+    const { start, end } = getTimeSelects();
+    fireEvent.change(start, { target: { value: "10:00" } });
+    fireEvent.change(end, { target: { value: "11:00" } });
+
+    // Step 1 → 2
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game details/i);
+
+    // Step 2 → 3
+    await fillStep2Valid();
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByText(/game settings/i);
+
+    // Advance past the 1-second submit cooldown
+    act(() => { jest.advanceTimersByTime(1000); });
+
+    // Submit
+    fireEvent.click(screen.getByRole("button", { name: /create game/i }));
+
+    await waitFor(() => {
+      expect(createGameMock).toHaveBeenCalledWith(
+        expect.objectContaining({ latitude: 45.5, longitude: -73.6 })
+      );
+    });
   });
 
   it("location input is capped at 255 chars (typing beyond is trimmed)", async () => {

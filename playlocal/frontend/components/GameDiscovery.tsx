@@ -350,8 +350,13 @@ export function GameDiscovery() {
   const displayGames = useMemo(() => {
     let games = apiGames;
     if (todayOnly) {
-      const todayStr = new Date().toDateString();
-      games = games.filter(g => g.startTime && new Date(g.startTime).toDateString() === todayStr);
+      // Compare dates in a consistent timezone (UTC) to avoid local timezone discrepancies
+      const todayUtcDateStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      games = games.filter(
+        (g) =>
+          g.startTime &&
+          new Date(g.startTime).toISOString().slice(0, 10) === todayUtcDateStr
+      );
     }
     return games.map(transformApiGame);
   }, [apiGames, todayOnly]);
@@ -664,7 +669,7 @@ function GameCard({ game }: { game: GameDisplay }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="group bg-white rounded-xl border border-emerald-200 hover:border-emerald-400 hover:shadow-lg transition-all overflow-hidden"
+      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-400 hover:shadow-lg transition-all overflow-hidden"
     >
       <div className="relative h-48 overflow-hidden">
         <img

@@ -72,7 +72,7 @@ function toUINotification(notification: NotificationDto): UINotification {
         console.warn(`[useNotifications] Unexpected type for payload.gameId: ${typeof payload.gameId}`, payload);
     }
 
-    const title = (typeof payload.title === 'string' ? payload.title : '') || buildNotificationTitle(type);
+    const title = (typeof payload.title === 'string' && payload.title) || buildNotificationTitle(type);
     const message = (typeof payload.message === 'string' ? payload.message : '')
         || (typeof payload.gameTitle === 'string' ? `Update for ${payload.gameTitle}` : title);
     const link = (typeof payload.link === 'string' ? payload.link : '') || (typeof payload.gameId === 'string' ? `/games/${payload.gameId}` : undefined);
