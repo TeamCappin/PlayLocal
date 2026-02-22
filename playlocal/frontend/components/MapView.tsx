@@ -47,48 +47,19 @@ export default function MapView({
       g.lat != null && g.lng != null
   );
 
-  // Always render the map container for consistent layout.
-  // The "no games at all" empty state is shown inside the map container below.
-  if (games.length === 0) {
-    return (
-      <div className="relative h-[600px] w-full rounded-xl overflow-hidden">
-        <APIProvider apiKey={apiKey}>
-          <Map
-            defaultCenter={center}
-            defaultZoom={zoom}
-            gestureHandling={'greedy'}
-            disableDefaultUI={true}
-            mapId="playlocal-discover-map"
-          />
-        </APIProvider>
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 rounded-xl">
-          <div className="text-center">
-            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-700 mb-2">No games found</h3>
-            <p className="text-sm text-gray-500">Try adjusting your filters or check back later.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (games.length === 0) {
-    return (
-      <div className="h-[600px] bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">
-        <div className="text-center">
-          <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl text-gray-700 mb-2">No games found</h3>
-          <p className="text-sm text-gray-500">Try adjusting your filters or check back later.</p>
-        </div>
-      </div>
-    );
-  }
-
   const selectedGame = mappableGames.find((g) => g.id === selectedId) ?? null;
 
   return (
     <div className="w-full space-y-3">
-      {mappableGames.length === 0 && (
+      {games.length === 0 && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+          <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <span className="text-amber-800">
+            <span className="font-semibold">No games found</span> — try adjusting your filters or check back later.
+          </span>
+        </div>
+      )}
+      {games.length > 0 && mappableGames.length === 0 && (
         <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
           <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
           <span className="text-amber-800">
