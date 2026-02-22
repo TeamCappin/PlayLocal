@@ -459,7 +459,15 @@ export function CreateGame() {
                       value={formData.location}
                       onChange={(e) => {
                         const nextLocation = e.target.value.slice(0, MAX_LOCATION_NAME_LENGTH);
-                        setFormData({ ...formData, location: nextLocation, latitude: undefined, longitude: undefined });
+                        setFormData((prev) => {
+                          const locationChanged = nextLocation !== prev.location;
+                          return {
+                          ...prev,
+                          location: nextLocation,
+                          latitude: locationChanged ? undefined : prev.latitude,
+                          longitude: locationChanged ? undefined : prev.longitude,
+                          };
+                        });
                         setShowSuggestions(true);
                       }}
                       onFocus={() => setShowSuggestions(true)}
@@ -793,7 +801,7 @@ export function CreateGame() {
                       </p>
                       <select className="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option>Random Assignment</option>
-                        <option>Captain's Pick</option>
+                        <option>Captain&apos;s Pick</option>
                         <option>Smart Balancing (Recommended)</option>
                       </select>
                     </div>

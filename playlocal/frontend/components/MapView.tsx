@@ -45,7 +45,31 @@ export default function MapView({
       g.lat != null && g.lng != null
   );
 
-  // No games returned at all (filters produced 0 results)
+  // Always render the map container for consistent layout.
+  // The "no games at all" empty state is shown inside the map container below.
+  if (games.length === 0) {
+    return (
+      <div className="h-[600px] w-full rounded-xl overflow-hidden">
+        <APIProvider apiKey={apiKey}>
+          <Map
+            defaultCenter={center}
+            defaultZoom={zoom}
+            gestureHandling={'greedy'}
+            disableDefaultUI={true}
+            mapId="playlocal-discover-map"
+          />
+        </APIProvider>
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 rounded-xl">
+          <div className="text-center">
+            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl text-gray-700 mb-2">No games found</h3>
+            <p className="text-sm text-gray-500">Try adjusting your filters or check back later.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (games.length === 0) {
     return (
       <div className="h-[600px] bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">

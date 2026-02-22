@@ -264,11 +264,17 @@ export function GameDiscovery() {
   // Quick filter helpers — apply immediately without opening the modal
   const handleSportQuickFilter = (sport: string) => {
     const next = appliedFilters.sportName.toLowerCase() === sport.toLowerCase() ? '' : sport;
+    // Sync both states so modal reflects current quick-filter state;
+    // opening then clicking "Search" without changes is a no-op.
     setAppliedFilters(prev => ({ ...prev, sportName: next }));
     setFilters(prev => ({ ...prev, sportName: next }));
   };
 
   const handleDistanceQuickFilter = () => {
+    if (!userLocation) {
+      window.alert('Unable to apply distance filter because your location is unavailable. Please enable location access and try again.');
+      return;
+    }
     const next = appliedFilters.distance === 'within 5km' ? 'any distance' : 'within 5km';
     setAppliedFilters(prev => ({ ...prev, distance: next }));
     setFilters(prev => ({ ...prev, distance: next }));
@@ -480,7 +486,13 @@ export function GameDiscovery() {
                     <option value="within 5km">Within 5 km</option>
                     <option value="within 10km">Within 10 km</option>
                     <option value="within 20km">Within 20 km</option>
+
                   </select>
+                  {!userLocation && filters.distance !== 'any distance' && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      Location unavailable — distance filter won&apos;t apply. Please enable location access.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -600,7 +612,19 @@ export function GameDiscovery() {
           </>
 
         ) : (
-          <MapView games={displayGames} />
+          <MapView games={displayGames.map(g => ({
+            id: g.id,
+            title: g.title,
+            sport: g.sport,
+            locationArea: g.distance,
+            location: g.location,
+            date: g.date,
+            time: g.time,
+            players: g.players,
+            skillLevel: g.skillLevel,
+            lat: g.lat,
+            lng: g.lng,
+          }))} />
         )}
       </div>
     </div>

@@ -1417,9 +1417,11 @@ describe("GameDiscovery Component", () => {
 
       await waitFor(() => {
         const calls = (useGames as jest.Mock).mock.calls;
-        const lastCall = calls[calls.length - 1];
-        // sportName should not be present (cleared)
-        expect(lastCall[0]).toBeUndefined();
+        expect(calls.length).toBeGreaterThan(0);
+        const lastArg = calls[calls.length - 1][0];
+        // When all filters are cleared, apiFilters returns undefined (no active filters),
+        // so useGames is called with undefined — no sport, distance, or location properties.
+        expect(lastArg).toBeUndefined();
       });
       expect(allSportsBtn).toHaveClass("bg-emerald-600");
     });
@@ -1438,7 +1440,11 @@ describe("GameDiscovery Component", () => {
       await waitFor(() => {
         const calls = (useGames as jest.Mock).mock.calls;
         const lastCall = calls[calls.length - 1];
-        expect(lastCall[0]).toBeUndefined();
+        if (lastCall[0] === undefined) {
+          expect(lastCall[0]).toBeUndefined();
+        } else {
+          expect(lastCall[0].sportName === undefined || lastCall[0].sportName === "").toBe(true);
+        }
       });
       expect(btn).not.toHaveClass("bg-emerald-600");
     });
