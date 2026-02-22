@@ -524,8 +524,21 @@ export function GameDiscovery() {
                 </div>
               </div>
 
-              {/* Search Button */}
-              <div className="flex justify-end pt-4 border-t border-gray-200">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    const empty = { sportName: '', distance: 'any distance', skillLevel: 'any', locationType: 'any', intensity: 'any' };
+                    setFilters(empty);
+                    setAppliedFilters(empty);
+                    setTodayOnly(false);
+                    setShowFilterModal(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Reset</span>
+                </button>
                 <button
                   onClick={() => {
                     setAppliedFilters(filters);
@@ -626,7 +639,7 @@ function GameCard({ game }: { game: GameDisplay }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all overflow-hidden"
+      className="group bg-white rounded-xl border border-emerald-200 hover:border-emerald-400 hover:shadow-lg transition-all overflow-hidden"
     >
       <div className="relative h-48 overflow-hidden">
         <img

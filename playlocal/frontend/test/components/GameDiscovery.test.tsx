@@ -492,6 +492,34 @@ describe("GameDiscovery Component", () => {
       });
     });
 
+    it("Reset button clears all filters, resets todayOnly, and closes the modal", async () => {
+      render(<GameDiscovery />);
+
+      // Open modal and set some filters
+      const filterButton = screen.getByText("Filters");
+      await act(async () => { fireEvent.click(filterButton); });
+      await waitFor(() => expect(screen.getByText("Distance")).toBeInTheDocument());
+
+      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
+      await act(async () => {
+        fireEvent.change(sportInput, { target: { value: "Basketball" } });
+      });
+
+      // Click Reset
+      const resetButton = screen.getByRole("button", { name: /reset/i });
+      await act(async () => { fireEvent.click(resetButton); });
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByText("Distance")).not.toBeInTheDocument();
+      });
+
+      // useGames should have been called with no filters (undefined)
+      const calls = (useGames as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]).toBeUndefined();
+    });
+
     it("should close modal when X button is clicked", async () => {
       render(<GameDiscovery />);
 
@@ -504,7 +532,8 @@ describe("GameDiscovery Component", () => {
         expect(screen.getByText("Distance")).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByTestId("icon-x").closest("button");
+      // First icon-x is the header close button; second is the Reset button
+      const closeButton = screen.getAllByTestId("icon-x")[0].closest("button");
       if (closeButton) {
         await act(async () => {
           fireEvent.click(closeButton);
