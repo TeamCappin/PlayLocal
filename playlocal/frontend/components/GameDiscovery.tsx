@@ -231,9 +231,11 @@ export function GameDiscovery() {
   // Restore view mode from sessionStorage after hydration (lazy initializer runs
   // before hydration in Next.js SSR, so sessionStorage isn't reliable there)
   useEffect(() => {
-    const saved = sessionStorage.getItem('playlocal-view-mode');
-    if (saved === 'grid' || saved === 'map') {
-      setViewMode(saved);
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('playlocal-view-mode');
+      if (saved === 'grid' || saved === 'map') {
+        setViewMode(saved);
+      }
     }
   }, []);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -258,7 +260,9 @@ export function GameDiscovery() {
   // Save view mode preference to session storage when it changes
   const handleViewModeChange = (mode: 'grid' | 'map') => {
     setViewMode(mode);
-    sessionStorage.setItem('playlocal-view-mode', mode);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('playlocal-view-mode', mode);
+    }
   };
 
   // Quick filter helpers — apply immediately without opening the modal
