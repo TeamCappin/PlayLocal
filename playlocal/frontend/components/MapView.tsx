@@ -51,7 +51,7 @@ export default function MapView({
   // The "no games at all" empty state is shown inside the map container below.
   if (games.length === 0) {
     return (
-      <div className="h-[600px] w-full rounded-xl overflow-hidden">
+      <div className="relative h-[600px] w-full rounded-xl overflow-hidden">
         <APIProvider apiKey={apiKey}>
           <Map
             defaultCenter={center}
