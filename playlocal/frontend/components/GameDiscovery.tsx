@@ -226,15 +226,16 @@ interface FilterState {
 }
 
 export function GameDiscovery() {
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>(() => {
-    if (typeof window !== 'undefined') {
-      const savedViewMode = sessionStorage.getItem('playlocal-view-mode');
-      if (savedViewMode === 'grid' || savedViewMode === 'map') {
-        return savedViewMode;
-      }
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // Restore view mode from sessionStorage after hydration (lazy initializer runs
+  // before hydration in Next.js SSR, so sessionStorage isn't reliable there)
+  useEffect(() => {
+    const saved = sessionStorage.getItem('playlocal-view-mode');
+    if (saved === 'grid' || saved === 'map') {
+      setViewMode(saved);
     }
-    return 'grid';
-  });
+  }, []);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
