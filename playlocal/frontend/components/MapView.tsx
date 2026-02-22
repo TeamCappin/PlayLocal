@@ -45,12 +45,13 @@ export default function MapView({
       g.lat != null && g.lng != null
   );
 
-  if (games.length === 0 || mappableGames.length === 0) {
+  // No games returned at all (filters produced 0 results)
+  if (games.length === 0) {
     return (
       <div className="h-[600px] bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">
         <div className="text-center">
           <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl text-gray-700 mb-2">No games on the map</h3>
+          <h3 className="text-xl text-gray-700 mb-2">No games found</h3>
           <p className="text-sm text-gray-500">Try adjusting your filters or check back later.</p>
         </div>
       </div>
@@ -60,7 +61,17 @@ export default function MapView({
   const selectedGame = mappableGames.find((g) => g.id === selectedId) ?? null;
 
   return (
-    <div className="h-[600px] w-full rounded-xl overflow-hidden">
+    <div className="w-full space-y-3">
+      {mappableGames.length === 0 && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+          <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <span className="text-amber-800">
+            <span className="font-semibold">{games.length} game{games.length !== 1 ? 's' : ''} found</span> — none have a map location yet.
+            Switch to list view to see them.
+          </span>
+        </div>
+      )}
+      <div className="h-[600px] w-full rounded-xl overflow-hidden">
       <APIProvider apiKey={apiKey}>
         <Map
           defaultCenter={center}
@@ -115,6 +126,7 @@ export default function MapView({
           )}
         </Map>
       </APIProvider>
+      </div>
     </div>
   );
 }
