@@ -127,7 +127,7 @@ class GameServiceDiscoveryTest {
         @DisplayName("getUpcomingGames with filters normalizes and passes to repository")
         void getUpcomingGames_WithFilters_NormalizesAndCallsRepo() {
                 when(gameRepository.findUpcomingGamesWithFilters(
-                                any(Instant.class), eq("Basketball"), eq("intermediate"), eq("outdoor"),
+                                any(Instant.class), eq("basketball"), eq("intermediate"), eq("outdoor"),
                                 eq("competitive")))
                                 .thenReturn(List.of(game));
                 mockMapToGameResponseDependencies();
@@ -137,7 +137,7 @@ class GameServiceDiscoveryTest {
 
                 assertThat(result).hasSize(1);
                 verify(gameRepository).findUpcomingGamesWithFilters(
-                                any(Instant.class), eq("Basketball"), eq("intermediate"), eq("outdoor"),
+                                any(Instant.class), eq("basketball"), eq("intermediate"), eq("outdoor"),
                                 eq("competitive"));
         }
 
@@ -195,7 +195,7 @@ class GameServiceDiscoveryTest {
         void findNearbyGames_WithFilters_NormalizesAndCallsRepo() {
                 when(gameRepository.findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(5.0),
-                                eq("Soccer"), eq("beginner"), eq("indoor"), eq("casual")))
+                                eq("soccer"), eq("beginner"), eq("indoor"), eq("casual")))
                                 .thenReturn(List.of());
 
                 gameService.findNearbyGames(
@@ -204,7 +204,7 @@ class GameServiceDiscoveryTest {
 
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(5.0),
-                                eq("Soccer"), eq("beginner"), eq("indoor"), eq("casual"));
+                                eq("soccer"), eq("beginner"), eq("indoor"), eq("casual"));
         }
 
         @Test
