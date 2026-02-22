@@ -11,7 +11,7 @@ interface GameMapPin {
   sport: string;
   time: string;
   date: string;
-  distance: string;
+  locationArea: string;
   location: string;
 }
 
