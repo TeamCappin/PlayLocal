@@ -1,6 +1,7 @@
-import React from 'react';
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { APIProvider, Map, AdvancedMarker, InfoWindow } from '@vis.gl/react-google-maps';
+import { MapPin, Clock, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface GameMapPin {
   id: string;
@@ -11,6 +12,7 @@ interface GameMapPin {
   time: string;
   date: string;
   distance: string;
+  location: string;
 }
 
 interface MapViewProps {
@@ -25,6 +27,7 @@ export default function MapView({
   games = [],
 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
     return (
@@ -54,6 +57,8 @@ export default function MapView({
     );
   }
 
+  const selectedGame = mappableGames.find((g) => g.id === selectedId) ?? null;
+
   return (
     <div className="h-[600px] w-full rounded-xl overflow-hidden">
       <APIProvider apiKey={apiKey}>
@@ -63,18 +68,51 @@ export default function MapView({
           gestureHandling={'greedy'}
           disableDefaultUI={true}
           mapId="playlocal-discover-map"
+          onClick={() => setSelectedId(null)}
         >
           {mappableGames.map((game) => (
             <AdvancedMarker
               key={game.id}
               position={{ lat: game.lat, lng: game.lng }}
               title={`${game.sport} \u2013 ${game.date} at ${game.time}`}
+              onClick={(e) => { e.stop(); setSelectedId(game.id); }}
             >
-              <div className="bg-emerald-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md border-2 border-white whitespace-nowrap max-w-[160px] truncate">
+              <div
+                className={`text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md border-2 border-white whitespace-nowrap max-w-[160px] truncate transition-colors ${
+                  selectedId === game.id ? 'bg-emerald-800' : 'bg-emerald-600'
+                }`}
+              >
                 {game.title}
               </div>
             </AdvancedMarker>
           ))}
+
+          {selectedGame && (
+            <InfoWindow
+              position={{ lat: selectedGame.lat as number, lng: selectedGame.lng as number }}
+              onCloseClick={() => setSelectedId(null)}
+              pixelOffset={[0, -36]}
+            >
+              <div className="w-56 p-1">
+                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">{selectedGame.sport}</p>
+                <p className="text-sm font-semibold text-gray-900 mb-2 leading-snug">{selectedGame.title}</p>
+                <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <span>{selectedGame.date} at {selectedGame.time}</span>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{selectedGame.location}</span>
+                </div>
+                <Link
+                  href={`/games/${selectedGame.id}`}
+                  className="flex items-center justify-center gap-1 w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  View Game <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </InfoWindow>
+          )}
         </Map>
       </APIProvider>
     </div>

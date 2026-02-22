@@ -252,10 +252,25 @@ export function GameDiscovery() {
     intensity: 'any',
   });
 
+  const [todayOnly, setTodayOnly] = useState(false);
+
   // Save view mode preference to session storage when it changes
   const handleViewModeChange = (mode: 'grid' | 'map') => {
     setViewMode(mode);
     sessionStorage.setItem('playlocal-view-mode', mode);
+  };
+
+  // Quick filter helpers — apply immediately without opening the modal
+  const handleSportQuickFilter = (sport: string) => {
+    const next = appliedFilters.sportName.toLowerCase() === sport.toLowerCase() ? '' : sport;
+    setAppliedFilters(prev => ({ ...prev, sportName: next }));
+    setFilters(prev => ({ ...prev, sportName: next }));
+  };
+
+  const handleDistanceQuickFilter = () => {
+    const next = appliedFilters.distance === 'within 5km' ? 'any distance' : 'within 5km';
+    setAppliedFilters(prev => ({ ...prev, distance: next }));
+    setFilters(prev => ({ ...prev, distance: next }));
   };
 
   // Get user location on mount (optional)
@@ -281,17 +296,11 @@ export function GameDiscovery() {
     const apiFilter: Record<string, string | number | boolean> = {};
 
     if (appliedFilters.sportName.trim()) {
-      apiFilter.sportName = appliedFilters.sportName.trim();
+      apiFilter.sportName = appliedFilters.sportName.trim().toLowerCase();
     }
 
     if (appliedFilters.skillLevel !== 'any') {
-      // Map to database format: Beginner, Intermediate, Advanced (capitalized)
-      const skillLevelMap: Record<string, string> = {
-        'beginner': 'Beginner',
-        'intermediate': 'Intermediate',
-        'advanced': 'Advanced',
-      };
-      apiFilter.skillLevel = skillLevelMap[appliedFilters.skillLevel.toLowerCase()] || appliedFilters.skillLevel;
+      apiFilter.skillLevel = appliedFilters.skillLevel.toLowerCase();
     }
 
     if (appliedFilters.locationType !== 'any') {
@@ -299,13 +308,7 @@ export function GameDiscovery() {
     }
 
     if (appliedFilters.intensity !== 'any') {
-      // Map to database format: Casual, High, Competitive (capitalized)
-      const intensityMap: Record<string, string> = {
-        'casual': 'Casual',
-        'high': 'High',
-        'competitive': 'Competitive',
-      };
-      apiFilter.intensity = intensityMap[appliedFilters.intensity.toLowerCase()] || appliedFilters.intensity;
+      apiFilter.intensity = appliedFilters.intensity.toLowerCase();
     }
 
     // Distance filter - convert to radiusKm
@@ -336,8 +339,15 @@ export function GameDiscovery() {
     return () => window.removeEventListener("playlocal-refresh-games", handler);
   }, [refetch]);
 
-  // Transform games - backend already filters, so just transform
-  const displayGames = apiGames.map(transformApiGame);
+  // Transform games - apply optional client-side filters (e.g. Today)
+  const displayGames = useMemo(() => {
+    let games = apiGames;
+    if (todayOnly) {
+      const todayStr = new Date().toDateString();
+      games = games.filter(g => g.startTime && new Date(g.startTime).toDateString() === todayStr);
+    }
+    return games.map(transformApiGame);
+  }, [apiGames, todayOnly]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -382,14 +392,49 @@ export function GameDiscovery() {
 
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2">
-            <FilterChip label="All Sports" active />
-            <FilterChip label="Basketball" />
-            <FilterChip label="Soccer" />
-            <FilterChip label="Volleyball" />
-            <FilterChip label="Tennis" />
-            <FilterChip label="Today" />
-            <FilterChip label="Within 5km" />
-            <FilterChip label="My Skill Level" />
+            <FilterChip
+              label="All Sports"
+              active={!appliedFilters.sportName}
+              onClick={() => {
+                setAppliedFilters(prev => ({ ...prev, sportName: '' }));
+                setFilters(prev => ({ ...prev, sportName: '' }));
+              }}
+            />
+            <FilterChip
+              label="Basketball"
+              active={appliedFilters.sportName.toLowerCase() === 'basketball'}
+              onClick={() => handleSportQuickFilter('Basketball')}
+            />
+            <FilterChip
+              label="Soccer"
+              active={appliedFilters.sportName.toLowerCase() === 'soccer'}
+              onClick={() => handleSportQuickFilter('Soccer')}
+            />
+            <FilterChip
+              label="Volleyball"
+              active={appliedFilters.sportName.toLowerCase() === 'volleyball'}
+              onClick={() => handleSportQuickFilter('Volleyball')}
+            />
+            <FilterChip
+              label="Tennis"
+              active={appliedFilters.sportName.toLowerCase() === 'tennis'}
+              onClick={() => handleSportQuickFilter('Tennis')}
+            />
+            <FilterChip
+              label="Today"
+              active={todayOnly}
+              onClick={() => setTodayOnly(prev => !prev)}
+            />
+            <FilterChip
+              label="Within 5km"
+              active={appliedFilters.distance === 'within 5km'}
+              onClick={handleDistanceQuickFilter}
+            />
+            <FilterChip
+              label="My Skill Level"
+              active={false}
+              onClick={() => setShowFilterModal(true)}
+            />
           </div>
         </div>
       </div>
@@ -676,9 +721,10 @@ function GameCard({ game }: { game: GameDisplay }) {
   );
 }
 
-function FilterChip({ label, active = false }: { label: string; active?: boolean }) {
+function FilterChip({ label, active = false, onClick }: { label: string; active?: boolean; onClick?: () => void }) {
   return (
     <button
+      onClick={onClick}
       className={`px-4 py-2 rounded-full text-sm transition-colors ${active
         ? 'bg-emerald-600 text-white'
         : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-300'

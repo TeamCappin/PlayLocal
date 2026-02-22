@@ -191,7 +191,7 @@ public class GameService {
         private static GameFilterParams normalizeGameFilters(
                         String sportName, String skillLevel, String locationType, String intensity) {
                 String normalizedSportName = (sportName != null && !sportName.trim().isEmpty())
-                                ? sportName.trim()
+                                ? sportName.trim().toLowerCase()
                                 : null;
                 String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty())
                                 ? skillLevel.toLowerCase().trim()
