@@ -257,14 +257,14 @@ describe("MapView", () => {
 
       // Before selection - unselected color
       const markerDiv = screen.getByText("Basketball Pickup");
-      expect(markerDiv.className).toMatch(/bg-emerald-600/);
+      expect(markerDiv.className).toMatch(/bg-emerald-700/);
       expect(markerDiv.className).not.toMatch(/bg-emerald-800/);
 
       fireEvent.click(screen.getByTestId("map-marker"));
 
       // After selection - selected color
       expect(markerDiv.className).toMatch(/bg-emerald-800/);
-      expect(markerDiv.className).not.toMatch(/bg-emerald-600/);
+      expect(markerDiv.className).not.toMatch(/bg-emerald-700/);
     });
 
     it("clicking a second marker updates selection and shows new InfoWindow", () => {
