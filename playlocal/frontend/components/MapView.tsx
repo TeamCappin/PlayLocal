@@ -86,8 +86,8 @@ export default function MapView({
               onClick={(e) => { e.stop(); setSelectedId(game.id); }}
             >
               <div
-                className={`text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md border-2 border-white whitespace-nowrap max-w-[160px] truncate transition-colors ${
-                  selectedId === game.id ? 'bg-emerald-800' : 'bg-emerald-600'
+                className={`text-white text-xs font-semibold px-2 py-1 rounded-full shadow-lg ring-1 ring-black/30 border-2 border-white whitespace-nowrap max-w-[160px] truncate transition-colors ${
+                  selectedId === game.id ? 'bg-emerald-800' : 'bg-emerald-700'
                 }`}
               >
                 {game.title}
@@ -110,7 +110,7 @@ export default function MapView({
                 </div>
                 <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
                   <MapPin className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{selectedGame.location}</span>
+                  <span className="truncate">{selectedGame.locationArea ?? selectedGame.location}</span>
                 </div>
                 <Link
                   href={`/games/${selectedGame.id}`}
