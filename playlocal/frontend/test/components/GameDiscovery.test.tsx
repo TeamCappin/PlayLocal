@@ -29,11 +29,19 @@ jest.mock("lucide-react", () => ({
   Search: () => <div data-testid="icon-search" />,
 }));
 
+// Prevent @vis.gl/react-google-maps from running in tests
+jest.mock("../../components/MapView", () => ({
+  __esModule: true,
+  default: () => <div data-testid="map-view" />,
+}));
+
 import { useGames } from "../../hooks/useGames";
 
 describe("GameDiscovery Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Prevent view-mode persisted in sessionStorage from leaking between tests
+    sessionStorage.clear();
   });
 
   describe("Loading State", () => {
@@ -212,10 +220,9 @@ describe("GameDiscovery Component", () => {
       const buttons = screen.getAllByRole("button");
       const mapButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-map"]'));
 
-      if (mapButton) {
-        fireEvent.click(mapButton);
-        expect(screen.getByText(/Interactive map view would appear here/i)).toBeInTheDocument();
-      }
+      expect(mapButton).toBeDefined();
+      fireEvent.click(mapButton!);
+      expect(screen.getByTestId("map-view")).toBeInTheDocument();
     });
 
     it("should toggle back to grid view when calendar button is clicked", () => {
@@ -231,13 +238,14 @@ describe("GameDiscovery Component", () => {
       const mapButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-map"]'));
       const gridButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-calendar"]'));
 
-      if (mapButton && gridButton) {
-        fireEvent.click(mapButton);
-        expect(screen.getByText(/Interactive map view would appear here/i)).toBeInTheDocument();
+      expect(mapButton).toBeDefined();
+      expect(gridButton).toBeDefined();
 
-        fireEvent.click(gridButton);
-        expect(screen.queryByText(/Interactive map view would appear here/i)).not.toBeInTheDocument();
-      }
+      fireEvent.click(mapButton!);
+      expect(screen.getByTestId("map-view")).toBeInTheDocument();
+
+      fireEvent.click(gridButton!);
+      expect(screen.queryByTestId("map-view")).not.toBeInTheDocument();
     });
   });
 
@@ -484,6 +492,34 @@ describe("GameDiscovery Component", () => {
       });
     });
 
+    it("Reset button clears all filters, resets todayOnly, and closes the modal", async () => {
+      render(<GameDiscovery />);
+
+      // Open modal and set some filters
+      const filterButton = screen.getByText("Filters");
+      await act(async () => { fireEvent.click(filterButton); });
+      await waitFor(() => expect(screen.getByText("Distance")).toBeInTheDocument());
+
+      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
+      await act(async () => {
+        fireEvent.change(sportInput, { target: { value: "Basketball" } });
+      });
+
+      // Click Reset
+      const resetButton = screen.getByRole("button", { name: /reset/i });
+      await act(async () => { fireEvent.click(resetButton); });
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByText("Distance")).not.toBeInTheDocument();
+      });
+
+      // useGames should have been called with no filters (undefined)
+      const calls = (useGames as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1];
+      expect(lastCall[0]).toBeUndefined();
+    });
+
     it("should close modal when X button is clicked", async () => {
       render(<GameDiscovery />);
 
@@ -496,7 +532,8 @@ describe("GameDiscovery Component", () => {
         expect(screen.getByText("Distance")).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByTestId("icon-x").closest("button");
+      // First icon-x is the header close button; second is the Reset button
+      const closeButton = screen.getAllByTestId("icon-x")[0].closest("button");
       if (closeButton) {
         await act(async () => {
           fireEvent.click(closeButton);
@@ -709,7 +746,7 @@ describe("GameDiscovery Component", () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          sportName: "Basketball",
+          sportName: "basketball",
         });
       });
     });
@@ -746,7 +783,7 @@ describe("GameDiscovery Component", () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          skillLevel: "Beginner",
+          skillLevel: "beginner",
         });
       });
     });
@@ -815,7 +852,7 @@ describe("GameDiscovery Component", () => {
       await waitFor(() => {
         expect(useGames).toHaveBeenCalledWith(
           expect.objectContaining({
-            intensity: "High",
+            intensity: "high",
           }),
         );
       });
@@ -964,10 +1001,10 @@ describe("GameDiscovery Component", () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          sportName: "Soccer",
-          skillLevel: "Intermediate",
+          sportName: "soccer",
+          skillLevel: "intermediate",
           locationType: "outdoor",
-          intensity: "Competitive",
+          intensity: "competitive",
           lat: 45.5017,
           lon: -73.5673,
           radiusKm: 5,
@@ -1008,7 +1045,7 @@ describe("GameDiscovery Component", () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          skillLevel: "Advanced",
+          skillLevel: "advanced",
         });
       });
     });
@@ -1046,7 +1083,7 @@ describe("GameDiscovery Component", () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          intensity: "Casual",
+          intensity: "casual",
         });
       });
     });
@@ -1308,6 +1345,406 @@ describe("GameDiscovery Component", () => {
       // Should render with fallback status color
       expect(screen.getByText("Game With Unknown Status")).toBeInTheDocument();
       expect(screen.getByText("5/10 players")).toBeInTheDocument();
+    });
+  });
+
+  // ── US 7.1: Google Maps – Map-Based Discover View ────────────────────────
+
+  describe("Quick Filter Chips", () => {
+    const baseGame = {
+      gameId: "game-1",
+      title: "Basketball Pickup",
+      sportName: "Basketball",
+      startTime: new Date().toISOString(), // today
+      endTime: new Date(Date.now() + 3600000).toISOString(),
+      location: { name: "Park", city: "Montreal" },
+      hasExactLocationAccess: true,
+      approximateLocation: "Montreal, QC",
+      confirmedCount: 5,
+      maxPlayers: 10,
+      minPlayers: 4,
+      skillBand: "Intermediate",
+      intensityBand: "High",
+      indoorOutdoor: "outdoor",
+      organizer: { userId: "u1", displayName: "Host", reliabilityScore: 90 },
+      status: "SCHEDULED",
+      description: "Test",
+      tags: [],
+    };
+
+    beforeEach(() => {
+      (useGames as jest.Mock).mockReturnValue({
+        games: [baseGame],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+    });
+
+    it("'All Sports' chip is active by default", () => {
+      render(<GameDiscovery />);
+      const allSportsBtn = screen.getByRole("button", { name: "All Sports" });
+      expect(allSportsBtn).toHaveClass("bg-emerald-600");
+    });
+
+    it("clicking a sport chip activates it and sends lowercase sportName to useGames", async () => {
+      render(<GameDiscovery />);
+      (useGames as jest.Mock).mockClear();
+
+      const btn = screen.getByRole("button", { name: "Basketball" });
+      await act(async () => { fireEvent.click(btn); });
+
+      await waitFor(() => {
+        const calls = (useGames as jest.Mock).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        expect(lastCall[0]).toMatchObject({ sportName: "basketball" });
+      });
+    });
+
+    it("'All Sports' chip is active when a sport is selected and clicking it clears the filter", async () => {
+      render(<GameDiscovery />);
+
+      // Select Basketball
+      const basketballBtn = screen.getByRole("button", { name: "Basketball" });
+      await act(async () => { fireEvent.click(basketballBtn); });
+      expect(basketballBtn).toHaveClass("bg-emerald-600");
+      const allSportsBtn = screen.getByRole("button", { name: "All Sports" });
+      expect(allSportsBtn).not.toHaveClass("bg-emerald-600");
+
+      // Click All Sports to clear
+      (useGames as jest.Mock).mockClear();
+      await act(async () => { fireEvent.click(allSportsBtn); });
+
+      await waitFor(() => {
+        const calls = (useGames as jest.Mock).mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const lastArg = calls[calls.length - 1][0];
+        // When all filters are cleared, apiFilters returns undefined (no active filters),
+        // so useGames is called with undefined — no sport, distance, or location properties.
+        expect(lastArg).toBeUndefined();
+      });
+      expect(allSportsBtn).toHaveClass("bg-emerald-600");
+    });
+
+    it("clicking the same sport chip again deactivates it", async () => {
+      render(<GameDiscovery />);
+
+      const btn = screen.getByRole("button", { name: "Soccer" });
+      await act(async () => { fireEvent.click(btn); });
+      expect(btn).toHaveClass("bg-emerald-600");
+
+      (useGames as jest.Mock).mockClear();
+      await act(async () => { fireEvent.click(btn); });
+
+      // After toggle-off, no sportName filter should be active
+      await waitFor(() => {
+        const calls = (useGames as jest.Mock).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        if (lastCall[0] === undefined) {
+          expect(lastCall[0]).toBeUndefined();
+        } else {
+          expect(lastCall[0].sportName === undefined || lastCall[0].sportName === "").toBe(true);
+        }
+      });
+      expect(btn).not.toHaveClass("bg-emerald-600");
+    });
+
+    it("'Today' chip client-side filters games not starting today", async () => {
+      const futureGame = {
+        ...baseGame,
+        gameId: "game-future",
+        title: "Future Game",
+        startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      (useGames as jest.Mock).mockReturnValue({
+        games: [baseGame, futureGame],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+      // Both games visible initially
+      expect(screen.getByText("Basketball Pickup")).toBeInTheDocument();
+      expect(screen.getByText("Future Game")).toBeInTheDocument();
+
+      const todayBtn = screen.getByRole("button", { name: "Today" });
+      await act(async () => { fireEvent.click(todayBtn); });
+
+      expect(screen.getByText("Basketball Pickup")).toBeInTheDocument();
+      expect(screen.queryByText("Future Game")).not.toBeInTheDocument();
+      expect(todayBtn).toHaveClass("bg-emerald-600");
+    });
+
+    it("'Today' chip toggles off and restores all games", async () => {
+      const futureGame = {
+        ...baseGame,
+        gameId: "game-future",
+        title: "Future Game",
+        startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      (useGames as jest.Mock).mockReturnValue({
+        games: [baseGame, futureGame],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+      const todayBtn = screen.getByRole("button", { name: "Today" });
+
+      await act(async () => { fireEvent.click(todayBtn); }); // on
+      expect(screen.queryByText("Future Game")).not.toBeInTheDocument();
+
+      await act(async () => { fireEvent.click(todayBtn); }); // off
+      expect(screen.getByText("Future Game")).toBeInTheDocument();
+    });
+
+    it("'Within 5km' chip sets distance filter to 5km when location is available", async () => {
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: {
+          getCurrentPosition: jest.fn((success) =>
+            success({ coords: { latitude: 45.5, longitude: -73.5 } })
+          ),
+        },
+        writable: true,
+      });
+
+      render(<GameDiscovery />);
+      await waitFor(() =>
+        expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalled()
+      );
+
+      (useGames as jest.Mock).mockClear();
+      const btn = screen.getByRole("button", { name: "Within 5km" });
+      await act(async () => { fireEvent.click(btn); });
+
+      await waitFor(() => {
+        const calls = (useGames as jest.Mock).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        expect(lastCall[0]).toMatchObject({ radiusKm: 5, lat: 45.5, lon: -73.5 });
+      });
+      expect(btn).toHaveClass("bg-emerald-600");
+    });
+
+    it("'Within 5km' chip toggles off and clears distance filter", async () => {
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: {
+          getCurrentPosition: jest.fn((success) =>
+            success({ coords: { latitude: 45.5, longitude: -73.5 } })
+          ),
+        },
+        writable: true,
+      });
+
+      render(<GameDiscovery />);
+      await waitFor(() =>
+        expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalled()
+      );
+
+      const btn = screen.getByRole("button", { name: "Within 5km" });
+      await act(async () => { fireEvent.click(btn); }); // on
+      expect(btn).toHaveClass("bg-emerald-600");
+
+      (useGames as jest.Mock).mockClear();
+      await act(async () => { fireEvent.click(btn); }); // off
+
+      await waitFor(() => {
+        const calls = (useGames as jest.Mock).mock.calls;
+        const lastCall = calls[calls.length - 1];
+        expect(lastCall[0]).toBeUndefined();
+      });
+      expect(btn).not.toHaveClass("bg-emerald-600");
+    });
+
+    it("'My Skill Level' chip opens the filter modal", async () => {
+      render(<GameDiscovery />);
+      const btn = screen.getByRole("button", { name: "My Skill Level" });
+      await act(async () => { fireEvent.click(btn); });
+      await waitFor(() => {
+        expect(screen.getByText("Filter Games")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("Session Persistence – View Mode", () => {
+    beforeEach(() => {
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+    });
+
+    it("saves view mode to sessionStorage when toggled to map", () => {
+      render(<GameDiscovery />);
+      const buttons = screen.getAllByRole("button");
+      const mapButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-map"]'));
+      expect(mapButton).toBeDefined();
+      fireEvent.click(mapButton!);
+      expect(sessionStorage.getItem("playlocal-view-mode")).toBe("map");
+    });
+
+    it("saves view mode to sessionStorage when toggled to grid", () => {
+      render(<GameDiscovery />);
+      const buttons = screen.getAllByRole("button");
+      const mapButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-map"]'));
+      const gridButton = buttons.find((btn) => btn.querySelector('[data-testid="icon-calendar"]'));
+      fireEvent.click(mapButton!);
+      fireEvent.click(gridButton!);
+      expect(sessionStorage.getItem("playlocal-view-mode")).toBe("grid");
+    });
+
+    it("restores map view mode from sessionStorage on mount", () => {
+      sessionStorage.setItem("playlocal-view-mode", "map");
+      render(<GameDiscovery />);
+      // Component should start in map mode
+      expect(screen.getByTestId("map-view")).toBeInTheDocument();
+    });
+
+    it("restores grid view mode from sessionStorage on mount", () => {
+      sessionStorage.setItem("playlocal-view-mode", "grid");
+      render(<GameDiscovery />);
+      // Grid content present, map not
+      expect(screen.queryByTestId("map-view")).not.toBeInTheDocument();
+    });
+
+    it("defaults to grid view when no sessionStorage entry exists", () => {
+      render(<GameDiscovery />);
+      expect(screen.queryByTestId("map-view")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Within 5km chip – no location", () => {
+    beforeEach(() => {
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      // Ensure geolocation fails so userLocation stays null
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: {
+          getCurrentPosition: jest.fn((_success, error) =>
+            error({ code: 1, message: "denied" })
+          ),
+        },
+        writable: true,
+      });
+    });
+
+    it("shows window.alert when Within 5km is clicked without a user location", async () => {
+      const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      render(<GameDiscovery />);
+
+      const btn = screen.getByRole("button", { name: "Within 5km" });
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/location is unavailable/i)
+      );
+      alertSpy.mockRestore();
+    });
+  });
+
+  describe("playlocal-refresh-games event", () => {
+    it("calls refetch when playlocal-refresh-games is dispatched", async () => {
+      const refetchMock = jest.fn();
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: refetchMock,
+      });
+
+      render(<GameDiscovery />);
+
+      await act(async () => {
+        window.dispatchEvent(new Event("playlocal-refresh-games"));
+      });
+
+      expect(refetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Modal distance-unavailable warning", () => {
+    it("shows location-unavailable warning when distance filter is set but no user location", async () => {
+      // Geolocation unavailable
+      Object.defineProperty(global.navigator, "geolocation", {
+        value: undefined,
+        writable: true,
+      });
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      // Open modal
+      await act(async () => {
+        fireEvent.click(screen.getByText("Filters"));
+      });
+      await waitFor(() => expect(screen.getByText("Distance")).toBeInTheDocument());
+
+      // Change distance to something other than "any distance"
+      const distanceLabel = screen.getByText("Distance");
+      const distanceSelect = distanceLabel.parentElement?.querySelector("select");
+      expect(distanceSelect).toBeTruthy();
+      await act(async () => {
+        fireEvent.change(distanceSelect!, { target: { value: "within 5km" } });
+      });
+
+      // Warning should appear
+      expect(
+        screen.getByText(/location unavailable.*distance filter won/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("GameCard – minReliabilityRequired badge", () => {
+    it("renders reliability badge and chip when minReliabilityRequired is set", () => {
+      const reliabilityGame = {
+        gameId: "game-reliability",
+        title: "Reliability Gated Game",
+        sportName: "Basketball",
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        location: { name: "Park", city: "Montreal" },
+        hasExactLocationAccess: true,
+        approximateLocation: "Montreal, QC",
+        confirmedCount: 5,
+        maxPlayers: 10,
+        minPlayers: 4,
+        skillBand: "Intermediate",
+        intensityBand: "High",
+        indoorOutdoor: "outdoor",
+        organizer: { userId: "user-1", displayName: "Host", reliabilityScore: 95 },
+        status: "SCHEDULED",
+        description: "Test",
+        tags: [],
+        minReliabilityRequired: 80,
+      };
+
+      (useGames as jest.Mock).mockReturnValue({
+        games: [reliabilityGame],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      // Both the overlay badge and the chip in the details section should appear
+      const badges = screen.getAllByText("Min 80% Reliability");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
+import MapView from './MapView';
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
@@ -53,6 +54,8 @@ function transformApiGame(game: GameResponse) {
     image: getSportImage(game.sportName),
     status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
     minReliabilityRequired: game.minReliabilityRequired, // US-4.1: Reputation-gated games
+    lat: (game.hasExactLocationAccess && game.location?.latitude != null) ? game.location.latitude : undefined,
+    lng: (game.hasExactLocationAccess && game.location?.longitude != null) ? game.location.longitude : undefined,
   };
 }
 
@@ -224,6 +227,17 @@ interface FilterState {
 
 export function GameDiscovery() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // Restore view mode from sessionStorage after hydration (lazy initializer runs
+  // before hydration in Next.js SSR, so sessionStorage isn't reliable there)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('playlocal-view-mode');
+      if (saved === 'grid' || saved === 'map') {
+        setViewMode(saved);
+      }
+    }
+  }, []);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
@@ -240,6 +254,35 @@ export function GameDiscovery() {
     locationType: 'any',
     intensity: 'any',
   });
+
+  const [todayOnly, setTodayOnly] = useState(false);
+
+  // Save view mode preference to session storage when it changes
+  const handleViewModeChange = (mode: 'grid' | 'map') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('playlocal-view-mode', mode);
+    }
+  };
+
+  // Quick filter helpers — apply immediately without opening the modal
+  const handleSportQuickFilter = (sport: string) => {
+    const next = appliedFilters.sportName.toLowerCase() === sport.toLowerCase() ? '' : sport;
+    // Sync both states so modal reflects current quick-filter state;
+    // opening then clicking "Search" without changes is a no-op.
+    setAppliedFilters(prev => ({ ...prev, sportName: next }));
+    setFilters(prev => ({ ...prev, sportName: next }));
+  };
+
+  const handleDistanceQuickFilter = () => {
+    if (!userLocation) {
+      window.alert('Unable to apply distance filter because your location is unavailable. Please enable location access and try again.');
+      return;
+    }
+    const next = appliedFilters.distance === 'within 5km' ? 'any distance' : 'within 5km';
+    setAppliedFilters(prev => ({ ...prev, distance: next }));
+    setFilters(prev => ({ ...prev, distance: next }));
+  };
 
   // Get user location on mount (optional)
   useEffect(() => {
@@ -261,20 +304,14 @@ export function GameDiscovery() {
 
   // Convert filter state to API format
   const apiFilters = useMemo(() => {
-    const apiFilter: any = {};
+    const apiFilter: Record<string, string | number | boolean> = {};
 
     if (appliedFilters.sportName.trim()) {
-      apiFilter.sportName = appliedFilters.sportName.trim();
+      apiFilter.sportName = appliedFilters.sportName.trim().toLowerCase();
     }
 
     if (appliedFilters.skillLevel !== 'any') {
-      // Map to database format: Beginner, Intermediate, Advanced (capitalized)
-      const skillLevelMap: Record<string, string> = {
-        'beginner': 'Beginner',
-        'intermediate': 'Intermediate',
-        'advanced': 'Advanced',
-      };
-      apiFilter.skillLevel = skillLevelMap[appliedFilters.skillLevel.toLowerCase()] || appliedFilters.skillLevel;
+      apiFilter.skillLevel = appliedFilters.skillLevel.toLowerCase();
     }
 
     if (appliedFilters.locationType !== 'any') {
@@ -282,13 +319,7 @@ export function GameDiscovery() {
     }
 
     if (appliedFilters.intensity !== 'any') {
-      // Map to database format: Casual, High, Competitive (capitalized)
-      const intensityMap: Record<string, string> = {
-        'casual': 'Casual',
-        'high': 'High',
-        'competitive': 'Competitive',
-      };
-      apiFilter.intensity = intensityMap[appliedFilters.intensity.toLowerCase()] || appliedFilters.intensity;
+      apiFilter.intensity = appliedFilters.intensity.toLowerCase();
     }
 
     // Distance filter - convert to radiusKm
@@ -319,8 +350,20 @@ export function GameDiscovery() {
     return () => window.removeEventListener("playlocal-refresh-games", handler);
   }, [refetch]);
 
-  // Transform games - backend already filters, so just transform
-  const displayGames = apiGames.map(transformApiGame);
+  // Transform games - apply optional client-side filters (e.g. Today)
+  const displayGames = useMemo(() => {
+    let games = apiGames;
+    if (todayOnly) {
+      // Compare dates in a consistent timezone (UTC) to avoid local timezone discrepancies
+      const todayUtcDateStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      games = games.filter(
+        (g) =>
+          g.startTime &&
+          new Date(g.startTime).toISOString().slice(0, 10) === todayUtcDateStr
+      );
+    }
+    return games.map(transformApiGame);
+  }, [apiGames, todayOnly]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -342,7 +385,7 @@ export function GameDiscovery() {
               </button>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleViewModeChange('grid')}
                   className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'grid'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -351,7 +394,7 @@ export function GameDiscovery() {
                   <Calendar className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setViewMode('map')}
+                  onClick={() => handleViewModeChange('map')}
                   className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'map'
                     ? 'bg-white text-emerald-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -365,14 +408,49 @@ export function GameDiscovery() {
 
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2">
-            <FilterChip label="All Sports" active />
-            <FilterChip label="Basketball" />
-            <FilterChip label="Soccer" />
-            <FilterChip label="Volleyball" />
-            <FilterChip label="Tennis" />
-            <FilterChip label="Today" />
-            <FilterChip label="Within 5km" />
-            <FilterChip label="My Skill Level" />
+            <FilterChip
+              label="All Sports"
+              active={!appliedFilters.sportName}
+              onClick={() => {
+                setAppliedFilters(prev => ({ ...prev, sportName: '' }));
+                setFilters(prev => ({ ...prev, sportName: '' }));
+              }}
+            />
+            <FilterChip
+              label="Basketball"
+              active={appliedFilters.sportName.toLowerCase() === 'basketball'}
+              onClick={() => handleSportQuickFilter('Basketball')}
+            />
+            <FilterChip
+              label="Soccer"
+              active={appliedFilters.sportName.toLowerCase() === 'soccer'}
+              onClick={() => handleSportQuickFilter('Soccer')}
+            />
+            <FilterChip
+              label="Volleyball"
+              active={appliedFilters.sportName.toLowerCase() === 'volleyball'}
+              onClick={() => handleSportQuickFilter('Volleyball')}
+            />
+            <FilterChip
+              label="Tennis"
+              active={appliedFilters.sportName.toLowerCase() === 'tennis'}
+              onClick={() => handleSportQuickFilter('Tennis')}
+            />
+            <FilterChip
+              label="Today"
+              active={todayOnly}
+              onClick={() => setTodayOnly(prev => !prev)}
+            />
+            <FilterChip
+              label="Within 5km"
+              active={appliedFilters.distance === 'within 5km'}
+              onClick={handleDistanceQuickFilter}
+            />
+            <FilterChip
+              label="My Skill Level"
+              active={false}
+              onClick={() => setShowFilterModal(true)}
+            />
           </div>
         </div>
       </div>
@@ -417,7 +495,13 @@ export function GameDiscovery() {
                     <option value="within 5km">Within 5 km</option>
                     <option value="within 10km">Within 10 km</option>
                     <option value="within 20km">Within 20 km</option>
+
                   </select>
+                  {!userLocation && filters.distance !== 'any distance' && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      Location unavailable — distance filter won&apos;t apply. Please enable location access.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -462,8 +546,21 @@ export function GameDiscovery() {
                 </div>
               </div>
 
-              {/* Search Button */}
-              <div className="flex justify-end pt-4 border-t border-gray-200">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    const empty = { sportName: '', distance: 'any distance', skillLevel: 'any', locationType: 'any', intensity: 'any' };
+                    setFilters(empty);
+                    setAppliedFilters(empty);
+                    setTodayOnly(false);
+                    setShowFilterModal(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Reset</span>
+                </button>
                 <button
                   onClick={() => {
                     setAppliedFilters(filters);
@@ -507,12 +604,12 @@ export function GameDiscovery() {
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl text-gray-900 mb-2">No games available</h3>
                 <p className="text-gray-600 mb-6">Be the first to create a game in your area!</p>
-                <a
+                <Link
                   href="/games/create"
                   className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Create a Game
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -524,13 +621,19 @@ export function GameDiscovery() {
           </>
 
         ) : (
-          <div className="h-[600px] bg-gray-200 rounded-xl flex items-center justify-center">
-            <div className="text-center">
-              <MapIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Interactive map view would appear here</p>
-              <p className="text-sm text-gray-500">Showing game locations with clusters</p>
-            </div>
-          </div>
+          <MapView games={displayGames.map(g => ({
+            id: g.id,
+            title: g.title,
+            sport: g.sport,
+            locationArea: g.distance,
+            location: g.location,
+            date: g.date,
+            time: g.time,
+            players: g.players,
+            skillLevel: g.skillLevel,
+            lat: g.lat,
+            lng: g.lng,
+          }))} />
         )}
       </div>
     </div>
@@ -555,6 +658,8 @@ interface GameDisplay {
   image: string;
   status: string;
   minReliabilityRequired?: number; // US-4.1: Reputation-gated games
+  lat?: number;
+  lng?: number;
 }
 
 function GameCard({ game }: { game: GameDisplay }) {
@@ -568,7 +673,7 @@ function GameCard({ game }: { game: GameDisplay }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all overflow-hidden"
+      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-400 hover:shadow-lg transition-all overflow-hidden"
     >
       <div className="relative h-48 overflow-hidden">
         <img
@@ -663,9 +768,10 @@ function GameCard({ game }: { game: GameDisplay }) {
   );
 }
 
-function FilterChip({ label, active = false }: { label: string; active?: boolean }) {
+function FilterChip({ label, active = false, onClick }: { label: string; active?: boolean; onClick?: () => void }) {
   return (
     <button
+      onClick={onClick}
       className={`px-4 py-2 rounded-full text-sm transition-colors ${active
         ? 'bg-emerald-600 text-white'
         : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-300'

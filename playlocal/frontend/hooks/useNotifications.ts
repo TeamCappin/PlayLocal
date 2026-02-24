@@ -59,10 +59,25 @@ function toUINotification(notification: NotificationDto): UINotification {
     const payload = safeParsePayload(notification.payload);
     const type = normalizeType(notification.type);
     const createdAt = notification.sentAt || notification.scheduledFor;
-    const title = payload.title || buildNotificationTitle(type);
-    const message = payload.message
-        || (payload.gameTitle ? `Update for ${payload.gameTitle}` : title);
-    const link = payload.link || (payload.gameId ? `/games/${payload.gameId}` : undefined);
+    if (payload.title !== undefined && typeof payload.title !== 'string') {
+        console.warn(`[useNotifications] Unexpected type for payload.title: ${typeof payload.title}`, payload);
+    }
+    if (payload.message !== undefined && typeof payload.message !== 'string') {
+        console.warn(`[useNotifications] Unexpected type for payload.message: ${typeof payload.message}`, payload);
+    }
+    if (payload.link !== undefined && typeof payload.link !== 'string') {
+        console.warn(`[useNotifications] Unexpected type for payload.link: ${typeof payload.link}`, payload);
+    }
+    if (payload.gameId !== undefined && typeof payload.gameId !== 'string') {
+        console.warn(`[useNotifications] Unexpected type for payload.gameId: ${typeof payload.gameId}`, payload);
+    }
+
+    const title = (typeof payload.title === 'string' && payload.title) || buildNotificationTitle(type);
+    const message = (typeof payload.message === 'string' ? payload.message : '')
+        || (typeof payload.gameTitle === 'string' ? `Update for ${payload.gameTitle}` : title);
+    const link = typeof payload.link === 'string'
+        ? payload.link
+        : (typeof payload.gameId === 'string' ? `/games/${payload.gameId}` : undefined);
 
     return {
         ...notification,

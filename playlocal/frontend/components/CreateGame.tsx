@@ -70,6 +70,8 @@ export function CreateGame() {
     title: "",
     sport: "",
     location: "",
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
     date: "",
     startTime: "",
     endTime: "",
@@ -136,9 +138,13 @@ export function CreateGame() {
 
   const handleAddressSelect = (address: any) => {
     const selectedAddress = String(address.display_name || "").trim();
+    const lat = address.lat ? parseFloat(address.lat) : undefined;
+    const lon = address.lon ? parseFloat(address.lon) : undefined;
     setFormData({
       ...formData,
       location: selectedAddress.slice(0, MAX_LOCATION_NAME_LENGTH),
+      latitude: lat,
+      longitude: lon,
     });
     setShowSuggestions(false);
   };
@@ -301,6 +307,8 @@ export function CreateGame() {
         sportName: formData.sport,
         locationName: formData.location.trim().slice(0, MAX_LOCATION_NAME_LENGTH),
         city: "Montreal", // Could be extracted from location search
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         indoorOutdoor: formData.indoor, // Now sends INDOOR/OUTDOOR
         intensityBand: formData.intensity, // Now sends BEGINNER/CASUAL/COMPETITIVE
         skillBand: formData.skillLevel, // Now sends ALL_LEVELS/BEGINNER/INTERMEDIATE/ADVANCED
@@ -451,7 +459,15 @@ export function CreateGame() {
                       value={formData.location}
                       onChange={(e) => {
                         const nextLocation = e.target.value.slice(0, MAX_LOCATION_NAME_LENGTH);
-                        setFormData({ ...formData, location: nextLocation });
+                        setFormData((prev) => {
+                          const locationChanged = nextLocation !== prev.location;
+                          return {
+                          ...prev,
+                          location: nextLocation,
+                          latitude: locationChanged ? undefined : prev.latitude,
+                          longitude: locationChanged ? undefined : prev.longitude,
+                          };
+                        });
                         setShowSuggestions(true);
                       }}
                       onFocus={() => setShowSuggestions(true)}
@@ -785,7 +801,7 @@ export function CreateGame() {
                       </p>
                       <select className="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option>Random Assignment</option>
-                        <option>Captain's Pick</option>
+                        <option>Captain&apos;s Pick</option>
                         <option>Smart Balancing (Recommended)</option>
                       </select>
                     </div>
