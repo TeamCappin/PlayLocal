@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,4 +39,17 @@ public interface ScoreHistoryRepository extends JpaRepository<ScoreHistory, UUID
      */
     @Query("SELECT COUNT(sh) FROM ScoreHistory sh WHERE sh.user.userId = :userId")
     long countByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Stats US-7.6: Find score history entries for a user since a cutoff date,
+     * ordered chronologically for trend charting.
+     * Pass {@code Instant.EPOCH} as cutoff for all-time.
+     */
+    @Query("SELECT sh FROM ScoreHistory sh " +
+            "WHERE sh.user.userId = :userId " +
+            "AND sh.createdAt >= :cutoff " +
+            "ORDER BY sh.createdAt ASC")
+    List<ScoreHistory> findByUserIdSince(
+            @Param("userId") UUID userId,
+            @Param("cutoff") Instant cutoff);
 }
