@@ -1,11 +1,33 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Users, Clock, Plus, Loader2 } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  MapPin,
+  Users,
+  Clock,
+  Plus,
+  Loader2,
+} from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 interface CalendarGame {
   id: string;
@@ -27,11 +49,14 @@ export function CalendarView() {
   // Transform API games to calendar format
   const games: CalendarGame[] = useMemo(() => {
     if (apiGames && apiGames.length > 0) {
-      return apiGames.map(game => ({
+      return apiGames.map((game) => ({
         id: game.gameId,
         title: game.title,
         date: new Date(game.startTime),
-        time: new Date(game.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        time: new Date(game.startTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
         location: game.location?.name || 'TBD',
         sport: game.sportName,
         status: 'confirmed',
@@ -59,7 +84,9 @@ export function CalendarView() {
   };
 
   const changeMonth = (delta: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1)
+    );
   };
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
@@ -119,28 +146,31 @@ export function CalendarView() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setView('month')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${view === 'month'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      view === 'month'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
                     Month
                   </button>
                   <button
                     onClick={() => setView('week')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${view === 'week'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      view === 'week'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
                     Week
                   </button>
                   <button
                     onClick={() => setView('day')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${view === 'day'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      view === 'day'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
                   >
                     Day
                   </button>
@@ -152,7 +182,10 @@ export function CalendarView() {
                 {/* Day Headers */}
                 <div className="grid grid-cols-7 gap-2 mb-2">
                   {DAYS.map((day) => (
-                    <div key={day} className="text-center text-sm text-gray-600 py-2">
+                    <div
+                      key={day}
+                      className="text-center text-sm text-gray-600 py-2"
+                    >
                       {day}
                     </div>
                   ))}
@@ -162,8 +195,13 @@ export function CalendarView() {
                 <div className="grid grid-cols-7 gap-2">
                   {Array.from({ length: weeks * 7 }).map((_, index) => {
                     const dayNumber = index - firstDay + 1;
-                    const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth;
-                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNumber);
+                    const isValidDay =
+                      dayNumber > 0 && dayNumber <= daysInMonth;
+                    const date = new Date(
+                      currentDate.getFullYear(),
+                      currentDate.getMonth(),
+                      dayNumber
+                    );
                     const isToday =
                       isValidDay &&
                       date.getDate() === new Date().getDate() &&
@@ -174,16 +212,20 @@ export function CalendarView() {
                     return (
                       <div
                         key={index}
-                        className={`min-h-[100px] p-2 border border-gray-200 rounded-lg ${!isValidDay ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                          } transition-colors`}
+                        className={`min-h-[100px] p-2 border border-gray-200 rounded-lg ${
+                          !isValidDay
+                            ? 'bg-gray-50'
+                            : 'bg-white hover:bg-gray-50'
+                        } transition-colors`}
                       >
                         {isValidDay && (
                           <>
                             <div
-                              className={`text-sm mb-2 ${isToday
-                                ? 'w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center'
-                                : 'text-gray-700'
-                                }`}
+                              className={`text-sm mb-2 ${
+                                isToday
+                                  ? 'w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center'
+                                  : 'text-gray-700'
+                              }`}
                             >
                               {dayNumber}
                             </div>
@@ -192,12 +234,13 @@ export function CalendarView() {
                                 <Link
                                   key={game.id}
                                   href={`/games/${game.id}`}
-                                  className={`block px-2 py-1 text-xs rounded truncate ${game.role === 'host'
-                                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                                    : game.status === 'tentative'
-                                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                      : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                    } transition-colors`}
+                                  className={`block px-2 py-1 text-xs rounded truncate ${
+                                    game.role === 'host'
+                                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                      : game.status === 'tentative'
+                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                  } transition-colors`}
                                 >
                                   {game.time} {game.sport}
                                 </Link>
@@ -242,12 +285,17 @@ export function CalendarView() {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600 mb-1">{game.title}</div>
+                      <div className="text-sm text-gray-600 mb-1">
+                        {game.title}
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Clock className="w-3 h-3" />
                         <span>
-                          {game.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at{' '}
-                          {game.time}
+                          {game.date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}{' '}
+                          at {game.time}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">

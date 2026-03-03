@@ -26,7 +26,9 @@ describe('RosterHeader', () => {
 
     expect(screen.getByText('Sunday Soccer Match')).toBeInTheDocument();
     expect(screen.getByText('Basketball')).toBeInTheDocument();
-    expect(screen.getByText('Golden Gate Park Basketball Courts')).toBeInTheDocument();
+    expect(
+      screen.getByText('Golden Gate Park Basketball Courts')
+    ).toBeInTheDocument();
   });
 
   it('renders game with unknown sport using default image', () => {

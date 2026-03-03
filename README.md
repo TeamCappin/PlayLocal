@@ -107,6 +107,22 @@ mvn test
 npm test
 ```
 
+### Formatting & Lint:
+
+```sh
+cd playlocal/backend/
+mvn -B checkstyle:check
+
+cd playlocal/frontend/
+npm run lint 
+
+npm run format:check
+npm run format:write
+```
+
+
+
+
 ## Wiki Table of Contents
 
 

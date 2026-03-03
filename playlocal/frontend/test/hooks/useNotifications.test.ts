@@ -1,9 +1,9 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
-import { useNotifications } from "../../hooks/useNotifications";
-import { notificationsApi } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { useNotifications } from '../../hooks/useNotifications';
+import { notificationsApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
-jest.mock("@/lib/api", () => ({
+jest.mock('@/lib/api', () => ({
   notificationsApi: {
     getAll: jest.fn(),
     getUnreadCount: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock("@/lib/api", () => ({
   },
 }));
 
-jest.mock("@/context/AuthContext", () => ({
+jest.mock('@/context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
@@ -20,26 +20,27 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockGetAll = notificationsApi.getAll as jest.MockedFunction<
   typeof notificationsApi.getAll
 >;
-const mockGetUnreadCount = notificationsApi.getUnreadCount as jest.MockedFunction<
-  typeof notificationsApi.getUnreadCount
->;
+const mockGetUnreadCount =
+  notificationsApi.getUnreadCount as jest.MockedFunction<
+    typeof notificationsApi.getUnreadCount
+  >;
 
-describe("useNotifications", () => {
+describe('useNotifications', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("maps backend game_cancelled notification to UI fields", async () => {
+  it('maps backend game_cancelled notification to UI fields', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([
       {
-        notificationId: "n1",
-        type: "game_cancelled",
+        notificationId: 'n1',
+        type: 'game_cancelled',
         payload:
           '{"gameId":"g1","gameTitle":"Sunday Soccer","message":"Game cancelled: Sunday Soccer"}',
-        status: "SENT",
-        scheduledFor: "2026-02-08T10:00:00Z",
-        sentAt: "2026-02-08T10:00:01Z",
+        status: 'SENT',
+        scheduledFor: '2026-02-08T10:00:00Z',
+        sentAt: '2026-02-08T10:00:01Z',
       },
     ]);
     mockGetUnreadCount.mockResolvedValue({ count: 1 });
@@ -52,13 +53,13 @@ describe("useNotifications", () => {
 
     expect(result.current.notifications).toHaveLength(1);
     expect(result.current.notifications[0]).toMatchObject({
-      notificationId: "n1",
-      type: "GAME_CANCELLED",
-      title: "Game cancelled",
-      message: "Game cancelled: Sunday Soccer",
-      createdAt: "2026-02-08T10:00:01Z",
+      notificationId: 'n1',
+      type: 'GAME_CANCELLED',
+      title: 'Game cancelled',
+      message: 'Game cancelled: Sunday Soccer',
+      createdAt: '2026-02-08T10:00:01Z',
       read: false,
-      link: "/games/g1",
+      link: '/games/g1',
     });
     expect(result.current.unreadCount).toBe(1);
   });
@@ -67,11 +68,11 @@ describe("useNotifications", () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([
       {
-        notificationId: "n1",
-        type: "GAME_UPDATED",
+        notificationId: 'n1',
+        type: 'GAME_UPDATED',
         payload: '{"gameId":"g1","gameTitle":"Basketball"}',
-        status: "SENT",
-        sentAt: "2026-02-08T10:00:00Z",
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
       },
     ]);
     mockGetUnreadCount.mockResolvedValue({ count: 1 });
@@ -82,18 +83,18 @@ describe("useNotifications", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.notifications[0].title).toBe("Game updated");
+    expect(result.current.notifications[0].title).toBe('Game updated');
   });
 
   it("maps GAME_REMOVED_REQUIREMENTS notification to 'Removed from game' title", async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([
       {
-        notificationId: "n1",
-        type: "GAME_REMOVED_REQUIREMENTS",
-        payload: "{}",
-        status: "SENT",
-        sentAt: "2026-02-08T10:00:00Z",
+        notificationId: 'n1',
+        type: 'GAME_REMOVED_REQUIREMENTS',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
       },
     ]);
     mockGetUnreadCount.mockResolvedValue({ count: 1 });
@@ -104,22 +105,22 @@ describe("useNotifications", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.notifications[0].title).toBe("Removed from game");
+    expect(result.current.notifications[0].title).toBe('Removed from game');
   });
 
-  it("markAsRead dispatches playlocal-refresh-notifications event on success", async () => {
-    const addEventListenerSpy = jest.spyOn(window, "addEventListener");
-    const removeEventListenerSpy = jest.spyOn(window, "removeEventListener");
-    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+  it('markAsRead dispatches playlocal-refresh-notifications event on success', async () => {
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
 
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([
       {
-        notificationId: "n1",
-        type: "GAME_CANCELLED",
-        payload: "{}",
-        status: "SENT",
-        sentAt: "2026-02-08T10:00:00Z",
+        notificationId: 'n1',
+        type: 'GAME_CANCELLED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
       },
     ]);
     mockGetUnreadCount.mockResolvedValue({ count: 1 });
@@ -132,18 +133,18 @@ describe("useNotifications", () => {
     });
 
     await act(async () => {
-      await result.current.markAsRead("n1");
+      await result.current.markAsRead('n1');
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "playlocal-refresh-notifications" })
+      expect.objectContaining({ type: 'playlocal-refresh-notifications' })
     );
 
     dispatchSpy.mockRestore();
   });
 
-  it("markAllAsRead dispatches playlocal-refresh-notifications event on success", async () => {
-    const dispatchSpy = jest.spyOn(window, "dispatchEvent");
+  it('markAllAsRead dispatches playlocal-refresh-notifications event on success', async () => {
+    const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
 
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([]);
@@ -161,21 +162,21 @@ describe("useNotifications", () => {
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "playlocal-refresh-notifications" })
+      expect.objectContaining({ type: 'playlocal-refresh-notifications' })
     );
 
     dispatchSpy.mockRestore();
   });
 
-  it("falls back safely for invalid payload and read status", async () => {
+  it('falls back safely for invalid payload and read status', async () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
     mockGetAll.mockResolvedValue([
       {
-        notificationId: "n2",
-        type: "attendance_prompt",
-        payload: "not-json",
-        status: "READ",
-        scheduledFor: "2026-02-08T11:00:00Z",
+        notificationId: 'n2',
+        type: 'attendance_prompt',
+        payload: 'not-json',
+        status: 'READ',
+        scheduledFor: '2026-02-08T11:00:00Z',
       },
     ]);
     mockGetUnreadCount.mockResolvedValue({ count: 0 });
@@ -187,11 +188,11 @@ describe("useNotifications", () => {
     });
 
     expect(result.current.notifications[0]).toMatchObject({
-      notificationId: "n2",
-      type: "ATTENDANCE_PROMPT",
-      title: "Attendance reminder",
-      message: "Attendance reminder",
-      createdAt: "2026-02-08T11:00:00Z",
+      notificationId: 'n2',
+      type: 'ATTENDANCE_PROMPT',
+      title: 'Attendance reminder',
+      message: 'Attendance reminder',
+      createdAt: '2026-02-08T11:00:00Z',
       read: true,
     });
     expect(result.current.unreadCount).toBe(0);

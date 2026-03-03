@@ -1,12 +1,22 @@
 import { useState } from 'react';
-import { User, Lock, Bell, Shield, Eye, MapPin, Trash2, Download, AlertCircle } from 'lucide-react';
+import {
+  User,
+  Lock,
+  Bell,
+  Shield,
+  Eye,
+  MapPin,
+  Trash2,
+  Download,
+  AlertCircle,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'account' | 'privacy' | 'notifications' | 'security'>(
-    'account'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'account' | 'privacy' | 'notifications' | 'security'
+  >('account');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -14,7 +24,9 @@ export function SettingsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl text-gray-900 mb-2">Settings</h1>
-          <p className="text-gray-600">Manage your account and privacy preferences</p>
+          <p className="text-gray-600">
+            Manage your account and privacy preferences
+          </p>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
@@ -22,40 +34,44 @@ export function SettingsPage() {
           <div className="space-y-2">
             <button
               onClick={() => setActiveTab('account')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'account'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'account'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <User className="w-5 h-5" />
               <span>Account</span>
             </button>
             <button
               onClick={() => setActiveTab('privacy')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'privacy'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'privacy'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Eye className="w-5 h-5" />
               <span>Privacy</span>
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'notifications'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'notifications'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Bell className="w-5 h-5" />
               <span>Notifications</span>
             </button>
             <button
               onClick={() => setActiveTab('security')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === 'security'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeTab === 'security'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Shield className="w-5 h-5" />
               <span>Security & Safety</span>
@@ -142,7 +158,9 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Default Preferences</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">Default Intensity</label>
+            <label className="block text-gray-700 mb-2">
+              Default Intensity
+            </label>
             <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
               <option>Low - Casual & Social</option>
               <option>Medium - Competitive</option>
@@ -208,7 +226,8 @@ function PrivacySettings() {
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
-                For safety reasons, exact locations are only shared with accepted participants. You can customize this for each game.
+                For safety reasons, exact locations are only shared with
+                accepted participants. You can customize this for each game.
               </div>
             </div>
           </div>
@@ -222,14 +241,18 @@ function PrivacySettings() {
             <Download className="w-5 h-5 text-gray-400" />
             <div>
               <div>Download Your Data</div>
-              <div className="text-sm text-gray-600">Get a copy of your PlayLocal data</div>
+              <div className="text-sm text-gray-600">
+                Get a copy of your PlayLocal data
+              </div>
             </div>
           </button>
           <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
             <Shield className="w-5 h-5 text-gray-400" />
             <div>
               <div>Privacy Policy</div>
-              <div className="text-sm text-gray-600">Read our privacy policy</div>
+              <div className="text-sm text-gray-600">
+                Read our privacy policy
+              </div>
             </div>
           </button>
         </div>
@@ -353,7 +376,9 @@ function SecuritySettings() {
             />
           </div>
           <div>
-            <label className="block text-gray-700 mb-2">Confirm New Password</label>
+            <label className="block text-gray-700 mb-2">
+              Confirm New Password
+            </label>
             <input
               type="password"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -463,12 +488,14 @@ function ToggleSetting({
       </div>
       <button
         onClick={() => setIsEnabled(!isEnabled)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 ${isEnabled ? 'bg-emerald-600' : 'bg-gray-200'
-          }`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 ${
+          isEnabled ? 'bg-emerald-600' : 'bg-gray-200'
+        }`}
       >
         <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            isEnabled ? 'translate-x-6' : 'translate-x-1'
+          }`}
         />
       </button>
     </div>
