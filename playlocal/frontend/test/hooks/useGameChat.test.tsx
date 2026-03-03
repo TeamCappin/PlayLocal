@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-// ✅ Adjust this import to wherever your hook lives
+// Adjust this import to wherever your hook lives
 import { useGameChat } from '../../hooks/useGameChat';
 
 type Frame = { body: string };
