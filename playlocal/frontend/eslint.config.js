@@ -11,5 +11,11 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'react/display-name': 'off',
+    },
+  },
   globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
 ]);
