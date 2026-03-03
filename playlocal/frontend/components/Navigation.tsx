@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -17,8 +18,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export function Navigation() {
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const navigate = useRouter();
+
+  // Ensure hydration is complete before rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isLanding = pathname === '/';
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -29,6 +36,26 @@ export function Navigation() {
   // Don't render on landing page
   if (isLanding) {
     return null;
+  }
+
+  // Show skeleton during SSR/hydration to prevent layout shift
+  if (!mounted) {
+    return (
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
   }
 
   const handleLogout = () => {
@@ -83,6 +110,7 @@ export function Navigation() {
             </Link>
 
             {isLoading ? (
+              // Show loading skeleton while checking auth
               <div className="flex items-center gap-4">
                 <div className="w-20 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
                 <div className="w-16 h-8 bg-gray-200 rounded-lg animate-pulse"></div>

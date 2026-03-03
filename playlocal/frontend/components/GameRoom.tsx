@@ -219,7 +219,7 @@ export function GameRoom() {
           <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl text-gray-900 mb-2">Game Not Found</h1>
           <p className="text-gray-600 mb-6">
-            This game may have been removed or doesn&apos;t exist.
+            This game may have been removed or doesn't exist.
           </p>
           <a
             href="/discover"
