@@ -3,6 +3,7 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse } from '@/lib/api';
+import { MetricTooltip } from '@/components/stats/MetricTooltip';
 
 interface WinRateCardProps {
   data: StatsResponse | null;
@@ -56,9 +57,15 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
       data-testid="win-rate-card"
       className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1"
     >
-      <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-        Win Rate
-      </span>
+      <div className="flex items-center gap-1">
+        <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+          Win Rate
+        </span>
+        <MetricTooltip
+          content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted — draws and unknown results are excluded."
+          label="Win Rate information"
+        />
+      </div>
 
       <div className="flex items-end gap-2 mt-1">
         <span className="text-4xl font-bold text-gray-900">

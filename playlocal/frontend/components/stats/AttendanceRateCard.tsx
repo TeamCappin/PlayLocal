@@ -3,6 +3,7 @@
 import { Users, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse } from '@/lib/api';
+import { MetricTooltip } from '@/components/stats/MetricTooltip';
 
 interface AttendanceRateCardProps {
   data: StatsResponse | null;
@@ -56,9 +57,15 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
       data-testid="attendance-rate-card"
       className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1"
     >
-      <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-        Attendance Rate
-      </span>
+      <div className="flex items-center gap-1">
+        <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+          Attendance Rate
+        </span>
+        <MetricTooltip
+          content="How often you showed up to events you signed up for. Calculated as games you attended divided by your total confirmed games, including no-shows."
+          label="Attendance Rate information"
+        />
+      </div>
 
       <div className="flex items-end gap-2 mt-1">
         <span className="text-4xl font-bold text-gray-900">

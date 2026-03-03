@@ -15,6 +15,13 @@ jest.mock('recharts', () => ({
   Tooltip:             () => <div data-testid="recharts-tooltip" />,
 }));
 
+// Mock MetricTooltip – avoids Radix portal / pointer-events issues in jsdom
+jest.mock('@/components/stats/MetricTooltip', () => ({
+  MetricTooltip: ({ label }: any) => (
+    <button data-testid="metric-tooltip-trigger" aria-label={label} />
+  ),
+}));
+
 // Mock lucide-react
 jest.mock('lucide-react', () => ({
   TrendingUp: () => <div data-testid="icon-trend-up" />,
@@ -94,6 +101,13 @@ describe('SkillTrendChart', () => {
   });
 
   describe('Data state', () => {
+    it('renders metric tooltip trigger on the chart', () => {
+      render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
+      const trigger = screen.getByTestId('metric-tooltip-trigger');
+      expect(trigger).toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-label', 'Skill Trend information');
+    });
+
     it('renders the chart container with data', () => {
       render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
       expect(screen.getByTestId('skill-trend-chart')).toBeInTheDocument();

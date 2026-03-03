@@ -12,6 +12,7 @@ import {
 import { TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse, StatsDataPoint } from '@/lib/api';
+import { MetricTooltip } from '@/components/stats/MetricTooltip';
 
 interface SkillTrendChartProps {
   data: StatsResponse | null;
@@ -69,9 +70,15 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-            Skill Trend
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+              Skill Trend
+            </span>
+            <MetricTooltip
+              content="How your skill (reliability) rating has changed over the selected timeframe. A higher score means you more consistently show up to events you commit to."
+              label="Skill Trend information"
+            />
+          </div>
           <div className="flex items-baseline gap-1 mt-0.5">
             <span className="text-3xl font-bold text-gray-900">{currentScore}</span>
             <span className="text-sm text-gray-500">reliability score</span>

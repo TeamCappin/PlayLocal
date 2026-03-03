@@ -4,6 +4,13 @@ import '@testing-library/jest-dom';
 import { AttendanceRateCard } from '../../../components/stats/AttendanceRateCard';
 import { StatsResponse } from '../../../lib/api';
 
+// Mock MetricTooltip – avoids Radix portal / pointer-events issues in jsdom
+jest.mock('@/components/stats/MetricTooltip', () => ({
+  MetricTooltip: ({ label }: any) => (
+    <button data-testid="metric-tooltip-trigger" aria-label={label} />
+  ),
+}));
+
 // Mock lucide-react
 jest.mock('lucide-react', () => ({
   Users:        () => <div data-testid="icon-users" />,
@@ -69,6 +76,13 @@ describe('AttendanceRateCard', () => {
   });
 
   describe('Data state', () => {
+    it('renders metric tooltip trigger on the data card', () => {
+      render(<AttendanceRateCard data={dataResponse()} isLoading={false} error={null} />);
+      const trigger = screen.getByTestId('metric-tooltip-trigger');
+      expect(trigger).toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-label', 'Attendance Rate information');
+    });
+
     it('renders the attendance rate card with correct value', () => {
       render(<AttendanceRateCard data={dataResponse()} isLoading={false} error={null} />);
       expect(screen.getByTestId('attendance-rate-card')).toBeInTheDocument();

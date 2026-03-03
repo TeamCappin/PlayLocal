@@ -4,6 +4,13 @@ import '@testing-library/jest-dom';
 import { WinRateCard } from '../../../components/stats/WinRateCard';
 import { StatsResponse } from '../../../lib/api';
 
+// Mock MetricTooltip – avoids Radix portal / pointer-events issues in jsdom
+jest.mock('@/components/stats/MetricTooltip', () => ({
+  MetricTooltip: ({ label }: any) => (
+    <button data-testid="metric-tooltip-trigger" aria-label={label} />
+  ),
+}));
+
 // Mock lucide-react
 jest.mock('lucide-react', () => ({
   TrendingUp:   () => <div data-testid="icon-trend-up" />,
