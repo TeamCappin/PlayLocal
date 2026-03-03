@@ -202,11 +202,10 @@ export function useGameChat({
 
   const historyBase = useMemo(() => {
     const env =
-      historyBaseUrl ||
-      process.env.NEXT_PUBLIC_CHAT_API_BASE ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:8080/api/v1' ||
-      'https://playlocalcapstone.onrender.com/api/v1';
+      historyBaseUrl ??
+      process.env.NEXT_PUBLIC_CHAT_API_BASE ??
+      process.env.NEXT_PUBLIC_API_URL ??
+      'http://localhost:8080/api/v1';
     if (env) return env;
     if (typeof window === 'undefined') return 'http://localhost:8080/api/v1';
     const url = new URL(window.location.href);
