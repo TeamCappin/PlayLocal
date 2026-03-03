@@ -51,6 +51,12 @@ Release 2 Presentation: [PlayLocal - 490 Release 2 Presentation.pdf](https://git
 
 ### Release 3
 
+Release 3 Presentation video: 
+
+Release 3 Product-Demo:
+
+Release 3 Presentation: 
+
 ## Developer Manual
 
 Make sure you have both `npm` & `mvn` installed
