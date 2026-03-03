@@ -60,6 +60,7 @@ const useEmblaCarouselMock = jest.fn(() => [carouselRef, api]);
 
 jest.mock('embla-carousel-react', () => ({
   __esModule: true,
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   default: (...args: any[]) => useEmblaCarouselMock(...args),
 }));
 
