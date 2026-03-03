@@ -24,6 +24,7 @@ export function Navigation() {
 
   // Ensure hydration is complete before rendering
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

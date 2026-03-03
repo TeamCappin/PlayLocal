@@ -493,6 +493,7 @@ export function GameDiscovery() {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('playlocal-view-mode');
       if (saved === 'grid' || saved === 'map') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setViewMode(saved);
       }
     }
