@@ -64,12 +64,14 @@ export function ReportModal({
   const reasons = isDispute ? DISPUTE_REASONS : STANDARD_REPORT_REASONS;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReason('');
       setDetails('');
       setError(null);

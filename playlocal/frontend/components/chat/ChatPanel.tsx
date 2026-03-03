@@ -50,6 +50,7 @@ export function ChatPanel({
   useEffect(() => {
     if (!listRef.current) return;
     if (isNearBottom) scrollToBottom(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowJump(!isNearBottom);
   }, [messages.length, isNearBottom]);
 

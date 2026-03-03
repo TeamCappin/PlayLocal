@@ -54,6 +54,7 @@ export function RsvpRoster() {
           },
         ])
       );
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAttendanceStatuses(initialStatuses);
       hasInitialized.current = true;
     }

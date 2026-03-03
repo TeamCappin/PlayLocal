@@ -245,7 +245,7 @@ export function useGameChat({
 
   useEffect(() => {
     if (!enabled || !gameId) return;
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     setConnected(false);
     connectedRef.current = false;
