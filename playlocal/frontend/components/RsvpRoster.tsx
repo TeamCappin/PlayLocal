@@ -184,10 +184,10 @@ export function RsvpRoster() {
                 Confirm Player Attendance
               </div>
               <div>
-                Please mark each player&apos;s attendance status. Once submitted,
-                this record will be locked and cannot be changed without admin
-                approval. This helps maintain accurate attendance records and
-                reputation scores.
+                Please mark each player&apos;s attendance status. Once
+                submitted, this record will be locked and cannot be changed
+                without admin approval. This helps maintain accurate attendance
+                records and reputation scores.
               </div>
             </div>
           </div>
