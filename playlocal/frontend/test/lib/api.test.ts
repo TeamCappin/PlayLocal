@@ -471,13 +471,11 @@ describe('gamesApi lifecycle endpoints', () => {
     });
 
     it('getConnectionSignalsBatch calls POST /users/connection-signals with userIds', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            signalsByUserId: { u1: { mutualFriendCount: 0, coPlayCount: 2 } },
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          signalsByUserId: { u1: { mutualFriendCount: 0, coPlayCount: 2 } },
+        })
+      );
       (globalThis as any).fetch = fetchMock;
 
       const res = await usersApi.getConnectionSignalsBatch(['u1', 'u2']);
@@ -494,16 +492,14 @@ describe('gamesApi lifecycle endpoints', () => {
     });
 
     it('getProfile calls GET /users/:userId/profile', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            userId: 'u-1',
-            displayName: 'Test',
-            email: 't@t.com',
-            reliabilityScore: 90,
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          userId: 'u-1',
+          displayName: 'Test',
+          email: 't@t.com',
+          reliabilityScore: 90,
+        })
+      );
       (globalThis as any).fetch = fetchMock;
 
       const res = await usersApi.getProfile('u-1');
@@ -529,15 +525,13 @@ describe('gamesApi lifecycle endpoints', () => {
     });
 
     it('updateProfile calls PUT /users/profile with body', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            userId: 'u-1',
-            displayName: 'Updated Name',
-            bio: 'New bio',
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          userId: 'u-1',
+          displayName: 'Updated Name',
+          bio: 'New bio',
+        })
+      );
       (globalThis as any).fetch = fetchMock;
 
       await usersApi.updateProfile({
@@ -553,16 +547,14 @@ describe('gamesApi lifecycle endpoints', () => {
     });
 
     it('search calls GET /users/search with query params', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            users: [],
-            totalElements: 0,
-            totalPages: 0,
-            currentPage: 0,
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          users: [],
+          totalElements: 0,
+          totalPages: 0,
+          currentPage: 0,
+        })
+      );
       (globalThis as any).fetch = fetchMock;
 
       await usersApi.search('john', 1, 10);
@@ -624,15 +616,13 @@ describe('gamesApi lifecycle endpoints', () => {
     });
 
     it('requestUploadSlot calls POST with JSON body', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          jsonResponse({
-            mediaId: 'm1',
-            storageKey: 'k1',
-            uploadUrl: 'https://x',
-          })
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          mediaId: 'm1',
+          storageKey: 'k1',
+          uploadUrl: 'https://x',
+        })
+      );
       (globalThis as any).fetch = fetchMock;
 
       const res = await photosApi.requestUploadSlot('g-9', {

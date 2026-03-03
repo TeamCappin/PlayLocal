@@ -179,7 +179,6 @@ describe('ChartTooltipContent', () => {
   beforeEach(() => {
     // make value formatting deterministic regardless of test runner locale
     Number.prototype.toLocaleString = function () {
-       
       const n = this as any;
       if (Number(n) === 1234) return '1,234';
       return originalToLocaleString.call(this);

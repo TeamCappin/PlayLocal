@@ -1,4 +1,3 @@
- 
 require('@testing-library/jest-dom');
 
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)

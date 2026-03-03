@@ -43,7 +43,6 @@ export function RsvpRoster() {
 
   const hasInitialized = useRef(false);
 
-   
   useEffect(() => {
     if (pendingAttendance.length > 0 && !hasInitialized.current) {
       const initialStatuses = Object.fromEntries(

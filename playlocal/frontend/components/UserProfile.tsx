@@ -615,7 +615,9 @@ export function UserProfile() {
                               <span className="text-gray-900">
                                 Played together {connectionSignals.coPlayCount}{' '}
                                 time
-                                {connectionSignals.coPlayCount !== 1 ? 's' : ''}{' '}
+                                {connectionSignals.coPlayCount !== 1
+                                  ? 's'
+                                  : ''}{' '}
                                 in last 60 days
                               </span>
                             ) : (

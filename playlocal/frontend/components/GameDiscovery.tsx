@@ -730,10 +730,20 @@ export function GameDiscovery() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
           onClick={() => setShowFilterModal(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+              setShowFilterModal(false);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Filter Games</h2>

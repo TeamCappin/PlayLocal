@@ -1,4 +1,3 @@
- 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChatPanel } from '@/components/chat/ChatPanel';
