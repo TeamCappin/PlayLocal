@@ -1,7 +1,7 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import { useForm } from "react-hook-form";
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { useForm } from 'react-hook-form';
 
 import {
   Form,
@@ -11,23 +11,27 @@ import {
   FormDescription,
   FormMessage,
   FormField,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 
-jest.mock("@/components/ui/utils", () => ({
+jest.mock('@/components/ui/utils', () => ({
   cn: (...classes: Array<string | undefined | null | false>) =>
-    classes.filter(Boolean).join(" "),
+    classes.filter(Boolean).join(' '),
 }));
 
-jest.mock("@/components/ui/label", () => ({
+jest.mock('@/components/ui/label', () => ({
   Label: (props: any) => <label {...props} />,
 }));
 
 type Values = { username: string };
 
-function TestForm({ withMessageChildren = false }: { withMessageChildren?: boolean }) {
+function TestForm({
+  withMessageChildren = false,
+}: {
+  withMessageChildren?: boolean;
+}) {
   const methods = useForm<Values>({
-    defaultValues: { username: "" },
-    mode: "onSubmit",
+    defaultValues: { username: '' },
+    mode: 'onSubmit',
   });
 
   return (
@@ -36,7 +40,7 @@ function TestForm({ withMessageChildren = false }: { withMessageChildren?: boole
         <FormField
           name="username"
           control={methods.control}
-          rules={{ required: "Required" }}
+          rules={{ required: 'Required' }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Username</FormLabel>
@@ -63,84 +67,85 @@ function TestForm({ withMessageChildren = false }: { withMessageChildren?: boole
 }
 
 function getIdBaseFromFormItemId(formItemId: string) {
-  return formItemId.replace(/-form-item$/, "");
+  return formItemId.replace(/-form-item$/, '');
 }
 
-describe("form primitives", () => {
-  test("wires label/control/description ids correctly when there is no error", () => {
+describe('form primitives', () => {
+  test('wires label/control/description ids correctly when there is no error', () => {
     render(<TestForm />);
 
-    const input = screen.getByTestId("username-input");
-    const label = screen.getByText("Username");
-    const desc = screen.getByText("Pick a unique name");
+    const input = screen.getByTestId('username-input');
+    const label = screen.getByText('Username');
+    const desc = screen.getByText('Pick a unique name');
 
     // Slot should apply id to the input
-    expect(input).toHaveAttribute("id");
-    const formItemId = input.getAttribute("id")!;
+    expect(input).toHaveAttribute('id');
+    const formItemId = input.getAttribute('id')!;
     const base = getIdBaseFromFormItemId(formItemId);
 
     // Label htmlFor should point at the formItemId
-    expect(label).toHaveAttribute("for", formItemId);
+    expect(label).toHaveAttribute('for', formItemId);
 
     // Description id should be derived from the same base id
-    expect(desc).toHaveAttribute("id", `${base}-form-item-description`);
+    expect(desc).toHaveAttribute('id', `${base}-form-item-description`);
 
     // No error initially:
     // aria-invalid is set to !!error, which may render "false" or be absent depending on Slot behavior
-    expect(input.getAttribute("aria-invalid")).not.toBe("true");
+    expect(input.getAttribute('aria-invalid')).not.toBe('true');
 
     // aria-describedby should include only description id when no error
-    expect(input).toHaveAttribute("aria-describedby", `${base}-form-item-description`);
+    expect(input).toHaveAttribute(
+      'aria-describedby',
+      `${base}-form-item-description`
+    );
 
     // FormMessage renders null when empty (no error + no children)
     expect(
-      document.querySelector('[data-slot="form-message"]'),
+      document.querySelector('[data-slot="form-message"]')
     ).not.toBeInTheDocument();
 
     // FormLabel exposes error state via data-error (false)
     // (If your Label impl ever omits false attributes, switch to: expect(label.getAttribute("data-error")).not.toBe("true"))
-    expect(label).toHaveAttribute("data-error", "false");
+    expect(label).toHaveAttribute('data-error', 'false');
   });
 
-  test("on submit, required rule shows error, updates aria-describedby and aria-invalid, and shows message", async () => {
+  test('on submit, required rule shows error, updates aria-describedby and aria-invalid, and shows message', async () => {
     render(<TestForm />);
 
-    const input = screen.getByTestId("username-input");
-    const label = screen.getByText("Username");
-    const submit = screen.getByRole("button", { name: /submit/i });
+    const input = screen.getByTestId('username-input');
+    const label = screen.getByText('Username');
+    const submit = screen.getByRole('button', { name: /submit/i });
 
-    const formItemId = input.getAttribute("id")!;
+    const formItemId = input.getAttribute('id')!;
     const base = getIdBaseFromFormItemId(formItemId);
 
     fireEvent.click(submit);
 
     // Error message appears
     await waitFor(() => {
-      expect(screen.getByText("Required")).toBeInTheDocument();
+      expect(screen.getByText('Required')).toBeInTheDocument();
     });
 
     // aria-invalid becomes true
-    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute('aria-invalid', 'true');
 
     // aria-describedby includes BOTH description + message ids
     expect(input).toHaveAttribute(
-      "aria-describedby",
-      `${base}-form-item-description ${base}-form-item-message`,
+      'aria-describedby',
+      `${base}-form-item-description ${base}-form-item-message`
     );
 
     // label reflects error state
-    expect(label).toHaveAttribute("data-error", "true");
+    expect(label).toHaveAttribute('data-error', 'true');
 
     // message element uses the derived id
-    const msg = screen.getByText("Required");
-    expect(msg).toHaveAttribute("id", `${base}-form-item-message`);
+    const msg = screen.getByText('Required');
+    expect(msg).toHaveAttribute('id', `${base}-form-item-message`);
   });
 
-  test("FormMessage renders children text when no error exists", () => {
+  test('FormMessage renders children text when no error exists', () => {
     render(<TestForm withMessageChildren />);
 
-    expect(screen.getByText("Helper text")).toBeInTheDocument();
+    expect(screen.getByText('Helper text')).toBeInTheDocument();
   });
-
-  
 });

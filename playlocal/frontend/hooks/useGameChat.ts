@@ -1,21 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import SockJS from "sockjs-client";
-import { Client } from "@stomp/stompjs";
-import type { ChatInbound, ChatMessage, ChatUser } from "@/lib/chat/types";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
+import type { ChatInbound, ChatMessage, ChatUser } from '@/lib/chat/types';
 
 function safeText(v: any) {
-  return typeof v === "string" ? v : v == null ? "" : String(v);
+  return typeof v === 'string' ? v : v == null ? '' : String(v);
 }
 
-function normalizeInbound(gameId: string, raw: ChatInbound): ChatMessage | null {
+function normalizeInbound(
+  gameId: string,
+  raw: ChatInbound
+): ChatMessage | null {
   // Prefer server-provided message id; fall back to raw.id; last resort random
   const id =
     safeText((raw as any).messageId) ||
     safeText((raw as any).id) ||
-    (typeof crypto !== "undefined" ? crypto.randomUUID() : String(Date.now()));
+    (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Date.now()));
 
   const senderId =
     safeText((raw as any).senderId) ||
@@ -27,7 +29,7 @@ function normalizeInbound(gameId: string, raw: ChatInbound): ChatMessage | null 
     safeText((raw as any).fullName) ||
     safeText((raw as any).username) ||
     senderId ||
-    "Unknown";
+    'Unknown';
 
   const content =
     safeText((raw as any).content) ||
@@ -39,10 +41,12 @@ function normalizeInbound(gameId: string, raw: ChatInbound): ChatMessage | null 
   let createdAt = safeText((raw as any).createdAt);
   if (!createdAt) {
     const ts = (raw as any).timestamp;
-    if (typeof ts === "number") createdAt = new Date(ts).toISOString();
-    else if (typeof ts === "string") {
+    if (typeof ts === 'number') createdAt = new Date(ts).toISOString();
+    else if (typeof ts === 'string') {
       const n = Number(ts);
-      createdAt = Number.isFinite(n) ? new Date(n).toISOString() : new Date(ts).toISOString();
+      createdAt = Number.isFinite(n)
+        ? new Date(n).toISOString()
+        : new Date(ts).toISOString();
     } else {
       createdAt = new Date().toISOString();
     }
@@ -51,7 +55,7 @@ function normalizeInbound(gameId: string, raw: ChatInbound): ChatMessage | null 
   const msg: ChatMessage = {
     id,
     gameId,
-    senderId: senderId || "unknown",
+    senderId: senderId || 'unknown',
     senderName,
     content,
     createdAt,
@@ -70,7 +74,12 @@ type UseGameChatArgs = {
   historyBaseUrl?: string; // optional override
 };
 
-export function useGameChat({ gameId, me, enabled = true, historyBaseUrl }: UseGameChatArgs) {
+export function useGameChat({
+  gameId,
+  me,
+  enabled = true,
+  historyBaseUrl,
+}: UseGameChatArgs) {
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -98,11 +107,14 @@ export function useGameChat({ gameId, me, enabled = true, historyBaseUrl }: UseG
   function seenRecently(key: string, ttlMs = 5_000) {
     const now = Date.now();
     const t = seenInboundRef.current.get(key);
-    return typeof t === "number" && now - t < ttlMs;
+    return typeof t === 'number' && now - t < ttlMs;
   }
 
   function sortByTime(list: ChatMessage[]) {
-    return [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return [...list].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   }
 
   // Try to reconcile an optimistic tmp-* message with the real inbound message.
@@ -110,89 +122,104 @@ export function useGameChat({ gameId, me, enabled = true, historyBaseUrl }: UseG
   // 1) If server echoes clientMessageId and we stored it, match by that
   // 2) Otherwise match by same senderId + same content + createdAt within ±2s
   // Replace your reconcileOptimistic with this version
-function reconcileOptimistic(
-  prev: ChatMessage[],
-  incoming: ChatMessage,
-  myUserId: string
-): ChatMessage[] {
-  const incomingClientId = safeText((incoming as any).clientMessageId);
-  const incomingTime = new Date(incoming.createdAt).getTime();
+  function reconcileOptimistic(
+    prev: ChatMessage[],
+    incoming: ChatMessage,
+    myUserId: string
+  ): ChatMessage[] {
+    const incomingClientId = safeText((incoming as any).clientMessageId);
+    const incomingTime = new Date(incoming.createdAt).getTime();
 
-  // Find candidate tmp messages
-  const tmpIndexes = prev
-    .map((m, i) => ({ m, i }))
-    .filter(({ m }) => typeof m.id === "string" && m.id.startsWith("tmp-"));
+    // Find candidate tmp messages
+    const tmpIndexes = prev
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => typeof m.id === 'string' && m.id.startsWith('tmp-'));
 
-  // 1) Best case: backend echoed clientMessageId
-  if (incomingClientId) {
-    const idx = tmpIndexes.find(({ m }) => safeText((m as any).clientMessageId) === incomingClientId)?.i;
-    if (idx != null) {
-      const next = prev.slice();
-      next[idx] = incoming;
-      return next;
+    // 1) Best case: backend echoed clientMessageId
+    if (incomingClientId) {
+      const idx = tmpIndexes.find(
+        ({ m }) => safeText((m as any).clientMessageId) === incomingClientId
+      )?.i;
+      if (idx != null) {
+        const next = prev.slice();
+        next[idx] = incoming;
+        return next;
+      }
     }
-  }
 
-  // 2) If it's MY message: replace the most recent tmp with same content
-  if (incoming.senderId === myUserId) {
-    const candidates = tmpIndexes
-      .filter(({ m }) => m.senderId === incoming.senderId && m.content === incoming.content)
-      .sort((a, b) => new Date(b.m.createdAt).getTime() - new Date(a.m.createdAt).getTime());
+    // 2) If it's MY message: replace the most recent tmp with same content
+    if (incoming.senderId === myUserId) {
+      const candidates = tmpIndexes
+        .filter(
+          ({ m }) =>
+            m.senderId === incoming.senderId && m.content === incoming.content
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.m.createdAt).getTime() -
+            new Date(a.m.createdAt).getTime()
+        );
 
-    if (candidates.length) {
-      const idx = candidates[0].i;
-      const next = prev.slice();
-      next[idx] = incoming;
-      return next;
+      if (candidates.length) {
+        const idx = candidates[0].i;
+        const next = prev.slice();
+        next[idx] = incoming;
+        return next;
+      }
     }
+
+    // 3) Fallback: same sender+content within a bigger time window (30s)
+    const idx = tmpIndexes.find(({ m }) => {
+      if (m.senderId !== incoming.senderId) return false;
+      if (m.content !== incoming.content) return false;
+      const t = new Date(m.createdAt).getTime();
+      return Math.abs(t - incomingTime) <= 30_000;
+    })?.i;
+
+    if (idx == null) return prev;
+
+    const next = prev.slice();
+    next[idx] = incoming;
+    return next;
   }
-
-  // 3) Fallback: same sender+content within a bigger time window (30s)
-  const idx = tmpIndexes.find(({ m }) => {
-    if (m.senderId !== incoming.senderId) return false;
-    if (m.content !== incoming.content) return false;
-    const t = new Date(m.createdAt).getTime();
-    return Math.abs(t - incomingTime) <= 30_000;
-  })?.i;
-
-  if (idx == null) return prev;
-
-  const next = prev.slice();
-  next[idx] = incoming;
-  return next;
-}
 
   // Runtime-safe WS base: env override, then localhost, then production
   const wsEndpoint = useMemo(() => {
-    const toWs = (u: string) => u.replace(/^https/, "wss").replace(/^http/, "ws");
+    const toWs = (u: string) =>
+      u.replace(/^https/, 'wss').replace(/^http/, 'ws');
     const env = process.env.NEXT_PUBLIC_WS_URL;
-    if (env) return env.endsWith("/ws") ? toWs(env) : `${toWs(env)}/ws`;
+    if (env) return env.endsWith('/ws') ? toWs(env) : `${toWs(env)}/ws`;
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       const isLocalhost =
-        window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-      if (isLocalhost) return "ws://localhost:8080/ws";
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+      if (isLocalhost) return 'ws://localhost:8080/ws';
     }
 
-    return "wss://playlocalcapstone.onrender.com/ws";
+    return 'wss://playlocalcapstone.onrender.com/ws';
   }, []);
 
   const historyBase = useMemo(() => {
-    const env = historyBaseUrl || process.env.NEXT_PUBLIC_CHAT_API_BASE || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1" || "https://playlocalcapstone.onrender.com/api/v1";
+    const env =
+      historyBaseUrl ??
+      process.env.NEXT_PUBLIC_CHAT_API_BASE ??
+      process.env.NEXT_PUBLIC_API_URL ??
+      'http://localhost:8080/api/v1';
     if (env) return env;
-    if (typeof window === "undefined") return "http://localhost:8080/api/v1";
+    if (typeof window === 'undefined') return 'http://localhost:8080/api/v1';
     const url = new URL(window.location.href);
-    url.port = "8080";
-    url.pathname = "/api/v1";
-    url.search = "";
-    url.hash = "";
+    url.port = '8080';
+    url.pathname = '/api/v1';
+    url.search = '';
+    url.hash = '';
     return url.toString();
   }, [historyBaseUrl]);
 
   async function loadHistory() {
     try {
       const url = `${historyBase}/games/${gameId}/messages`;
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -218,7 +245,7 @@ function reconcileOptimistic(
 
   useEffect(() => {
     if (!enabled || !gameId) return;
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     setConnected(false);
     connectedRef.current = false;
@@ -244,21 +271,20 @@ function reconcileOptimistic(
 
             const key = `${msg.senderId}|${msg.content}|${msg.createdAt}`;
 
-          setMessages((prev) => {
-            if (prev.some((p) => p.id === msg.id)) return prev;
+            setMessages((prev) => {
+              if (prev.some((p) => p.id === msg.id)) return prev;
 
-            const reconciled = reconcileOptimistic(prev, msg, me.id);
-            if (reconciled !== prev) {
+              const reconciled = reconcileOptimistic(prev, msg, me.id);
+              if (reconciled !== prev) {
+                markSeen(key);
+                return sortByTime(reconciled);
+              }
+
+              if (seenRecently(key)) return prev;
+
               markSeen(key);
-              return sortByTime(reconciled);
-            }
-
-            if (seenRecently(key)) return prev;
-
-            markSeen(key);
-            return sortByTime([...prev, msg]);
-          });
-
+              return sortByTime([...prev, msg]);
+            });
           } catch {
             // ignore bad frames
           }
@@ -270,12 +296,12 @@ function reconcileOptimistic(
       onWebSocketError: () => {
         setConnected(false);
         connectedRef.current = false;
-        setError("WebSocket connection failed.");
+        setError('WebSocket connection failed.');
       },
       onStompError: () => {
         setConnected(false);
         connectedRef.current = false;
-        setError("WebSocket/STOMP error.");
+        setError('WebSocket/STOMP error.');
       },
       onDisconnect: () => {
         setConnected(false);
@@ -289,7 +315,7 @@ function reconcileOptimistic(
     return () => {
       try {
         const sub = (client as any).__gameSub;
-        if (sub && typeof sub.unsubscribe === "function") sub.unsubscribe();
+        if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
       } catch {}
 
       try {
@@ -310,7 +336,9 @@ function reconcileOptimistic(
 
     // clientMessageId lets us reconcile optimistic with inbound if backend echoes it back
     const clientMessageId =
-      typeof crypto !== "undefined" ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+      typeof crypto !== 'undefined'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
 
     const tempId = `tmp-${clientMessageId}`;
 
@@ -328,12 +356,12 @@ function reconcileOptimistic(
 
     const client = clientRef.current;
     if (!client || !connectedRef.current) {
-      setError("Not connected.");
+      setError('Not connected.');
       return;
     }
 
     client.publish({
-      destination: "/app/game.send",
+      destination: '/app/game.send',
       body: JSON.stringify({
         gameId,
         senderId: me.id,
