@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertCircle, X } from "lucide-react";
+import { useState } from 'react';
+import { AlertCircle, X } from 'lucide-react';
 
 interface Tag {
   tagId: string;
@@ -43,7 +43,7 @@ export function JoinConfirmationModal({
   const handleConfirm = () => {
     // Check if all restricted tags are confirmed
     const allConfirmed = restrictedTags.every((tag) =>
-      confirmedTags.has(tag.tagId),
+      confirmedTags.has(tag.tagId)
     );
     if (!allConfirmed) {
       return; // Button should be disabled anyway
@@ -52,7 +52,7 @@ export function JoinConfirmationModal({
   };
 
   const allConfirmed = restrictedTags.every((tag) =>
-    confirmedTags.has(tag.tagId),
+    confirmedTags.has(tag.tagId)
   );
 
   return (
@@ -81,7 +81,7 @@ export function JoinConfirmationModal({
                 Age Requirement
               </h3>
               <p className="text-sm text-purple-700">
-                This game requires participants to be{" "}
+                This game requires participants to be{' '}
                 {minAge && maxAge
                   ? `between ${minAge} and ${maxAge} years old`
                   : minAge
@@ -116,11 +116,11 @@ export function JoinConfirmationModal({
                     className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
                     style={{
                       borderColor: confirmedTags.has(tag.tagId)
-                        ? "#10b981"
-                        : "#d1d5db",
+                        ? '#10b981'
+                        : '#d1d5db',
                       backgroundColor: confirmedTags.has(tag.tagId)
-                        ? "#f0fdf4"
-                        : "white",
+                        ? '#f0fdf4'
+                        : 'white',
                     }}
                   >
                     <input
@@ -133,7 +133,7 @@ export function JoinConfirmationModal({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-gray-900 capitalize">
-                          {tag.name.replace("-", " ")}
+                          {tag.name.replace('-', ' ')}
                         </span>
                         <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full">
                           Required
@@ -164,7 +164,7 @@ export function JoinConfirmationModal({
             disabled={!allConfirmed || isJoining}
             className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isJoining ? "Joining..." : "Confirm & Join"}
+            {isJoining ? 'Joining...' : 'Confirm & Join'}
           </button>
         </div>
       </div>

@@ -1,25 +1,29 @@
-import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import "@testing-library/jest-dom";
+import React from 'react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
+import '@testing-library/jest-dom';
 
-import { ReportModal } from "../../components/ReportModal";
+import { ReportModal } from '../../components/ReportModal';
 
-
-jest.mock("lucide-react", () => ({
+jest.mock('lucide-react', () => ({
   X: () => <div data-testid="icon-x" />,
   AlertTriangle: () => <div data-testid="icon-warn" />,
   Loader2: () => <div data-testid="icon-loader" />,
   CheckCircle: () => <div data-testid="icon-check" />,
 }));
 
-
-jest.mock("@/hooks/useReportUser", () => ({
+jest.mock('@/hooks/useReportUser', () => ({
   useReportUser: jest.fn(),
 }));
 
-import { useReportUser } from "@/hooks/useReportUser";
+import { useReportUser } from '@/hooks/useReportUser';
 
-describe("ReportModal", () => {
+describe('ReportModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -30,7 +34,7 @@ describe("ReportModal", () => {
     jest.useRealTimers();
   });
 
-  it("renders nothing when isOpen=false", () => {
+  it('renders nothing when isOpen=false', () => {
     // Arrange
     (useReportUser as jest.Mock).mockReturnValue({
       submitReport: jest.fn(),
@@ -49,10 +53,10 @@ describe("ReportModal", () => {
     );
 
     // Assert
-    expect(screen.queryByText("Report User")).not.toBeInTheDocument();
+    expect(screen.queryByText('Report User')).not.toBeInTheDocument();
   });
 
-  it("shows validation error when reason selected but details empty", async () => {
+  it('shows validation error when reason selected but details empty', async () => {
     // Arrange
     (useReportUser as jest.Mock).mockReturnValue({
       submitReport: jest.fn(),
@@ -72,25 +76,28 @@ describe("ReportModal", () => {
 
     // Act: wait until mounted effect runs (modal appears)
     await waitFor(() => {
-      expect(screen.getByText("Report User")).toBeInTheDocument();
+      expect(screen.getByText('Report User')).toBeInTheDocument();
     });
 
     await act(async () => {
-      fireEvent.change(screen.getByDisplayValue("Select a reason").closest("select")!, {
-        target: { value: "OTHER" },
-      });
+      fireEvent.change(
+        screen.getByDisplayValue('Select a reason').closest('select')!,
+        {
+          target: { value: 'OTHER' },
+        }
+      );
     });
     await act(async () => {
-      fireEvent.click(screen.getByText("Submit Report"));
+      fireEvent.click(screen.getByText('Submit Report'));
     });
 
     // Assert
     expect(
-      await screen.findByText("Please provide details about your report")
+      await screen.findByText('Please provide details about your report')
     ).toBeInTheDocument();
   });
 
-  it("submits report successfully and calls onClose after 2 seconds", async () => {
+  it('submits report successfully and calls onClose after 2 seconds', async () => {
     // Arrange
     const onClose = jest.fn();
     const submitReport = jest.fn().mockResolvedValue({ ok: true });
@@ -112,15 +119,19 @@ describe("ReportModal", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Report User")).toBeInTheDocument();
+      expect(screen.getByText('Report User')).toBeInTheDocument();
     });
 
     // Act
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "OTHER" } });
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Some details" } });
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'OTHER' },
+    });
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Some details' },
+    });
 
     await act(async () => {
-      fireEvent.click(screen.getByText("Submit Report"));
+      fireEvent.click(screen.getByText('Submit Report'));
     });
 
     // Assert submit payload
@@ -128,16 +139,16 @@ describe("ReportModal", () => {
       expect(submitReport).toHaveBeenCalledTimes(1);
       expect(submitReport).toHaveBeenCalledWith(
         expect.objectContaining({
-          reportedUserId: "u1",
-          reportType: "OTHER",
-          details: "Some details",
+          reportedUserId: 'u1',
+          reportType: 'OTHER',
+          details: 'Some details',
         })
       );
     });
 
     // Success screen shows
     await waitFor(() => {
-      expect(screen.getByText("Report Submitted")).toBeInTheDocument();
+      expect(screen.getByText('Report Submitted')).toBeInTheDocument();
     });
 
     // after 2 seconds, closes
@@ -148,7 +159,7 @@ describe("ReportModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("attendance_dispute prefixes scoreHistoryId and does NOT send reportedUserId", async () => {
+  it('attendance_dispute prefixes scoreHistoryId and does NOT send reportedUserId', async () => {
     // Arrange
     const submitReport = jest.fn().mockResolvedValue({ ok: true });
 
@@ -171,15 +182,19 @@ describe("ReportModal", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Dispute Attendance")).toBeInTheDocument();
+      expect(screen.getByText('Dispute Attendance')).toBeInTheDocument();
     });
 
     // Act
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "SAFETY" } });
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "I was there." } });
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: 'SAFETY' },
+    });
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'I was there.' },
+    });
 
     await act(async () => {
-      fireEvent.click(screen.getByText("Submit Dispute"));
+      fireEvent.click(screen.getByText('Submit Dispute'));
     });
 
     // Assert
@@ -187,8 +202,8 @@ describe("ReportModal", () => {
       expect(submitReport).toHaveBeenCalledWith(
         expect.objectContaining({
           reportedUserId: undefined,
-          reportType: "SAFETY",
-          details: "[Dispute for score entry: sh-123] I was there.",
+          reportType: 'SAFETY',
+          details: '[Dispute for score entry: sh-123] I was there.',
         })
       );
     });

@@ -17,11 +17,23 @@ const mockGame = {
 };
 
 const mockPendingAllAttended = [
-  { participationId: 'p1', attendanceStatus: 'ATTENDED' as const, userId: 'u2', sportId: 's1', requestedPositionRoleId: 'r1' },
+  {
+    participationId: 'p1',
+    attendanceStatus: 'ATTENDED' as const,
+    userId: 'u2',
+    sportId: 's1',
+    requestedPositionRoleId: 'r1',
+  },
 ];
 
 const mockPendingOneUnknown = [
-  { participationId: 'p1', attendanceStatus: 'UNKNOWN' as const, userId: 'u2', sportId: 's1', requestedPositionRoleId: 'r1' },
+  {
+    participationId: 'p1',
+    attendanceStatus: 'UNKNOWN' as const,
+    userId: 'u2',
+    sportId: 's1',
+    requestedPositionRoleId: 'r1',
+  },
 ];
 
 jest.mock('next/navigation', () => ({
@@ -42,7 +54,11 @@ jest.mock('@/hooks/useAttendance', () => ({
 }));
 
 jest.mock('@/lib/api', () => ({
-  usersApi: { getProfile: jest.fn().mockResolvedValue({ displayName: 'Alice', defaultIntensity: 'Casual' }) },
+  usersApi: {
+    getProfile: jest
+      .fn()
+      .mockResolvedValue({ displayName: 'Alice', defaultIntensity: 'Casual' }),
+  },
 }));
 
 const useAuth = require('../../context/AuthContext').useAuth;
@@ -92,7 +108,12 @@ describe('RsvpRoster', () => {
   });
 
   it('shows game loading state with Cancel button', () => {
-    useGame.mockReturnValue({ game: null, isLoading: true, error: null, refetch: mockRefetch });
+    useGame.mockReturnValue({
+      game: null,
+      isLoading: true,
+      error: null,
+      refetch: mockRefetch,
+    });
     useAttendance.mockReturnValue({
       pendingAttendance: [],
       isLoading: false,
@@ -111,7 +132,12 @@ describe('RsvpRoster', () => {
   });
 
   it('shows game error state with Retry and Cancel', () => {
-    useGame.mockReturnValue({ game: null, isLoading: false, error: 'Game not found', refetch: mockRefetch });
+    useGame.mockReturnValue({
+      game: null,
+      isLoading: false,
+      error: 'Game not found',
+      refetch: mockRefetch,
+    });
     useAttendance.mockReturnValue({
       pendingAttendance: [],
       isLoading: false,
@@ -179,16 +205,25 @@ describe('RsvpRoster', () => {
     render(<RsvpRoster />);
 
     await waitFor(() => {
-      expect(screen.getByText(/You must mark all players before submitting/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/You must mark all players before submitting/)
+      ).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/players still need to be marked/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/players still need to be marked/)
+    ).toBeInTheDocument();
     const submit = screen.getByRole('button', { name: /Submit Attendance/i });
     expect(submit).toBeDisabled();
   });
 
   it('calls confirmAttendance and navigates to /profile on Submit success', async () => {
-    mockConfirmAttendance.mockResolvedValue({ gameId: 'g1', attendedCount: 1, noShowCount: 0, updatedScores: [] });
+    mockConfirmAttendance.mockResolvedValue({
+      gameId: 'g1',
+      attendedCount: 1,
+      noShowCount: 0,
+      updatedScores: [],
+    });
 
     render(<RsvpRoster />);
 
@@ -217,7 +252,9 @@ describe('RsvpRoster', () => {
     fireEvent.click(screen.getByRole('button', { name: /Submit Attendance/i }));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Failed to submit attendance. Please try again.');
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Failed to submit attendance. Please try again.'
+      );
     });
 
     alertSpy.mockRestore();
@@ -236,7 +273,9 @@ describe('RsvpRoster', () => {
     render(<RsvpRoster />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Submitting.../i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Submitting.../i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -255,8 +294,20 @@ describe('RsvpRoster', () => {
   it('handleAttendanceChange updates status when clicking No show then Submit succeeds', async () => {
     useAttendance.mockReturnValue({
       pendingAttendance: [
-        { participationId: 'p1', attendanceStatus: 'ATTENDED' as const, userId: 'u2', sportId: 's1', requestedPositionRoleId: 'r1' },
-        { participationId: 'p2', attendanceStatus: 'UNKNOWN' as const, userId: 'u3', sportId: 's1', requestedPositionRoleId: 'r1' },
+        {
+          participationId: 'p1',
+          attendanceStatus: 'ATTENDED' as const,
+          userId: 'u2',
+          sportId: 's1',
+          requestedPositionRoleId: 'r1',
+        },
+        {
+          participationId: 'p2',
+          attendanceStatus: 'UNKNOWN' as const,
+          userId: 'u3',
+          sportId: 's1',
+          requestedPositionRoleId: 'r1',
+        },
       ],
       isLoading: false,
       isSubmitting: false,
@@ -265,7 +316,12 @@ describe('RsvpRoster', () => {
       confirmAttendance: mockConfirmAttendance,
     });
 
-    mockConfirmAttendance.mockResolvedValue({ gameId: 'g1', attendedCount: 1, noShowCount: 1, updatedScores: [] });
+    mockConfirmAttendance.mockResolvedValue({
+      gameId: 'g1',
+      attendedCount: 1,
+      noShowCount: 1,
+      updatedScores: [],
+    });
 
     render(<RsvpRoster />);
 
@@ -277,7 +333,9 @@ describe('RsvpRoster', () => {
     fireEvent.click(noShowButtons[1]);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Submit Attendance/i })).not.toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: /Submit Attendance/i })
+      ).not.toBeDisabled();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /Submit Attendance/i }));

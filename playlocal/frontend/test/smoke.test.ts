@@ -1,5 +1,5 @@
-describe("smoke", () => {
-  it("runs", () => {
+describe('smoke', () => {
+  it('runs', () => {
     expect(1 + 1).toBe(2);
   });
 });
