@@ -1,6 +1,9 @@
 name: Lint Checks
 
 on:
+  push:
+    branches: ["dev", "release"]
+    
   pull_request:
     types: [opened, synchronize, reopened]
 

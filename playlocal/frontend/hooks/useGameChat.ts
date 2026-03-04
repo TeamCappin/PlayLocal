@@ -319,11 +319,10 @@ export function useGameChat({
       } catch {}
 
       try {
-        client.deactivate();
+      void Promise.resolve(client.deactivate()).catch(() => {});
       } catch {}
 
       clientRef.current = null;
-      setConnected(false);
       connectedRef.current = false;
     };
   }, [enabled, gameId, wsEndpoint]);
