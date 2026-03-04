@@ -134,7 +134,7 @@ public class User {
             return null;
         return displayName.toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-|-$)", "")
+                .replaceAll("(^-)|(-$)", "")
                 .replaceAll("-+", "-");
     }
 }
