@@ -3,7 +3,13 @@ import { MatchHistoryList } from '../../components/sub-components/MatchHistoryLi
 import { gamesApi } from '@/lib/api';
 
 jest.mock('next/link', () => {
-  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return function MockLink({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) {
     return <a href={href}>{children}</a>;
   };
 });
@@ -14,9 +20,10 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-const mockGetGameParticipation = gamesApi.getGameParticipation as jest.MockedFunction<
-  typeof gamesApi.getGameParticipation
->;
+const mockGetGameParticipation =
+  gamesApi.getGameParticipation as jest.MockedFunction<
+    typeof gamesApi.getGameParticipation
+  >;
 
 describe('MatchHistoryList', () => {
   const game = {

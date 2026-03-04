@@ -1,5 +1,5 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import {
   Dialog,
   DialogTrigger,
@@ -7,10 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
-describe("Dialog", () => {
-  it("renders trigger and opens dialog on click", () => {
+describe('Dialog', () => {
+  it('renders trigger and opens dialog on click', () => {
     render(
       <Dialog>
         <DialogTrigger data-testid="trigger">Open</DialogTrigger>
@@ -23,15 +23,18 @@ describe("Dialog", () => {
         </DialogContent>
       </Dialog>
     );
-    expect(screen.getByTestId("trigger")).toHaveAttribute("data-slot", "dialog-trigger");
-    fireEvent.click(screen.getByTestId("trigger"));
-    expect(screen.getByTestId("content")).toBeInTheDocument();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Title")).toBeInTheDocument();
-    expect(screen.getByText("Description")).toBeInTheDocument();
+    expect(screen.getByTestId('trigger')).toHaveAttribute(
+      'data-slot',
+      'dialog-trigger'
+    );
+    fireEvent.click(screen.getByTestId('trigger'));
+    expect(screen.getByTestId('content')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Title')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
   });
 
-  it("renders dialog when open prop is true", () => {
+  it('renders dialog when open prop is true', () => {
     render(
       <Dialog open>
         <DialogContent data-testid="content">
@@ -42,7 +45,10 @@ describe("Dialog", () => {
         </DialogContent>
       </Dialog>
     );
-    expect(screen.getByTestId("content")).toHaveAttribute("data-slot", "dialog-content");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByTestId('content')).toHaveAttribute(
+      'data-slot',
+      'dialog-content'
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

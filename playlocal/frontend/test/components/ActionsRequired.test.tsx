@@ -4,7 +4,13 @@ import { ActionsRequired } from '../../components/sub-components/ActionsRequired
 const mockPush = jest.fn();
 
 jest.mock('next/link', () => {
-  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
+  return function MockLink({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) {
     return <a href={href}>{children}</a>;
   };
 });
@@ -22,10 +28,15 @@ jest.mock('@/hooks/useGames', () => ({
 }));
 
 const useAuth = require('@/context/AuthContext').useAuth;
-const usePastGamesByUserNeedingAttendanceUpdate = require('@/hooks/useGames').usePastGamesByUserNeedingAttendanceUpdate;
+const usePastGamesByUserNeedingAttendanceUpdate =
+  require('@/hooks/useGames').usePastGamesByUserNeedingAttendanceUpdate;
 
 const mockGames = [
-  { gameId: 'g1', title: 'Past Basketball Game', startTime: '2025-01-20T14:00:00Z' },
+  {
+    gameId: 'g1',
+    title: 'Past Basketball Game',
+    startTime: '2025-01-20T14:00:00Z',
+  },
 ];
 
 describe('ActionsRequired', () => {

@@ -1,4 +1,4 @@
-import { RsvpRoster } from "@/components/RsvpRoster";
+import { RsvpRoster } from '@/components/RsvpRoster';
 
 export default function Page() {
   return (
