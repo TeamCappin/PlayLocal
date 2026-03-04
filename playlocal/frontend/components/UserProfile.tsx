@@ -1,47 +1,95 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import {
+  MapPin,
+  Calendar,
+  TrendingUp,
+  Award,
+  Users,
+  Star,
+  CheckCircle,
+  Edit,
+  Settings,
+  Flag,
+  Loader2,
+  AlertCircle,
+  Medal,
+  UserPlus,
+  Gamepad2,
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
-import { usersApi, UserDto, endorsementsApi, EndorsementResponse, ConnectionSignals } from '@/lib/api';
+import {
+  usersApi,
+  UserDto,
+  endorsementsApi,
+  EndorsementResponse,
+  ConnectionSignals,
+} from '@/lib/api';
 import { ScoreHistoryList } from './ScoreHistoryList';
 import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGames } from '@/hooks/useGames';
 import { OrganizerQualityBadge } from './OrganizerQualityBadge';
 
-
 export function UserProfile() {
   const { username } = useParams();
   const usernameStr = Array.isArray(username) ? username[0] : username;
   const { user: currentUser, isAuthenticated, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sports' | 'history' | 'stats' | 'score-history'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'sports' | 'history' | 'stats' | 'score-history'
+  >('overview');
   const [showReportModal, setShowReportModal] = useState(false);
   const [otherUser, setOtherUser] = useState<UserDto | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);  // Copilot fix #4: Error state
+  const [profileError, setProfileError] = useState<string | null>(null); // Copilot fix #4: Error state
   // US 3.3 Organizer Endorsements
   const [endorsements, setEndorsements] = useState<EndorsementResponse[]>([]);
   const [loadingEndorsements, setLoadingEndorsements] = useState(false);
-  const [endorsementToReport, setEndorsementToReport] = useState<EndorsementResponse | null>(null);
+  const [endorsementToReport, setEndorsementToReport] =
+    useState<EndorsementResponse | null>(null);
   // Attendance Disputes
-  const [disputeGameId, setDisputeGameId] = useState<string | undefined>(undefined);
-  const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(undefined);
-  const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<string | undefined>(undefined);
-  const { games: pastGames} = usePastGames();
+  const [disputeGameId, setDisputeGameId] = useState<string | undefined>(
+    undefined
+  );
+  const [disputeGameTitle, setDisputeGameTitle] = useState<string | undefined>(
+    undefined
+  );
+  const [disputeScoreHistoryId, setDisputeScoreHistoryId] = useState<
+    string | undefined
+  >(undefined);
+  const { games: pastGames } = usePastGames();
   // US-32: Connection signals when viewing another user
-  const [connectionSignals, setConnectionSignals] = useState<ConnectionSignals | null>(null);
-  const [loadingConnectionSignals, setLoadingConnectionSignals] = useState(false);
-
+  const [connectionSignals, setConnectionSignals] =
+    useState<ConnectionSignals | null>(null);
+  const [loadingConnectionSignals, setLoadingConnectionSignals] =
+    useState(false);
 
   // Check if viewing own profile (no param, "me", or slug matches current user)
-  const currentUserSlug = currentUser?.displayName?.toLowerCase().replace(/\s+/g, '-');
-  const isOwnProfile = !usernameStr || usernameStr === 'me' || usernameStr === currentUserSlug;
+  const currentUserSlug = currentUser?.displayName
+    ?.toLowerCase()
+    .replace(/\s+/g, '-');
+  const isOwnProfile =
+    !usernameStr || usernameStr === 'me' || usernameStr === currentUserSlug;
 
   // UUID regex for profile links that use userId (Friends, PlayerSearch, etc.)
-  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  const isUuid = (s: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
   // Fetch other user's profile if not own profile [US-1.3]
   useEffect(() => {
@@ -56,8 +104,8 @@ export function UserProfile() {
             : await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
         } catch (err) {
-          console.error("Failed to fetch profile", err);
-          setProfileError("Failed to load profile. Please try again later.");
+          console.error('Failed to fetch profile', err);
+          setProfileError('Failed to load profile. Please try again later.');
         } finally {
           setLoadingProfile(false);
         }
@@ -81,48 +129,66 @@ export function UserProfile() {
 
   // User data - uses AuthContext for own profile, would fetch from API for other profiles
   // TODO: Add API call to fetch other user profiles: GET /api/v1/users/{username}/profile
-  const user = isOwnProfile && currentUser ? {
-    name: currentUser.displayName,
-    username: currentUser.displayName.toLowerCase().replace(/\s+/g, '-'),
-    avatar: currentUser.displayName.substring(0, 2).toUpperCase(),
-    bio: currentUser.bio || 'No bio yet. Click Edit Profile to add one!',
-    location: currentUser.location || 'Location not set',
-    memberSince: currentUser.createdAt
-      ? new Date(currentUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'Recently joined',
-    verified: (currentUser as any).verified || false,
-    userId: currentUser.userId,
-    stats: {
-      gamesPlayed: currentUser.gamesCount || 0,
-      gamesHosted: (currentUser as any).gamesHosted || 0,
-      reliabilityScore: currentUser.reliabilityScore ?? 100,
-      averageRating: (currentUser as any).averageRating || 0,
-    },
-  } : {
-    // Fallback for viewing other profiles
-    name: otherUser ? otherUser.displayName : (usernameStr?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown User'),
-    username: otherUser ? otherUser.displayName.toLowerCase().replace(/\s+/g, '-') : (usernameStr || 'unknown'),
-    avatar: (otherUser ? otherUser.displayName : (usernameStr || '??')).substring(0, 2).toUpperCase(),
-    bio: otherUser?.bio || 'No bio available',
-    location: otherUser?.location || 'Location not set',
-    memberSince: otherUser?.createdAt
-      ? new Date(otherUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'Recently joined',
-    verified: false,
-    userId: otherUser?.userId || null,
-    stats: {
-      gamesPlayed: otherUser?.gamesCount || 0,
-      gamesHosted: 0,
-      reliabilityScore: otherUser?.reliabilityScore || 0,
-      averageRating: 0,
-    },
-  };
+  const user =
+    isOwnProfile && currentUser
+      ? {
+          name: currentUser.displayName,
+          username: currentUser.displayName.toLowerCase().replace(/\s+/g, '-'),
+          avatar: currentUser.displayName.substring(0, 2).toUpperCase(),
+          bio: currentUser.bio || 'No bio yet. Click Edit Profile to add one!',
+          location: currentUser.location || 'Location not set',
+          memberSince: currentUser.createdAt
+            ? new Date(currentUser.createdAt).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric',
+              })
+            : 'Recently joined',
+          verified: (currentUser as any).verified || false,
+          userId: currentUser.userId,
+          stats: {
+            gamesPlayed: currentUser.gamesCount || 0,
+            gamesHosted: (currentUser as any).gamesHosted || 0,
+            reliabilityScore: currentUser.reliabilityScore ?? 100,
+            averageRating: (currentUser as any).averageRating || 0,
+          },
+        }
+      : {
+          // Fallback for viewing other profiles
+          name: otherUser
+            ? otherUser.displayName
+            : usernameStr
+                ?.replace(/-/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase()) || 'Unknown User',
+          username: otherUser
+            ? otherUser.displayName.toLowerCase().replace(/\s+/g, '-')
+            : usernameStr || 'unknown',
+          avatar: (otherUser ? otherUser.displayName : usernameStr || '??')
+            .substring(0, 2)
+            .toUpperCase(),
+          bio: otherUser?.bio || 'No bio available',
+          location: otherUser?.location || 'Location not set',
+          memberSince: otherUser?.createdAt
+            ? new Date(otherUser.createdAt).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric',
+              })
+            : 'Recently joined',
+          verified: false,
+          userId: otherUser?.userId || null,
+          stats: {
+            gamesPlayed: otherUser?.gamesCount || 0,
+            gamesHosted: 0,
+            reliabilityScore: otherUser?.reliabilityScore || 0,
+            averageRating: 0,
+          },
+        };
 
   // US-32: Fetch connection signals when viewing another user
   useEffect(() => {
     if (!isOwnProfile && isAuthenticated && otherUser?.userId) {
       setLoadingConnectionSignals(true);
-      usersApi.getConnectionSignals(otherUser.userId)
+      usersApi
+        .getConnectionSignals(otherUser.userId)
         .then(setConnectionSignals)
         .catch(() => setConnectionSignals(null))
         .finally(() => setLoadingConnectionSignals(false));
@@ -139,18 +205,18 @@ export function UserProfile() {
     }
 
     setLoadingEndorsements(true);
-    endorsementsApi.getUserEndorsements(user.userId)
-      .then(data => {
+    endorsementsApi
+      .getUserEndorsements(user.userId)
+      .then((data) => {
         setEndorsements(data);
       })
-      .catch(err => {
-        console.error("Failed to load endorsements", err);
+      .catch((err) => {
+        console.error('Failed to load endorsements', err);
       })
       .finally(() => {
         setLoadingEndorsements(false);
       });
   }, [user.userId]);
-
 
   const sportProfiles = [
     {
@@ -238,7 +304,11 @@ export function UserProfile() {
   const achievements = [
     { icon: '🏆', title: 'MVP', description: 'Earned 5 MVP awards' },
     { icon: '🎯', title: 'Sharpshooter', description: '80% shooting accuracy' },
-    { icon: '🤝', title: 'Team Player', description: 'Highest teamwork rating' },
+    {
+      icon: '🤝',
+      title: 'Team Player',
+      description: 'Highest teamwork rating',
+    },
     { icon: '⚡', title: 'Reliable', description: '98% attendance rate' },
   ];
 
@@ -278,7 +348,9 @@ export function UserProfile() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl text-white">{user.name}</h1>
-                  {user.verified && <CheckCircle className="w-6 h-6 text-white" />}
+                  {user.verified && (
+                    <CheckCircle className="w-6 h-6 text-white" />
+                  )}
                 </div>
                 <p className="text-emerald-100 mb-3">@{user.username}</p>
                 <p className="text-white max-w-2xl mb-3">{user.bio}</p>
@@ -327,10 +399,23 @@ export function UserProfile() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
-            <StatCard label="Reliability Score" value={`${Math.round(user.stats.reliabilityScore)}%`} />
+            <StatCard
+              label="Reliability Score"
+              value={`${Math.round(user.stats.reliabilityScore)}%`}
+            />
             {/* US 3.3 Organizer Endorsements */}
-            <StatCard label="Endorsements" value={endorsements.length} icon={<Medal className="w-4 h-4 text-emerald-600" />} />
-            <StatCard label="Average Rating" value={user.stats.averageRating} icon={<Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />} />
+            <StatCard
+              label="Endorsements"
+              value={endorsements.length}
+              icon={<Medal className="w-4 h-4 text-emerald-600" />}
+            />
+            <StatCard
+              label="Average Rating"
+              value={user.stats.averageRating}
+              icon={
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              }
+            />
           </div>
         </div>
       </div>
@@ -341,46 +426,51 @@ export function UserProfile() {
           <div className="flex gap-8">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'overview'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+              className={`px-4 py-4 border-b-2 transition-colors ${
+                activeTab === 'overview'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab('sports')}
-              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'sports'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+              className={`px-4 py-4 border-b-2 transition-colors ${
+                activeTab === 'sports'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
               Sport Profiles
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'history'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+              className={`px-4 py-4 border-b-2 transition-colors ${
+                activeTab === 'history'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
               Match History
             </button>
             <button
               onClick={() => setActiveTab('stats')}
-              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'stats'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+              className={`px-4 py-4 border-b-2 transition-colors ${
+                activeTab === 'stats'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
               Stats & Analytics
             </button>
             <button
               onClick={() => setActiveTab('score-history')}
-              className={`px-4 py-4 border-b-2 transition-colors ${activeTab === 'score-history'
-                ? 'border-emerald-600 text-emerald-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+              className={`px-4 py-4 border-b-2 transition-colors ${
+                activeTab === 'score-history'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
               Score History
             </button>
@@ -397,14 +487,14 @@ export function UserProfile() {
               <div className="lg:col-span-2 space-y-6">
                 {/* US-6.1: Organizer Quality Score */}
                 {user.userId && (
-                  <OrganizerQualityBadge 
-                    userId={user.userId} 
+                  <OrganizerQualityBadge
+                    userId={user.userId}
                     displayName={user.name}
                     variant="full"
                     showInfoCard={true}
                   />
                 )}
-                
+
                 {/* Sport Profiles Summary */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h2 className="text-xl text-gray-900 mb-4">Sport Profiles</h2>
@@ -428,7 +518,9 @@ export function UserProfile() {
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <div className="text-gray-900">Skill Rating</div>
-                            <div className="text-emerald-600">{profile.skillRating}/10</div>
+                            <div className="text-emerald-600">
+                              {profile.skillRating}/10
+                            </div>
                           </div>
                           <button className="text-emerald-600 hover:text-emerald-700">
                             View Details
@@ -441,7 +533,9 @@ export function UserProfile() {
 
                 {/* Recent Activity */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-xl text-gray-900 mb-4">Recent Activity</h2>
+                  <h2 className="text-xl text-gray-900 mb-4">
+                    Recent Activity
+                  </h2>
                   {canViewActivityData ? (
                     <div className="space-y-3">
                       {recentGames.slice(0, 3).map((game) => (
@@ -451,16 +545,22 @@ export function UserProfile() {
                           className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                           <div>
-                            <div className="text-gray-900 mb-1">{game.title}</div>
+                            <div className="text-gray-900 mb-1">
+                              {game.title}
+                            </div>
                             <div className="text-sm text-gray-600">
                               {game.date} • {game.location}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}>
+                            <div
+                              className={`${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}
+                            >
                               {game.result}
                             </div>
-                            <div className="text-sm text-gray-500">{game.score}</div>
+                            <div className="text-sm text-gray-500">
+                              {game.score}
+                            </div>
                           </div>
                         </Link>
                       ))}
@@ -491,24 +591,39 @@ export function UserProfile() {
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <UserPlus className="w-5 h-5 text-gray-500 flex-shrink-0" />
                           <div>
-                            {connectionSignals && connectionSignals.mutualFriendCount > 0 ? (
+                            {connectionSignals &&
+                            connectionSignals.mutualFriendCount > 0 ? (
                               <span className="text-gray-900">
-                                {connectionSignals.mutualFriendCount} mutual friend{connectionSignals.mutualFriendCount !== 1 ? "s" : ""}
+                                {connectionSignals.mutualFriendCount} mutual
+                                friend
+                                {connectionSignals.mutualFriendCount !== 1
+                                  ? 's'
+                                  : ''}
                               </span>
                             ) : (
-                              <span className="text-gray-500">No mutuals yet</span>
+                              <span className="text-gray-500">
+                                No mutuals yet
+                              </span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <Gamepad2 className="w-5 h-5 text-gray-500 flex-shrink-0" />
                           <div>
-                            {connectionSignals && connectionSignals.coPlayCount > 0 ? (
+                            {connectionSignals &&
+                            connectionSignals.coPlayCount > 0 ? (
                               <span className="text-gray-900">
-                                Played together {connectionSignals.coPlayCount} time{connectionSignals.coPlayCount !== 1 ? "s" : ""} in last 60 days
+                                Played together {connectionSignals.coPlayCount}{' '}
+                                time
+                                {connectionSignals.coPlayCount !== 1
+                                  ? 's'
+                                  : ''}{' '}
+                                in last 60 days
                               </span>
                             ) : (
-                              <span className="text-gray-500">No games together yet</span>
+                              <span className="text-gray-500">
+                                No games together yet
+                              </span>
                             )}
                           </div>
                         </div>
@@ -527,44 +642,54 @@ export function UserProfile() {
                     </div>
                   </div>
                   {loadingEndorsements ? (
-                     <div className="text-center py-4 text-gray-400">Loading endorsements...</div>
+                    <div className="text-center py-4 text-gray-400">
+                      Loading endorsements...
+                    </div>
                   ) : endorsements.length > 0 ? (
                     <div className="space-y-3">
                       {endorsements.slice(0, 5).map((endorsement) => (
-                        <div key={endorsement.endorsementId} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg group">
+                        <div
+                          key={endorsement.endorsementId}
+                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg group"
+                        >
                           <div className="bg-white p-2 rounded-full shadow-sm text-emerald-500">
-                             <Medal className="w-5 h-5" />
+                            <Medal className="w-5 h-5" />
                           </div>
                           <div className="flex-1">
-                            <div className="text-gray-900 font-medium">Organizer Pick</div>
+                            <div className="text-gray-900 font-medium">
+                              Organizer Pick
+                            </div>
                             <div className="text-sm text-gray-600">
                               by {endorsement.endorserName}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {new Date(endorsement.gameDate).toLocaleDateString()} • {endorsement.gameTitle}
+                              {new Date(
+                                endorsement.gameDate
+                              ).toLocaleDateString()}{' '}
+                              • {endorsement.gameTitle}
                             </div>
                           </div>
-                          <button 
-                             onClick={() => setEndorsementToReport(endorsement)}
-                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 rounded"
-                             title="Report Endorsement"
+                          <button
+                            onClick={() => setEndorsementToReport(endorsement)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-500 rounded"
+                            title="Report Endorsement"
                           >
-                             <Flag className="w-4 h-4" />
+                            <Flag className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
                       {endorsements.length > 5 && (
-                          <div className="text-center pt-2">
-                              <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                                  View All ({endorsements.length})
-                              </button>
-                          </div>
+                        <div className="text-center pt-2">
+                          <button className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                            View All ({endorsements.length})
+                          </button>
+                        </div>
                       )}
                     </div>
                   ) : (
                     <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                       <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                       <p>No endorsements yet</p>
+                      <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                      <p>No endorsements yet</p>
                     </div>
                   )}
                 </div>
@@ -574,11 +699,18 @@ export function UserProfile() {
                   <h2 className="text-xl text-gray-900 mb-4">Achievements</h2>
                   <div className="space-y-3">
                     {achievements.map((achievement, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="text-3xl">{achievement.icon}</div>
                         <div>
-                          <div className="text-gray-900">{achievement.title}</div>
-                          <div className="text-sm text-gray-600">{achievement.description}</div>
+                          <div className="text-gray-900">
+                            {achievement.title}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {achievement.description}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -625,13 +757,10 @@ export function UserProfile() {
                 <h2 className="text-xl text-gray-900 mb-4">Match History</h2>
               </div>
               {canViewActivityData ? (
-                //Adding a temporary div to fix layout shift while MatchHistoryList is being updated 
-                <div className='space-y-3'>
+                //Adding a temporary div to fix layout shift while MatchHistoryList is being updated
+                <div className="space-y-3">
                   {pastGames.map((game) => (
-                    <MatchHistoryList
-                      key={game.gameId}
-                      game={game}
-                    />
+                    <MatchHistoryList key={game.gameId} game={game} />
                   ))}
                 </div>
               ) : (
@@ -639,8 +768,13 @@ export function UserProfile() {
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <TrendingUp className="w-8 h-8 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Match History is Private</h3>
-                  <p className="text-gray-500">You must be friends with {user.name} to view their full match history.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Match History is Private
+                  </h3>
+                  <p className="text-gray-500">
+                    You must be friends with {user.name} to view their full
+                    match history.
+                  </p>
                 </div>
               )}
             </div>
@@ -657,8 +791,20 @@ export function UserProfile() {
                     <XAxis dataKey="month" />
                     <YAxis domain={[0, 10]} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="basketball" stroke="#10b981" strokeWidth={2} name="Basketball" />
-                    <Line type="monotone" dataKey="soccer" stroke="#3b82f6" strokeWidth={2} name="Soccer" />
+                    <Line
+                      type="monotone"
+                      dataKey="basketball"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      name="Basketball"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="soccer"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      name="Soccer"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -666,25 +812,39 @@ export function UserProfile() {
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* Radar Chart */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-xl text-gray-900 mb-6">Basketball Skills</h2>
+                  <h2 className="text-xl text-gray-900 mb-6">
+                    Basketball Skills
+                  </h2>
                   <ResponsiveContainer width="100%" height={300}>
                     <RadarChart data={radarData}>
                       <PolarGrid />
                       <PolarAngleAxis dataKey="skill" />
                       <PolarRadiusAxis domain={[0, 100]} />
-                      <Radar name="Skills" dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
+                      <Radar
+                        name="Skills"
+                        dataKey="value"
+                        stroke="#10b981"
+                        fill="#10b981"
+                        fillOpacity={0.6}
+                      />
                     </RadarChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Performance Stats */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-xl text-gray-900 mb-6">Performance Stats</h2>
+                  <h2 className="text-xl text-gray-900 mb-6">
+                    Performance Stats
+                  </h2>
                   <div className="space-y-4">
                     <StatBar label="Win Rate" value={65} color="emerald" />
                     <StatBar label="Attendance Rate" value={98} color="blue" />
                     <StatBar label="Team Rating" value={92} color="purple" />
-                    <StatBar label="Skill Confidence" value={82} color="amber" />
+                    <StatBar
+                      label="Skill Confidence"
+                      value={82}
+                      color="amber"
+                    />
                   </div>
                 </div>
               </div>
@@ -693,7 +853,9 @@ export function UserProfile() {
 
           {activeTab === 'score-history' && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Reliability Score History</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                Reliability Score History
+              </h2>
               <ScoreHistoryList
                 userId={isOwnProfile ? undefined : user.userId || undefined}
                 onDisputeClick={(entry) => {
@@ -737,7 +899,15 @@ export function UserProfile() {
   );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: string | number; icon?: React.ReactNode }) {
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
       <div className="text-emerald-100 text-sm mb-1">{label}</div>
@@ -749,7 +919,13 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
   );
 }
 
-function SportProfileCard({ profile, showAvailability }: { profile: any; showAvailability: boolean }) {
+function SportProfileCard({
+  profile,
+  showAvailability,
+}: {
+  profile: any;
+  showAvailability: boolean;
+}) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
@@ -790,7 +966,10 @@ function SportProfileCard({ profile, showAvailability }: { profile: any; showAva
           <span className="text-sm text-gray-600">Preferred Positions</span>
           <div className="flex flex-wrap gap-2 mt-1">
             {profile.preferredPositions.map((pos: string) => (
-              <span key={pos} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm">
+              <span
+                key={pos}
+                className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm"
+              >
                 {pos}
               </span>
             ))}
@@ -807,7 +986,10 @@ function SportProfileCard({ profile, showAvailability }: { profile: any; showAva
             <span className="text-sm text-gray-600">Availability</span>
             <div className="space-y-1 mt-1">
               {profile.availability.map((time: string) => (
-                <div key={time} className="text-sm text-gray-700 flex items-center gap-2">
+                <div
+                  key={time}
+                  className="text-sm text-gray-700 flex items-center gap-2"
+                >
                   <Calendar className="w-4 h-4 text-gray-400" />
                   {time}
                 </div>
@@ -820,7 +1002,15 @@ function SportProfileCard({ profile, showAvailability }: { profile: any; showAva
   );
 }
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+function StatBar({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
   const colorClasses = {
     emerald: 'bg-emerald-500',
     blue: 'bg-blue-500',
