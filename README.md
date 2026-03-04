@@ -75,11 +75,36 @@ docker compose up --build
 
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:8080
-- **Database**: localhost:5432
+- **Database**: localhost:5439
 
 To stop the services:
 ```sh
 docker compose down
+```
+
+### Docker Production-Oriented Configuration
+
+Use the production override when you want behavior closer to deployment (production Spring profile, env-driven secrets, and restart policies).
+
+Use the base file (`docker-compose.yml`) for local development defaults.
+Use the production setup (`docker-compose.yml` + `docker-compose.prod.yml`) for production-like runtime behavior.
+
+1. Create a production env file from the template:
+```sh
+cp .env.prod.example .env.prod
+```
+
+2. Update `.env.prod` with real secrets and environment values.
+   `.env.prod` is ignored by Git, so secrets stay local by default.
+
+3. Start the production-oriented stack:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+4. Stop the production-oriented stack:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
 ### Manual Development
