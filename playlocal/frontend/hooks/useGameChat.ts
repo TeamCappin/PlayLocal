@@ -318,11 +318,10 @@ export function useGameChat({
         if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
       } catch {}
 
-      try {
       void Promise.resolve(client.deactivate()).catch(() => {});
-      } catch {}
 
       clientRef.current = null;
+      setConnected(false);
       connectedRef.current = false;
     };
   }, [enabled, gameId, wsEndpoint]);
