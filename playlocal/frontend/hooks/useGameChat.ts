@@ -318,9 +318,7 @@ export function useGameChat({
         if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
       } catch {}
 
-      try {
-        client.deactivate();
-      } catch {}
+      client.deactivate().catch(() => {});
 
       clientRef.current = null;
       setConnected(false);
