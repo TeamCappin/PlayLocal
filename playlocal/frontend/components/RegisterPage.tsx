@@ -36,20 +36,6 @@ export const RegisterPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { register, user, isLoading: authLoading } = useAuth();
-    const navigate = useRouter();
-export const RegisterPage: React.FC = () => {
-  const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [eulaAccepted, setEulaAccepted] = useState(false);
-  const [intensity, setIntensity] = useState('');
-  const [availability, setAvailability] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const { register, user, isLoading: authLoading } = useAuth();
   const navigate = useRouter();
 
@@ -66,19 +52,15 @@ export const RegisterPage: React.FC = () => {
     );
   };
 
-        const passwordError = validatePassword(password);
-        if (passwordError) {
-            setError(passwordError);
-            return;
-        }
-
-        if (!ageConfirmed) {
-            setError('You must confirm you are at least 13 years old');
-            return;
-        }
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
 
     if (!ageConfirmed) {
       setError('You must confirm you are at least 13 years old');
@@ -177,37 +159,6 @@ export const RegisterPage: React.FC = () => {
                   />
                 </div>
 
-                                <div>
-                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Password
-                                    </label>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        onFocus={() => setPasswordFocused(true)}
-                                        onBlur={() => setPasswordFocused(false)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                                        placeholder="Min. 8 characters"
-                                    />
-                                    {(passwordFocused || password.length > 0) && (
-                                        <ul className="mt-2 space-y-1">
-                                            {PASSWORD_RULES.map((rule) => {
-                                                const met = rule.test(password);
-                                                return (
-                                                    <li key={rule.id} className={`flex items-center gap-2 text-xs ${met ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                        {met
-                                                            ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                                            : <XCircle className="w-3.5 h-3.5 shrink-0" />}
-                                                        {rule.label}
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
-                                </div>
                 <div>
                   <label
                     htmlFor="email"
@@ -237,12 +188,31 @@ export const RegisterPage: React.FC = () => {
                     id="password"
                     type="password"
                     required
-                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     placeholder="Min. 8 characters"
                   />
+                  {(passwordFocused || password.length > 0) && (
+                    <ul className="mt-2 space-y-1">
+                      {PASSWORD_RULES.map((rule) => {
+                        const met = rule.test(password);
+                        return (
+                          <li
+                            key={rule.id}
+                            className={`flex items-center gap-2 text-xs ${met ? 'text-emerald-600' : 'text-gray-400'}`}
+                          >
+                            {met
+                              ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                              : <XCircle className="w-3.5 h-3.5 shrink-0" />}
+                            {rule.label}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="space-y-4 pt-4">
