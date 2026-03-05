@@ -112,6 +112,35 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
+### Dev vs Production Compose Differences
+
+| Area | Development (`docker-compose.yml`) | Production-oriented (`docker-compose.prod.yml`) |
+| --- | --- | --- |
+| Backend profile | `SPRING_PROFILES_ACTIVE=dev` | `SPRING_PROFILES_ACTIVE=prod` |
+| Secrets and env | Local defaults are embedded for convenience | Sensitive values are expected from `.env.prod` |
+| Restart behavior | No restart policy | `restart: unless-stopped` for long-running services |
+| MinIO configuration | Dev console enabled and fixed local credentials | Runtime command is simplified and credentials/bucket come from env values |
+| Migration strictness | Flyway validation disabled for local velocity | Flyway validation enabled for production-like startup checks |
+
+### Reviewer Quick Check
+
+1. Verify the production override resolves correctly:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml config
+```
+2. Start production-oriented services:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+3. Confirm backend health:
+```sh
+curl http://localhost:8080/api/v1/health
+```
+4. Stop the stack:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
 ### Manual Development
 
 ```sh
