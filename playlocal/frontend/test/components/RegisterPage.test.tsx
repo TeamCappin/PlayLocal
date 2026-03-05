@@ -117,6 +117,59 @@ describe('RegisterPage', () => {
     );
   });
 
+  it('shows password checklist when password field is focused', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    const passwordInput = screen.getByLabelText(/password/i);
+    fireEvent.focus(passwordInput);
+
+    // At least one rule from PASSWORD_RULES should be visible
+    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+  });
+
+  it('hides password checklist when password field is blurred and still empty', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    const passwordInput = screen.getByLabelText(/password/i);
+    fireEvent.focus(passwordInput);
+    // Checklist is visible while focused
+    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+
+    fireEvent.blur(passwordInput);
+    // Checklist should be gone when field is empty and blurred
+    expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
+  });
+
+  it('shows error when a weak password is submitted (e.g. all same chars)', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    fireEvent.change(screen.getByLabelText(/display name/i), {
+      target: { value: 'Hudson' },
+    });
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
+      target: { value: 'h@x.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/password/i), {
+      target: { value: '11111111' },
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /at least 13 years old/i })
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      screen.getByText(/password does not meet requirements/i)
+    ).toBeInTheDocument();
+    // Should NOT advance to step 2
+    expect(
+      screen.getByRole('heading', { name: /create account/i })
+    ).toBeInTheDocument();
+  });
+
   it('shows error if age is not confirmed when submitting step 1', () => {
     setAuthMock({});
     render(<RegisterPage />);
@@ -128,7 +181,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
 
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
@@ -149,7 +202,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
 
     // check only age confirmed
@@ -177,7 +230,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
 
     fireEvent.click(
@@ -209,7 +262,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -237,7 +290,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -273,7 +326,7 @@ describe('RegisterPage', () => {
       target: { value: 'hudson@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -290,7 +343,7 @@ describe('RegisterPage', () => {
     await waitFor(() => {
       expect(register).toHaveBeenCalledWith(
         'hudson@x.com',
-        'password123',
+        'Password1!',
         'Hudson',
         true,
         true
@@ -315,7 +368,7 @@ describe('RegisterPage', () => {
       target: { value: 'hudson@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -350,7 +403,7 @@ describe('RegisterPage', () => {
       target: { value: 'hudson@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -384,7 +437,7 @@ describe('RegisterPage', () => {
       target: { value: 'hudson@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
@@ -427,7 +480,7 @@ describe('RegisterPage', () => {
       target: { value: 'h@x.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
+      target: { value: 'Password1!' },
     });
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })

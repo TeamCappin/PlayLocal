@@ -2,6 +2,11 @@ spring:
   application:
     name: playlocal-backend
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/playlocal}
     username: ${DATABASE_USERNAME:playlocal}
