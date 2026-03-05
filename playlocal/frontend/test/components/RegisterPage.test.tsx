@@ -117,6 +117,31 @@ describe('RegisterPage', () => {
     );
   });
 
+  it('shows password checklist when password field is focused', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    const passwordInput = screen.getByLabelText(/password/i);
+    fireEvent.focus(passwordInput);
+
+    // At least one rule from PASSWORD_RULES should be visible
+    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+  });
+
+  it('hides password checklist when password field is blurred and still empty', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    const passwordInput = screen.getByLabelText(/password/i);
+    fireEvent.focus(passwordInput);
+    // Checklist is visible while focused
+    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+
+    fireEvent.blur(passwordInput);
+    // Checklist should be gone when field is empty and blurred
+    expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
+  });
+
   it('shows error when a weak password is submitted (e.g. all same chars)', () => {
     setAuthMock({});
     render(<RegisterPage />);
