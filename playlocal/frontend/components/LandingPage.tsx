@@ -1,12 +1,33 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Users, Trophy, Calendar, BarChart3, Share2, Shield, Zap, Heart, MessageCircle, Star, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { gamesApi } from '@/lib/api';
+
+interface PlatformStats {
+  activePlayers: number;
+  gamesPlayed: number;
+  sports: number;
+}
 
 export function LandingPage() {
   const { user, isLoading } = useAuth();
   const isAuthenticated = !isLoading && user !== null;
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+  useEffect(() => {
+    gamesApi.getUpcoming().then((games) => {
+      if (!games || games.length === 0) {
+        setStats(null);
+        return;
+      }
+      const activePlayers = games.reduce((sum, g) => sum + (g.confirmedCount ?? 0), 0);
+      const uniqueSports = new Set(games.map((g) => g.sportName)).size;
+      setStats({ activePlayers, gamesPlayed: games.length, sports: uniqueSports });
+    }).catch(() => setStats(null));
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -70,20 +91,22 @@ export function LandingPage() {
               </div>
 
               {/* Stats */}
-              <div className="mt-12 flex gap-8">
-                <div>
-                  <div className="text-3xl text-white">1,200+</div>
-                  <div className="text-emerald-200">Active Players</div>
+              {stats && (
+                <div className="mt-12 flex gap-8">
+                  <div>
+                    <div className="text-3xl text-white">{stats.activePlayers.toLocaleString()}+</div>
+                    <div className="text-emerald-200">Active Players</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl text-white">{stats.gamesPlayed.toLocaleString()}+</div>
+                    <div className="text-emerald-200">Upcoming Games</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl text-white">{stats.sports}+</div>
+                    <div className="text-emerald-200">Sports</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-3xl text-white">500+</div>
-                  <div className="text-emerald-200">Games Played</div>
-                </div>
-                <div>
-                  <div className="text-3xl text-white">15+</div>
-                  <div className="text-emerald-200">Sports</div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

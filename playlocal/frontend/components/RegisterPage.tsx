@@ -1,15 +1,33 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
 
+const PASSWORD_RULES = [
+    { id: 'length',    label: 'At least 8 characters',         test: (p: string) => p.length >= 8 },
+    { id: 'upper',     label: 'At least 1 uppercase letter',   test: (p: string) => /[A-Z]/.test(p) },
+    { id: 'lower',     label: 'At least 1 lowercase letter',   test: (p: string) => /[a-z]/.test(p) },
+    { id: 'number',    label: 'At least 1 number',             test: (p: string) => /\d/.test(p) },
+    { id: 'special',   label: 'At least 1 special character',  test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+    { id: 'variety',   label: 'Not all the same character',    test: (p: string) => p.length < 2 || !/^(.)\1+$/.test(p) },
+];
 
+function validatePassword(password: string): string | null {
+    for (const rule of PASSWORD_RULES) {
+        if (!rule.test(password)) {
+            return `Password does not meet requirements: ${rule.label.toLowerCase()}.`;
+        }
+    }
+    return null;
+}
 
 export const RegisterPage: React.FC = () => {
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [passwordFocused, setPasswordFocused] = useState(false);
     const [displayName, setDisplayName] = useState('');
     const [ageConfirmed, setAgeConfirmed] = useState(false);
     const [eulaAccepted, setEulaAccepted] = useState(false);
@@ -37,6 +55,12 @@ export const RegisterPage: React.FC = () => {
     const handleStep1Submit = (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        const passwordError = validatePassword(password);
+        if (passwordError) {
+            setError(passwordError);
+            return;
+        }
 
         if (!ageConfirmed) {
             setError('You must confirm you are at least 13 years old');
@@ -141,12 +165,28 @@ export const RegisterPage: React.FC = () => {
                                         id="password"
                                         type="password"
                                         required
-                                        minLength={8}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        onFocus={() => setPasswordFocused(true)}
+                                        onBlur={() => setPasswordFocused(false)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                         placeholder="Min. 8 characters"
                                     />
+                                    {(passwordFocused || password.length > 0) && (
+                                        <ul className="mt-2 space-y-1">
+                                            {PASSWORD_RULES.map((rule) => {
+                                                const met = rule.test(password);
+                                                return (
+                                                    <li key={rule.id} className={`flex items-center gap-2 text-xs ${met ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                        {met
+                                                            ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                                            : <XCircle className="w-3.5 h-3.5 shrink-0" />}
+                                                        {rule.label}
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </div>
 
                                 <div className="space-y-4 pt-4">
