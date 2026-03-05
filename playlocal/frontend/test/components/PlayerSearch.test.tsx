@@ -1,11 +1,17 @@
 // __tests__/components/PlayerSearch.test.tsx
-import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import { PlayerSearch } from "@/components/PlayerSearch";
-import { usersApi, friendsApi } from "@/lib/api";
+import React from 'react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { PlayerSearch } from '@/components/PlayerSearch';
+import { usersApi, friendsApi } from '@/lib/api';
 
-jest.mock("next/link", () => {
+jest.mock('next/link', () => {
   return function MockLink({
     href,
     children,
@@ -23,7 +29,7 @@ jest.mock("next/link", () => {
   };
 });
 
-jest.mock("lucide-react", () => {
+jest.mock('lucide-react', () => {
   // Make icons render as simple SVGs so they don't crash tests
   const Icon = (props: any) => <svg data-testid="icon" {...props} />;
   return {
@@ -39,7 +45,7 @@ jest.mock("lucide-react", () => {
   };
 });
 
-jest.mock("@/lib/api", () => ({
+jest.mock('@/lib/api', () => ({
   usersApi: {
     search: jest.fn(),
   },
@@ -56,14 +62,14 @@ type UserDto = {
   bio?: string;
   reliabilityScore?: number;
   gamesCount?: number;
-  defaultIntensity?: "competitive" | "casual" | "balanced";
+  defaultIntensity?: 'competitive' | 'casual' | 'balanced';
 };
 
 type FriendInfo = {
   friendshipId: string;
   friendUserId: string;
   displayName: string;
-  status: "PENDING" | "ACCEPTED" | string;
+  status: 'PENDING' | 'ACCEPTED' | string;
   reliabilityScore: number;
   gamesCount: number;
   createdAt: string;
@@ -85,25 +91,25 @@ const mockFriendsApi = friendsApi as unknown as {
   sendRequest: jest.Mock;
 };
 
-describe("PlayerSearch", () => {
+describe('PlayerSearch', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test("initial load: fetches friends list + searches players, then renders cards with correct friend status", async () => {
+  test('initial load: fetches friends list + searches players, then renders cards with correct friend status', async () => {
     // Arrange
     const players: UserDto[] = [
       {
-        userId: "u2",
-        displayName: "Alice",
-        location: "Montreal",
+        userId: 'u2',
+        displayName: 'Alice',
+        location: 'Montreal',
         reliabilityScore: 88,
         gamesCount: 12,
-        defaultIntensity: "casual",
+        defaultIntensity: 'casual',
       },
       {
-        userId: "u3",
-        displayName: "Bob",
+        userId: 'u3',
+        displayName: 'Bob',
         reliabilityScore: 70,
         gamesCount: 3,
       },
@@ -111,10 +117,10 @@ describe("PlayerSearch", () => {
 
     const friends: FriendInfo[] = [
       {
-        friendshipId: "f-1",
-        friendUserId: "u2",
-        displayName: "Alice",
-        status: "ACCEPTED",
+        friendshipId: 'f-1',
+        friendUserId: 'u2',
+        displayName: 'Alice',
+        status: 'ACCEPTED',
         reliabilityScore: 88,
         gamesCount: 12,
         createdAt: new Date().toISOString(),
@@ -135,26 +141,26 @@ describe("PlayerSearch", () => {
     // Assert (API calls)
     await waitFor(() => {
       expect(mockFriendsApi.getFriends).toHaveBeenCalledTimes(1);
-      expect(mockUsersApi.search).toHaveBeenCalledWith("", 0, 50);
+      expect(mockUsersApi.search).toHaveBeenCalledWith('', 0, 50);
     });
 
     // Assert (UI)
-    expect(screen.getByText("Find Players")).toBeInTheDocument();
+    expect(screen.getByText('Find Players')).toBeInTheDocument();
   });
 
   test("renders 'Request Received' link when pendingReceived contains that user", async () => {
     // Arrange
-    const players: UserDto[] = [{ userId: "u3", displayName: "Bob" }];
+    const players: UserDto[] = [{ userId: 'u3', displayName: 'Bob' }];
 
     mockFriendsApi.getFriends.mockResolvedValue({
       friends: [],
       pendingSent: [],
       pendingReceived: [
         {
-          friendshipId: "fr-99",
-          friendUserId: "u3",
-          displayName: "Bob",
-          status: "PENDING",
+          friendshipId: 'fr-99',
+          friendUserId: 'u3',
+          displayName: 'Bob',
+          status: 'PENDING',
           reliabilityScore: 0,
           gamesCount: 0,
           createdAt: new Date().toISOString(),
@@ -168,16 +174,16 @@ describe("PlayerSearch", () => {
     render(<PlayerSearch />);
 
     // Assert
-    await waitFor(() => expect(screen.getByText("Bob")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Bob')).toBeInTheDocument());
 
-    const link = screen.getByText("Request Received").closest("a");
+    const link = screen.getByText('Request Received').closest('a');
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/friends");
+    expect(link).toHaveAttribute('href', '/friends');
   });
 
   test("add friend success: clicking 'Add Friend' calls sendRequest and updates UI to 'Request Sent'", async () => {
     // Arrange
-    const players: UserDto[] = [{ userId: "u4", displayName: "Charlie" }];
+    const players: UserDto[] = [{ userId: 'u4', displayName: 'Charlie' }];
 
     mockFriendsApi.getFriends.mockResolvedValue({
       friends: [],
@@ -193,29 +199,31 @@ describe("PlayerSearch", () => {
     // Act
     render(<PlayerSearch />);
 
-    await waitFor(() => expect(screen.getByText("Charlie")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Charlie')).toBeInTheDocument()
+    );
 
-    const addBtn = screen.getByRole("button", { name: /add friend/i });
+    const addBtn = screen.getByRole('button', { name: /add friend/i });
 
     fireEvent.click(addBtn);
 
     // Assert (request started)
-    expect(mockFriendsApi.sendRequest).toHaveBeenCalledWith("u4");
+    expect(mockFriendsApi.sendRequest).toHaveBeenCalledWith('u4');
     expect(addBtn).toBeDisabled();
 
     // Resolve request
     await act(async () => {
-      d.resolve({ friendshipId: "fs-1" });
+      d.resolve({ friendshipId: 'fs-1' });
       await d.promise;
     });
 
     // Assert (UI updated)
     await waitFor(() => {
-      expect(screen.getByText("Request Sent")).toBeInTheDocument();
+      expect(screen.getByText('Request Sent')).toBeInTheDocument();
     });
   });
 
-  test("debounced search: typing waits 300ms before calling usersApi.search(query)", async () => {
+  test('debounced search: typing waits 300ms before calling usersApi.search(query)', async () => {
     jest.useFakeTimers();
 
     // Arrange
@@ -232,12 +240,14 @@ describe("PlayerSearch", () => {
     render(<PlayerSearch />);
 
     // Let initial load complete
-    await waitFor(() => expect(mockUsersApi.search).toHaveBeenCalledWith("", 0, 50));
+    await waitFor(() =>
+      expect(mockUsersApi.search).toHaveBeenCalledWith('', 0, 50)
+    );
     mockUsersApi.search.mockClear();
 
-    const input = screen.getByPlaceholderText("Search by name...");
+    const input = screen.getByPlaceholderText('Search by name...');
 
-    fireEvent.change(input, { target: { value: "jo" } });
+    fireEvent.change(input, { target: { value: 'jo' } });
 
     // Not yet (debounce)
     expect(mockUsersApi.search).not.toHaveBeenCalled();
@@ -249,15 +259,15 @@ describe("PlayerSearch", () => {
 
     // Assert
     await waitFor(() => {
-      expect(mockUsersApi.search).toHaveBeenCalledWith("jo", 0, 50);
+      expect(mockUsersApi.search).toHaveBeenCalledWith('jo', 0, 50);
     });
 
     jest.useRealTimers();
   });
 
-  test("add friend network error: shows friendly connection error message", async () => {
+  test('add friend network error: shows friendly connection error message', async () => {
     // Arrange
-    const players: UserDto[] = [{ userId: "u5", displayName: "Dina" }];
+    const players: UserDto[] = [{ userId: 'u5', displayName: 'Dina' }];
 
     mockFriendsApi.getFriends.mockResolvedValue({
       friends: [],
@@ -269,27 +279,29 @@ describe("PlayerSearch", () => {
 
     mockFriendsApi.sendRequest.mockRejectedValue({
       status: 0,
-      message: "Network error",
+      message: 'Network error',
     });
 
     // Act
     render(<PlayerSearch />);
 
-    await waitFor(() => expect(screen.getByText("Dina")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Dina')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: /add friend/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add friend/i }));
 
     // Assert
     await waitFor(() => {
       expect(
-        screen.getByText("Unable to connect to server. Please check your connection.")
+        screen.getByText(
+          'Unable to connect to server. Please check your connection.'
+        )
       ).toBeInTheDocument();
     });
   });
 
   test("duplicate request error: shows 'already exists' message and refreshes friends list", async () => {
     // Arrange
-    const players: UserDto[] = [{ userId: "u6", displayName: "Eve" }];
+    const players: UserDto[] = [{ userId: 'u6', displayName: 'Eve' }];
 
     mockFriendsApi.getFriends
       .mockResolvedValueOnce({
@@ -302,10 +314,10 @@ describe("PlayerSearch", () => {
         friends: [],
         pendingSent: [
           {
-            friendshipId: "dup-1",
-            friendUserId: "u6",
-            displayName: "Eve",
-            status: "PENDING",
+            friendshipId: 'dup-1',
+            friendUserId: 'u6',
+            displayName: 'Eve',
+            status: 'PENDING',
             reliabilityScore: 0,
             gamesCount: 0,
             createdAt: new Date().toISOString(),
@@ -317,29 +329,29 @@ describe("PlayerSearch", () => {
     mockUsersApi.search.mockResolvedValue({ users: players });
 
     mockFriendsApi.sendRequest.mockRejectedValue({
-      data: { message: "Friend request already exists" },
+      data: { message: 'Friend request already exists' },
     });
 
     // Act
     render(<PlayerSearch />);
 
-    await waitFor(() => expect(screen.getByText("Eve")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Eve')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: /add friend/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add friend/i }));
 
     // Assert (message + refresh)
     await waitFor(() => {
       expect(
-        screen.getByText("A friend request already exists with this user")
+        screen.getByText('A friend request already exists with this user')
       ).toBeInTheDocument();
     });
 
     expect(mockFriendsApi.getFriends).toHaveBeenCalledTimes(2);
   });
 
-  test("dismiss error button clears the error banner", async () => {
+  test('dismiss error button clears the error banner', async () => {
     // Arrange
-    const players: UserDto[] = [{ userId: "u7", displayName: "Frank" }];
+    const players: UserDto[] = [{ userId: 'u7', displayName: 'Frank' }];
 
     mockFriendsApi.getFriends.mockResolvedValue({
       friends: [],
@@ -349,41 +361,41 @@ describe("PlayerSearch", () => {
 
     mockUsersApi.search.mockResolvedValue({ users: players });
 
-    mockFriendsApi.sendRequest.mockRejectedValue("Some error");
+    mockFriendsApi.sendRequest.mockRejectedValue('Some error');
 
     // Act
     render(<PlayerSearch />);
 
-    await waitFor(() => expect(screen.getByText("Frank")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Frank')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: /add friend/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add friend/i }));
 
     // Assert error appears
     await waitFor(() => {
-      expect(screen.getByText("Some error")).toBeInTheDocument();
+      expect(screen.getByText('Some error')).toBeInTheDocument();
     });
 
     // Dismiss
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss error' }));
 
     // Assert removed
-    expect(screen.queryByText("Some error")).not.toBeInTheDocument();
+    expect(screen.queryByText('Some error')).not.toBeInTheDocument();
   });
 
-  test("prevents duplicate requests: does not call sendRequest when already friend / pending", async () => {
+  test('prevents duplicate requests: does not call sendRequest when already friend / pending', async () => {
     // Arrange
     const players: UserDto[] = [
-      { userId: "u8", displayName: "Grace" },
-      { userId: "u9", displayName: "Henry" },
+      { userId: 'u8', displayName: 'Grace' },
+      { userId: 'u9', displayName: 'Henry' },
     ];
 
     mockFriendsApi.getFriends.mockResolvedValue({
       friends: [
         {
-          friendshipId: "f-8",
-          friendUserId: "u8",
-          displayName: "Grace",
-          status: "ACCEPTED",
+          friendshipId: 'f-8',
+          friendUserId: 'u8',
+          displayName: 'Grace',
+          status: 'ACCEPTED',
           reliabilityScore: 0,
           gamesCount: 0,
           createdAt: new Date().toISOString(),
@@ -391,10 +403,10 @@ describe("PlayerSearch", () => {
       ],
       pendingSent: [
         {
-          friendshipId: "ps-9",
-          friendUserId: "u9",
-          displayName: "Henry",
-          status: "PENDING",
+          friendshipId: 'ps-9',
+          friendUserId: 'u9',
+          displayName: 'Henry',
+          status: 'PENDING',
           reliabilityScore: 0,
           gamesCount: 0,
           createdAt: new Date().toISOString(),
@@ -408,17 +420,19 @@ describe("PlayerSearch", () => {
     // Act
     render(<PlayerSearch />);
 
-    await waitFor(() => expect(screen.getByText("Grace")).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText("Henry")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Grace')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Henry')).toBeInTheDocument());
 
     // Grace is friend => no "Add Friend" button for her (it shows "Already Friends")
-    expect(screen.getByText("Already Friends")).toBeInTheDocument();
+    expect(screen.getByText('Already Friends')).toBeInTheDocument();
 
     // Henry is pendingSent => should render disabled state "Request Sent" (button)
-    expect(screen.getByText("Request Sent")).toBeInTheDocument();
+    expect(screen.getByText('Request Sent')).toBeInTheDocument();
 
     // Try clicking "Request Sent" (should be disabled)
-    const requestSentBtn = screen.getByRole("button", { name: /request sent/i });
+    const requestSentBtn = screen.getByRole('button', {
+      name: /request sent/i,
+    });
     expect(requestSentBtn).toBeDisabled();
     fireEvent.click(requestSentBtn);
 

@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { UserPlus, Users, Clock, CheckCircle, X, UserX, MapPin, Star, Loader2 } from 'lucide-react';
+import {
+  UserPlus,
+  Users,
+  Clock,
+  CheckCircle,
+  X,
+  UserX,
+  MapPin,
+  Star,
+  Loader2,
+} from 'lucide-react';
 import { friendsApi, FriendInfo } from '@/lib/api';
 
 export function FriendsPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'blocked'>('friends');
+  const [activeTab, setActiveTab] = useState<
+    'friends' | 'requests' | 'blocked'
+  >('friends');
   const [friends, setFriends] = useState<FriendInfo[]>([]);
   const [pendingReceived, setPendingReceived] = useState<FriendInfo[]>([]);
   const [pendingSent, setPendingSent] = useState<FriendInfo[]>([]);
@@ -36,10 +48,14 @@ export function FriendsPage() {
       setActionLoading(friendshipId);
       await friendsApi.acceptRequest(friendshipId);
       // Move from pending to friends
-      const accepted = pendingReceived.find(f => f.friendshipId === friendshipId);
+      const accepted = pendingReceived.find(
+        (f) => f.friendshipId === friendshipId
+      );
       if (accepted) {
-        setPendingReceived(prev => prev.filter(f => f.friendshipId !== friendshipId));
-        setFriends(prev => [...prev, { ...accepted, status: 'ACCEPTED' }]);
+        setPendingReceived((prev) =>
+          prev.filter((f) => f.friendshipId !== friendshipId)
+        );
+        setFriends((prev) => [...prev, { ...accepted, status: 'ACCEPTED' }]);
       }
     } catch (err: any) {
       setError(err.message);
@@ -52,7 +68,9 @@ export function FriendsPage() {
     try {
       setActionLoading(friendshipId);
       await friendsApi.declineRequest(friendshipId);
-      setPendingReceived(prev => prev.filter(f => f.friendshipId !== friendshipId));
+      setPendingReceived((prev) =>
+        prev.filter((f) => f.friendshipId !== friendshipId)
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -64,7 +82,9 @@ export function FriendsPage() {
     try {
       setActionLoading(friendshipId);
       await friendsApi.removeFriend(friendshipId);
-      setPendingSent(prev => prev.filter(f => f.friendshipId !== friendshipId));
+      setPendingSent((prev) =>
+        prev.filter((f) => f.friendshipId !== friendshipId)
+      );
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -76,7 +96,7 @@ export function FriendsPage() {
     try {
       setActionLoading(friendshipId);
       await friendsApi.removeFriend(friendshipId);
-      setFriends(prev => prev.filter(f => f.friendshipId !== friendshipId));
+      setFriends((prev) => prev.filter((f) => f.friendshipId !== friendshipId));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -99,7 +119,9 @@ export function FriendsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl text-gray-900 mb-2">Friends</h1>
-            <p className="text-gray-600">Manage your connections and friend requests</p>
+            <p className="text-gray-600">
+              Manage your connections and friend requests
+            </p>
           </div>
           <Link
             href="/players"
@@ -167,10 +189,11 @@ export function FriendsPage() {
                 <div className="flex">
                   <button
                     onClick={() => setActiveTab('friends')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'friends'
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'friends'
                         ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    }`}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <span>Friends</span>
@@ -181,10 +204,11 @@ export function FriendsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('requests')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'requests'
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'requests'
                         ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    }`}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <span>Requests</span>
@@ -197,10 +221,11 @@ export function FriendsPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('blocked')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'blocked'
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'blocked'
                         ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    }`}
                   >
                     Blocked
                   </button>
@@ -214,7 +239,10 @@ export function FriendsPage() {
                       <div className="text-center py-12 text-gray-500">
                         <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                         <p>No friends yet. Find players to connect with!</p>
-                        <Link href="/players" className="text-emerald-600 hover:underline mt-2 inline-block">
+                        <Link
+                          href="/players"
+                          className="text-emerald-600 hover:underline mt-2 inline-block"
+                        >
                           Find Players
                         </Link>
                       </div>
@@ -223,7 +251,9 @@ export function FriendsPage() {
                         <FriendCard
                           key={friend.friendshipId}
                           friend={friend}
-                          onRemove={() => handleRemoveFriend(friend.friendshipId)}
+                          onRemove={() =>
+                            handleRemoveFriend(friend.friendshipId)
+                          }
                           loading={actionLoading === friend.friendshipId}
                         />
                       ))
@@ -245,8 +275,12 @@ export function FriendsPage() {
                               key={request.friendshipId}
                               request={request}
                               type="received"
-                              onAccept={() => handleAcceptRequest(request.friendshipId)}
-                              onDecline={() => handleDeclineRequest(request.friendshipId)}
+                              onAccept={() =>
+                                handleAcceptRequest(request.friendshipId)
+                              }
+                              onDecline={() =>
+                                handleDeclineRequest(request.friendshipId)
+                              }
                               loading={actionLoading === request.friendshipId}
                             />
                           ))}
@@ -266,7 +300,9 @@ export function FriendsPage() {
                               key={request.friendshipId}
                               request={request}
                               type="sent"
-                              onCancel={() => handleCancelRequest(request.friendshipId)}
+                              onCancel={() =>
+                                handleCancelRequest(request.friendshipId)
+                              }
                               loading={actionLoading === request.friendshipId}
                             />
                           ))}
@@ -274,12 +310,13 @@ export function FriendsPage() {
                       </div>
                     )}
 
-                    {pendingReceived.length === 0 && pendingSent.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">
-                        <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        <p>No pending requests</p>
-                      </div>
-                    )}
+                    {pendingReceived.length === 0 &&
+                      pendingSent.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>No pending requests</p>
+                        </div>
+                      )}
                   </div>
                 )}
 
@@ -299,7 +336,15 @@ export function FriendsPage() {
 }
 
 // Helper components
-function StatItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function StatItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+}) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -311,7 +356,15 @@ function StatItem({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
-function FriendCard({ friend, onRemove, loading }: { friend: FriendInfo; onRemove: () => void; loading: boolean }) {
+function FriendCard({
+  friend,
+  onRemove,
+  loading,
+}: {
+  friend: FriendInfo;
+  onRemove: () => void;
+  loading: boolean;
+}) {
   const avatar = friend.displayName?.substring(0, 2).toUpperCase() || '??';
 
   return (
@@ -323,7 +376,10 @@ function FriendCard({ friend, onRemove, loading }: { friend: FriendInfo; onRemov
           </div>
         </Link>
         <div>
-          <Link href={`/profile/${friend.friendUserId}`} className="font-medium text-gray-900 hover:text-emerald-600">
+          <Link
+            href={`/profile/${friend.friendUserId}`}
+            className="font-medium text-gray-900 hover:text-emerald-600"
+          >
             {friend.displayName}
           </Link>
           <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -346,7 +402,11 @@ function FriendCard({ friend, onRemove, loading }: { friend: FriendInfo; onRemov
         disabled={loading}
         className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <X className="w-4 h-4" />
+        )}
       </button>
     </div>
   );
@@ -358,7 +418,7 @@ function RequestCard({
   onAccept,
   onDecline,
   onCancel,
-  loading
+  loading,
 }: {
   request: FriendInfo;
   type: 'received' | 'sent';
@@ -378,7 +438,10 @@ function RequestCard({
           </div>
         </Link>
         <div>
-          <Link href={`/profile/${request.friendUserId}`} className="font-medium text-gray-900 hover:text-emerald-600">
+          <Link
+            href={`/profile/${request.friendUserId}`}
+            className="font-medium text-gray-900 hover:text-emerald-600"
+          >
             {request.displayName}
           </Link>
           <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -399,7 +462,11 @@ function RequestCard({
               disabled={loading}
               className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
               Accept
             </button>
             <button
@@ -417,7 +484,11 @@ function RequestCard({
             disabled={loading}
             className="flex items-center gap-1 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <X className="w-4 h-4" />
+            )}
             Cancel
           </button>
         )}

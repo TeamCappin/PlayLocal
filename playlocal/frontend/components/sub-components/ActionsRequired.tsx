@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
 import { usePastGamesByUserNeedingAttendanceUpdate } from '@/hooks/useGames';
-import { format } from "date-fns/format";
+import { format } from 'date-fns/format';
 
 export function ActionsRequired() {
   const navigate = useRouter();
@@ -18,17 +18,19 @@ export function ActionsRequired() {
       navigate.push('/login');
       return;
     }
-    console.log("Confirm Attendance button clicked");
-  }
+    console.log('Confirm Attendance button clicked');
+  };
 
   return (
     <div>
       {actionsRequired != 0 && (
         <div className="pt-8">
           <div className="bg-amber-100 rounded-xl border border-amber-200 p-6">
-            <span className='flex items-center gap-2 mb-4'>
+            <span className="flex items-center gap-2 mb-4">
               <CircleAlert color="red" size={30} />
-              <h2 className="text-xl text-gray-900 leading-none">Actions Required</h2>
+              <h2 className="text-xl text-gray-900 leading-none">
+                Actions Required
+              </h2>
             </span>
             <div className="space-y-3">
               {games.map((game) => (
@@ -41,7 +43,12 @@ export function ActionsRequired() {
                       <div className="text-gray-900">{game.title}</div>
                       <div className="flex items-center gap-1 text-sm text-gray-600">
                         <Clock className="w-4 h-4 inline-block mr-1" />
-                        {game ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a") : ''}
+                        {game
+                          ? format(
+                              new Date(game.startTime),
+                              "EEEE, MMM d 'at' h:mm a"
+                            )
+                          : ''}
                       </div>
                     </div>
                   </div>

@@ -1,10 +1,10 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import "@testing-library/jest-dom";
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
-import { ScoreHistoryList } from "../../components/ScoreHistoryList";
+import { ScoreHistoryList } from '../../components/ScoreHistoryList';
 
-jest.mock("next/link", () => {
+jest.mock('next/link', () => {
   return ({ href, children, ...rest }: any) => (
     <a href={href} {...rest}>
       {children}
@@ -12,7 +12,7 @@ jest.mock("next/link", () => {
   );
 });
 
-jest.mock("lucide-react", () => ({
+jest.mock('lucide-react', () => ({
   TrendingUp: () => <div data-testid="icon-up" />,
   TrendingDown: () => <div data-testid="icon-down" />,
   Clock: () => <div data-testid="icon-clock" />,
@@ -22,21 +22,25 @@ jest.mock("lucide-react", () => ({
   Flag: () => <div data-testid="icon-flag" />,
 }));
 
-jest.mock("@/hooks/useScoreHistory", () => ({
+jest.mock('@/hooks/useScoreHistory', () => ({
   useScoreHistory: jest.fn(),
-  formatScoreReason: jest.fn(() => ({ label: "No-show", color: "text-red-600", icon: "✗" })),
+  formatScoreReason: jest.fn(() => ({
+    label: 'No-show',
+    color: 'text-red-600',
+    icon: '✗',
+  })),
   formatDelta: jest.fn((d: number) => `${d}%`),
-  getDeltaColor: jest.fn(() => "text-gray-600"),
+  getDeltaColor: jest.fn(() => 'text-gray-600'),
 }));
 
-import { useScoreHistory } from "@/hooks/useScoreHistory";
+import { useScoreHistory } from '@/hooks/useScoreHistory';
 
-describe("ScoreHistoryList", () => {
+describe('ScoreHistoryList', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("shows loading state when loading and empty", () => {
+  it('shows loading state when loading and empty', () => {
     // Arrange
     (useScoreHistory as jest.Mock).mockReturnValue({
       history: [],
@@ -52,18 +56,18 @@ describe("ScoreHistoryList", () => {
     render(<ScoreHistoryList />);
 
     // Assert
-    expect(screen.getByText("Loading score history...")).toBeInTheDocument();
-    expect(screen.getByTestId("icon-loader")).toBeInTheDocument();
+    expect(screen.getByText('Loading score history...')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-loader')).toBeInTheDocument();
   });
 
-  it("shows error state and calls refresh on Retry", () => {
+  it('shows error state and calls refresh on Retry', () => {
     // Arrange
     const refresh = jest.fn();
     (useScoreHistory as jest.Mock).mockReturnValue({
       history: [],
       summary: null,
       isLoading: false,
-      error: "Boom",
+      error: 'Boom',
       hasMore: false,
       loadMore: jest.fn(),
       refresh,
@@ -73,26 +77,26 @@ describe("ScoreHistoryList", () => {
     render(<ScoreHistoryList />);
 
     // Assert
-    expect(screen.getByText("Boom")).toBeInTheDocument();
+    expect(screen.getByText('Boom')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Retry"));
+    fireEvent.click(screen.getByText('Retry'));
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("renders entries and expands on click", () => {
+  it('renders entries and expands on click', () => {
     // Arrange
     (useScoreHistory as jest.Mock).mockReturnValue({
       history: [
         {
-          scoreHistoryId: "s1",
-          reason: "NO_SHOW",
+          scoreHistoryId: 's1',
+          reason: 'NO_SHOW',
           delta: -5,
           createdAt: new Date().toISOString(),
           previousScore: 100,
           newScore: 95,
-          description: "Details text",
-          gameTitle: "Game A",
-          gameId: "g1",
+          description: 'Details text',
+          gameTitle: 'Game A',
+          gameId: 'g1',
         },
       ],
       summary: null,
@@ -107,27 +111,27 @@ describe("ScoreHistoryList", () => {
     render(<ScoreHistoryList />);
 
     // Assert (collapsed)
-    expect(screen.getByText("Game A")).toBeInTheDocument();
-    expect(screen.queryByText("Details text")).not.toBeInTheDocument();
+    expect(screen.getByText('Game A')).toBeInTheDocument();
+    expect(screen.queryByText('Details text')).not.toBeInTheDocument();
 
     // Act (expand)
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole('button'));
 
     // Assert (expanded)
-    expect(screen.getByText("Details text")).toBeInTheDocument();
+    expect(screen.getByText('Details text')).toBeInTheDocument();
   });
 
-  it("shows Report Issue button for NO_SHOW when expanded and triggers callback", () => {
+  it('shows Report Issue button for NO_SHOW when expanded and triggers callback', () => {
     // Arrange
     const onDisputeClick = jest.fn();
     const entry = {
-      scoreHistoryId: "s2",
-      reason: "NO_SHOW",
+      scoreHistoryId: 's2',
+      reason: 'NO_SHOW',
       delta: -2,
       createdAt: new Date().toISOString(),
       previousScore: 90,
       newScore: 88,
-      description: "No show details",
+      description: 'No show details',
     };
 
     (useScoreHistory as jest.Mock).mockReturnValue({
@@ -144,10 +148,10 @@ describe("ScoreHistoryList", () => {
     render(<ScoreHistoryList onDisputeClick={onDisputeClick} />);
 
     // Expand
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole('button'));
 
     // Click report
-    fireEvent.click(screen.getByText("Report Issue"));
+    fireEvent.click(screen.getByText('Report Issue'));
 
     // Assert
     expect(onDisputeClick).toHaveBeenCalledTimes(1);

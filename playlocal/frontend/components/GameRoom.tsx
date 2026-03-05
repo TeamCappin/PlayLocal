@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useRouter, useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { ChatPanel } from "@/components/chat/ChatPanel";
-import Link from "next/link";
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { ChatPanel } from '@/components/chat/ChatPanel';
+import Link from 'next/link';
 import {
   MapPin,
   Clock,
@@ -26,64 +25,81 @@ import {
   Copy,
   Check,
   Archive,
-} from "lucide-react";
-import { useGame } from "@/hooks/useGames";
-import { useAuth } from "@/context/AuthContext";
-import { gamesApi, UpdateGameRequest, endorsementsApi, usersApi, ConnectionSignals, TagDto } from "@/lib/api";
-import { ReportModal } from "./ReportModal";
-import { JoinConfirmationModal } from "./JoinConfirmationModal";
-import { OrganizerQualityBadge } from "./OrganizerQualityBadge";
-import { PhotosPanel } from "./photos/PhotosPanel";
+} from 'lucide-react';
+import { useGame } from '@/hooks/useGames';
+import { useAuth } from '@/context/AuthContext';
+import {
+  gamesApi,
+  UpdateGameRequest,
+  endorsementsApi,
+  usersApi,
+  ConnectionSignals,
+  TagDto,
+} from '@/lib/api';
+import { ReportModal } from './ReportModal';
+import { JoinConfirmationModal } from './JoinConfirmationModal';
+import { OrganizerQualityBadge } from './OrganizerQualityBadge';
+import { PhotosPanel } from './photos/PhotosPanel';
 
 // Helper to get image by sport (US 2.2)
 function getSportImage(sport: string) {
   const images: Record<string, string> = {
     Basketball:
-      "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
     Soccer:
-      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
     Tennis:
-      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
     Volleyball:
-      "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
     Badminton:
-      "https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080",
-    Baseball: "/images/sports/baseball.jpg",
+      'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
+    Baseball: '/images/sports/baseball.jpg',
     Hockey:
-      "https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080",
-    "Ultimate Frisbee": "/images/sports/ultimate-frisbee.jpg",
-    "Flag Football":
-      "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
+    'Ultimate Frisbee': '/images/sports/ultimate-frisbee.jpg',
+    'Flag Football':
+      'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
     Softball:
-      "https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
     Pickleball:
-      "https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080",
+      'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
   };
   return (
     images[sport] ||
-    "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080"
+    'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080'
   );
 }
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
-  gameId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  title: "5v5 Basketball Pickup",
-  sportName: "Basketball",
-  location: { name: "Parc Jarry Courts", addressLine: "201 Rue Gary-Carter, Montréal, QC H2R 2W1", city: "Montreal", latitude: 45.5312, longitude: -73.6205 },
+  gameId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  title: '5v5 Basketball Pickup',
+  sportName: 'Basketball',
+  location: {
+    name: 'Parc Jarry Courts',
+    addressLine: '201 Rue Gary-Carter, Montréal, QC H2R 2W1',
+    city: 'Montreal',
+    latitude: 45.5312,
+    longitude: -73.6205,
+  },
   hasExactLocationAccess: true,
-  approximateLocation: "Montreal, QC",
+  approximateLocation: 'Montreal, QC',
   startTime: new Date().toISOString(),
   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
   confirmedCount: 8,
   maxPlayers: 10,
   minPlayers: 6,
-  skillBand: "Intermediate",
-  intensityBand: "High",
-  indoorOutdoor: "outdoor",
-  description: "Looking for some competitive basketball!",
-  organizer: { userId: "b2c3d4e5-f6a7-8901-bcde-f12345678901", displayName: "Minh H.", reliabilityScore: 98 },
-  status: "SCHEDULED",
+  skillBand: 'Intermediate',
+  intensityBand: 'High',
+  indoorOutdoor: 'outdoor',
+  description: 'Looking for some competitive basketball!',
+  organizer: {
+    userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+    displayName: 'Minh H.',
+    reliabilityScore: 98,
+  },
+  status: 'SCHEDULED',
   minReliabilityRequired: undefined as number | undefined,
 };
 
@@ -112,10 +128,10 @@ export function GameRoom() {
     refetch,
   } = useGame(id);
 
-  const [activeTab, setActiveTab] = useState<"details" | "chat" | "lineup"| "photos">(
-    "details",
-  );
-  const [message, setMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<
+    'details' | 'chat' | 'lineup' | 'photos'
+  >('details');
+  const [message, setMessage] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -125,29 +141,31 @@ export function GameRoom() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   // US-32: Connection signals per player (batch-fetched for roster)
-  const [connectionSignalsByUserId, setConnectionSignalsByUserId] = useState<Record<string, ConnectionSignals>>({});
+  const [connectionSignalsByUserId, setConnectionSignalsByUserId] = useState<
+    Record<string, ConnectionSignals>
+  >({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [editFormData, setEditFormData] = useState({
-    description: "",
-    indoorOutdoor: "",
-    intensityBand: "",
-    skillBand: "",
-    minPlayers: "",
-    maxPlayers: "",
+    description: '',
+    indoorOutdoor: '',
+    intensityBand: '',
+    skillBand: '',
+    minPlayers: '',
+    maxPlayers: '',
     allowWaitlist: true,
-    minReliabilityRequired: "",
-    locationName: "",
-    addressLine: "",
-    city: "",
-    date: "",
-    startTime: "",
-    endTime: "",
-    visibility: "public",
+    minReliabilityRequired: '',
+    locationName: '',
+    addressLine: '',
+    city: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    visibility: 'public',
     tagNames: [] as string[],
-    minAge: "",
-    maxAge: "",
+    minAge: '',
+    maxAge: '',
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
@@ -175,7 +193,10 @@ export function GameRoom() {
   }, [isAuthenticated, user?.userId, apiRoster]);
 
   useEffect(() => {
-    gamesApi.getTags().then(setAvailableTags).catch(() => {});
+    gamesApi
+      .getTags()
+      .then(setAvailableTags)
+      .catch(() => {});
   }, []);
 
   // CRITICAL: Check loading state FIRST before accessing any data
@@ -197,7 +218,9 @@ export function GameRoom() {
         <div className="text-center px-4">
           <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl text-gray-900 mb-2">Game Not Found</h1>
-          <p className="text-gray-600 mb-6">This game may have been removed or doesn't exist.</p>
+          <p className="text-gray-600 mb-6">
+            This game may have been removed or doesn&apos;t exist.
+          </p>
           <a
             href="/discover"
             className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
@@ -216,26 +239,34 @@ export function GameRoom() {
   const handleEndorse = async (userId: string) => {
     try {
       await endorsementsApi.create({ endorsedUserId: userId, gameId: id });
-      setActionSuccess("Player endorsed successfully!");
+      setActionSuccess('Player endorsed successfully!');
       refetch();
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
       // If validation says duplicate, refresh to show the endorsement
       if (
         err.message &&
-        (err.message.toLowerCase().includes("duplicate") ||
-          err.message.toLowerCase().includes("exists"))
+        (err.message.toLowerCase().includes('duplicate') ||
+          err.message.toLowerCase().includes('exists'))
       ) {
         refetch();
         return;
       }
-      setActionError(err.message || "Failed to endorse player");
+      setActionError(err.message || 'Failed to endorse player');
       setTimeout(() => setActionError(null), 3000);
     }
   };
 
   const statusKey = (game.status || 'SCHEDULED').toUpperCase();
-  const statusMeta: Record<string, { label: string; pillClass: string; bannerClass?: string; bannerText?: string }> = {
+  const statusMeta: Record<
+    string,
+    {
+      label: string;
+      pillClass: string;
+      bannerClass?: string;
+      bannerText?: string;
+    }
+  > = {
     SCHEDULED: { label: 'Scheduled', pillClass: 'bg-emerald-600 text-white' },
     IN_PROGRESS: {
       label: 'In Progress',
@@ -276,52 +307,56 @@ export function GameRoom() {
     roster.waitlisted.find((p) => p.userId === user?.userId);
   const isOrganizer = game.organizer?.userId === user?.userId;
   const isParticipant = !!currentUserParticipation;
-  const isWaitlisted = currentUserParticipation?.joinStatus === "WAITLISTED";
+  const isWaitlisted = currentUserParticipation?.joinStatus === 'WAITLISTED';
 
   // Format date/time
   const startDate = new Date(game.startTime);
   const endDate = game.endTime ? new Date(game.endTime) : null;
-  const formattedDate = startDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
+  const formattedDate = startDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
   });
-  const formattedTime = startDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
+  const formattedTime = startDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
   });
-  const formattedEndTime = endDate?.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
+  const formattedEndTime = endDate?.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
   });
   const duration = endDate
     ? `${Math.round((endDate.getTime() - startDate.getTime()) / 3600000)} hours`
-    : "2 hours";
+    : '2 hours';
 
-  const canEdit = isOrganizer && game.status === "SCHEDULED" && startDate > new Date();
+  const canEdit =
+    isOrganizer && game.status === 'SCHEDULED' && startDate > new Date();
   const handleOpenEditModal = () => {
     const start = new Date(game.startTime);
     const end = game.endTime ? new Date(game.endTime) : start;
-    const pad = (n: number) => String(n).padStart(2, "0");
+    const pad = (n: number) => String(n).padStart(2, '0');
     setEditFormData({
-      description: game.description ?? "",
-      indoorOutdoor: game.indoorOutdoor ?? "",
-      intensityBand: game.intensityBand ?? "",
-      skillBand: game.skillBand ?? "",
+      description: game.description ?? '',
+      indoorOutdoor: game.indoorOutdoor ?? '',
+      intensityBand: game.intensityBand ?? '',
+      skillBand: game.skillBand ?? '',
       minPlayers: String(game.minPlayers ?? 2),
       maxPlayers: String(game.maxPlayers ?? 20),
       allowWaitlist: game.allowWaitlist ?? true,
-      minReliabilityRequired: game.minReliabilityRequired == null ? "" : String(game.minReliabilityRequired),
-      locationName: game.location?.name ?? "",
-      addressLine: game.location?.addressLine ?? "",
-      city: game.location?.city ?? "",
+      minReliabilityRequired:
+        game.minReliabilityRequired == null
+          ? ''
+          : String(game.minReliabilityRequired),
+      locationName: game.location?.name ?? '',
+      addressLine: game.location?.addressLine ?? '',
+      city: game.location?.city ?? '',
       date: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`,
       startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
       endTime: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
-      visibility: "public",
+      visibility: 'public',
       tagNames: game.tags?.map((t: { name: string }) => t.name) ?? [],
-      minAge: game.minAge != null ? String(game.minAge) : "",
-      maxAge: game.maxAge != null ? String(game.maxAge) : "",
+      minAge: game.minAge != null ? String(game.minAge) : '',
+      maxAge: game.maxAge != null ? String(game.maxAge) : '',
     });
     setShowEditModal(true);
   };
@@ -331,19 +366,25 @@ export function GameRoom() {
     const minP = Number.parseInt(editFormData.minPlayers, 10);
     const maxP = Number.parseInt(editFormData.maxPlayers, 10);
     if (Number.isNaN(minP) || minP < 2) {
-      setActionError("Minimum players must be at least 2");
+      setActionError('Minimum players must be at least 2');
       return;
     }
     if (Number.isNaN(maxP) || maxP < minP) {
-      setActionError("Maximum players must be at least the minimum");
+      setActionError('Maximum players must be at least the minimum');
       return;
     }
-    const startISO = editFormData.date && editFormData.startTime
-      ? new Date(`${editFormData.date}T${editFormData.startTime}:00`).toISOString()
-      : undefined;
-    const endISO = editFormData.date && editFormData.endTime
-      ? new Date(`${editFormData.date}T${editFormData.endTime}:00`).toISOString()
-      : undefined;
+    const startISO =
+      editFormData.date && editFormData.startTime
+        ? new Date(
+            `${editFormData.date}T${editFormData.startTime}:00`
+          ).toISOString()
+        : undefined;
+    const endISO =
+      editFormData.date && editFormData.endTime
+        ? new Date(
+            `${editFormData.date}T${editFormData.endTime}:00`
+          ).toISOString()
+        : undefined;
     setIsUpdating(true);
     setActionError(null);
     try {
@@ -365,22 +406,28 @@ export function GameRoom() {
         endTime: endISO,
         visibility: editFormData.visibility || undefined,
         tagNames: editFormData.tagNames ?? [],
-        minAge: editFormData.minAge ? Number.parseInt(editFormData.minAge, 10) : undefined,
-        maxAge: editFormData.maxAge ? Number.parseInt(editFormData.maxAge, 10) : undefined,
+        minAge: editFormData.minAge
+          ? Number.parseInt(editFormData.minAge, 10)
+          : undefined,
+        maxAge: editFormData.maxAge
+          ? Number.parseInt(editFormData.maxAge, 10)
+          : undefined,
       };
       await gamesApi.update(id, updateData);
       setActionError(null);
-      setActionSuccess("Changes saved.");
+      setActionSuccess('Changes saved.');
       setShowEditModal(false);
       await refetch();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
-        window.dispatchEvent(new CustomEvent("playlocal-refresh-games"));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('playlocal-refresh-notifications')
+        );
+        window.dispatchEvent(new CustomEvent('playlocal-refresh-games'));
       }
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
       setActionSuccess(null);
-      setActionError(err.message || "Failed to update game settings");
+      setActionError(err.message || 'Failed to update game settings');
     } finally {
       setIsUpdating(false);
     }
@@ -407,7 +454,7 @@ export function GameRoom() {
       await performJoin();
     } else {
       setActionError(
-        `Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user?.reliabilityScore ?? 0}%`,
+        `Minimum reliability score required: ${game.minReliabilityRequired}%. Your score: ${user?.reliabilityScore ?? 0}%`
       );
     }
   };
@@ -418,16 +465,16 @@ export function GameRoom() {
     setIsJoining(true);
     try {
       const result = await joinGame(confirmedTagIds);
-      if (result.joinStatus === "WAITLISTED") {
+      if (result.joinStatus === 'WAITLISTED') {
         setActionSuccess(
-          `You're on the waitlist (#${result.waitlistPosition})`,
+          `You're on the waitlist (#${result.waitlistPosition})`
         );
       } else {
-        setActionSuccess("Successfully joined the game!");
+        setActionSuccess('Successfully joined the game!');
       }
       setShowJoinConfirmationModal(false);
     } catch (err: any) {
-      setActionError(err.message || "Failed to join game");
+      setActionError(err.message || 'Failed to join game');
     } finally {
       setIsJoining(false);
     }
@@ -439,9 +486,9 @@ export function GameRoom() {
     setIsLeaving(true);
     try {
       await leaveGame();
-      setActionSuccess("Successfully left the game");
+      setActionSuccess('Successfully left the game');
     } catch (err: any) {
-      setActionError(err.message || "Failed to leave game");
+      setActionError(err.message || 'Failed to leave game');
     } finally {
       setIsLeaving(false);
     }
@@ -453,14 +500,16 @@ export function GameRoom() {
     setIsCancelling(true);
     try {
       await cancelGame();
-      setActionSuccess("Game has been deleted.");
+      setActionSuccess('Game has been deleted.');
       setShowCancelConfirm(false);
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("playlocal-refresh-notifications"));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('playlocal-refresh-notifications')
+        );
       }
-      navigate.push("/discover");
+      navigate.push('/discover');
     } catch (err: any) {
-      setActionError(err.message || "Failed to delete game");
+      setActionError(err.message || 'Failed to delete game');
     } finally {
       setIsCancelling(false);
     }
@@ -526,47 +575,47 @@ export function GameRoom() {
 
   const chatMessages = [
     {
-      id: "1",
-      user: "Minh H.",
-      avatar: "MH",
-      message: "Hey everyone! Looking forward to the game!",
-      time: "2:30 PM",
+      id: '1',
+      user: 'Minh H.',
+      avatar: 'MH',
+      message: 'Hey everyone! Looking forward to the game!',
+      time: '2:30 PM',
       isHost: true,
     },
     {
-      id: "2",
-      user: "Omar E.",
-      avatar: "OE",
-      message: "Should we bring our own ball or will there be one?",
-      time: "2:45 PM",
+      id: '2',
+      user: 'Omar E.',
+      avatar: 'OE',
+      message: 'Should we bring our own ball or will there be one?',
+      time: '2:45 PM',
     },
     {
-      id: "3",
-      user: "Minh H.",
-      avatar: "MH",
+      id: '3',
+      user: 'Minh H.',
+      avatar: 'MH',
       message: "I'll bring one, but backup is always good!",
-      time: "2:47 PM",
+      time: '2:47 PM',
       isHost: true,
     },
     {
-      id: "4",
-      user: "Asif A.",
-      avatar: "AA",
-      message: "Is there parking nearby?",
-      time: "3:15 PM",
+      id: '4',
+      user: 'Asif A.',
+      avatar: 'AA',
+      message: 'Is there parking nearby?',
+      time: '3:15 PM',
     },
     {
-      id: "5",
-      user: "Melissa R.",
-      avatar: "MR",
+      id: '5',
+      user: 'Melissa R.',
+      avatar: 'MR',
       message:
-        "Yes, street parking on Gary-Carter. Usually easy to find a spot.",
-      time: "3:18 PM",
+        'Yes, street parking on Gary-Carter. Usually easy to find a spot.',
+      time: '3:18 PM',
     },
   ];
 
   const spotsAvailable = game.maxPlayers - roster.confirmed.length;
-  const isOutdoor = game.indoorOutdoor === "outdoor";
+  const isOutdoor = game.indoorOutdoor === 'outdoor';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
@@ -585,10 +634,10 @@ export function GameRoom() {
                 {game.sportName}
               </span>
               <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-sm">
-                {game.skillBand || "All Levels"}
+                {game.skillBand || 'All Levels'}
               </span>
               <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full text-sm">
-                {game.intensityBand || "Medium"} Intensity
+                {game.intensityBand || 'Medium'} Intensity
               </span>
               {game.minReliabilityRequired != null && (
                 <span className="px-3 py-1 bg-amber-500/90 backdrop-blur-sm text-white rounded-full text-sm font-semibold">
@@ -600,18 +649,19 @@ export function GameRoom() {
                 game.tags.map((tag: any) => (
                   <span
                     key={tag.tagId}
-                    className={`px-3 py-1 rounded-full text-sm capitalize ${tag.isRestricted
-                        ? "bg-amber-500 text-white"
-                        : "bg-blue-500/90 text-white"
-                      }`}
+                    className={`px-3 py-1 rounded-full text-sm capitalize ${
+                      tag.isRestricted
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-blue-500/90 text-white'
+                    }`}
                   >
-                    {tag.isRestricted && "⚠️ "}
-                    {tag.name.replace("-", " ")}
+                    {tag.isRestricted && '⚠️ '}
+                    {tag.name.replace('-', ' ')}
                   </span>
                 ))}
               {(game.minAge || game.maxAge) && (
                 <span className="px-3 py-1 bg-purple-500/90 text-white rounded-full text-sm">
-                  Ages {game.minAge || "13"}–{game.maxAge || "120"}
+                  Ages {game.minAge || '13'}–{game.maxAge || '120'}
                 </span>
               )}
             </div>
@@ -629,6 +679,9 @@ export function GameRoom() {
                   {game.hasExactLocationAccess && game.location
                     ? game.location.name
                     : "Location Hidden"}
+                  {game.location?.name ||
+                    game.approximateLocation ||
+                    'Location Hidden'}
                 </span>
               </div>
             </div>
@@ -654,7 +707,9 @@ export function GameRoom() {
               </div>
             )}
             {currentStatus.bannerText && (
-              <div className={`p-4 border rounded-lg flex items-center gap-2 ${currentStatus.bannerClass}`}>
+              <div
+                className={`p-4 border rounded-lg flex items-center gap-2 ${currentStatus.bannerClass}`}
+              >
                 <AlertCircle className="w-5 h-5" />
                 <span>{currentStatus.bannerText}</span>
               </div>
@@ -665,29 +720,32 @@ export function GameRoom() {
               <div className="border-b border-gray-200">
                 <div className="flex">
                   <button
-                    onClick={() => setActiveTab("details")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "details"
-                        ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
+                    onClick={() => setActiveTab('details')}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'details'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     Details
                   </button>
                   <button
-                    onClick={() => setActiveTab("lineup")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "lineup"
-                        ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
+                    onClick={() => setActiveTab('lineup')}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'lineup'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     Lineup ({roster.confirmed.length}/{game.maxPlayers})
                   </button>
                   <button
-                    onClick={() => setActiveTab("chat")}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === "chat"
-                        ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      }`}
+                    onClick={() => setActiveTab('chat')}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'chat'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <span>Chat</span>
@@ -695,28 +753,27 @@ export function GameRoom() {
                     </div>
                   </button>
                   <button
-                      onClick={() => setActiveTab("photos")}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        activeTab === "photos"
-                          ? "text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50"
-                          : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
-                      }`}
-                    >
-                      Album
-                    </button>
-                  
+                    onClick={() => setActiveTab('photos')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'photos'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                    }`}
+                  >
+                    Album
+                  </button>
                 </div>
               </div>
 
               <div className="p-6 flex flex-col min-w-0">
-                {activeTab === "details" && (
+                {activeTab === 'details' && (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">
                         About this game
                       </h3>
                       <p className="text-gray-600 leading-relaxed">
-                        {game.description || "No description provided."}
+                        {game.description || 'No description provided.'}
                       </p>
                     </div>
 
@@ -734,12 +791,12 @@ export function GameRoom() {
                       <InfoCard
                         icon={<MapPin />}
                         label="Location Type"
-                        value={isOutdoor ? "Outdoor" : "Indoor"}
+                        value={isOutdoor ? 'Outdoor' : 'Indoor'}
                       />
                       <InfoCard
                         icon={<Sun />}
                         label="Weather"
-                        value={isOutdoor ? "Check forecast" : "N/A"}
+                        value={isOutdoor ? 'Check forecast' : 'N/A'}
                       />
                     </div>
 
@@ -757,9 +814,9 @@ export function GameRoom() {
                             <a
                               href={
                                 game.location.latitude &&
-                                  game.location.longitude
+                                game.location.longitude
                                   ? `https://www.google.com/maps/search/?api=1&query=${game.location.latitude},${game.location.longitude}`
-                                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location.addressLine || game.location.name || game.location.city || "")}`
+                                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(game.location.addressLine || game.location.name || game.location.city || '')}`
                               }
                               target="_blank"
                               rel="noopener noreferrer"
@@ -774,13 +831,13 @@ export function GameRoom() {
                             <div className="flex items-center gap-2 mb-2">
                               <MapPin className="w-5 h-5 text-gray-400" />
                               <p className="text-gray-900 font-medium">
-                                {game.approximateLocation || "Location hidden"}
+                                {game.approximateLocation || 'Location hidden'}
                               </p>
                             </div>
                             <p className="text-gray-500 text-sm italic">
                               {isAuthenticated
-                                ? "Join this game to view the exact location."
-                                : "Sign in and join to view location."}
+                                ? 'Join this game to view the exact location.'
+                                : 'Sign in and join to view location.'}
                             </p>
                           </>
                         )}
@@ -791,60 +848,61 @@ export function GameRoom() {
                     {((game.tags && game.tags.length > 0) ||
                       game.minAge ||
                       game.maxAge) && (
-                        <div>
-                          <h3 className="text-lg text-gray-900 mb-3">
-                            Community Requirements
-                          </h3>
-                          <div className="p-4 bg-gray-50 rounded-lg space-y-3">
-                            {game.tags && game.tags.length > 0 && (
-                              <div>
-                                <p className="text-sm text-gray-600 mb-2">
-                                  This game is tagged for specific communities:
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {game.tags.map((tag: any) => (
-                                    <span
-                                      key={tag.tagId}
-                                      className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${tag.isRestricted
-                                          ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                          : "bg-blue-100 text-blue-800 border border-blue-200"
-                                        }`}
-                                    >
-                                      {tag.isRestricted && "⚠️ "}
-                                      {tag.name.replace("-", " ")}
-                                    </span>
-                                  ))}
-                                </div>
-                                {game.tags.some(
-                                  (tag: any) => tag.isRestricted,
-                                ) && (
-                                    <p className="text-sm text-amber-700 mt-2 flex items-start gap-2">
-                                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                      <span>
-                                        Tags marked with ⚠️ require confirmation
-                                        when joining
-                                      </span>
-                                    </p>
-                                  )}
+                      <div>
+                        <h3 className="text-lg text-gray-900 mb-3">
+                          Community Requirements
+                        </h3>
+                        <div className="p-4 bg-gray-50 rounded-lg space-y-3">
+                          {game.tags && game.tags.length > 0 && (
+                            <div>
+                              <p className="text-sm text-gray-600 mb-2">
+                                This game is tagged for specific communities:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {game.tags.map((tag: any) => (
+                                  <span
+                                    key={tag.tagId}
+                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${
+                                      tag.isRestricted
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                    }`}
+                                  >
+                                    {tag.isRestricted && '⚠️ '}
+                                    {tag.name.replace('-', ' ')}
+                                  </span>
+                                ))}
                               </div>
-                            )}
-                            {(game.minAge || game.maxAge) && (
-                              <div>
-                                <p className="text-sm text-gray-600 mb-1">
-                                  Age Requirement:
+                              {game.tags.some(
+                                (tag: any) => tag.isRestricted
+                              ) && (
+                                <p className="text-sm text-amber-700 mt-2 flex items-start gap-2">
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                  <span>
+                                    Tags marked with ⚠️ require confirmation
+                                    when joining
+                                  </span>
                                 </p>
-                                <p className="text-gray-900 font-medium">
-                                  {game.minAge && game.maxAge
-                                    ? `${game.minAge}–${game.maxAge} years old`
-                                    : game.minAge
-                                      ? `${game.minAge}+ years old`
-                                      : `Up to ${game.maxAge} years old`}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          )}
+                          {(game.minAge || game.maxAge) && (
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">
+                                Age Requirement:
+                              </p>
+                              <p className="text-gray-900 font-medium">
+                                {game.minAge && game.maxAge
+                                  ? `${game.minAge}–${game.maxAge} years old`
+                                  : game.minAge
+                                    ? `${game.minAge}+ years old`
+                                    : `Up to ${game.maxAge} years old`}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
                     <div>
                       <h3 className="text-lg text-gray-900 mb-3">
@@ -855,19 +913,33 @@ export function GameRoom() {
                           <div className="flex items-start gap-2">
                             <TrendingUp className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                             <div>
-                              <h4 className="text-amber-900 font-semibold mb-1">Reputation-Gated Game</h4>
+                              <h4 className="text-amber-900 font-semibold mb-1">
+                                Reputation-Gated Game
+                              </h4>
                               <p className="text-sm text-amber-700">
-                                This game requires a minimum reliability score of <span className="font-semibold">{game.minReliabilityRequired}%</span> to join.
-                                {user && user.reliabilityScore < game.minReliabilityRequired && (
-                                  <span className="block mt-1 text-amber-800">
-                                    Your score: {user.reliabilityScore}% - You need {game.minReliabilityRequired}% to join.
-                                  </span>
-                                )}
-                                {user && user.reliabilityScore >= game.minReliabilityRequired && (
-                                  <span className="block mt-1 text-emerald-700">
-                                    ✓ Your score: {user.reliabilityScore}% - You meet the requirement!
-                                  </span>
-                                )}
+                                This game requires a minimum reliability score
+                                of{' '}
+                                <span className="font-semibold">
+                                  {game.minReliabilityRequired}%
+                                </span>{' '}
+                                to join.
+                                {user &&
+                                  user.reliabilityScore <
+                                    game.minReliabilityRequired && (
+                                    <span className="block mt-1 text-amber-800">
+                                      Your score: {user.reliabilityScore}% - You
+                                      need {game.minReliabilityRequired}% to
+                                      join.
+                                    </span>
+                                  )}
+                                {user &&
+                                  user.reliabilityScore >=
+                                    game.minReliabilityRequired && (
+                                    <span className="block mt-1 text-emerald-700">
+                                      ✓ Your score: {user.reliabilityScore}% -
+                                      You meet the requirement!
+                                    </span>
+                                  )}
                               </p>
                             </div>
                           </div>
@@ -901,7 +973,7 @@ export function GameRoom() {
                   </div>
                 )}
 
-                {activeTab === "lineup" && (
+                {activeTab === 'lineup' && (
                   <div className="space-y-6">
                     {/* Team Balancing Info */}
                     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -931,17 +1003,17 @@ export function GameRoom() {
                             className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white">
-                              {player.displayName?.[0] || "?"}
+                              {player.displayName?.[0] || '?'}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <Link
-                                  href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, "-") || player.userId}`}
+                                  href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, '-') || player.userId}`}
                                   className="text-gray-900 truncate hover:text-emerald-600 transition-colors"
                                 >
                                   {player.displayName}
                                 </Link>
-                                {player.role === "ORGANIZER" && (
+                                {player.role === 'ORGANIZER' && (
                                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded">
                                     Host
                                   </span>
@@ -949,39 +1021,44 @@ export function GameRoom() {
                               </div>
                               <div className="flex items-center gap-2 text-sm flex-wrap">
                                 <span className="text-gray-600">
-                                  Reliability: {Math.round(player.reliabilityScore)}%
+                                  Reliability:{' '}
+                                  {Math.round(player.reliabilityScore)}%
                                 </span>
                                 {/* US-32: Connection signals (only for logged-in viewers, exclude self) */}
-                                {isAuthenticated && player.userId !== user?.userId && (
-                                  <span className="text-gray-500 text-xs">
-                                    {(() => {
-                                      const sig = connectionSignalsByUserId[player.userId];
-                                      if (!sig) return null;
-                                      const mutual =
-                                        sig.mutualFriendCount > 0
-                                          ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? "s" : ""}`
-                                          : "No mutuals yet";
-                                      const coPlay =
-                                        sig.coPlayCount > 0
-                                          ? `Played together ${sig.coPlayCount}× (60d)`
-                                          : "No games together yet";
-                                      return (
-                                        <>
-                                          <span className="mr-2">·</span>
-                                          <span title={coPlay}>{mutual}</span>
-                                          <span className="mx-1">·</span>
-                                          <span title={mutual}>{coPlay}</span>
-                                        </>
-                                      );
-                                    })()}
-                                  </span>
-                                )}
+                                {isAuthenticated &&
+                                  player.userId !== user?.userId && (
+                                    <span className="text-gray-500 text-xs">
+                                      {(() => {
+                                        const sig =
+                                          connectionSignalsByUserId[
+                                            player.userId
+                                          ];
+                                        if (!sig) return null;
+                                        const mutual =
+                                          sig.mutualFriendCount > 0
+                                            ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? 's' : ''}`
+                                            : 'No mutuals yet';
+                                        const coPlay =
+                                          sig.coPlayCount > 0
+                                            ? `Played together ${sig.coPlayCount}× (60d)`
+                                            : 'No games together yet';
+                                        return (
+                                          <>
+                                            <span className="mr-2">·</span>
+                                            <span title={coPlay}>{mutual}</span>
+                                            <span className="mx-1">·</span>
+                                            <span title={mutual}>{coPlay}</span>
+                                          </>
+                                        );
+                                      })()}
+                                    </span>
+                                  )}
                               </div>
                             </div>
 
                             {/* Endorsement UI - US 3.3 Organizer Endorsements */}
                             {isOrganizer &&
-                              player.attendanceStatus === "ATTENDED" &&
+                              player.attendanceStatus === 'ATTENDED' &&
                               player.userId !== user?.userId &&
                               (player.isEndorsedByOrganizer ? (
                                 <div
@@ -1020,29 +1097,47 @@ export function GameRoom() {
                             >
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white">
-                                  {player.displayName?.[0] || "?"}
+                                  {player.displayName?.[0] || '?'}
                                 </div>
                                 <div>
                                   <Link
-                                    href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, "-") || player.userId}`}
+                                    href={`/profile/${player.displayName?.toLowerCase().replace(/\s+/g, '-') || player.userId}`}
                                     className="text-gray-900 hover:text-emerald-600 transition-colors"
                                   >
                                     {player.displayName}
                                   </Link>
                                   <div className="text-sm text-gray-600">
-                                    Reliability: {Math.round(player.reliabilityScore)}%
+                                    Reliability:{' '}
+                                    {Math.round(player.reliabilityScore)}%
                                   </div>
                                   {/* US-32: Connection signals on waitlist */}
-                                  {isAuthenticated && player.userId !== user?.userId && connectionSignalsByUserId[player.userId] && (
-                                    <div className="text-xs text-gray-500 mt-0.5">
-                                      {(() => {
-                                        const sig = connectionSignalsByUserId[player.userId];
-                                        const mutual = sig.mutualFriendCount > 0 ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? "s" : ""}` : "No mutuals yet";
-                                        const coPlay = sig.coPlayCount > 0 ? `Played together ${sig.coPlayCount}× (60d)` : "No games together yet";
-                                        return <span>{mutual} · {coPlay}</span>;
-                                      })()}
-                                    </div>
-                                  )}
+                                  {isAuthenticated &&
+                                    player.userId !== user?.userId &&
+                                    connectionSignalsByUserId[
+                                      player.userId
+                                    ] && (
+                                      <div className="text-xs text-gray-500 mt-0.5">
+                                        {(() => {
+                                          const sig =
+                                            connectionSignalsByUserId[
+                                              player.userId
+                                            ];
+                                          const mutual =
+                                            sig.mutualFriendCount > 0
+                                              ? `${sig.mutualFriendCount} mutual${sig.mutualFriendCount !== 1 ? 's' : ''}`
+                                              : 'No mutuals yet';
+                                          const coPlay =
+                                            sig.coPlayCount > 0
+                                              ? `Played together ${sig.coPlayCount}× (60d)`
+                                              : 'No games together yet';
+                                          return (
+                                            <span>
+                                              {mutual} · {coPlay}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                    )}
                                 </div>
                               </div>
                               <span className="text-sm text-gray-500">
@@ -1056,28 +1151,28 @@ export function GameRoom() {
                   </div>
                 )}
 
-                {activeTab === "chat" && (
+                {activeTab === 'chat' && (
                   <div className="w-full min-w-0">
                     {/* forces ChatPanel to take full width and stack vertically */}
                     <div className="w-full min-w-0 flex flex-col">
                       <ChatPanel
                         gameId={id}
                         me={{
-                          id: user?.userId || "anonymous",
-                          name: user?.displayName || "Unknown",
+                          id: user?.userId || 'anonymous',
+                          name: user?.displayName || 'Unknown',
                         }}
                         hostUserId={game.organizer?.userId}
                         canChat={Boolean(
                           isOrganizer ||
-                          currentUserParticipation?.joinStatus === "CONFIRMED",
+                          currentUserParticipation?.joinStatus === 'CONFIRMED'
                         )}
                       />
                     </div>
                   </div>
                 )}
 
-                {activeTab === "photos" && (
-                  <PhotosPanel gameId={id} canUpload={isParticipant}/>
+                {activeTab === 'photos' && (
+                  <PhotosPanel gameId={id} canUpload={isParticipant} />
                 )}
               </div>
             </div>
@@ -1091,7 +1186,7 @@ export function GameRoom() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-600">Spots Available</span>
                   <span className="text-emerald-600">
-                    {spotsAvailable > 0 ? `${spotsAvailable} left` : "Full"}
+                    {spotsAvailable > 0 ? `${spotsAvailable} left` : 'Full'}
                   </span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -1111,7 +1206,7 @@ export function GameRoom() {
                       <CheckCircle className="w-5 h-5" />
                       <span>
                         {isWaitlisted
-                          ? `You're on the waitlist (#${(currentUserParticipation as any)?.waitlistPosition || "?"})`
+                          ? `You're on the waitlist (#${(currentUserParticipation as any)?.waitlistPosition || '?'})`
                           : "You're in this game!"}
                       </span>
                     </div>
@@ -1135,7 +1230,7 @@ export function GameRoom() {
                 <>
                   {!isAuthenticated ? (
                     <button
-                      onClick={() => navigate.push("/login")}
+                      onClick={() => navigate.push('/login')}
                       className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors mb-3 flex items-center justify-center gap-2"
                     >
                       <LogIn className="w-5 h-5" />
@@ -1151,7 +1246,7 @@ export function GameRoom() {
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : null}
                       <span>
-                        {spotsAvailable > 0 ? "Join Game" : "Join Waitlist"}
+                        {spotsAvailable > 0 ? 'Join Game' : 'Join Waitlist'}
                       </span>
                     </button>
                   )}
@@ -1166,13 +1261,18 @@ export function GameRoom() {
               {isOrganizer && (
                 <div className="mt-4 border-t border-gray-200 pt-4 space-y-2">
                   <p className="text-sm text-gray-500">Organizer actions</p>
-                  {(statusKey === 'SCHEDULED' || statusKey === 'IN_PROGRESS') && (
+                  {(statusKey === 'SCHEDULED' ||
+                    statusKey === 'IN_PROGRESS') && (
                     <button
                       onClick={handleComplete}
                       disabled={isCompleting}
                       className="w-full px-6 py-3 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {isCompleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                      {isCompleting ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5" />
+                      )}
                       <span>Mark Completed</span>
                     </button>
                   )}
@@ -1182,7 +1282,11 @@ export function GameRoom() {
                       disabled={isArchiving}
                       className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {isArchiving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Archive className="w-5 h-5" />}
+                      {isArchiving ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Archive className="w-5 h-5" />
+                      )}
                       <span>Archive Game</span>
                     </button>
                   )}
@@ -1204,12 +1308,16 @@ export function GameRoom() {
                 onClick={handleShare}
                 className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
               >
-                {shareSuccess ? <Check className="w-5 h-5 text-emerald-600" /> : <Share2 className="w-5 h-5" />}
+                {shareSuccess ? (
+                  <Check className="w-5 h-5 text-emerald-600" />
+                ) : (
+                  <Share2 className="w-5 h-5" />
+                )}
                 <span>{shareSuccess ? 'Link Copied!' : 'Share Game'}</span>
               </button>
 
               {/* US-4.3: Organizer Delete Game */}
-              {isOrganizer && game.status === "SCHEDULED" && (
+              {isOrganizer && game.status === 'SCHEDULED' && (
                 <>
                   {!showCancelConfirm ? (
                     <button
@@ -1222,7 +1330,8 @@ export function GameRoom() {
                   ) : (
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-3">
                       <p className="text-red-700 text-sm">
-                        Delete this game? All participants will be notified. This cannot be undone.
+                        Delete this game? All participants will be notified.
+                        This cannot be undone.
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -1235,9 +1344,12 @@ export function GameRoom() {
                           onClick={handleCancel}
                           disabled={isCancelling}
                           className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                          style={{ backgroundColor: "#dc2626", color: "#ffffff" }}
+                          style={{
+                            backgroundColor: '#dc2626',
+                            color: '#ffffff',
+                          }}
                         >
-                          {isCancelling ? "Deleting..." : "Yes, Delete"}
+                          {isCancelling ? 'Deleting...' : 'Yes, Delete'}
                         </button>
                       </div>
                     </div>
@@ -1245,7 +1357,7 @@ export function GameRoom() {
                 </>
               )}
 
-              {game.status === "CANCELLED" && (
+              {game.status === 'CANCELLED' && (
                 <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-center">
                   <XCircle className="w-5 h-5 inline mr-2" />
                   This game has been deleted
@@ -1279,37 +1391,38 @@ export function GameRoom() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white">
-                  {game.organizer?.displayName?.[0] || "H"}
+                  {game.organizer?.displayName?.[0] || 'H'}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Link
-                      href={`/profile/${game.organizer?.displayName?.toLowerCase().replace(/\s+/g, "-") || "host"}`}
+                      href={`/profile/${game.organizer?.displayName?.toLowerCase().replace(/\s+/g, '-') || 'host'}`}
                       className="text-gray-900 hover:text-emerald-600 transition-colors"
                     >
-                      {game.organizer?.displayName || "Host"}
+                      {game.organizer?.displayName || 'Host'}
                     </Link>
                     <CheckCircle className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div className="flex items-center gap-1 mb-2">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-gray-600">
-                      Reliability: {Math.round(game.organizer?.reliabilityScore ?? 100)}%
+                      Reliability:{' '}
+                      {Math.round(game.organizer?.reliabilityScore ?? 100)}%
                     </span>
                   </div>
                   <Link
-                    href={`/profile/${game.organizer?.displayName?.toLowerCase().replace(/\s+/g, "-") || "host"}`}
+                    href={`/profile/${game.organizer?.displayName?.toLowerCase().replace(/\s+/g, '-') || 'host'}`}
                     className="text-sm text-emerald-600 hover:text-emerald-700 transition-colors"
                   >
                     View Profile
                   </Link>
                 </div>
               </div>
-              
+
               {/* US-6.1: Organizer Quality Score */}
               {game.organizer?.userId && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <OrganizerQualityBadge 
+                  <OrganizerQualityBadge
                     userId={game.organizer.userId}
                     variant="compact"
                     showInfoCard={true}
@@ -1368,7 +1481,12 @@ export function GameRoom() {
 
       {/* Edit Game Modal - US-4.3: custom modal so content is always visible (no Radix) */}
       {showEditModal && (
-        <div className="fixed inset-0 z-[9999]" role="dialog" aria-modal="true" aria-labelledby="edit-game-title">
+        <div
+          className="fixed inset-0 z-[9999]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-game-title"
+        >
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60"
@@ -1379,9 +1497,15 @@ export function GameRoom() {
           <div className="absolute left-1/2 top-1/2 z-10 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border-2 border-gray-300 bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 id="edit-game-title" className="text-xl font-semibold text-gray-900">Edit Game</h2>
+                <h2
+                  id="edit-game-title"
+                  className="text-xl font-semibold text-gray-900"
+                >
+                  Edit Game
+                </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Title and sport cannot be changed. If you raise min reliability, players below it may be removed.
+                  Title and sport cannot be changed. If you raise min
+                  reliability, players below it may be removed.
                 </p>
               </div>
               <button
@@ -1395,32 +1519,53 @@ export function GameRoom() {
             </div>
             <div className="space-y-4">
               <div className="rounded-lg bg-gray-100 p-3 border border-gray-200">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Title (read-only)</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                  Title (read-only)
+                </p>
                 <p className="text-gray-900 font-medium">{game.title}</p>
-                <p className="text-xs text-gray-500 mt-2">Sport: {game.sportName}</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Sport: {game.sportName}
+                </p>
               </div>
 
               <div>
-                <label htmlFor="edit-location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label
+                  htmlFor="edit-location"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Location
+                </label>
                 <input
                   id="edit-location"
                   type="text"
                   value={editFormData.locationName}
-                  onChange={(e) => setEditFormData({ ...editFormData, locationName: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      locationName: e.target.value,
+                    })
+                  }
                   placeholder="Venue or address"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
                 />
                 <input
                   type="text"
                   value={editFormData.addressLine}
-                  onChange={(e) => setEditFormData({ ...editFormData, addressLine: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      addressLine: e.target.value,
+                    })
+                  }
                   placeholder="Street address (optional)"
                   className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
                 />
                 <input
                   type="text"
                   value={editFormData.city}
-                  onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, city: e.target.value })
+                  }
                   placeholder="City (optional)"
                   className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
                 />
@@ -1428,44 +1573,81 @@ export function GameRoom() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="edit-date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label
+                    htmlFor="edit-date"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Date
+                  </label>
                   <input
                     id="edit-date"
                     type="date"
                     value={editFormData.date}
-                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, date: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-start-time" className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+                  <label
+                    htmlFor="edit-start-time"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Start time
+                  </label>
                   <input
                     id="edit-start-time"
                     type="time"
                     value={editFormData.startTime}
-                    onChange={(e) => setEditFormData({ ...editFormData, startTime: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        startTime: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-end-time" className="block text-sm font-medium text-gray-700 mb-1">End time</label>
+                  <label
+                    htmlFor="edit-end-time"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    End time
+                  </label>
                   <input
                     id="edit-end-time"
                     type="time"
                     value={editFormData.endTime}
-                    onChange={(e) => setEditFormData({ ...editFormData, endTime: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        endTime: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label
+                  htmlFor="edit-description"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Description
+                </label>
                 <textarea
                   id="edit-description"
                   rows={3}
                   value={editFormData.description}
-                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      description: e.target.value,
+                    })
+                  }
                   placeholder="Optional details"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
                 />
@@ -1473,11 +1655,21 @@ export function GameRoom() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-indoor" className="block text-sm font-medium text-gray-700 mb-1">Location type</label>
+                  <label
+                    htmlFor="edit-indoor"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Location type
+                  </label>
                   <select
                     id="edit-indoor"
                     value={editFormData.indoorOutdoor}
-                    onChange={(e) => setEditFormData({ ...editFormData, indoorOutdoor: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        indoorOutdoor: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   >
                     <option value="">Select</option>
@@ -1486,11 +1678,21 @@ export function GameRoom() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="edit-skill" className="block text-sm font-medium text-gray-700 mb-1">Skill level</label>
+                  <label
+                    htmlFor="edit-skill"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Skill level
+                  </label>
                   <select
                     id="edit-skill"
                     value={editFormData.skillBand}
-                    onChange={(e) => setEditFormData({ ...editFormData, skillBand: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        skillBand: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   >
                     <option value="">Select</option>
@@ -1503,11 +1705,21 @@ export function GameRoom() {
               </div>
 
               <div>
-                <label htmlFor="edit-intensity" className="block text-sm font-medium text-gray-700 mb-1">Intensity</label>
+                <label
+                  htmlFor="edit-intensity"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Intensity
+                </label>
                 <select
                   id="edit-intensity"
                   value={editFormData.intensityBand}
-                  onChange={(e) => setEditFormData({ ...editFormData, intensityBand: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      intensityBand: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                 >
                   <option value="">Select</option>
@@ -1519,24 +1731,44 @@ export function GameRoom() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-min-players" className="block text-sm font-medium text-gray-700 mb-1">Min players</label>
+                  <label
+                    htmlFor="edit-min-players"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Min players
+                  </label>
                   <input
                     id="edit-min-players"
                     type="number"
                     min={2}
                     value={editFormData.minPlayers}
-                    onChange={(e) => setEditFormData({ ...editFormData, minPlayers: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        minPlayers: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-max-players" className="block text-sm font-medium text-gray-700 mb-1">Max players</label>
+                  <label
+                    htmlFor="edit-max-players"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Max players
+                  </label>
                   <input
                     id="edit-max-players"
                     type="number"
                     min={2}
                     value={editFormData.maxPlayers}
-                    onChange={(e) => setEditFormData({ ...editFormData, maxPlayers: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        maxPlayers: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
@@ -1547,21 +1779,43 @@ export function GameRoom() {
                   id="edit-allow-waitlist"
                   type="checkbox"
                   checked={editFormData.allowWaitlist}
-                  onChange={(e) => setEditFormData({ ...editFormData, allowWaitlist: e.target.checked })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      allowWaitlist: e.target.checked,
+                    })
+                  }
                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <label htmlFor="edit-allow-waitlist" className="text-sm text-gray-700">Allow waitlist</label>
+                <label
+                  htmlFor="edit-allow-waitlist"
+                  className="text-sm text-gray-700"
+                >
+                  Allow waitlist
+                </label>
               </div>
 
               <div>
-                <label htmlFor="edit-visibility" className="block text-sm font-medium text-gray-700 mb-1">Game visibility</label>
+                <label
+                  htmlFor="edit-visibility"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Game visibility
+                </label>
                 <select
                   id="edit-visibility"
                   value={editFormData.visibility}
-                  onChange={(e) => setEditFormData({ ...editFormData, visibility: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      visibility: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                 >
-                  <option value="public">Public - Anyone can see and join</option>
+                  <option value="public">
+                    Public - Anyone can see and join
+                  </option>
                   <option value="friends">Friends Only</option>
                   <option value="invite">Invite Only</option>
                 </select>
@@ -1569,7 +1823,9 @@ export function GameRoom() {
 
               {availableTags.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Community tags</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Community tags
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {availableTags.map((tag) => (
                       <label
@@ -1581,15 +1837,27 @@ export function GameRoom() {
                           checked={editFormData.tagNames.includes(tag.name)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setEditFormData({ ...editFormData, tagNames: [...editFormData.tagNames, tag.name] });
+                              setEditFormData({
+                                ...editFormData,
+                                tagNames: [...editFormData.tagNames, tag.name],
+                              });
                             } else {
-                              setEditFormData({ ...editFormData, tagNames: editFormData.tagNames.filter((t) => t !== tag.name) });
+                              setEditFormData({
+                                ...editFormData,
+                                tagNames: editFormData.tagNames.filter(
+                                  (t) => t !== tag.name
+                                ),
+                              });
                             }
                           }}
                           className="rounded border-gray-300 text-emerald-600"
                         />
-                        <span className="capitalize">{tag.name.replace(/-/g, " ")}</span>
-                        {tag.isRestricted && <span className="text-red-600 text-xs">!</span>}
+                        <span className="capitalize">
+                          {tag.name.replace(/-/g, ' ')}
+                        </span>
+                        {tag.isRestricted && (
+                          <span className="text-red-600 text-xs">!</span>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -1598,27 +1866,47 @@ export function GameRoom() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="edit-min-age" className="block text-sm font-medium text-gray-700 mb-1">Min age (optional)</label>
+                  <label
+                    htmlFor="edit-min-age"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Min age (optional)
+                  </label>
                   <input
                     id="edit-min-age"
                     type="number"
                     min={13}
                     max={120}
                     value={editFormData.minAge}
-                    onChange={(e) => setEditFormData({ ...editFormData, minAge: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        minAge: e.target.value,
+                      })
+                    }
                     placeholder="e.g. 18"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-max-age" className="block text-sm font-medium text-gray-700 mb-1">Max age (optional)</label>
+                  <label
+                    htmlFor="edit-max-age"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Max age (optional)
+                  </label>
                   <input
                     id="edit-max-age"
                     type="number"
                     min={13}
                     max={120}
                     value={editFormData.maxAge}
-                    onChange={(e) => setEditFormData({ ...editFormData, maxAge: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        maxAge: e.target.value,
+                      })
+                    }
                     placeholder="e.g. 65"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
@@ -1626,7 +1914,10 @@ export function GameRoom() {
               </div>
 
               <div>
-                <label htmlFor="edit-min-reliability" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="edit-min-reliability"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Minimum reliability % (optional)
                 </label>
                 <div className="flex items-center gap-2">
@@ -1636,7 +1927,12 @@ export function GameRoom() {
                     min={0}
                     max={100}
                     value={editFormData.minReliabilityRequired}
-                    onChange={(e) => setEditFormData({ ...editFormData, minReliabilityRequired: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        minReliabilityRequired: e.target.value,
+                      })
+                    }
                     placeholder="e.g. 85"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
                   />
@@ -1644,16 +1940,25 @@ export function GameRoom() {
                   {editFormData.minReliabilityRequired && (
                     <button
                       type="button"
-                      onClick={() => setEditFormData({ ...editFormData, minReliabilityRequired: "" })}
+                      onClick={() =>
+                        setEditFormData({
+                          ...editFormData,
+                          minReliabilityRequired: '',
+                        })
+                      }
                       className="text-sm text-red-600 hover:text-red-700"
                     >
                       Clear
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Increasing this may remove players below the new threshold.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Increasing this may remove players below the new threshold.
+                </p>
                 {user && (
-                  <p className="text-xs text-emerald-700 mt-1">Your score: {user.reliabilityScore}%</p>
+                  <p className="text-xs text-emerald-700 mt-1">
+                    Your score: {user.reliabilityScore}%
+                  </p>
                 )}
               </div>
             </div>

@@ -1,7 +1,7 @@
 # PlayLocal - Location-based social platform for organizing local pickup sports
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TeamCappin_PlayLocal&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=TeamCappin_PlayLocal)
-[![codecov](https://codecov.io/gh/TeamCappin/PlayLocal/graph/badge.svg?token=8P22R0Z90L)](https://codecov.io/gh/TeamCappin/PlayLocal)
+[![codecov](https://codecov.io/gh/TeamCappin/PlayLocal/branch/dev/graph/badge.svg?token=8P22R0Z90L)](https://codecov.io/gh/TeamCappin/PlayLocal)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/9e082237-585c-4ac5-9085-c19eb58954ee/deploy-status)](https://app.netlify.com/projects/playlocal/deploys)
 
 ## Project Overview
@@ -106,6 +106,23 @@ mvn test
 
 npm test
 ```
+
+### Formatting & Lint:
+
+```sh
+cd playlocal/backend/
+mvn -B checkstyle:check
+
+cd playlocal/frontend/
+npm run lint:errors
+
+
+npm run format:check
+npm run format:write
+```
+
+
+
 
 ## Wiki Table of Contents
 

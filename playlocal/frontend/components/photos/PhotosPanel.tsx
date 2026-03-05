@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import api, { PhotoItem } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import api, { PhotoItem } from '@/lib/api';
 
 const MAX_PHOTOS = 5;
 
@@ -11,12 +11,12 @@ const THUMB_H = 32;
 
 function inferImageMimeFromName(fileName: string): string | null {
   const lower = fileName.toLowerCase();
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-  if (lower.endsWith(".png")) return "image/png";
-  if (lower.endsWith(".gif")) return "image/gif";
-  if (lower.endsWith(".webp")) return "image/webp";
-  if (lower.endsWith(".heic")) return "image/heic";
-  if (lower.endsWith(".heif")) return "image/heif";
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic')) return 'image/heic';
+  if (lower.endsWith('.heif')) return 'image/heif';
   return null;
 }
 
@@ -44,7 +44,7 @@ export function PhotosPanel({
   const isMaxed = useMemo(() => photos.length >= MAX_PHOTOS, [photos.length]);
   const remaining = useMemo(
     () => Math.max(0, MAX_PHOTOS - photos.length),
-    [photos.length],
+    [photos.length]
   );
 
   const hasPhotos = photos.length > 0;
@@ -52,7 +52,7 @@ export function PhotosPanel({
   // Always render MAX_PHOTOS slots (photo or null)
   const thumbSlots = useMemo(
     () => Array.from({ length: MAX_PHOTOS }, (_, i) => photos[i] ?? null),
-    [photos],
+    [photos]
   );
 
   // Main viewer photo:
@@ -66,12 +66,12 @@ export function PhotosPanel({
   const canGoNext = activeIndex < MAX_PHOTOS - 1;
 
   const tileStyle = useMemo(
-    () => ({ width: THUMB_W, height: THUMB_H } as const),
-    [],
+    () => ({ width: THUMB_W, height: THUMB_H }) as const,
+    []
   );
 
   const tileBase =
-    "shrink-0 rounded-lg overflow-hidden border transition-all duration-150";
+    'shrink-0 rounded-lg overflow-hidden border transition-all duration-150';
 
   function openPicker() {
     if (!canUpload || busy || isMaxed) return;
@@ -88,7 +88,7 @@ export function PhotosPanel({
       // Keep activeIndex within SLOT range always
       setActiveIndex((prev) => Math.min(Math.max(prev, 0), MAX_PHOTOS - 1));
     } catch (e: any) {
-      setError(e?.message || "Failed to load photos");
+      setError(e?.message || 'Failed to load photos');
     } finally {
       setLoading(false);
     }
@@ -103,14 +103,18 @@ export function PhotosPanel({
   useEffect(() => {
     const el = document.getElementById(`thumb-${activeIndex}`);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      el.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
     }
   }, [activeIndex]);
 
   function scrollThumbsBy(px: number) {
     const vp = thumbsViewportRef.current;
     if (!vp) return;
-    vp.scrollBy({ left: px, behavior: "smooth" });
+    vp.scrollBy({ left: px, behavior: 'smooth' });
   }
 
   function prevThumb() {
@@ -135,9 +139,10 @@ export function PhotosPanel({
     setError(null);
 
     try {
-      const contentType = file.type?.trim() || inferImageMimeFromName(file.name);
-      if (!contentType || !contentType.startsWith("image/")) {
-        throw new Error("Please upload an image file (jpg/png/webp/etc).");
+      const contentType =
+        file.type?.trim() || inferImageMimeFromName(file.name);
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error('Please upload an image file (jpg/png/webp/etc).');
       }
 
       const slot = await api.photos.requestUploadSlot(gameId, {
@@ -147,8 +152,8 @@ export function PhotosPanel({
       });
 
       const putRes = await fetch(slot.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": contentType },
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
         body: file,
       });
 
@@ -160,7 +165,7 @@ export function PhotosPanel({
       await api.photos.finalizeUpload(gameId, slot.mediaId);
       await refresh();
     } catch (e: any) {
-      setError(e?.message || "Upload failed");
+      setError(e?.message || 'Upload failed');
     } finally {
       setBusy(false);
     }
@@ -177,12 +182,14 @@ export function PhotosPanel({
               ? isMaxed
                 ? `Max ${MAX_PHOTOS} photos reached for this game.`
                 : `You can upload photos because you joined this game. (${remaining} slots left)`
-              : "Anyone can view photos. Join the game to upload."}
+              : 'Anyone can view photos. Join the game to upload.'}
           </div>
 
           {/* Counter */}
           <div className="mt-2 inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-800">
-            {hasPhotos ? `${Math.min(activeIndex + 1, photos.length)} / ${photos.length}` : `0 / ${MAX_PHOTOS}`}
+            {hasPhotos
+              ? `${Math.min(activeIndex + 1, photos.length)} / ${photos.length}`
+              : `0 / ${MAX_PHOTOS}`}
           </div>
         </div>
 
@@ -192,7 +199,7 @@ export function PhotosPanel({
             disabled={busy || loading}
             className="px-3 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50 disabled:opacity-50"
           >
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading ? 'Refreshing...' : 'Refresh'}
           </button>
 
           {canUpload && (
@@ -201,14 +208,20 @@ export function PhotosPanel({
               onClick={openPicker}
               disabled={busy || isMaxed}
               className={[
-                "px-4 py-2 rounded-lg text-sm font-medium",
+                'px-4 py-2 rounded-lg text-sm font-medium',
                 busy || isMaxed
-                  ? "bg-gray-200 text-gray-600 cursor-not-allowed"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700",
-              ].join(" ")}
-              title={isMaxed ? `Max ${MAX_PHOTOS} photos per game` : "Upload a photo"}
+                  ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700',
+              ].join(' ')}
+              title={
+                isMaxed ? `Max ${MAX_PHOTOS} photos per game` : 'Upload a photo'
+              }
             >
-              {isMaxed ? `Limit reached (${MAX_PHOTOS})` : busy ? "Uploading..." : "Upload photo"}
+              {isMaxed
+                ? `Limit reached (${MAX_PHOTOS})`
+                : busy
+                  ? 'Uploading...'
+                  : 'Upload photo'}
             </button>
           )}
 
@@ -222,7 +235,7 @@ export function PhotosPanel({
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) onPickFile(f);
-              e.currentTarget.value = "";
+              e.currentTarget.value = '';
             }}
           />
         </div>
@@ -278,12 +291,12 @@ export function PhotosPanel({
               aria-label="Previous thumbnail"
               style={{ height: THUMB_H }}
               className={[
-                "shrink-0 min-w-[44px] rounded-lg border",
-                "flex items-center justify-center",
-                "!bg-neutral-900 !text-white shadow-md",
-                "hover:!bg-black active:scale-[0.98] transition",
-                "disabled:opacity-40 disabled:cursor-not-allowed",
-              ].join(" ")}
+                'shrink-0 min-w-[44px] rounded-lg border',
+                'flex items-center justify-center',
+                '!bg-neutral-900 !text-white shadow-md',
+                'hover:!bg-black active:scale-[0.98] transition',
+                'disabled:opacity-40 disabled:cursor-not-allowed',
+              ].join(' ')}
               title="Previous"
             >
               <svg
@@ -302,7 +315,10 @@ export function PhotosPanel({
             </button>
 
             {/* Thumbnails strip (always MAX_PHOTOS tiles) */}
-            <div ref={thumbsViewportRef} className="flex-1 overflow-x-auto overflow-y-hidden">
+            <div
+              ref={thumbsViewportRef}
+              className="flex-1 overflow-x-auto overflow-y-hidden"
+            >
               <div className="flex items-center gap-2 pr-2 pb-2">
                 {thumbSlots.map((p, idx) => {
                   const selected = idx === activeIndex;
@@ -323,16 +339,18 @@ export function PhotosPanel({
                         disabled={!canAdd && !selected}
                         className={[
                           tileBase,
-                          "bg-gray-50 border-gray-200 flex items-center justify-center",
+                          'bg-gray-50 border-gray-200 flex items-center justify-center',
                           selected
-                            ? "border-emerald-500 ring-4 ring-emerald-500/30 shadow-xl opacity-100 scale-[1.08]"
+                            ? 'border-emerald-500 ring-4 ring-emerald-500/30 shadow-xl opacity-100 scale-[1.08]'
                             : canAdd
-                              ? "hover:border-gray-300 hover:bg-gray-100 opacity-90 hover:opacity-100"
-                              : "opacity-60 cursor-not-allowed",
-                        ].join(" ")}
-                        title={canAdd ? "Add photo" : `Empty slot ${idx + 1}`}
+                              ? 'hover:border-gray-300 hover:bg-gray-100 opacity-90 hover:opacity-100'
+                              : 'opacity-60 cursor-not-allowed',
+                        ].join(' ')}
+                        title={canAdd ? 'Add photo' : `Empty slot ${idx + 1}`}
                       >
-                        <span className="text-xl font-semibold text-gray-400 select-none">＋</span>
+                        <span className="text-xl font-semibold text-gray-400 select-none">
+                          ＋
+                        </span>
                       </button>
                     );
                   }
@@ -347,12 +365,12 @@ export function PhotosPanel({
                       onClick={() => setActiveIndex(idx)}
                       className={[
                         tileBase,
-                        "bg-gray-100 border-gray-200",
-                        "focus:outline-none focus:ring-2 focus:ring-emerald-500",
+                        'bg-gray-100 border-gray-200',
+                        'focus:outline-none focus:ring-2 focus:ring-emerald-500',
                         selected
-                          ? "border-emerald-500 ring-4 ring-emerald-500/30 shadow-xl opacity-100 scale-[1.08]"
-                          : "hover:border-gray-300 opacity-90 hover:opacity-100 scale-100",
-                      ].join(" ")}
+                          ? 'border-emerald-500 ring-4 ring-emerald-500/30 shadow-xl opacity-100 scale-[1.08]'
+                          : 'hover:border-gray-300 opacity-90 hover:opacity-100 scale-100',
+                      ].join(' ')}
                       title={`Photo ${idx + 1}`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -376,12 +394,12 @@ export function PhotosPanel({
               aria-label="Next thumbnail"
               style={{ height: THUMB_H }}
               className={[
-                "shrink-0 min-w-[44px] rounded-lg border",
-                "flex items-center justify-center",
-                "!bg-neutral-900 !text-white shadow-md",
-                "hover:!bg-black active:scale-[0.98] transition",
-                "disabled:opacity-40 disabled:cursor-not-allowed",
-              ].join(" ")}
+                'shrink-0 min-w-[44px] rounded-lg border',
+                'flex items-center justify-center',
+                '!bg-neutral-900 !text-white shadow-md',
+                'hover:!bg-black active:scale-[0.98] transition',
+                'disabled:opacity-40 disabled:cursor-not-allowed',
+              ].join(' ')}
               title="Next"
             >
               <svg

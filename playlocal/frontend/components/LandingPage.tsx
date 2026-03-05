@@ -2,7 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Users, Trophy, Calendar, BarChart3, Share2, Shield, Zap, Heart, MessageCircle, Star, ArrowRight } from 'lucide-react';
+import {
+  MapPin,
+  Users,
+  Trophy,
+  Calendar,
+  BarChart3,
+  Share2,
+  Shield,
+  Zap,
+  Heart,
+  MessageCircle,
+  Star,
+  ArrowRight,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { gamesApi } from '@/lib/api';
 
@@ -41,14 +54,17 @@ export function LandingPage() {
               <span className="text-xl text-white">PlayLocal</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/discover" className="text-white hover:text-emerald-200 transition-colors">
+              <Link
+                href="/discover"
+                className="text-white hover:text-emerald-200 transition-colors"
+              >
                 Discover Games
               </Link>
               <Link
-                href={isAuthenticated ? "/discover" : "/register"}
+                href={isAuthenticated ? '/discover' : '/register'}
                 className="px-6 py-2.5 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"
               >
-                {isAuthenticated ? "My Games" : "Get Started"}
+                {isAuthenticated ? 'My Games' : 'Get Started'}
               </Link>
             </div>
           </div>
@@ -72,7 +88,9 @@ export function LandingPage() {
                 <span className="text-emerald-200">Play Local.</span>
               </h1>
               <p className="text-xl text-white/90 mb-8 leading-relaxed">
-                Connect with local sports enthusiasts, organize pickup games, and build lasting friendships through fair team balancing and real-time coordination.
+                Connect with local sports enthusiasts, organize pickup games,
+                and build lasting friendships through fair team balancing and
+                real-time coordination.
               </p>
               <div className="flex gap-4">
                 <Link
@@ -118,7 +136,8 @@ export function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl text-gray-900 mb-4">Why PlayLocal?</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to organize, play, and track your pickup games in one seamless platform.
+              Everything you need to organize, play, and track your pickup games
+              in one seamless platform.
             </p>
           </div>
 
@@ -162,7 +181,9 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl text-gray-900 mb-4">How It Works</h2>
-            <p className="text-xl text-gray-600">Get playing in three simple steps</p>
+            <p className="text-xl text-gray-600">
+              Get playing in three simple steps
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
@@ -193,7 +214,9 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl text-white mb-4">What Players Say</h2>
-            <p className="text-xl text-emerald-100">Join thousands of active sports enthusiasts</p>
+            <p className="text-xl text-emerald-100">
+              Join thousands of active sports enthusiasts
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -227,14 +250,14 @@ export function LandingPage() {
           </h2>
           <p className="text-xl text-gray-300 mb-8">
             {isAuthenticated
-              ? "Find your next game and get playing!"
+              ? 'Find your next game and get playing!'
               : "Join your local sports community today. It's free and takes less than a minute."}
           </p>
           <Link
-            href={isAuthenticated ? "/discover" : "/register"}
+            href={isAuthenticated ? '/discover' : '/register'}
             className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-all hover:scale-105"
           >
-            <span>{isAuthenticated ? "Browse Games" : "Get Started Now"}</span>
+            <span>{isAuthenticated ? 'Browse Games' : 'Get Started Now'}</span>
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -256,25 +279,88 @@ export function LandingPage() {
             <div>
               <h3 className="text-white mb-4">Product</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/discover" className="hover:text-emerald-400 transition-colors">Discover Games</Link></li>
-                <li><Link href="/games/create" className="hover:text-emerald-400 transition-colors">Create Game</Link></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Features</a></li>
+                <li>
+                  <Link
+                    href="/discover"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Discover Games
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/games/create"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Create Game
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Features
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-white mb-4">Company</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Careers</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Contact
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Careers
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-white mb-4">Legal</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Code of Conduct</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="hover:text-emerald-400 transition-colors"
+                  >
+                    Code of Conduct
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -287,7 +373,15 @@ export function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="p-6 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all">
       <div className="mb-4">{icon}</div>
@@ -297,7 +391,17 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-function StepCard({ number, title, description, icon }: { number: string; title: string; description: string; icon: React.ReactNode }) {
+function StepCard({
+  number,
+  title,
+  description,
+  icon,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="text-center">
       <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full text-2xl mb-4">
@@ -310,7 +414,17 @@ function StepCard({ number, title, description, icon }: { number: string; title:
   );
 }
 
-function TestimonialCard({ quote, author, role, rating }: { quote: string; author: string; role: string; rating: number }) {
+function TestimonialCard({
+  quote,
+  author,
+  role,
+  rating,
+}: {
+  quote: string;
+  author: string;
+  role: string;
+  rating: number;
+}) {
   return (
     <div className="p-6 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
       <div className="flex gap-1 mb-4">
@@ -318,7 +432,7 @@ function TestimonialCard({ quote, author, role, rating }: { quote: string; autho
           <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
         ))}
       </div>
-      <p className="text-white mb-4">"{quote}"</p>
+      <p className="text-white mb-4">&ldquo;{quote}&ldquo;</p>
       <div>
         <div className="text-emerald-200">{author}</div>
         <div className="text-emerald-300 text-sm">{role}</div>
@@ -329,7 +443,18 @@ function TestimonialCard({ quote, author, role, rating }: { quote: string; autho
 
 function User(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -338,7 +463,18 @@ function User(props: React.SVGProps<SVGSVGElement>) {
 
 function Search(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.3-4.3" />
     </svg>
