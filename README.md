@@ -97,12 +97,17 @@ cp .env.prod.example .env.prod
 2. Update `.env.prod` with real secrets and environment values.
    `.env.prod` is ignored by Git, so secrets stay local by default.
 
-3. Start the production-oriented stack:
+3. If you are reusing old Docker volumes with different DB credentials, reset them first:
+```sh
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down -v
+```
+
+4. Start the production-oriented stack:
 ```sh
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
-4. Stop the production-oriented stack:
+5. Stop the production-oriented stack:
 ```sh
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
 ```
