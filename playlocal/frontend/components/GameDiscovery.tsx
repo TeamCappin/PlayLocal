@@ -866,25 +866,30 @@ export function GameDiscovery() {
                       intensity: 'any',
                     };
                     setFilters(empty);
-                    setAppliedFilters(empty);
-                    setTodayOnly(false);
-                    setShowFilterModal(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium"
                 >
                   <X className="w-4 h-4" />
-                  <span>Reset</span>
+                  <span>Clear</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setAppliedFilters(filters);
-                    setShowFilterModal(false);
-                  }}
-                  className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-                >
-                  <Search className="w-5 h-5" />
-                  <span>Search</span>
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFilterModal(false)}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAppliedFilters(filters);
+                      setShowFilterModal(false);
+                    }}
+                    className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                  >
+                    <Search className="w-5 h-5" />
+                    <span>Apply</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
