@@ -749,7 +749,7 @@ export function GameDiscovery() {
       {/* Filter Modal */}
       {showFilterModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
           onClick={() => setShowFilterModal(false)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
@@ -760,7 +760,7 @@ export function GameDiscovery() {
           aria-label="Filter modal backdrop"
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
+            className="bg-white rounded-xl shadow-2xl border border-gray-300 w-full max-w-2xl mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
             role="dialog"
