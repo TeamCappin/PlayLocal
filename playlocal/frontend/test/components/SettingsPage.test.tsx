@@ -107,7 +107,12 @@ describe('SettingsPage - Privacy Tab', () => {
     });
 
     const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBe(1);
+    expect(selects).toHaveLength(5);
+    expect(selects[0]).toHaveValue('Public');
+    expect(selects[1]).toHaveValue('Public');
+    expect(selects[2]).toHaveValue('Friends Only');
+    expect(selects[3]).toHaveValue('Participants');
+    expect(selects[4]).toHaveValue('After Accepted');
   });
 
   it('calls updateSettings when a privacy setting is changed', async () => {

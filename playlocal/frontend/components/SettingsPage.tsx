@@ -11,6 +11,7 @@ import {
   Loader2,
   CheckCircle2,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -237,6 +238,33 @@ function codeToLabel(map: Record<string, string>, code: string): string {
   return entry ? entry[0] : Object.keys(map)[0];
 }
 
+const SKILLS_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  'Friends Only': 'friends',
+  'Participants Only': 'participants',
+  Private: 'private',
+};
+
+const HISTORY_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  'Friends Only': 'friends',
+  Private: 'private',
+};
+
+const MEDIA_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  Friends: 'friends',
+  Participants: 'participants',
+  Private: 'private',
+};
+
+const LOCATION_RULE_MAP: Record<string, string> = {
+  Always: 'always_visible',
+  'After Accepted': 'confirmed_only',
+  'After Check-in': 'approximate',
+  Never: 'hidden',
+};
+
 function PrivacySettings({
   initialSettings,
   initialLoading,
@@ -254,6 +282,10 @@ function PrivacySettings({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
 
+  useEffect(() => {
+    setError(initialError);
+  }, [initialError]);
+
   const handleUpdate = useCallback(
     async (update: UpdatePrivacySettingsRequest) => {
       setIsSaving(true);
@@ -264,8 +296,12 @@ function PrivacySettings({
         onSettingsChange(updated);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
-      } catch (err: any) {
-        setError(err.message || 'Failed to save privacy settings');
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Failed to save privacy settings';
+        setError(message);
       } finally {
         setIsSaving(false);
       }
@@ -319,6 +355,48 @@ function PrivacySettings({
               })
             }
           />
+          <PrivacySetting
+            label="Skills Visibility"
+            description="Control who can see your skill ratings."
+            options={Object.keys(SKILLS_VISIBILITY_MAP)}
+            value={codeToLabel(
+              SKILLS_VISIBILITY_MAP,
+              settings?.skillsVisibility || 'public'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                skillsVisibility: SKILLS_VISIBILITY_MAP[label],
+              })
+            }
+          />
+          <PrivacySetting
+            label="Game History Visibility"
+            description="Control who can see your past games."
+            options={Object.keys(HISTORY_VISIBILITY_MAP)}
+            value={codeToLabel(
+              HISTORY_VISIBILITY_MAP,
+              settings?.historyVisibility || 'public'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                historyVisibility: HISTORY_VISIBILITY_MAP[label],
+              })
+            }
+          />
+          <PrivacySetting
+            label="Media Default Visibility"
+            description="Default visibility for uploaded photos and videos."
+            options={Object.keys(MEDIA_VISIBILITY_MAP)}
+            value={codeToLabel(
+              MEDIA_VISIBILITY_MAP,
+              settings?.mediaDefaultVisibility || 'participants'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                mediaDefaultVisibility: MEDIA_VISIBILITY_MAP[label],
+              })
+            }
+          />
         </div>
         <div className="mt-6 pt-6 border-t border-gray-200">
           <ToggleSetting
@@ -329,6 +407,35 @@ function PrivacySettings({
               handleUpdate({ allowProfileSearch: enabled })
             }
           />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Location Privacy</h2>
+        <div className="space-y-6">
+          <PrivacySetting
+            label="Location Visibility"
+            description="Control when others can see game locations."
+            options={Object.keys(LOCATION_RULE_MAP)}
+            value={codeToLabel(
+              LOCATION_RULE_MAP,
+              settings?.locationVisibilityRule || 'confirmed_only'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                locationVisibilityRule: LOCATION_RULE_MAP[label],
+              })
+            }
+          />
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800">
+                For safety reasons, exact locations are only shared with accepted
+                participants. You can customize this for each game.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
