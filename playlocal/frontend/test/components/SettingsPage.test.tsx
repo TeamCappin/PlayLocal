@@ -1,9 +1,36 @@
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { SettingsPage } from '@/components/SettingsPage';
+import {
+  SettingsPage,
+  SettingsHub,
+  SettingsLoading,
+  SettingsError,
+  AccountSettings,
+  PrivacySettings,
+  ProfileSettings,
+} from '@/components/SettingsPage';
 import { privacyApi, usersApi, authApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const mockPerformLogoutRedirect = jest.fn();
+
+jest.mock('next/link', () => ({
+  __esModule: true,
+  default({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: ReactNode;
+  }) {
+    return (
+      <a href={href} {...rest}>
+        {children}
+      </a>
+    );
+  },
+}));
 
 jest.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
@@ -20,7 +47,6 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-// Mock the APIs
 jest.mock('@/lib/api', () => ({
   privacyApi: {
     getSettings: jest.fn(),
@@ -53,7 +79,6 @@ jest.mock('@/lib/authRedirect', () => ({
   performLogoutRedirect: (...args: unknown[]) =>
     mockPerformLogoutRedirect(...args),
 }));
-
 
 const mockGetSettings = privacyApi.getSettings as jest.Mock;
 const mockUpdateSettings = privacyApi.updateSettings as jest.Mock;
@@ -311,5 +336,122 @@ describe('SettingsPage - Security Tab (MFA)', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
     });
+  });
+});
+
+describe('Settings hub UI', () => {
+  describe('SettingsHub', () => {
+    it('renders Settings heading and description', () => {
+      render(<SettingsHub />);
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+      expect(
+        screen.getByText(/Manage your account and privacy preferences/i)
+      ).toBeInTheDocument();
+    });
+
+    it('renders all five section links with correct labels', () => {
+      render(<SettingsHub />);
+      expect(screen.getByText('Account')).toBeInTheDocument();
+      expect(screen.getByText('Privacy / Visibility')).toBeInTheDocument();
+      expect(screen.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Deactivation')).toBeInTheDocument();
+    });
+
+    it('renders section descriptions', () => {
+      render(<SettingsHub />);
+      expect(screen.getByText(/Password & security/i)).toBeInTheDocument();
+      expect(screen.getByText(/Profile and location privacy/i)).toBeInTheDocument();
+      expect(screen.getByText(/Display name, bio, preferences/i)).toBeInTheDocument();
+      expect(screen.getByText(/Game, social & email preferences/i)).toBeInTheDocument();
+      expect(screen.getByText(/Deactivate or delete account/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('SettingsLoading', () => {
+    it('renders loading message', () => {
+      render(<SettingsLoading />);
+      expect(screen.getByText(/Loading settings…/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('SettingsError', () => {
+    it('renders error heading and message', () => {
+      render(<SettingsError message="Network error" onRetry={() => {}} />);
+      expect(screen.getByText(/Couldn't load settings/i)).toBeInTheDocument();
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+    });
+
+    it('renders Try again button and calls onRetry when clicked', () => {
+      const onRetry = jest.fn();
+      render(<SettingsError message="Something went wrong" onRetry={onRetry} />);
+      const button = screen.getByRole('button', { name: /Try again/i });
+      expect(button).toBeInTheDocument();
+      fireEvent.click(button);
+      expect(onRetry).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('AccountSettings', () => {
+    it('renders account information heading', () => {
+      render(<AccountSettings />);
+      expect(
+        screen.getByRole('heading', { name: 'Account Information' })
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('PrivacySettings', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockGetSettings.mockResolvedValue(defaultSettings);
+    });
+
+    it('renders profile visibility card heading', async () => {
+      render(<PrivacySettings />);
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', { name: 'Profile Visibility' })
+        ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('ProfileSettings', () => {
+    it('renders profile fields via AccountSettings', () => {
+      render(
+        <ProfileSettings
+          user={{ displayName: 'Test User', email: 'test@example.com' }}
+        />
+      );
+      expect(
+        screen.getByRole('heading', { name: 'Account Information' })
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+describe('SettingsHub navigation', () => {
+  it('SettingsHub links point to correct settings subpaths', () => {
+    render(<SettingsHub />);
+    const links = screen.getAllByRole('link');
+    const hrefs = links.map((el) => el.getAttribute('href'));
+    expect(hrefs).toContain('/settings/account');
+    expect(hrefs).toContain('/settings/privacy');
+    expect(hrefs).toContain('/settings/profile');
+    expect(hrefs).toContain('/settings/notifications');
+    expect(hrefs).toContain('/settings/deactivation');
+  });
+
+  it('each section link is clickable (has href)', () => {
+    render(<SettingsHub />);
+    const accountLink = screen
+      .getAllByRole('link')
+      .find((el) => el.getAttribute('href') === '/settings/account');
+    expect(accountLink).toBeInTheDocument();
+    const privacyLink = screen
+      .getAllByRole('link')
+      .find((el) => el.getAttribute('href') === '/settings/privacy');
+    expect(privacyLink).toBeInTheDocument();
   });
 });

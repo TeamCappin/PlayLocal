@@ -142,7 +142,7 @@ describe('AuthContext / AuthProvider', () => {
 
   it('on mount: token exists but getCurrentUser fails => clears token and remains unauthenticated', async () => {
     mockedGetAuthToken.mockReturnValueOnce('token-123');
-    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(new Error('401'));
+    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(new ApiError('Unauthorized', 401));
 
     renderWithProvider(<TestConsumer />);
 
@@ -430,7 +430,7 @@ describe('AuthContext / AuthProvider', () => {
 
     // refresh: token exists but request fails
     mockedGetAuthToken.mockReturnValueOnce('token-123');
-    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(new Error('401'));
+    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(new ApiError('Unauthorized', 401));
 
     await act(async () => {
       screen.getByRole('button', { name: 'doRefresh' }).click();

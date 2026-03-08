@@ -236,7 +236,20 @@ export function SettingsPage() {
   );
 }
 
-function AccountSettings({ user }: { user: any }) {
+export function AccountSettings({
+  user: userFromProps,
+}: {
+  user?: {
+    displayName?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    bio?: string;
+  } | null;
+} = {}) {
+  const { user: authUser } = useAuth();
+  const user = userFromProps ?? authUser;
+
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -339,6 +352,20 @@ function AccountSettings({ user }: { user: any }) {
       </div>
     </>
   );
+}
+
+export function ProfileSettings({
+  user,
+}: {
+  user: {
+    displayName?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    bio?: string;
+  } | null;
+}) {
+  return <AccountSettings user={user} />;
 }
 
 // Maps between display labels and backend codes
