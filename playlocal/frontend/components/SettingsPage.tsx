@@ -29,6 +29,51 @@ import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 import { performLogoutRedirect } from '@/lib/authRedirect';
 
+/** AC6: Error state while loading settings — clear message and retry */
+export function SettingsError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-gray-50 flex flex-col items-center justify-center px-4"
+      role="alert"
+    >
+      <p className="text-gray-800 text-center text-lg font-medium mb-2">
+        Couldn&apos;t load settings
+      </p>
+      <p className="text-gray-600 text-center mb-6 max-w-md">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/** AC5: Loading state while fetching settings — full-screen overlay so it’s clearly visible */
+export function SettingsLoading() {
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-gray-50 flex flex-col items-center justify-center"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div
+        className="animate-spin rounded-full h-12 w-12 border-2 border-emerald-600 border-t-transparent mb-4"
+        aria-hidden="true"
+      />
+      <p className="text-gray-600 text-lg font-medium">Loading settings…</p>
+    </div>
+  );
+}
+
 /** AC4: Hub listing links to each settings subpage (each subpage has back navigation). */
 export function SettingsHub() {
   const sections = [
