@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   User,
   Lock,
@@ -12,6 +13,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   AlertCircle,
+  UserX,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -25,6 +28,73 @@ import { toast, getActionableErrorMessage } from '@/lib/toast';
 import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 import { performLogoutRedirect } from '@/lib/authRedirect';
+
+/** AC4: Hub listing links to each settings subpage (each subpage has back navigation). */
+export function SettingsHub() {
+  const sections = [
+    {
+      href: '/settings/account',
+      icon: Lock,
+      label: 'Account',
+      description: 'Password & security',
+    },
+    {
+      href: '/settings/privacy',
+      icon: Eye,
+      label: 'Privacy / Visibility',
+      description: 'Profile and location privacy',
+    },
+    {
+      href: '/settings/profile',
+      icon: User,
+      label: 'Profile',
+      description: 'Display name, bio, preferences',
+    },
+    {
+      href: '/settings/notifications',
+      icon: Bell,
+      label: 'Notifications',
+      description: 'Game, social & email preferences',
+    },
+    {
+      href: '/settings/deactivation',
+      icon: UserX,
+      label: 'Deactivation',
+      description: 'Deactivate or delete account',
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl text-gray-900 mb-2">Settings</h1>
+          <p className="text-gray-600">
+            Manage your account and privacy preferences
+          </p>
+        </div>
+        <div className="space-y-3">
+          {sections.map(({ href, icon: Icon, label, description }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900">{label}</div>
+                <div className="text-sm text-gray-500">{description}</div>
+              </div>
+              <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180 flex-shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -265,26 +335,59 @@ const LOCATION_RULE_MAP: Record<string, string> = {
   Never: 'hidden',
 };
 
-function PrivacySettings({
+export function PrivacySettings({
   initialSettings,
   initialLoading,
   initialError,
   onSettingsChange,
-}: Readonly<{
-  initialSettings: PrivacySettingsResponse | null;
-  initialLoading: boolean;
-  initialError: string | null;
-  onSettingsChange: (settings: PrivacySettingsResponse | null) => void;
-}>) {
-  const settings = initialSettings;
-  const isLoading = initialLoading;
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
+}: {
+  initialSettings?: PrivacySettingsResponse | null;
+  initialLoading?: boolean;
+  initialError?: string | null;
+  onSettingsChange?: (settings: PrivacySettingsResponse | null) => void;
+} = {}) {
+  const controlled = onSettingsChange !== undefined;
+
+  const [localSettings, setLocalSettings] =
+    useState<PrivacySettingsResponse | null>(null);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    setError(initialError);
-  }, [initialError]);
+    if (controlled) return;
+    privacyApi
+      .getSettings()
+      .then((data) => {
+        setLocalSettings(data);
+        setLocalLoading(false);
+      })
+      .catch((err) => {
+        setLocalError(err.message || 'Failed to load privacy settings');
+        setLocalLoading(false);
+      });
+  }, [controlled]);
+
+  const settings = controlled ? (initialSettings ?? null) : localSettings;
+  const isLoading = controlled ? (initialLoading ?? true) : localLoading;
+  const serverError = controlled
+    ? (initialError ?? null)
+    : localError;
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(serverError);
+
+  useEffect(() => {
+    setError(serverError);
+  }, [serverError]);
+
+  const handleSettingsChange = useCallback(
+    (next: PrivacySettingsResponse | null) => {
+      if (controlled) onSettingsChange!(next);
+      else setLocalSettings(next);
+    },
+    [controlled, onSettingsChange]
+  );
 
   const handleUpdate = useCallback(
     async (update: UpdatePrivacySettingsRequest) => {
@@ -293,7 +396,7 @@ function PrivacySettings({
       setError(null);
       try {
         const updated = await privacyApi.updateSettings(update);
-        onSettingsChange(updated);
+        handleSettingsChange(updated);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
       } catch (err: unknown) {
@@ -306,7 +409,7 @@ function PrivacySettings({
         setIsSaving(false);
       }
     },
-    [onSettingsChange]
+    [handleSettingsChange]
   );
 
   if (isLoading) {
@@ -466,7 +569,7 @@ function PrivacySettings({
   );
 }
 
-function NotificationSettings() {
+export function NotificationSettings() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-xl text-gray-900 mb-6">Notification Preferences</h2>
@@ -560,18 +663,124 @@ function NotificationSettings() {
   );
 }
 
+export function DeactivationSettings() {
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountAction, setAccountAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectingAction, setRedirectingAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+
+  const handleAccountAction = async () => {
+    if (!accountAction) return;
+
+    const pendingAction = accountAction;
+    setShowAccountDialog(false);
+    setRedirectingAction(pendingAction);
+    setIsProcessing(true);
+    try {
+      if (pendingAction === 'deactivate') {
+        await usersApi.deactivateAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deactivated',
+          type: 'success',
+        });
+      } else {
+        await usersApi.deleteAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deleted',
+          type: 'success',
+        });
+      }
+    } catch (err: unknown) {
+      setRedirectingAction(null);
+      const errorMessage = getActionableErrorMessage(
+        err,
+        `${pendingAction} account`
+      );
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setAccountAction(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => {
+              setAccountAction('deactivate');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Lock className="w-5 h-5 text-gray-400" />
+            <div>
+              <div>Deactivate Account</div>
+              <div className="text-sm text-gray-600">
+                Temporarily disable your account
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountAction('delete');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+            <div>
+              <div>Delete Account</div>
+              <div className="text-sm text-red-600">
+                Permanently delete your account and all data
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {accountAction && (
+        <ConfirmAccountActionDialog
+          isOpen={showAccountDialog}
+          onClose={() => {
+            setShowAccountDialog(false);
+            setAccountAction(null);
+          }}
+          onConfirm={handleAccountAction}
+          action={accountAction}
+          isLoading={isProcessing}
+        />
+      )}
+
+      {redirectingAction && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingAction === 'deactivate'
+                ? 'Deactivating account...'
+                : 'Deleting account...'}
+            </span>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function SecuritySettings() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [mfaToggling, setMfaToggling] = useState(false);
   const [mfaMessage, setMfaMessage] = useState<string | null>(null);
-
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
-  const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [redirectingAction, setRedirectingAction] = useState<
-    'deactivate' | 'delete' | null
-  >(null);
 
   useEffect(() => {
     authApi.getMfaStatus()
@@ -600,41 +809,6 @@ function SecuritySettings() {
       setMfaToggling(false);
     }
   };
-
-  const handleAccountAction = async () => {
-    if (!accountAction) return;
-
-    const pendingAction = accountAction;
-    setShowAccountDialog(false);
-    setRedirectingAction(pendingAction);
-    setIsProcessing(true);
-    try {
-      if (pendingAction === 'deactivate') {
-        await usersApi.deactivateAccount();
-        performLogoutRedirect('/', {
-          message: 'Account deactivated',
-          type: 'success',
-        });
-      } else {
-        await usersApi.deleteAccount();
-        performLogoutRedirect('/', {
-          message: 'Account deleted',
-          type: 'success',
-        });
-      }
-    } catch (err: any) {
-      setRedirectingAction(null);
-      const errorMessage = getActionableErrorMessage(
-        err,
-        `${pendingAction} account`
-      );
-      toast.error(errorMessage);
-    } finally {
-      setIsProcessing(false);
-      setAccountAction(null);
-    }
-  };
-
 
   return (
     <>
@@ -698,68 +872,7 @@ function SecuritySettings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
-        <div className="space-y-3">
-          <button
-            onClick={() => {
-              setAccountAction('deactivate');
-              setShowAccountDialog(true);
-            }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <Lock className="w-5 h-5 text-gray-400" />
-            <div>
-              <div>Deactivate Account</div>
-              <div className="text-sm text-gray-600">
-                Temporarily disable your account
-              </div>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              setAccountAction('delete');
-              setShowAccountDialog(true);
-            }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-            <div>
-              <div>Delete Account</div>
-              <div className="text-sm text-red-600">
-                Permanently delete your account and all data
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Account Action Confirmation Dialog */}
-      {accountAction && (
-        <ConfirmAccountActionDialog
-          isOpen={showAccountDialog}
-          onClose={() => {
-            setShowAccountDialog(false);
-            setAccountAction(null);
-          }}
-          onConfirm={handleAccountAction}
-          action={accountAction}
-          isLoading={isProcessing}
-        />
-      )}
-
-      {redirectingAction && (
-        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-            <span className="text-gray-700">
-              {redirectingAction === 'deactivate'
-                ? 'Deactivating account...'
-                : 'Deleting account...'}
-            </span>
-          </div>
-        </div>
-      )}
+      <DeactivationSettings />
     </>
   );
 }

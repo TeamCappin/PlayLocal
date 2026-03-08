@@ -54,6 +54,7 @@ export function Navigation() {
 
   // Close menu when route changes (e.g. after navigating to Settings)
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- close dropdown on navigate; recommended UX */
     setProfileMenuOpen(false);
   }, [pathname]);
 
