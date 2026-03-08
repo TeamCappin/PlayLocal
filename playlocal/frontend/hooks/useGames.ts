@@ -222,8 +222,8 @@ export function useCreateGame() {
       }
       const game = await gamesApi.create(data);
       return game;
-    } catch (err) {
-      setError('Failed to create game');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create game');
       throw err;
     } finally {
       setIsCreating(false);

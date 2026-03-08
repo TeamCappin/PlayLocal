@@ -65,9 +65,15 @@ async function apiFetch<T>(
       // If response is not JSON, use status text
       errorData = { message: response.statusText || 'An error occurred' };
     }
+    // Build a descriptive error message: prefer `message`, then summarize `fieldErrors`, then fall back
+    let errorMessage = errorData.message;
+    if (!errorMessage && errorData.fieldErrors) {
+      const fieldMessages = Object.values(errorData.fieldErrors) as string[];
+      errorMessage = fieldMessages.join('. ');
+    }
     throw new ApiError(
       response.status,
-      errorData.message || 'An error occurred',
+      errorMessage || 'An error occurred',
       errorData
     );
   }
