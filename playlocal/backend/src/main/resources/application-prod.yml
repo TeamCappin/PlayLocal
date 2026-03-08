@@ -28,6 +28,10 @@ spring:
 server:
   port: ${PORT:8080}           # Render automatically sets $PORT
 
+# SECURITY: JWT_SECRET must be set to a strong, unique value of at least 32 characters
+# before deploying. Do not reuse any default or placeholder value.
+# Startup will be rejected by JwtSecretValidator if this value is blank or
+# matches a known default placeholder.
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}

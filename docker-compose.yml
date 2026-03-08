@@ -70,6 +70,7 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/playlocal
       DATABASE_USERNAME: playlocal
       DATABASE_PASSWORD: playlocal
+      # DEV ONLY — this value is a known default and will be rejected by JwtSecretValidator in production
       JWT_SECRET: development-secret-key-change-in-production-min-32-chars
       SPRING_PROFILES_ACTIVE: dev
       # Local docker volume may contain older Flyway checksums from previous runs
