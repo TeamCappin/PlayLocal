@@ -230,18 +230,16 @@ export function GameDiscovery() {
   const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  // Restore view mode: URL ?view=map takes precedence, then sessionStorage (after hydration)
+  // URL is the source of truth: Browse Games = /discover (grid), Discover Games = /discover?view=map (map).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const viewFromUrl = searchParams.get('view');
     if (viewFromUrl === 'map') {
       setViewMode('map');
       sessionStorage.setItem('playlocal-view-mode', 'map');
-      return;
-    }
-    const saved = sessionStorage.getItem('playlocal-view-mode');
-    if (saved === 'grid' || saved === 'map') {
-      setViewMode(saved);
+    } else {
+      setViewMode('grid');
+      sessionStorage.setItem('playlocal-view-mode', 'grid');
     }
   }, [searchParams]);
   const [showFilterModal, setShowFilterModal] = useState(false);
