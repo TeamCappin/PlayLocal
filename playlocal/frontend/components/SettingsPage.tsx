@@ -344,7 +344,7 @@ function PrivacySettings() {
         <div className="mt-6 pt-6 border-t border-gray-200">
           <ToggleSetting
             label="Allow Profile Search"
-            description="Allow others to find your profile in player search"
+            description="Allow non-friends to find your profile in player search. Friends can always find you."
             value={settings?.allowProfileSearch ?? true}
             onChange={(enabled) =>
               handleUpdate({ allowProfileSearch: enabled })

@@ -110,9 +110,13 @@ public class PrivacySettingsService {
     }
 
     /**
-     * Check if a user should appear in search results.
+     * Check if a user should appear in search results for the given viewer.
+     * Friends can always find each other regardless of this setting.
      */
-    public boolean isSearchable(UUID userId) {
+    public boolean isSearchable(UUID userId, UUID viewerId, boolean isFriend) {
+        if (isFriend) {
+            return true; // Friends can always find each other
+        }
         UserPrivacySettings settings = privacySettingsRepository.findById(userId).orElse(null);
         if (settings == null) {
             return true; // Default: searchable

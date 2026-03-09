@@ -38,8 +38,10 @@ public class UserController {
     public ResponseEntity<UserDto.SearchResponse> searchUsers(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        UserDto.SearchResponse response = userService.searchUsers(q, page, Math.min(size, 100));
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        UUID viewerId = UUID.fromString(authentication.getName());
+        UserDto.SearchResponse response = userService.searchUsers(q, page, Math.min(size, 100), viewerId);
         return ResponseEntity.ok(response);
     }
 

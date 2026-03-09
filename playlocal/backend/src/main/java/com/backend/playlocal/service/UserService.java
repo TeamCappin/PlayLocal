@@ -37,9 +37,9 @@ public class UserService {
 
     /**
      * Search users by display name, email, or username.
-     * US-7.12: Filters out users who have disabled profile search.
+     * US-7.12: Filters out users who have disabled profile search (friends are always visible).
      */
-    public UserDto.SearchResponse searchUsers(String query, int page, int size) {
+    public UserDto.SearchResponse searchUsers(String query, int page, int size, UUID viewerId) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("displayName").ascending());
 
         Page<User> usersPage;
@@ -61,9 +61,12 @@ public class UserService {
             }
         }
 
-        // US-7.12: Filter out users who have disabled profile search
+        // US-7.12: Filter out users who have disabled profile search (friends still visible)
         List<AuthDto.UserDto> users = usersPage.getContent().stream()
-                .filter(user -> privacySettingsService.isSearchable(user.getUserId()))
+                .filter(user -> {
+                    boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
+                    return privacySettingsService.isSearchable(user.getUserId(), viewerId, isFriend);
+                })
                 .map(user -> mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0)))
                 .collect(Collectors.toList());
 

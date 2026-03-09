@@ -117,9 +117,10 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 10L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
-        when(privacySettingsService.isSearchable(any(UUID.class))).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
-        UserDto.SearchResponse response = userService.searchUsers("query", 0, 10);
+        UUID viewerId = UUID.randomUUID();
+        UserDto.SearchResponse response = userService.searchUsers("query", 0, 10, viewerId);
 
         assertThat(response.getUsers()).hasSize(1);
         assertThat(response.getUsers().get(0).getEndorsementsCount()).isEqualTo(10);
@@ -136,9 +137,10 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 5L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
-        when(privacySettingsService.isSearchable(any(UUID.class))).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
-        UserDto.SearchResponse response = userService.searchUsers(null, 0, 10);
+        UUID viewerId = UUID.randomUUID();
+        UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, viewerId);
 
         assertThat(response.getUsers()).hasSize(1);
         assertThat(response.getUsers().get(0).getEndorsementsCount()).isEqualTo(5);

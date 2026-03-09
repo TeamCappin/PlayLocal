@@ -74,10 +74,11 @@ class UserControllerTest {
                                 .totalElements(0)
                                 .build();
 
-                when(userService.searchUsers(eq("query"), any(Integer.class), any(Integer.class))).thenReturn(response);
+                when(userService.searchUsers(eq("query"), any(Integer.class), any(Integer.class), any(UUID.class))).thenReturn(response);
 
                 mockMvc.perform(get("/api/v1/users/search")
-                                .param("q", "query"))
+                                .param("q", "query")
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw")))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.totalElements").value(0));
         }

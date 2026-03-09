@@ -56,10 +56,11 @@ class UserServiceAdditionalTest {
                 .build();
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
-        when(privacySettingsService.isSearchable(any(UUID.class))).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
         // When
-        UserDto.SearchResponse response = userService.searchUsers("", 0, 10);
+        UUID viewerId = UUID.randomUUID();
+        UserDto.SearchResponse response = userService.searchUsers("", 0, 10, viewerId);
 
         // Then
         assertThat(response.getUsers()).hasSize(1);
