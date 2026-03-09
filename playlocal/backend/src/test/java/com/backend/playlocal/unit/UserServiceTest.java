@@ -6,6 +6,8 @@ import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
+import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +43,12 @@ class UserServiceTest {
 
     @Mock
     private EndorsementRepository endorsementRepository;
+
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private FriendshipRepository friendshipRepository;
 
     @InjectMocks
     private UserService userService;
@@ -109,6 +117,7 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 10L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
+        when(privacySettingsService.isSearchable(any(UUID.class))).thenReturn(true);
 
         UserDto.SearchResponse response = userService.searchUsers("query", 0, 10);
 
@@ -127,6 +136,7 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 5L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
+        when(privacySettingsService.isSearchable(any(UUID.class))).thenReturn(true);
 
         UserDto.SearchResponse response = userService.searchUsers(null, 0, 10);
 

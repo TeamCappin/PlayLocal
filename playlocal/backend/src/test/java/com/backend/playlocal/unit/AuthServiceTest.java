@@ -7,6 +7,7 @@ import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.UserRoleRepository;
 import com.backend.playlocal.security.JwtService;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.PrivacySettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private PrivacySettingsService privacySettingsService;
 
     @InjectMocks
     private AuthService authService;

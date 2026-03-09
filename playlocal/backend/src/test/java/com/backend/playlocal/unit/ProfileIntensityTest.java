@@ -5,6 +5,8 @@ import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
+import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +41,12 @@ class ProfileIntensityTest {
 
     @Mock
     private EndorsementRepository endorsementRepository;
+
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private FriendshipRepository friendshipRepository;
 
     @InjectMocks
     private UserService userService;

@@ -4,7 +4,8 @@ import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
-import com.backend.playlocal.repository.EndorsementRepository; // Import EndorsementRepository for endorsements count [US-3.3]
+import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,14 +24,20 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EndorsementRepository endorsementRepository;
+    private final PrivacySettingsService privacySettingsService;
+    private final FriendshipRepository friendshipRepository;
 
-    public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository) {
+    public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository,
+            PrivacySettingsService privacySettingsService, FriendshipRepository friendshipRepository) {
         this.userRepository = userRepository;
         this.endorsementRepository = endorsementRepository;
+        this.privacySettingsService = privacySettingsService;
+        this.friendshipRepository = friendshipRepository;
     }
 
     /**
      * Search users by display name, email, or username.
+     * US-7.12: Filters out users who have disabled profile search.
      */
     public UserDto.SearchResponse searchUsers(String query, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("displayName").ascending());
@@ -54,7 +61,9 @@ public class UserService {
             }
         }
 
+        // US-7.12: Filter out users who have disabled profile search
         List<AuthDto.UserDto> users = usersPage.getContent().stream()
+                .filter(user -> privacySettingsService.isSearchable(user.getUserId()))
                 .map(user -> mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0)))
                 .collect(Collectors.toList());
 
@@ -74,10 +83,8 @@ public class UserService {
         User user = userRepository.findActiveById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Update fields if provided
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
-            // Regenerate slug when display name changes
             String newSlug = User.generateSlug(request.getDisplayName());
             user.setSlug(ensureUniqueSlug(newSlug, user.getUserId()));
         }
@@ -102,7 +109,7 @@ public class UserService {
     }
 
     /**
-     * Get user profile by ID.
+     * Get user profile by ID (no privacy enforcement — for internal/own profile use).
      */
     public AuthDto.UserDto getUserProfile(String userId) {
         User user = userRepository.findActiveById(UUID.fromString(userId))
@@ -111,7 +118,36 @@ public class UserService {
     }
 
     /**
-     * Get user profile by slug (URL-friendly display name).
+     * Get user profile by ID with privacy enforcement.
+     * US-7.12: Restricts profile fields based on privacy toggles.
+     */
+    public AuthDto.UserDto getUserProfile(String userId, UUID viewerId) {
+        UUID targetId = UUID.fromString(userId);
+        User user = userRepository.findActiveById(targetId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Own profile: return full data
+        if (targetId.equals(viewerId)) {
+            return mapToUserDto(user);
+        }
+
+        boolean isFriend = friendshipRepository.areFriends(viewerId, targetId);
+
+        if (!privacySettingsService.canViewProfile(targetId, viewerId, isFriend)) {
+            // Return minimal info for private profiles
+            return AuthDto.UserDto.builder()
+                    .userId(user.getUserId().toString())
+                    .displayName(user.getDisplayName())
+                    .slug(user.getSlug())
+                    .avatarUrl(user.getAvatarUrl())
+                    .build();
+        }
+
+        return mapToUserDto(user);
+    }
+
+    /**
+     * Get user profile by slug (no privacy enforcement).
      */
     public AuthDto.UserDto getProfileBySlug(String slug) {
         User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
@@ -120,8 +156,34 @@ public class UserService {
     }
 
     /**
-     * Ensure slug is unique by appending counter if needed.
+     * Get user profile by slug with privacy enforcement.
+     * US-7.12: Restricts profile fields based on privacy toggles.
      */
+    public AuthDto.UserDto getProfileBySlug(String slug, UUID viewerId) {
+        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UUID targetId = user.getUserId();
+
+        // Own profile: return full data
+        if (targetId.equals(viewerId)) {
+            return mapToUserDto(user);
+        }
+
+        boolean isFriend = friendshipRepository.areFriends(viewerId, targetId);
+
+        if (!privacySettingsService.canViewProfile(targetId, viewerId, isFriend)) {
+            return AuthDto.UserDto.builder()
+                    .userId(user.getUserId().toString())
+                    .displayName(user.getDisplayName())
+                    .slug(user.getSlug())
+                    .avatarUrl(user.getAvatarUrl())
+                    .build();
+        }
+
+        return mapToUserDto(user);
+    }
+
     private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {
         String slug = baseSlug;
         int counter = 1;
@@ -137,8 +199,8 @@ public class UserService {
     }
 
     private AuthDto.UserDto mapToUserDto(User user, Integer preCalculatedCount) {
-        int count = (preCalculatedCount != null) 
-                ? preCalculatedCount 
+        int count = (preCalculatedCount != null)
+                ? preCalculatedCount
                 : (int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId());
 
         return AuthDto.UserDto.builder()

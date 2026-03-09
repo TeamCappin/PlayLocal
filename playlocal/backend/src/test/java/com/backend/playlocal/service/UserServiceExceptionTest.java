@@ -2,7 +2,10 @@ package com.backend.playlocal.service;
 
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.UserDto;
+import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.UserRepository;
+import com.backend.playlocal.service.PrivacySettingsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +24,15 @@ class UserServiceExceptionTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private EndorsementRepository endorsementRepository;
+
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private FriendshipRepository friendshipRepository;
 
     @InjectMocks
     private UserService userService;

@@ -4,6 +4,7 @@ import com.backend.playlocal.controller.UserController;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
+import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class UserControllerTest {
         @Mock
         private ConnectionSignalsService connectionSignalsService;
 
+        @Mock
+        private PrivacySettingsService privacySettingsService;
+
         @InjectMocks
         private UserController userController;
 
@@ -59,7 +63,7 @@ class UserControllerTest {
 
                 // Mock security context for profile update
                 SecurityContextHolder.getContext().setAuthentication(
-                                new UsernamePasswordAuthenticationToken("test-user-id", "password"));
+                                new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "password"));
         }
 
         @Test
@@ -101,7 +105,7 @@ class UserControllerTest {
                 when(userService.updateProfile(any(), any())).thenReturn(response);
 
                 mockMvc.perform(put("/api/v1/users/profile")
-                                .principal(new UsernamePasswordAuthenticationToken("test-user-id", "pw"))
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw"))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isOk())
@@ -115,9 +119,10 @@ class UserControllerTest {
                                 .email("test@example.com")
                                 .build();
 
-                when(userService.getUserProfile("test-id")).thenReturn(response);
+                when(userService.getUserProfile(eq("test-id"), any(UUID.class))).thenReturn(response);
 
-                mockMvc.perform(get("/api/v1/users/test-id/profile"))
+                mockMvc.perform(get("/api/v1/users/test-id/profile")
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw")))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.email").value("test@example.com"));
         }
@@ -130,9 +135,10 @@ class UserControllerTest {
                                 .slug("slug-user")
                                 .build();
 
-                when(userService.getProfileBySlug("slug-user")).thenReturn(response);
+                when(userService.getProfileBySlug(eq("slug-user"), any(UUID.class))).thenReturn(response);
 
-                mockMvc.perform(get("/api/v1/users/slug/slug-user/profile"))
+                mockMvc.perform(get("/api/v1/users/slug/slug-user/profile")
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw")))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.displayName").value("Slug User"))
                                 .andExpect(jsonPath("$.slug").value("slug-user"));

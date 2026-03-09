@@ -233,6 +233,39 @@ export interface ConnectionSignalsBatchResponse {
 }
 
 // ============================================
+// PRIVACY SETTINGS API (US-7.12)
+// ============================================
+
+export interface PrivacySettingsResponse {
+  profileVisibility: string;
+  skillsVisibility: string;
+  historyVisibility: string;
+  mediaDefaultVisibility: string;
+  locationVisibilityRule: string;
+  allowProfileSearch: boolean;
+}
+
+export interface UpdatePrivacySettingsRequest {
+  profileVisibility?: string;
+  skillsVisibility?: string;
+  historyVisibility?: string;
+  mediaDefaultVisibility?: string;
+  locationVisibilityRule?: string;
+  allowProfileSearch?: boolean;
+}
+
+export const privacyApi = {
+  getSettings: () =>
+    apiFetch<PrivacySettingsResponse>('/users/privacy-settings'),
+
+  updateSettings: (data: UpdatePrivacySettingsRequest) =>
+    apiFetch<PrivacySettingsResponse>('/users/privacy-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
 // FRIENDS API
 // ============================================
 
@@ -866,4 +899,5 @@ export default {
   health: healthApi,
   scoreHistory: scoreHistoryApi,
   organizerQuality: organizerQualityApi,
+  privacy: privacyApi,
 };
