@@ -520,6 +520,17 @@ export function GameDiscovery() {
 
   const [todayOnly, setTodayOnly] = useState(false);
 
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedFilters.sportName.trim()) count++;
+    if (appliedFilters.distance !== 'any distance') count++;
+    if (appliedFilters.skillLevel !== 'any') count++;
+    if (appliedFilters.locationType !== 'any') count++;
+    if (appliedFilters.intensity !== 'any') count++;
+    return count;
+  }, [appliedFilters]);
+
   // Save view mode preference to session storage when it changes
   const handleViewModeChange = (mode: 'grid' | 'map') => {
     setViewMode(mode);
@@ -647,10 +658,19 @@ export function GameDiscovery() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilterModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  activeFilterCount > 0
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
                 <Filter className="w-5 h-5" />
                 <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-white text-emerald-600 rounded-full text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
@@ -729,7 +749,7 @@ export function GameDiscovery() {
       {/* Filter Modal */}
       {showFilterModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
           onClick={() => setShowFilterModal(false)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
@@ -740,7 +760,7 @@ export function GameDiscovery() {
           aria-label="Filter modal backdrop"
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6"
+            className="bg-white rounded-xl shadow-2xl border border-gray-300 w-full max-w-2xl mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
             role="dialog"
@@ -866,25 +886,30 @@ export function GameDiscovery() {
                       intensity: 'any',
                     };
                     setFilters(empty);
-                    setAppliedFilters(empty);
-                    setTodayOnly(false);
-                    setShowFilterModal(false);
                   }}
                   className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium"
                 >
                   <X className="w-4 h-4" />
-                  <span>Reset</span>
+                  <span>Clear</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setAppliedFilters(filters);
-                    setShowFilterModal(false);
-                  }}
-                  className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-                >
-                  <Search className="w-5 h-5" />
-                  <span>Search</span>
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFilterModal(false)}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAppliedFilters(filters);
+                      setShowFilterModal(false);
+                    }}
+                    className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                  >
+                    <Search className="w-5 h-5" />
+                    <span>Apply</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
