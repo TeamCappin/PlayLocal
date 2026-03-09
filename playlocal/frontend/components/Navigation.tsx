@@ -65,10 +65,11 @@ export function Navigation() {
           <div className="flex items-center gap-6">
             <Link
               href="/discover?view=map"
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/discover'
-                ? 'text-emerald-600 bg-emerald-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/discover'
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
               <Search className="w-5 h-5" />
               <span>Discover Games</span>

@@ -1,7 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  Users,
+  TrendingUp,
+  Filter,
+  Calendar,
+  MapIcon,
+  Cloud,
+  Sun,
+  Loader2,
+  X,
+  Search,
+} from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
 import MapView from './MapView';
