@@ -187,13 +187,17 @@ export function CreateGame() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
-      setError('Date cannot be in the past');
+      setError('Date cannot be in the past.');
       return false;
     }
     const start = new Date(`${formData.date}T${formData.startTime}:00`);
+    if (start <= new Date()) {
+      setError('Start time cannot be in the past. Please choose a future time.');
+      return false;
+    }
     const end = new Date(`${formData.date}T${formData.endTime}:00`);
     if (end <= start) {
-      setError('End time must be after start time');
+      setError('End time must be after start time.');
       return false;
     }
     return true;
@@ -292,16 +296,6 @@ export function CreateGame() {
     if (!isAuthenticated) {
       navigate.push('/login');
       return;
-    }
-
-    // Client-side validation: End Time > Start Time
-    if (formData.date && formData.startTime && formData.endTime) {
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError('End time must be after start time');
-        return;
-      }
     }
 
     // Validate age requirements if both are provided
