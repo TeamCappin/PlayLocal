@@ -13,6 +13,7 @@ rand.md
 # Environment variables
 # Never commit secrets or environment-specific configurations.
 .env
+.env.prod
 *.env
 *.env.local
 !/.env.example
