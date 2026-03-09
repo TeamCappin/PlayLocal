@@ -20,7 +20,7 @@ export function LandingPage() {
               <span className="text-xl text-white">PlayLocal</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/discover" className="text-white hover:text-emerald-200 transition-colors">
+              <Link href="/discover?view=map" className="text-white hover:text-emerald-200 transition-colors">
                 Discover Games
               </Link>
               <Link
@@ -233,7 +233,7 @@ export function LandingPage() {
             <div>
               <h3 className="text-white mb-4">Product</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/discover" className="hover:text-emerald-400 transition-colors">Discover Games</Link></li>
+                <li><Link href="/discover?view=map" className="hover:text-emerald-400 transition-colors">Discover Games</Link></li>
                 <li><Link href="/games/create" className="hover:text-emerald-400 transition-colors">Create Game</Link></li>
                 <li><a href="#" className="hover:text-emerald-400 transition-colors">Features</a></li>
               </ul>

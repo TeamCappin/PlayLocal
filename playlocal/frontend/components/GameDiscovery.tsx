@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
@@ -226,18 +227,23 @@ interface FilterState {
 }
 
 export function GameDiscovery() {
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  // Restore view mode from sessionStorage after hydration (lazy initializer runs
-  // before hydration in Next.js SSR, so sessionStorage isn't reliable there)
+  // Restore view mode: URL ?view=map takes precedence, then sessionStorage (after hydration)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('playlocal-view-mode');
-      if (saved === 'grid' || saved === 'map') {
-        setViewMode(saved);
-      }
+    if (typeof window === 'undefined') return;
+    const viewFromUrl = searchParams.get('view');
+    if (viewFromUrl === 'map') {
+      setViewMode('map');
+      sessionStorage.setItem('playlocal-view-mode', 'map');
+      return;
     }
-  }, []);
+    const saved = sessionStorage.getItem('playlocal-view-mode');
+    if (saved === 'grid' || saved === 'map') {
+      setViewMode(saved);
+    }
+  }, [searchParams]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
