@@ -278,16 +278,6 @@ export function CreateGame() {
       return;
     }
 
-    // Client-side validation: End Time > Start Time
-    if (formData.date && formData.startTime && formData.endTime) {
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError('End time must be after start time.');
-        return;
-      }
-    }
-
     // Validate age requirements if both are provided
     if (formData.minAge && formData.maxAge) {
       const min = Number.parseInt(formData.minAge, 10);
