@@ -487,10 +487,12 @@ describe('useCreateGame', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('sets error when create fails', async () => {
+  it('sets error from error message when create fails', async () => {
     // Arrange
     const gameData = { title: 'New Game', sportName: 'Basketball' } as any;
-    mockCreate.mockRejectedValue(new Error('Validation error'));
+    mockCreate.mockRejectedValue(
+      new Error('Start time must be in the future')
+    );
 
     const { result } = renderHook(() => require(hooksPath).useCreateGame());
 
@@ -499,7 +501,26 @@ describe('useCreateGame', () => {
       await expect(result.current.createGame(gameData)).rejects.toBeDefined();
     });
 
-    // Assert
+    // Assert — now uses the actual error message instead of a hardcoded string
+    expect(result.current.error).toBe('Start time must be in the future');
+    await waitFor(() => expect(result.current.isCreating).toBe(false));
+  });
+
+  it('falls back to default error when error has no message', async () => {
+    // Arrange
+    const gameData = { title: 'New Game', sportName: 'Basketball' } as any;
+    const err = new Error();
+    err.message = '';
+    mockCreate.mockRejectedValue(err);
+
+    const { result } = renderHook(() => require(hooksPath).useCreateGame());
+
+    // Act
+    await act(async () => {
+      await expect(result.current.createGame(gameData)).rejects.toBeDefined();
+    });
+
+    // Assert — falls back to default
     expect(result.current.error).toBe('Failed to create game');
     await waitFor(() => expect(result.current.isCreating).toBe(false));
   });

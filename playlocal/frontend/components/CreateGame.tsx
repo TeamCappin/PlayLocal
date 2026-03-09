@@ -186,13 +186,17 @@ export function CreateGame() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
-      setError('Date cannot be in the past');
+      setError('Date cannot be in the past.');
       return false;
     }
     const start = new Date(`${formData.date}T${formData.startTime}:00`);
+    if (start <= new Date()) {
+      setError('Start time cannot be in the past. Please choose a future time.');
+      return false;
+    }
     const end = new Date(`${formData.date}T${formData.endTime}:00`);
     if (end <= start) {
-      setError('End time must be after start time');
+      setError('End time must be after start time.');
       return false;
     }
     return true;
@@ -272,16 +276,6 @@ export function CreateGame() {
     if (!isAuthenticated) {
       navigate.push('/login');
       return;
-    }
-
-    // Client-side validation: End Time > Start Time
-    if (formData.date && formData.startTime && formData.endTime) {
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError('End time must be after start time');
-        return;
-      }
     }
 
     // Validate age requirements if both are provided
@@ -398,13 +392,6 @@ export function CreateGame() {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* Error Display */}
-          {(error || createError) && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error || createError}
-            </div>
-          )}
-
           {/* Auth Warning */}
           {!isAuthenticated && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
