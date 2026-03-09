@@ -104,7 +104,7 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
+      <div className="w-full" style={{ maxWidth: '32rem' }}>
         {/* Progress indicator */}
         <div className="flex items-center justify-center mb-8 gap-4">
           <div
