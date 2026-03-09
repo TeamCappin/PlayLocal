@@ -70,9 +70,9 @@ describe('SettingsPage - Privacy Tab', () => {
       expect(screen.getByText('Allow Profile Search')).toBeInTheDocument();
     });
 
-    // Should have 5 select elements (profile, skills, history, media, location)
+    // Should have 4 select elements (profile, skills, history, media)
     const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBe(5);
+    expect(selects.length).toBe(4);
   });
 
   it('calls updateSettings when a privacy setting is changed', async () => {

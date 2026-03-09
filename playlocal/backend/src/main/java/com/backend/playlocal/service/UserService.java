@@ -143,7 +143,7 @@ public class UserService {
                     .build();
         }
 
-        return mapToUserDto(user);
+        return applyFieldPrivacy(mapToUserDto(user), targetId, viewerId, isFriend);
     }
 
     /**
@@ -181,7 +181,22 @@ public class UserService {
                     .build();
         }
 
-        return mapToUserDto(user);
+        return applyFieldPrivacy(mapToUserDto(user), targetId, viewerId, isFriend);
+    }
+
+    /**
+     * US-7.12: Apply field-level privacy enforcement.
+     * Nulls out fields the viewer is not allowed to see.
+     */
+    private AuthDto.UserDto applyFieldPrivacy(AuthDto.UserDto dto, UUID targetId, UUID viewerId, boolean isFriend) {
+        if (!privacySettingsService.canViewSkills(targetId, viewerId, isFriend)) {
+            dto.setReliabilityScore(null);
+        }
+        if (!privacySettingsService.canViewHistory(targetId, viewerId, isFriend)) {
+            dto.setGamesCount(null);
+            dto.setEndorsementsCount(null);
+        }
+        return dto;
     }
 
     private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {

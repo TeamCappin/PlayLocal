@@ -121,7 +121,7 @@ public class PrivacySettingsService {
     }
 
     /**
-     * Check if a viewer can see the target user's game history.
+     * Check if a viewer can see the target user's game history (gamesCount, endorsements).
      */
     public boolean canViewHistory(UUID targetUserId, UUID viewerUserId, boolean isFriend) {
         if (targetUserId.equals(viewerUserId)) {
@@ -129,9 +129,23 @@ public class PrivacySettingsService {
         }
         UserPrivacySettings settings = privacySettingsRepository.findById(targetUserId).orElse(null);
         if (settings == null) {
-            return true; // Default: friends can see history
+            return true;
         }
         return isVisibleTo(settings.getHistoryVisibility(), isFriend);
+    }
+
+    /**
+     * Check if a viewer can see the target user's skill ratings (reliabilityScore).
+     */
+    public boolean canViewSkills(UUID targetUserId, UUID viewerUserId, boolean isFriend) {
+        if (targetUserId.equals(viewerUserId)) {
+            return true;
+        }
+        UserPrivacySettings settings = privacySettingsRepository.findById(targetUserId).orElse(null);
+        if (settings == null) {
+            return true;
+        }
+        return isVisibleTo(settings.getSkillsVisibility(), isFriend);
     }
 
     private boolean isVisibleTo(ContentVisibility visibility, boolean isFriend) {

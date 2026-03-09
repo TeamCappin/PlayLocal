@@ -244,6 +244,73 @@ class PrivacySettingsServiceTest {
     }
 
     @Test
+    @DisplayName("US-7.12: canViewSkills returns false for friends-only skills when not friend")
+    void canViewSkills_FriendsOnly_NotFriend_ReturnsFalse() {
+        UUID viewerId = UUID.randomUUID();
+        UserPrivacySettings settings = UserPrivacySettings.builder()
+                .userId(userId)
+                .skillsVisibility(friendsVisibility)
+                .build();
+
+        when(privacySettingsRepository.findById(userId)).thenReturn(Optional.of(settings));
+
+        boolean result = privacySettingsService.canViewSkills(userId, viewerId, false);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("US-7.12: canViewSkills returns true for friends-only skills when friend")
+    void canViewSkills_FriendsOnly_IsFriend_ReturnsTrue() {
+        UUID viewerId = UUID.randomUUID();
+        UserPrivacySettings settings = UserPrivacySettings.builder()
+                .userId(userId)
+                .skillsVisibility(friendsVisibility)
+                .build();
+
+        when(privacySettingsRepository.findById(userId)).thenReturn(Optional.of(settings));
+
+        boolean result = privacySettingsService.canViewSkills(userId, viewerId, true);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("US-7.12: canViewSkills returns true for own profile")
+    void canViewSkills_OwnProfile_ReturnsTrue() {
+        boolean result = privacySettingsService.canViewSkills(userId, userId, false);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("US-7.12: canViewHistory returns false for private history")
+    void canViewHistory_Private_ReturnsFalse() {
+        UUID viewerId = UUID.randomUUID();
+        UserPrivacySettings settings = UserPrivacySettings.builder()
+                .userId(userId)
+                .historyVisibility(privateVisibility)
+                .build();
+
+        when(privacySettingsRepository.findById(userId)).thenReturn(Optional.of(settings));
+
+        boolean result = privacySettingsService.canViewHistory(userId, viewerId, true);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("US-7.12: canViewHistory returns true for friends-only history when friend")
+    void canViewHistory_FriendsOnly_IsFriend_ReturnsTrue() {
+        UUID viewerId = UUID.randomUUID();
+        UserPrivacySettings settings = UserPrivacySettings.builder()
+                .userId(userId)
+                .historyVisibility(friendsVisibility)
+                .build();
+
+        when(privacySettingsRepository.findById(userId)).thenReturn(Optional.of(settings));
+
+        boolean result = privacySettingsService.canViewHistory(userId, viewerId, true);
+        assertThat(result).isTrue();
+    }
+
+    @Test
     @DisplayName("US-7.12: isSearchable returns false when allowProfileSearch is false")
     void isSearchable_DisabledSearch_ReturnsFalse() {
         UserPrivacySettings settings = UserPrivacySettings.builder()

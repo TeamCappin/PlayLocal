@@ -8,7 +8,6 @@ import {
   MapPin,
   Trash2,
   Download,
-  AlertCircle,
   Loader2,
   CheckCircle2,
 } from 'lucide-react';
@@ -207,13 +206,6 @@ const MEDIA_VISIBILITY_MAP: Record<string, string> = {
   Private: 'private',
 };
 
-const LOCATION_RULE_MAP: Record<string, string> = {
-  Always: 'always_visible',
-  'After Accepted': 'confirmed_only',
-  'After Check-in': 'approximate',
-  Never: 'hidden',
-};
-
 function codeToLabel(map: Record<string, string>, code: string): string {
   const entry = Object.entries(map).find(([, v]) => v === code);
   return entry ? entry[0] : Object.keys(map)[0];
@@ -358,35 +350,6 @@ function PrivacySettings() {
               handleUpdate({ allowProfileSearch: enabled })
             }
           />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Location Privacy</h2>
-        <div className="space-y-6">
-          <PrivacySetting
-            label="Location Visibility"
-            description="Control when others can see game locations"
-            options={Object.keys(LOCATION_RULE_MAP)}
-            value={codeToLabel(
-              LOCATION_RULE_MAP,
-              settings?.locationVisibilityRule || 'confirmed_only'
-            )}
-            onChange={(label) =>
-              handleUpdate({
-                locationVisibilityRule: LOCATION_RULE_MAP[label],
-              })
-            }
-          />
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-amber-800">
-                For safety reasons, exact locations are only shared with
-                accepted participants. You can customize this for each game.
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
