@@ -29,7 +29,9 @@ interface SkillTrendChartProps {
  * - Error or empty: shows an inline empty-state
  */
 export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps) {
-  if (isLoading) {
+  // Show skeleton only on the initial fetch (no previous data to display).
+  // On re-fetches, keep the stale chart visible at reduced opacity.
+  if (isLoading && !data) {
     return (
       <div
         data-testid="skill-trend-skeleton"
@@ -40,6 +42,8 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
       </div>
     );
   }
+
+  const isRefreshing = isLoading && data !== null;
 
   const isEmpty = !data || data.empty || data.dataPoints.length === 0;
 
@@ -65,7 +69,7 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
   return (
     <div
       data-testid="skill-trend-chart"
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4"
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between">

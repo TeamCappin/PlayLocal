@@ -38,10 +38,18 @@ const dataResponse = (overrides: Partial<StatsResponse> = {}): StatsResponse => 
 
 describe('WinRateCard', () => {
   describe('Loading state', () => {
-    it('renders skeleton when isLoading is true', () => {
+    it('renders skeleton when isLoading is true and there is no previous data (initial load)', () => {
       render(<WinRateCard data={null} isLoading={true} error={null} />);
       expect(screen.getByTestId('win-rate-skeleton')).toBeInTheDocument();
       expect(screen.queryByTestId('win-rate-card')).not.toBeInTheDocument();
+    });
+
+    it('keeps previous data visible at reduced opacity when re-fetching (no layout shift)', () => {
+      render(<WinRateCard data={dataResponse()} isLoading={true} error={null} />);
+      const card = screen.getByTestId('win-rate-card');
+      expect(card).toBeInTheDocument();
+      expect(card).toHaveClass('opacity-60');
+      expect(screen.queryByTestId('win-rate-skeleton')).not.toBeInTheDocument();
     });
   });
 

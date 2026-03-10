@@ -19,7 +19,9 @@ interface AttendanceRateCardProps {
  *   handled by the parent page / Task 5 component)
  */
 export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCardProps) {
-  if (isLoading) {
+  // Show skeleton only on the initial fetch (no previous data to display).
+  // On re-fetches, keep the stale card visible at reduced opacity.
+  if (isLoading && !data) {
     return (
       <div
         data-testid="attendance-rate-skeleton"
@@ -31,6 +33,8 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
       </div>
     );
   }
+
+  const isRefreshing = isLoading && data !== null;
 
   const isEmpty = !data || data.empty || data.value === null;
 
@@ -55,7 +59,7 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
   return (
     <div
       data-testid="attendance-rate-card"
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1"
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       <div className="flex items-center gap-1">
         <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">

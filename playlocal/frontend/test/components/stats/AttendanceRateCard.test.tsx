@@ -37,10 +37,18 @@ const dataResponse = (overrides: Partial<StatsResponse> = {}): StatsResponse => 
 
 describe('AttendanceRateCard', () => {
   describe('Loading state', () => {
-    it('renders skeleton when isLoading is true', () => {
+    it('renders skeleton when isLoading is true and there is no previous data (initial load)', () => {
       render(<AttendanceRateCard data={null} isLoading={true} error={null} />);
       expect(screen.getByTestId('attendance-rate-skeleton')).toBeInTheDocument();
       expect(screen.queryByTestId('attendance-rate-card')).not.toBeInTheDocument();
+    });
+
+    it('keeps previous data visible at reduced opacity when re-fetching (no layout shift)', () => {
+      render(<AttendanceRateCard data={dataResponse()} isLoading={true} error={null} />);
+      const card = screen.getByTestId('attendance-rate-card');
+      expect(card).toBeInTheDocument();
+      expect(card).toHaveClass('opacity-60');
+      expect(screen.queryByTestId('attendance-rate-skeleton')).not.toBeInTheDocument();
     });
   });
 

@@ -3,14 +3,8 @@
 import { WinRateCard } from '@/components/stats/WinRateCard';
 import { AttendanceRateCard } from '@/components/stats/AttendanceRateCard';
 import { SkillTrendChart } from '@/components/stats/SkillTrendChart';
+import { TimeframeToggle } from '@/components/stats/TimeframeToggle';
 import { useStats } from '@/hooks/useStats';
-import { StatsTimeframe } from '@/lib/api';
-
-const TIMEFRAMES: { label: string; value: StatsTimeframe }[] = [
-  { label: '30 days', value: '30' },
-  { label: '90 days', value: '90' },
-  { label: 'All time', value: 'all' },
-];
 
 /**
  * Stats & Analytics Dashboard page.
@@ -32,27 +26,8 @@ export default function StatsPage() {
         </div>
 
         {/* ── Timeframe toggle ────────────────────────────────── */}
-        <div
-          role="group"
-          aria-label="Select timeframe"
-          className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm mb-6"
-        >
-          {TIMEFRAMES.map(({ label, value }) => (
-            <button
-              key={value}
-              data-testid={`timeframe-${value}`}
-              onClick={() => setTimeframe(value)}
-              aria-pressed={timeframe === value}
-              className={[
-                'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                timeframe === value
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
-              ].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="mb-6">
+          <TimeframeToggle value={timeframe} onChange={setTimeframe} />
         </div>
 
         {/* ── Metric cards grid ───────────────────────────────── */}

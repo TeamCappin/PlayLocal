@@ -46,10 +46,18 @@ const dataResponse = (overrides: Partial<StatsResponse> = {}): StatsResponse => 
 
 describe('SkillTrendChart', () => {
   describe('Loading state', () => {
-    it('renders skeleton when isLoading is true', () => {
+    it('renders skeleton when isLoading is true and there is no previous data (initial load)', () => {
       render(<SkillTrendChart data={null} isLoading={true} error={null} />);
       expect(screen.getByTestId('skill-trend-skeleton')).toBeInTheDocument();
       expect(screen.queryByTestId('skill-trend-chart')).not.toBeInTheDocument();
+    });
+
+    it('keeps previous data visible at reduced opacity when re-fetching (no layout shift)', () => {
+      render(<SkillTrendChart data={dataResponse()} isLoading={true} error={null} />);
+      const chart = screen.getByTestId('skill-trend-chart');
+      expect(chart).toBeInTheDocument();
+      expect(chart).toHaveClass('opacity-60');
+      expect(screen.queryByTestId('skill-trend-skeleton')).not.toBeInTheDocument();
     });
 
     it('does not render the chart while loading', () => {

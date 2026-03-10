@@ -19,7 +19,10 @@ interface WinRateCardProps {
  *   handled by the parent page / Task 5 component; this card stays layout-stable)
  */
 export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
-  if (isLoading) {
+  // Show skeleton only on the initial fetch (no previous data to display).
+  // On subsequent re-fetches (timeframe change) we keep the stale card visible
+  // at reduced opacity so the layout never shifts.
+  if (isLoading && !data) {
     return (
       <div
         data-testid="win-rate-skeleton"
@@ -31,6 +34,8 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
       </div>
     );
   }
+
+  const isRefreshing = isLoading && data !== null;
 
   const isEmpty = !data || data.empty || data.value === null;
 
@@ -55,7 +60,7 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
   return (
     <div
       data-testid="win-rate-card"
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1"
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       <div className="flex items-center gap-1">
         <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
