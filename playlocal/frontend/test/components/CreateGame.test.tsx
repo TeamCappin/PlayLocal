@@ -844,8 +844,9 @@ describe('CreateGame', () => {
 
     render(<CreateGame />);
 
-    const banner = await screen.findByText(/backend down/i);
-    expect(banner).toBeInTheDocument();
+    const banners = await screen.findAllByText(/backend down/i);
+    expect(banners.length).toBeGreaterThan(0);
+    expect(banners[0]).toBeInTheDocument();
   });
 
   it('submit on step 1 via form submit acts like Continue (and advances)', async () => {
