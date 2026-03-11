@@ -865,7 +865,7 @@ public class GameService {
                                 .startTime(game.getStartTime())
                                 .endTime(game.getEndTime())
                                 .status(game.getStatus().name())
-                                .organizer(buildOrganizerDto(game.getCreatedBy(), requestingUserId))
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
                                 .confirmedCount(confirmedCount)
                                 .waitlistCount(waitlisted.size())
                                 .createdAt(game.getCreatedAt())
@@ -911,7 +911,7 @@ public class GameService {
         }
 
         // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
-        private GameDto.OrganizerDto buildOrganizerDto(User organizer, UUID viewerId) {
+        private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
                 return GameDto.OrganizerDto.builder()
                                 .userId(organizer.getUserId().toString())
                                 .displayName(organizer.getDisplayName())
@@ -942,7 +942,7 @@ public class GameService {
                         GameTag tag = tagRepository.findByName(tagName)
                                         .orElseThrow(() -> new IllegalArgumentException("Invalid tag: " + tagName));
 
-                        if (!tag.getIsSystemTag()) {
+                        if (!Boolean.TRUE.equals(tag.getIsSystemTag())) {
                                 throw new IllegalArgumentException("Only system tags can be assigned: " + tagName);
                         }
 

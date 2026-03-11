@@ -25,7 +25,6 @@ import {
   Copy,
   Check,
   Archive,
-  Lock,
 } from 'lucide-react';
 import { useGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';

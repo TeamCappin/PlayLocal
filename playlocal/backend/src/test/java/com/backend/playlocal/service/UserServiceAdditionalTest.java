@@ -56,7 +56,7 @@ class UserServiceAdditionalTest {
                 .build();
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
-        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
 
         // When
         UUID viewerId = UUID.randomUUID();

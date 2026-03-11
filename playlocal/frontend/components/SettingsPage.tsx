@@ -212,12 +212,12 @@ function PrivacySettings({
   initialLoading,
   initialError,
   onSettingsChange,
-}: {
+}: Readonly<{
   initialSettings: PrivacySettingsResponse | null;
   initialLoading: boolean;
   initialError: string | null;
   onSettingsChange: (settings: PrivacySettingsResponse | null) => void;
-}) {
+}>) {
   const settings = initialSettings;
   const isLoading = initialLoading;
   const [isSaving, setIsSaving] = useState(false);

@@ -246,7 +246,6 @@ class PrivacySettingsServiceTest {
     @Test
     @DisplayName("US-7.12: isSearchable returns false for non-friend when allowProfileSearch is false")
     void isSearchable_DisabledSearch_NonFriend_ReturnsFalse() {
-        UUID viewerId = UUID.randomUUID();
         UserPrivacySettings settings = UserPrivacySettings.builder()
                 .userId(userId)
                 .allowProfileSearch(false)
@@ -254,26 +253,23 @@ class PrivacySettingsServiceTest {
 
         when(privacySettingsRepository.findById(userId)).thenReturn(Optional.of(settings));
 
-        boolean result = privacySettingsService.isSearchable(userId, viewerId, false);
+        boolean result = privacySettingsService.isSearchable(userId, false);
         assertThat(result).isFalse();
     }
 
     @Test
     @DisplayName("US-7.12: isSearchable returns true for friend even when allowProfileSearch is false")
     void isSearchable_DisabledSearch_Friend_ReturnsTrue() {
-        UUID viewerId = UUID.randomUUID();
-
-        boolean result = privacySettingsService.isSearchable(userId, viewerId, true);
+        boolean result = privacySettingsService.isSearchable(userId, true);
         assertThat(result).isTrue();
     }
 
     @Test
     @DisplayName("US-7.12: isSearchable returns true by default")
     void isSearchable_NoSettings_ReturnsTrue() {
-        UUID viewerId = UUID.randomUUID();
         when(privacySettingsRepository.findById(userId)).thenReturn(Optional.empty());
 
-        boolean result = privacySettingsService.isSearchable(userId, viewerId, false);
+        boolean result = privacySettingsService.isSearchable(userId, false);
         assertThat(result).isTrue();
     }
 }

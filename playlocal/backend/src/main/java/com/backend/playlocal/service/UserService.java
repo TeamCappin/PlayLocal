@@ -61,26 +61,9 @@ public class UserService {
             }
         }
 
-        // US-7.12: Filter out users who have disabled profile search (self and friends always visible)
-        // For users who pass search filter but have restricted profiles, return minimal data
         List<AuthDto.UserDto> users = usersPage.getContent().stream()
-                .filter(user -> {
-                    if (viewerId != null && viewerId.equals(user.getUserId())) {
-                        return true; // Always show yourself
-                    }
-                    boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
-                    return privacySettingsService.isSearchable(user.getUserId(), viewerId, isFriend);
-                })
-                .map(user -> {
-                    if (viewerId != null && viewerId.equals(user.getUserId())) {
-                        return mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
-                    }
-                    boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
-                    if (!privacySettingsService.canViewProfile(user.getUserId(), viewerId, isFriend)) {
-                        return buildRestrictedProfile(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
-                    }
-                    return mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
-                })
+                .filter(user -> isVisibleInSearch(user, viewerId))
+                .map(user -> mapSearchResult(user, viewerId, endorsementCounts))
                 .collect(Collectors.toList());
 
         return UserDto.SearchResponse.builder()
@@ -211,6 +194,32 @@ public class UserService {
                 .defaultIntensity(user.getDefaultIntensity())
                 .profileRestricted(true)
                 .build();
+    }
+
+    /**
+     * US-7.12: Check if a user should appear in search results for the viewer.
+     */
+    private boolean isVisibleInSearch(User user, UUID viewerId) {
+        if (viewerId != null && viewerId.equals(user.getUserId())) {
+            return true;
+        }
+        boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
+        return privacySettingsService.isSearchable(user.getUserId(), isFriend);
+    }
+
+    /**
+     * US-7.12: Map a user to the appropriate DTO based on profile visibility.
+     */
+    private AuthDto.UserDto mapSearchResult(User user, UUID viewerId, Map<UUID, Integer> endorsementCounts) {
+        int count = endorsementCounts.getOrDefault(user.getUserId(), 0);
+        if (viewerId != null && viewerId.equals(user.getUserId())) {
+            return mapToUserDto(user, count);
+        }
+        boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
+        if (!privacySettingsService.canViewProfile(user.getUserId(), viewerId, isFriend)) {
+            return buildRestrictedProfile(user, count);
+        }
+        return mapToUserDto(user, count);
     }
 
     private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {

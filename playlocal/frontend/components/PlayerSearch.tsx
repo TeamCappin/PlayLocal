@@ -10,7 +10,6 @@ import {
   CheckCircle,
   UserCheck,
   Clock,
-  Lock,
 } from 'lucide-react';
 import { usersApi, friendsApi, UserDto, FriendInfo } from '@/lib/api';
 

@@ -10,7 +10,6 @@ import {
   MapPin,
   Star,
   Loader2,
-  Lock,
 } from 'lucide-react';
 import { friendsApi, FriendInfo } from '@/lib/api';
 

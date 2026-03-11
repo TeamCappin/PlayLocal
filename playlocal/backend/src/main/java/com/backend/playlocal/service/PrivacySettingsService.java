@@ -20,12 +20,11 @@ public class PrivacySettingsService {
     private final ContentVisibilityRepository contentVisibilityRepository;
     private final LocationVisibilityRuleRepository locationVisibilityRuleRepository;
 
-    // Default visibility codes for new accounts
-    private static final String DEFAULT_PROFILE_VISIBILITY = "public";
-    private static final String DEFAULT_SKILLS_VISIBILITY = "public";
-    private static final String DEFAULT_HISTORY_VISIBILITY = "friends";
-    private static final String DEFAULT_MEDIA_VISIBILITY = "participants";
-    private static final String DEFAULT_LOCATION_RULE = "confirmed_only";
+    // Visibility code constants
+    private static final String VISIBILITY_PUBLIC = "public";
+    private static final String VISIBILITY_FRIENDS = "friends";
+    private static final String VISIBILITY_PARTICIPANTS = "participants";
+    private static final String LOCATION_RULE_CONFIRMED_ONLY = "confirmed_only";
 
     public PrivacySettingsService(
             UserPrivacySettingsRepository privacySettingsRepository,
@@ -85,11 +84,11 @@ public class PrivacySettingsService {
     public UserPrivacySettings createDefaultSettings(UUID userId) {
         UserPrivacySettings settings = UserPrivacySettings.builder()
                 .userId(userId)
-                .profileVisibility(resolveContentVisibility(DEFAULT_PROFILE_VISIBILITY))
-                .skillsVisibility(resolveContentVisibility(DEFAULT_SKILLS_VISIBILITY))
-                .historyVisibility(resolveContentVisibility(DEFAULT_HISTORY_VISIBILITY))
-                .mediaDefaultVisibility(resolveContentVisibility(DEFAULT_MEDIA_VISIBILITY))
-                .locationVisibilityRule(resolveLocationRule(DEFAULT_LOCATION_RULE))
+                .profileVisibility(resolveContentVisibility(VISIBILITY_PUBLIC))
+                .skillsVisibility(resolveContentVisibility(VISIBILITY_PUBLIC))
+                .historyVisibility(resolveContentVisibility(VISIBILITY_FRIENDS))
+                .mediaDefaultVisibility(resolveContentVisibility(VISIBILITY_PARTICIPANTS))
+                .locationVisibilityRule(resolveLocationRule(LOCATION_RULE_CONFIRMED_ONLY))
                 .allowProfileSearch(true)
                 .build();
         return privacySettingsRepository.save(settings);
@@ -113,7 +112,7 @@ public class PrivacySettingsService {
      * Check if a user should appear in search results for the given viewer.
      * Friends can always find each other regardless of this setting.
      */
-    public boolean isSearchable(UUID userId, UUID viewerId, boolean isFriend) {
+    public boolean isSearchable(UUID userId, boolean isFriend) {
         if (isFriend) {
             return true; // Friends can always find each other
         }
@@ -129,10 +128,10 @@ public class PrivacySettingsService {
             return true;
         }
         String code = visibility.getCode();
-        if ("public".equals(code)) {
+        if (VISIBILITY_PUBLIC.equals(code)) {
             return true;
         }
-        if ("friends".equals(code)) {
+        if (VISIBILITY_FRIENDS.equals(code)) {
             return isFriend;
         }
         // "private" or "participants" — not visible to general viewers
@@ -155,19 +154,19 @@ public class PrivacySettingsService {
         return PrivacySettingsDto.PrivacySettingsResponse.builder()
                 .profileVisibility(
                         settings.getProfileVisibility() != null
-                                ? settings.getProfileVisibility().getCode() : DEFAULT_PROFILE_VISIBILITY)
+                                ? settings.getProfileVisibility().getCode() : VISIBILITY_PUBLIC)
                 .skillsVisibility(
                         settings.getSkillsVisibility() != null
-                                ? settings.getSkillsVisibility().getCode() : DEFAULT_SKILLS_VISIBILITY)
+                                ? settings.getSkillsVisibility().getCode() : VISIBILITY_PUBLIC)
                 .historyVisibility(
                         settings.getHistoryVisibility() != null
-                                ? settings.getHistoryVisibility().getCode() : DEFAULT_HISTORY_VISIBILITY)
+                                ? settings.getHistoryVisibility().getCode() : VISIBILITY_FRIENDS)
                 .mediaDefaultVisibility(
                         settings.getMediaDefaultVisibility() != null
-                                ? settings.getMediaDefaultVisibility().getCode() : DEFAULT_MEDIA_VISIBILITY)
+                                ? settings.getMediaDefaultVisibility().getCode() : VISIBILITY_PARTICIPANTS)
                 .locationVisibilityRule(
                         settings.getLocationVisibilityRule() != null
-                                ? settings.getLocationVisibilityRule().getCode() : DEFAULT_LOCATION_RULE)
+                                ? settings.getLocationVisibilityRule().getCode() : LOCATION_RULE_CONFIRMED_ONLY)
                 .allowProfileSearch(Boolean.TRUE.equals(settings.getAllowProfileSearch()))
                 .build();
     }

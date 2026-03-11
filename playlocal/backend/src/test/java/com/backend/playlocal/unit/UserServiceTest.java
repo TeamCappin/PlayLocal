@@ -117,7 +117,7 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 10L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
-        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
         when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
         UUID viewerId = UUID.randomUUID();
@@ -138,7 +138,7 @@ class UserServiceTest {
         batchCounts.add(new Object[]{user.getUserId(), 5L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
-        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
         when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
         UUID viewerId = UUID.randomUUID();
@@ -190,8 +190,8 @@ class UserServiceTest {
 
         UUID viewerId = UUID.randomUUID();
         // user is searchable, hiddenUser is not
-        when(privacySettingsService.isSearchable(eq(user.getUserId()), eq(viewerId), anyBoolean())).thenReturn(true);
-        when(privacySettingsService.isSearchable(eq(hiddenUser.getUserId()), eq(viewerId), anyBoolean())).thenReturn(false);
+        when(privacySettingsService.isSearchable(eq(user.getUserId()), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(eq(hiddenUser.getUserId()), anyBoolean())).thenReturn(false);
         when(privacySettingsService.canViewProfile(any(), any(), anyBoolean())).thenReturn(true);
 
         UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, viewerId);
@@ -212,7 +212,7 @@ class UserServiceTest {
         List<Object[]> batchCounts = new ArrayList<>();
         batchCounts.add(new Object[]{user.getUserId(), 5L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(batchCounts);
-        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
         when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(false);
 
         UUID viewerId = UUID.randomUUID();
