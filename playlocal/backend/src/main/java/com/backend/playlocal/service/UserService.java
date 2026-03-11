@@ -61,13 +61,26 @@ public class UserService {
             }
         }
 
-        // US-7.12: Filter out users who have disabled profile search (friends still visible)
+        // US-7.12: Filter out users who have disabled profile search (self and friends always visible)
+        // For users who pass search filter but have restricted profiles, return minimal data
         List<AuthDto.UserDto> users = usersPage.getContent().stream()
                 .filter(user -> {
+                    if (viewerId != null && viewerId.equals(user.getUserId())) {
+                        return true; // Always show yourself
+                    }
                     boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
                     return privacySettingsService.isSearchable(user.getUserId(), viewerId, isFriend);
                 })
-                .map(user -> mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0)))
+                .map(user -> {
+                    if (viewerId != null && viewerId.equals(user.getUserId())) {
+                        return mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
+                    }
+                    boolean isFriend = viewerId != null && friendshipRepository.areFriends(viewerId, user.getUserId());
+                    if (!privacySettingsService.canViewProfile(user.getUserId(), viewerId, isFriend)) {
+                        return buildRestrictedProfile(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
+                    }
+                    return mapToUserDto(user, endorsementCounts.getOrDefault(user.getUserId(), 0));
+                })
                 .collect(Collectors.toList());
 
         return UserDto.SearchResponse.builder()
@@ -137,16 +150,10 @@ public class UserService {
         boolean isFriend = friendshipRepository.areFriends(viewerId, targetId);
 
         if (!privacySettingsService.canViewProfile(targetId, viewerId, isFriend)) {
-            // Return minimal info for private profiles
-            return AuthDto.UserDto.builder()
-                    .userId(user.getUserId().toString())
-                    .displayName(user.getDisplayName())
-                    .slug(user.getSlug())
-                    .avatarUrl(user.getAvatarUrl())
-                    .build();
+            return buildRestrictedProfile(user);
         }
 
-        return applyFieldPrivacy(mapToUserDto(user), targetId, viewerId, isFriend);
+        return mapToUserDto(user);
     }
 
     /**
@@ -176,30 +183,34 @@ public class UserService {
         boolean isFriend = friendshipRepository.areFriends(viewerId, targetId);
 
         if (!privacySettingsService.canViewProfile(targetId, viewerId, isFriend)) {
-            return AuthDto.UserDto.builder()
-                    .userId(user.getUserId().toString())
-                    .displayName(user.getDisplayName())
-                    .slug(user.getSlug())
-                    .avatarUrl(user.getAvatarUrl())
-                    .build();
+            return buildRestrictedProfile(user);
         }
 
-        return applyFieldPrivacy(mapToUserDto(user), targetId, viewerId, isFriend);
+        return mapToUserDto(user);
     }
 
     /**
-     * US-7.12: Apply field-level privacy enforcement.
-     * Nulls out fields the viewer is not allowed to see.
+     * US-7.12: Build a restricted profile response.
+     * Community trust metrics (reliability, games count, endorsements) are always visible.
+     * Personal info (bio, location, availability) is hidden.
      */
-    private AuthDto.UserDto applyFieldPrivacy(AuthDto.UserDto dto, UUID targetId, UUID viewerId, boolean isFriend) {
-        if (!privacySettingsService.canViewSkills(targetId, viewerId, isFriend)) {
-            dto.setReliabilityScore(null);
-        }
-        if (!privacySettingsService.canViewHistory(targetId, viewerId, isFriend)) {
-            dto.setGamesCount(null);
-            dto.setEndorsementsCount(null);
-        }
-        return dto;
+    private AuthDto.UserDto buildRestrictedProfile(User user) {
+        int endorsementCount = (int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId());
+        return buildRestrictedProfile(user, endorsementCount);
+    }
+
+    private AuthDto.UserDto buildRestrictedProfile(User user, int endorsementCount) {
+        return AuthDto.UserDto.builder()
+                .userId(user.getUserId().toString())
+                .displayName(user.getDisplayName())
+                .slug(user.getSlug())
+                .avatarUrl(user.getAvatarUrl())
+                .reliabilityScore(user.getReliabilityScore())
+                .gamesCount(user.getGamesCount())
+                .endorsementsCount(endorsementCount)
+                .defaultIntensity(user.getDefaultIntensity())
+                .profileRestricted(true)
+                .build();
     }
 
     private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {

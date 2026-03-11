@@ -70,9 +70,9 @@ describe('SettingsPage - Privacy Tab', () => {
       expect(screen.getByText('Allow Profile Search')).toBeInTheDocument();
     });
 
-    // Should have 4 select elements (profile, skills, history, media)
+    // Should have 1 select element (profile visibility)
     const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBe(4);
+    expect(selects.length).toBe(1);
   });
 
   it('calls updateSettings when a privacy setting is changed', async () => {
@@ -101,6 +101,13 @@ describe('SettingsPage - Privacy Tab', () => {
     mockGetSettings.mockRejectedValue(new Error('Network error'));
 
     render(<SettingsPage />);
+
+    // Wait for the error to be captured by the parent component
+    await waitFor(() => {
+      expect(mockGetSettings).toHaveBeenCalled();
+    });
+
+    // Click Privacy tab to see the error
     fireEvent.click(screen.getByText('Privacy'));
 
     await waitFor(() => {

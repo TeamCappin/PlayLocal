@@ -126,6 +126,7 @@ jest.mock('lucide-react', () => ({
   AlertCircle: () => <div />,
   UserPlus: () => <div />,
   Gamepad2: () => <div />,
+  Lock: () => <div data-testid="icon-lock" />,
   Info: () => <div />,
   XCircle: () => <div />,
   ChevronDown: () => <div />,
@@ -139,6 +140,7 @@ describe('UserProfile Endorsements', () => {
     userId: 101,
     gamesCount: 10,
     reliabilityScore: 95,
+    bio: 'Test bio',
   };
 
   beforeEach(() => {

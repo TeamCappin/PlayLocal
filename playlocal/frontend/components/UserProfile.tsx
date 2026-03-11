@@ -17,6 +17,7 @@ import {
   Medal,
   UserPlus,
   Gamepad2,
+  Lock,
 } from 'lucide-react';
 import {
   LineChart,
@@ -103,6 +104,7 @@ export function UserProfile() {
             ? await usersApi.getProfile(usernameStr)
             : await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
+          window.scrollTo(0, 0);
         } catch (err) {
           console.error('Failed to fetch profile', err);
           setProfileError('Failed to load profile. Please try again later.');
@@ -145,6 +147,7 @@ export function UserProfile() {
             : 'Recently joined',
           verified: (currentUser as any).verified || false,
           userId: currentUser.userId,
+          profileRestricted: false,
           stats: {
             gamesPlayed: currentUser.gamesCount || 0,
             gamesHosted: (currentUser as any).gamesHosted || 0,
@@ -167,6 +170,7 @@ export function UserProfile() {
             .toUpperCase(),
           bio: otherUser?.bio || 'No bio available',
           location: otherUser?.location || 'Location not set',
+          profileRestricted: otherUser?.profileRestricted || false,
           memberSince: otherUser?.createdAt
             ? new Date(otherUser.createdAt).toLocaleDateString('en-US', {
                 month: 'long',
@@ -353,17 +357,23 @@ export function UserProfile() {
                   )}
                 </div>
                 <p className="text-emerald-100 mb-3">@{user.username}</p>
-                <p className="text-white max-w-2xl mb-3">{user.bio}</p>
-                <div className="flex items-center gap-4 text-emerald-100">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>{user.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Member since {user.memberSince}</span>
-                  </div>
-                </div>
+                {!user.profileRestricted && (
+                  <>
+                    {user.bio && <p className="text-white max-w-2xl mb-3">{user.bio}</p>}
+                    <div className="flex items-center gap-4 text-emerald-100">
+                      {user.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{user.location}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Member since {user.memberSince}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
@@ -395,7 +405,7 @@ export function UserProfile() {
             </div>
           </div>
 
-          {/* Stats Grid */}
+          {/* Stats Grid — always visible (community trust metrics) */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
@@ -417,11 +427,84 @@ export function UserProfile() {
               }
             />
           </div>
+          {/* US-7.12: Privacy indicator for restricted profiles */}
+          {!isOwnProfile && user.profileRestricted && (
+            <div className="mt-6 flex items-center justify-center gap-4 text-white/90">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                <Lock className="w-6 h-6" />
+              </div>
+              <span className="text-lg font-medium">Some profile details are private</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Content Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* US-7.12: Trust signals for restricted profiles (OQS + Endorsements) */}
+      {!isOwnProfile && user.profileRestricted && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {user.userId && (
+                <OrganizerQualityBadge
+                  userId={user.userId}
+                  displayName={user.name}
+                  variant="full"
+                  showInfoCard={true}
+                />
+              )}
+            </div>
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl text-gray-900">Endorsements</h2>
+                  <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-sm font-medium">
+                    <Medal className="w-4 h-4" />
+                    {endorsements.length}
+                  </div>
+                </div>
+                {loadingEndorsements ? (
+                  <div className="text-center py-4 text-gray-400">
+                    Loading endorsements...
+                  </div>
+                ) : endorsements.length > 0 ? (
+                  <div className="space-y-3">
+                    {endorsements.slice(0, 5).map((endorsement) => (
+                      <div
+                        key={endorsement.endorsementId}
+                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="bg-white p-2 rounded-full shadow-sm text-emerald-500">
+                          <Medal className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-gray-900 font-medium">
+                            Organizer Pick
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            by {endorsement.endorserName}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {new Date(endorsement.gameDate).toLocaleDateString()}{' '}
+                            • {endorsement.gameTitle}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+                    <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p>No endorsements yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content Tabs — hidden for private profiles */}
+      {!isOwnProfile && user.profileRestricted ? null : <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="border-b border-gray-200 bg-white -mt-px">
           <div className="flex gap-8">
             <button
@@ -868,7 +951,7 @@ export function UserProfile() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Report Modal */}
       <ReportModal

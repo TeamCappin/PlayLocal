@@ -152,6 +152,7 @@ export interface UserDto {
   gamesCount: number;
   endorsementsCount?: number; // New field for endorsements count [US-3.3]
   createdAt?: string;
+  profileRestricted?: boolean; // US-7.12: true when viewer cannot see full profile
 }
 
 export const authApi = {
@@ -276,10 +277,11 @@ export interface FriendInfo {
   avatarUrl?: string;
   bio?: string;
   location?: string;
-  reliabilityScore: number;
-  gamesCount: number;
+  reliabilityScore?: number;
+  gamesCount?: number;
   status: string;
   createdAt: string;
+  profileRestricted?: boolean; // US-7.12
 }
 
 export interface FriendsListResponse {
@@ -416,7 +418,8 @@ export interface LocationDto {
 export interface OrganizerDto {
   userId: string;
   displayName: string;
-  reliabilityScore: number;
+  reliabilityScore?: number;
+  profileRestricted?: boolean; // US-7.12
 }
 
 export interface JoinResponse {
@@ -442,9 +445,10 @@ export interface ParticipantDto {
   joinStatus: string;
   attendanceStatus: string; // UNKNOWN, ATTENDED, NO_SHOW
   waitlistPosition?: number;
-  reliabilityScore: number;
+  reliabilityScore?: number;
   joinedAt: string;
   isEndorsedByOrganizer?: boolean;
+  profileRestricted?: boolean; // US-7.12
 }
 
 // US-4.2: Community Tags

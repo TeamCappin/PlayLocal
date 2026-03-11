@@ -23,6 +23,22 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<
     'account' | 'privacy' | 'notifications' | 'security'
   >('account');
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettingsResponse | null>(null);
+  const [privacyLoading, setPrivacyLoading] = useState(true);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
+
+  useEffect(() => {
+    privacyApi
+      .getSettings()
+      .then((data) => {
+        setPrivacySettings(data);
+        setPrivacyLoading(false);
+      })
+      .catch((err) => {
+        setPrivacyError(err.message || 'Failed to load privacy settings');
+        setPrivacyLoading(false);
+      });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -87,7 +103,7 @@ export function SettingsPage() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {activeTab === 'account' && <AccountSettings user={user} />}
-            {activeTab === 'privacy' && <PrivacySettings />}
+            {activeTab === 'privacy' && <PrivacySettings initialSettings={privacySettings} initialLoading={privacyLoading} initialError={privacyError} onSettingsChange={setPrivacySettings} />}
             {activeTab === 'notifications' && <NotificationSettings />}
             {activeTab === 'security' && <SecuritySettings />}
           </div>
@@ -186,52 +202,27 @@ const PROFILE_VISIBILITY_MAP: Record<string, string> = {
   Private: 'private',
 };
 
-const SKILLS_VISIBILITY_MAP: Record<string, string> = {
-  Public: 'public',
-  'Friends Only': 'friends',
-  'Participants Only': 'participants',
-  Private: 'private',
-};
-
-const HISTORY_VISIBILITY_MAP: Record<string, string> = {
-  Public: 'public',
-  'Friends Only': 'friends',
-  Private: 'private',
-};
-
-const MEDIA_VISIBILITY_MAP: Record<string, string> = {
-  Public: 'public',
-  Friends: 'friends',
-  Participants: 'participants',
-  Private: 'private',
-};
-
 function codeToLabel(map: Record<string, string>, code: string): string {
   const entry = Object.entries(map).find(([, v]) => v === code);
   return entry ? entry[0] : Object.keys(map)[0];
 }
 
-function PrivacySettings() {
-  const [settings, setSettings] = useState<PrivacySettingsResponse | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
+function PrivacySettings({
+  initialSettings,
+  initialLoading,
+  initialError,
+  onSettingsChange,
+}: {
+  initialSettings: PrivacySettingsResponse | null;
+  initialLoading: boolean;
+  initialError: string | null;
+  onSettingsChange: (settings: PrivacySettingsResponse | null) => void;
+}) {
+  const settings = initialSettings;
+  const isLoading = initialLoading;
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    privacyApi
-      .getSettings()
-      .then((data) => {
-        setSettings(data);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || 'Failed to load privacy settings');
-        setIsLoading(false);
-      });
-  }, []);
+  const [error, setError] = useState<string | null>(initialError);
 
   const handleUpdate = useCallback(
     async (update: UpdatePrivacySettingsRequest) => {
@@ -240,7 +231,7 @@ function PrivacySettings() {
       setError(null);
       try {
         const updated = await privacyApi.updateSettings(update);
-        setSettings(updated);
+        onSettingsChange(updated);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
       } catch (err: any) {
@@ -286,7 +277,7 @@ function PrivacySettings() {
         <div className="space-y-6">
           <PrivacySetting
             label="Profile Visibility"
-            description="Control who can see your profile"
+            description="Choose who can see your personal details like bio, location, and activity history. Trust metrics (reliability score, games played, endorsements) are always visible."
             options={Object.keys(PROFILE_VISIBILITY_MAP)}
             value={codeToLabel(
               PROFILE_VISIBILITY_MAP,
@@ -295,48 +286,6 @@ function PrivacySettings() {
             onChange={(label) =>
               handleUpdate({
                 profileVisibility: PROFILE_VISIBILITY_MAP[label],
-              })
-            }
-          />
-          <PrivacySetting
-            label="Skills Visibility"
-            description="Control who can see your skill ratings"
-            options={Object.keys(SKILLS_VISIBILITY_MAP)}
-            value={codeToLabel(
-              SKILLS_VISIBILITY_MAP,
-              settings?.skillsVisibility || 'public'
-            )}
-            onChange={(label) =>
-              handleUpdate({
-                skillsVisibility: SKILLS_VISIBILITY_MAP[label],
-              })
-            }
-          />
-          <PrivacySetting
-            label="Game History Visibility"
-            description="Control who can see your past games"
-            options={Object.keys(HISTORY_VISIBILITY_MAP)}
-            value={codeToLabel(
-              HISTORY_VISIBILITY_MAP,
-              settings?.historyVisibility || 'friends'
-            )}
-            onChange={(label) =>
-              handleUpdate({
-                historyVisibility: HISTORY_VISIBILITY_MAP[label],
-              })
-            }
-          />
-          <PrivacySetting
-            label="Media Default Visibility"
-            description="Default visibility for uploaded photos and videos"
-            options={Object.keys(MEDIA_VISIBILITY_MAP)}
-            value={codeToLabel(
-              MEDIA_VISIBILITY_MAP,
-              settings?.mediaDefaultVisibility || 'participants'
-            )}
-            onChange={(label) =>
-              handleUpdate({
-                mediaDefaultVisibility: MEDIA_VISIBILITY_MAP[label],
               })
             }
           />

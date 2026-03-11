@@ -118,6 +118,7 @@ class UserServiceTest {
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
         when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
         UUID viewerId = UUID.randomUUID();
         UserDto.SearchResponse response = userService.searchUsers("query", 0, 10, viewerId);
@@ -138,6 +139,7 @@ class UserServiceTest {
         when(endorsementRepository.countEndorsementsByUserIds(anyList()))
                 .thenReturn(batchCounts);
         when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(true);
 
         UUID viewerId = UUID.randomUUID();
         UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, viewerId);

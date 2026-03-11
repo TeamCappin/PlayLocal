@@ -10,6 +10,7 @@ import {
   MapPin,
   Star,
   Loader2,
+  Lock,
 } from 'lucide-react';
 import { friendsApi, FriendInfo } from '@/lib/api';
 
@@ -383,7 +384,7 @@ function FriendCard({
             {friend.displayName}
           </Link>
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            {friend.location && (
+            {!friend.profileRestricted && friend.location && (
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 {friend.location}

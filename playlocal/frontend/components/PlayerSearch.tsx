@@ -10,6 +10,7 @@ import {
   CheckCircle,
   UserCheck,
   Clock,
+  Lock,
 } from 'lucide-react';
 import { usersApi, friendsApi, UserDto, FriendInfo } from '@/lib/api';
 
@@ -325,7 +326,7 @@ function PlayerCard({
               {player.displayName}
             </h3>
             <div className="flex items-center gap-1 text-sm text-gray-500">
-              {player.location && (
+              {!player.profileRestricted && player.location && (
                 <>
                   <MapPin className="w-3 h-3" />
                   <span>{player.location}</span>
@@ -337,7 +338,7 @@ function PlayerCard({
       </div>
 
       <div className="space-y-3 mb-4">
-        {player.bio && (
+        {!player.profileRestricted && player.bio && (
           <p className="text-sm text-gray-600 line-clamp-2">{player.bio}</p>
         )}
         <div className="flex items-center gap-4 text-sm">
