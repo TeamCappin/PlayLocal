@@ -86,7 +86,7 @@ jest.mock('../../lib/api', () => {
   };
 });
 
-// Mock Recharts
+// Mock Recharts (used by stats components embedded in StatsTabContent)
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
   LineChart: () => <div>LineChart</div>,
@@ -95,11 +95,17 @@ jest.mock('recharts', () => ({
   YAxis: () => <div>YAxis</div>,
   CartesianGrid: () => <div>CartesianGrid</div>,
   Tooltip: () => <div>Tooltip</div>,
-  RadarChart: () => <div>RadarChart</div>,
-  PolarGrid: () => <div>PolarGrid</div>,
-  PolarAngleAxis: () => <div>PolarAngleAxis</div>,
-  PolarRadiusAxis: () => <div>PolarRadiusAxis</div>,
-  Radar: () => <div>Radar</div>,
+}));
+
+// Mock useStats hook
+jest.mock('@/hooks/useStats', () => ({
+  useStats: () => ({
+    winRate: { data: null, isLoading: false, error: null },
+    skillTrend: { data: null, isLoading: false, error: null },
+    attendanceRate: { data: null, isLoading: false, error: null },
+    timeframe: '30',
+    setTimeframe: jest.fn(),
+  }),
 }));
 
 // Mock Lucide icons (UserProfile imports: MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2)

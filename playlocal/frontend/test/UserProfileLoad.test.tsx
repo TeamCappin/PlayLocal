@@ -95,11 +95,16 @@ jest.mock('recharts', () => ({
   YAxis: () => <div>YAxis</div>,
   CartesianGrid: () => <div>CartesianGrid</div>,
   Tooltip: () => <div>Tooltip</div>,
-  RadarChart: () => <div>RadarChart</div>,
-  PolarGrid: () => <div>PolarGrid</div>,
-  PolarAngleAxis: () => <div>PolarAngleAxis</div>,
-  PolarRadiusAxis: () => <div>PolarRadiusAxis</div>,
-  Radar: () => <div>Radar</div>,
+}));
+
+jest.mock('@/hooks/useStats', () => ({
+  useStats: () => ({
+    winRate: { data: null, isLoading: false, error: null },
+    skillTrend: { data: null, isLoading: false, error: null },
+    attendanceRate: { data: null, isLoading: false, error: null },
+    timeframe: '30',
+    setTimeframe: jest.fn(),
+  }),
 }));
 
 jest.mock('lucide-react', () => ({

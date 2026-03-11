@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import { usersApi, UserDto, endorsementsApi, EndorsementResponse, ConnectionSignals } from '@/lib/api';
@@ -11,6 +11,11 @@ import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGames } from '@/hooks/useGames';
 import { OrganizerQualityBadge } from './OrganizerQualityBadge';
+import { WinRateCard } from './stats/WinRateCard';
+import { AttendanceRateCard } from './stats/AttendanceRateCard';
+import { SkillTrendChart } from './stats/SkillTrendChart';
+import { TimeframeToggle } from './stats/TimeframeToggle';
+import { useStats } from '@/hooks/useStats';
 
 
 export function UserProfile() {
@@ -182,22 +187,7 @@ export function UserProfile() {
     },
   ];
 
-  const skillEvolution = [
-    { month: 'Jan', basketball: 6.5, soccer: 5.2 },
-    { month: 'Feb', basketball: 6.7, soccer: 5.4 },
-    { month: 'Mar', basketball: 6.9, soccer: 5.5 },
-    { month: 'Apr', basketball: 7.0, soccer: 5.6 },
-    { month: 'May', basketball: 7.2, soccer: 5.8 },
-  ];
 
-  const radarData = [
-    { skill: 'Shooting', value: 75 },
-    { skill: 'Defense', value: 82 },
-    { skill: 'Passing', value: 88 },
-    { skill: 'Speed', value: 70 },
-    { skill: 'Teamwork', value: 92 },
-    { skill: 'Stamina', value: 78 },
-  ];
 
   const recentGames = [
     {
@@ -646,49 +636,9 @@ export function UserProfile() {
             </div>
           )}
 
+
           {activeTab === 'stats' && (
-            <div className="space-y-6">
-              {/* Skill Evolution Chart */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-xl text-gray-900 mb-6">Skill Evolution</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={skillEvolution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis domain={[0, 10]} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="basketball" stroke="#10b981" strokeWidth={2} name="Basketball" />
-                    <Line type="monotone" dataKey="soccer" stroke="#3b82f6" strokeWidth={2} name="Soccer" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Radar Chart */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-xl text-gray-900 mb-6">Basketball Skills</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RadarChart data={radarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="skill" />
-                      <PolarRadiusAxis domain={[0, 100]} />
-                      <Radar name="Skills" dataKey="value" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Performance Stats */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-xl text-gray-900 mb-6">Performance Stats</h2>
-                  <div className="space-y-4">
-                    <StatBar label="Win Rate" value={65} color="emerald" />
-                    <StatBar label="Attendance Rate" value={98} color="blue" />
-                    <StatBar label="Team Rating" value={92} color="purple" />
-                    <StatBar label="Skill Confidence" value={82} color="amber" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <StatsTabContent />
           )}
 
           {activeTab === 'score-history' && (
@@ -820,26 +770,40 @@ function SportProfileCard({ profile, showAvailability }: { profile: any; showAva
   );
 }
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorClasses = {
-    emerald: 'bg-emerald-500',
-    blue: 'bg-blue-500',
-    purple: 'bg-purple-500',
-    amber: 'bg-amber-500',
-  };
+function StatsTabContent() {
+  const { winRate, skillTrend, attendanceRate, timeframe, setTimeframe } = useStats();
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-gray-600">{label}</span>
-        <span className="text-gray-900">{value}%</span>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">Stats & Analytics</h2>
+        <TimeframeToggle value={timeframe} onChange={setTimeframe} />
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${colorClasses[color as keyof typeof colorClasses]}`}
-          style={{ width: `${value}%` }}
-        ></div>
+
+      {/* Performance Stats */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg text-gray-900 mb-4">Performance Stats</h3>
+        <div className="space-y-4">
+          <WinRateCard
+            data={winRate.data}
+            isLoading={winRate.isLoading}
+            error={winRate.error}
+          />
+          <AttendanceRateCard
+            data={attendanceRate.data}
+            isLoading={attendanceRate.isLoading}
+            error={attendanceRate.error}
+          />
+        </div>
       </div>
+
+      {/* Skill Evolution */}
+      <SkillTrendChart
+        data={skillTrend.data}
+        isLoading={skillTrend.isLoading}
+        error={skillTrend.error}
+      />
     </div>
   );
 }
+
