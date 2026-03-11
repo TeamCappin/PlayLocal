@@ -170,6 +170,168 @@ class UserServiceTest {
                 .hasMessageContaining("User not found");
     }
 
+    // ── US-7.12 Privacy: searchUsers ──────────────────────────────────────
+
+    @Test
+    @DisplayName("US-7.12: searchUsers should filter out non-searchable users")
+    void searchUsers_FiltersNonSearchable() {
+        User hiddenUser = User.builder()
+                .userId(UUID.randomUUID())
+                .email("hidden@example.com")
+                .displayName("Hidden User")
+                .slug("hidden-user")
+                .status(User.UserStatus.ACTIVE)
+                .reliabilityScore(80.0f)
+                .build();
+
+        Page<User> page = new PageImpl<>(List.of(user, hiddenUser));
+        when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
+        when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(new ArrayList<>());
+
+        UUID viewerId = UUID.randomUUID();
+        // user is searchable, hiddenUser is not
+        when(privacySettingsService.isSearchable(eq(user.getUserId()), eq(viewerId), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.isSearchable(eq(hiddenUser.getUserId()), eq(viewerId), anyBoolean())).thenReturn(false);
+        when(privacySettingsService.canViewProfile(any(), any(), anyBoolean())).thenReturn(true);
+
+        UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, viewerId);
+
+        assertThat(response.getUsers()).hasSize(1);
+        assertThat(response.getUsers().get(0).getDisplayName()).isEqualTo("Test User");
+    }
+
+    @Test
+    @DisplayName("US-7.12: searchUsers should return restricted profile when canViewProfile is false")
+    void searchUsers_ReturnsRestrictedProfile() {
+        user.setBio("My bio");
+        user.setLocation("San Francisco");
+        user.setDefaultIntensity("competitive");
+
+        Page<User> page = new PageImpl<>(List.of(user));
+        when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
+        List<Object[]> batchCounts = new ArrayList<>();
+        batchCounts.add(new Object[]{user.getUserId(), 5L});
+        when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(batchCounts);
+        when(privacySettingsService.isSearchable(any(UUID.class), any(), anyBoolean())).thenReturn(true);
+        when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(false);
+
+        UUID viewerId = UUID.randomUUID();
+        UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, viewerId);
+
+        assertThat(response.getUsers()).hasSize(1);
+        AuthDto.UserDto result = response.getUsers().get(0);
+        assertThat(result.getProfileRestricted()).isTrue();
+        assertThat(result.getReliabilityScore()).isEqualTo(100.0f);
+        assertThat(result.getEndorsementsCount()).isEqualTo(5);
+        assertThat(result.getDefaultIntensity()).isEqualTo("competitive");
+        assertThat(result.getBio()).isNull();
+        assertThat(result.getLocation()).isNull();
+    }
+
+    @Test
+    @DisplayName("US-7.12: searchUsers should always show own profile as full")
+    void searchUsers_ShowsOwnProfileFull() {
+        user.setBio("My bio");
+        user.setLocation("Oakland");
+
+        Page<User> page = new PageImpl<>(List.of(user));
+        when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
+        when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(new ArrayList<>());
+
+        // Viewer is the same user
+        UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, user.getUserId());
+
+        assertThat(response.getUsers()).hasSize(1);
+        AuthDto.UserDto result = response.getUsers().get(0);
+        assertThat(result.getBio()).isEqualTo("My bio");
+        assertThat(result.getLocation()).isEqualTo("Oakland");
+        assertThat(result.getProfileRestricted()).isNull();
+    }
+
+    // ── US-7.12 Privacy: getUserProfile with viewerId ──────────────────
+
+    @Test
+    @DisplayName("US-7.12: getUserProfile returns full profile for own profile")
+    void getUserProfile_OwnProfile_ReturnsFull() {
+        user.setBio("My bio");
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        AuthDto.UserDto result = userService.getUserProfile(user.getUserId().toString(), user.getUserId());
+
+        assertThat(result.getBio()).isEqualTo("My bio");
+        assertThat(result.getProfileRestricted()).isNull();
+    }
+
+    @Test
+    @DisplayName("US-7.12: getUserProfile returns restricted profile for non-friend on private profile")
+    void getUserProfile_PrivateProfile_ReturnsRestricted() {
+        user.setBio("Secret bio");
+        user.setLocation("Hidden City");
+        user.setDefaultIntensity("casual");
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        UUID viewerId = UUID.randomUUID();
+        when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(false);
+        when(privacySettingsService.canViewProfile(user.getUserId(), viewerId, false)).thenReturn(false);
+        when(endorsementRepository.countByEndorsedUser_UserId(user.getUserId())).thenReturn(3L);
+
+        AuthDto.UserDto result = userService.getUserProfile(user.getUserId().toString(), viewerId);
+
+        assertThat(result.getProfileRestricted()).isTrue();
+        assertThat(result.getReliabilityScore()).isEqualTo(100.0f);
+        assertThat(result.getDefaultIntensity()).isEqualTo("casual");
+        assertThat(result.getEndorsementsCount()).isEqualTo(3);
+        assertThat(result.getBio()).isNull();
+        assertThat(result.getLocation()).isNull();
+    }
+
+    @Test
+    @DisplayName("US-7.12: getUserProfile returns full profile for friend")
+    void getUserProfile_Friend_ReturnsFull() {
+        user.setBio("Visible bio");
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        UUID viewerId = UUID.randomUUID();
+        when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(true);
+        when(privacySettingsService.canViewProfile(user.getUserId(), viewerId, true)).thenReturn(true);
+
+        AuthDto.UserDto result = userService.getUserProfile(user.getUserId().toString(), viewerId);
+
+        assertThat(result.getBio()).isEqualTo("Visible bio");
+        assertThat(result.getProfileRestricted()).isNull();
+    }
+
+    // ── US-7.12 Privacy: getProfileBySlug with viewerId ────────────────
+
+    @Test
+    @DisplayName("US-7.12: getProfileBySlug returns restricted profile for non-friend")
+    void getProfileBySlug_PrivateProfile_ReturnsRestricted() {
+        user.setBio("Secret bio");
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
+
+        UUID viewerId = UUID.randomUUID();
+        when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(false);
+        when(privacySettingsService.canViewProfile(user.getUserId(), viewerId, false)).thenReturn(false);
+        when(endorsementRepository.countByEndorsedUser_UserId(user.getUserId())).thenReturn(0L);
+
+        AuthDto.UserDto result = userService.getProfileBySlug("test-slug", viewerId);
+
+        assertThat(result.getProfileRestricted()).isTrue();
+        assertThat(result.getBio()).isNull();
+    }
+
+    @Test
+    @DisplayName("US-7.12: getProfileBySlug returns full profile for own profile")
+    void getProfileBySlug_OwnProfile_ReturnsFull() {
+        user.setBio("My bio");
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
+
+        AuthDto.UserDto result = userService.getProfileBySlug("test-slug", user.getUserId());
+
+        assertThat(result.getBio()).isEqualTo("My bio");
+        assertThat(result.getProfileRestricted()).isNull();
+    }
+
     @Test
     @DisplayName("US-1.4: updateProfile should regenerate slug when display name changes")
     void updateProfile_RegeneratesSlug() {

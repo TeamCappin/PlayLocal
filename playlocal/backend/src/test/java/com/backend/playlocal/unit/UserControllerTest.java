@@ -2,6 +2,7 @@ package com.backend.playlocal.unit;
 
 import com.backend.playlocal.controller.UserController;
 import com.backend.playlocal.model.dto.AuthDto;
+import com.backend.playlocal.model.dto.PrivacySettingsDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
 import com.backend.playlocal.service.PrivacySettingsService;
@@ -25,9 +26,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -143,6 +145,109 @@ class UserControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.displayName").value("Slug User"))
                                 .andExpect(jsonPath("$.slug").value("slug-user"));
+        }
+
+        // ── US-7.12 Privacy: restricted profile responses ──────────────────
+
+        @Test
+        @DisplayName("US-7.12: GET /{userId}/profile returns restricted profile with trust metrics")
+        void getUserProfile_Restricted_ReturnsTrustMetrics() throws Exception {
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .userId("some-id")
+                                .displayName("Private User")
+                                .reliabilityScore(95.0f)
+                                .gamesCount(42)
+                                .endorsementsCount(7)
+                                .defaultIntensity("competitive")
+                                .profileRestricted(true)
+                                .build();
+
+                when(userService.getUserProfile(eq("some-id"), any(UUID.class))).thenReturn(response);
+
+                mockMvc.perform(get("/api/v1/users/some-id/profile")
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw")))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.profileRestricted").value(true))
+                                .andExpect(jsonPath("$.reliabilityScore").value(95.0))
+                                .andExpect(jsonPath("$.gamesCount").value(42))
+                                .andExpect(jsonPath("$.endorsementsCount").value(7))
+                                .andExpect(jsonPath("$.bio").doesNotExist())
+                                .andExpect(jsonPath("$.location").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("US-7.12: GET /slug/{slug}/profile returns restricted profile")
+        void getProfileBySlug_Restricted_ReturnsRestricted() throws Exception {
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .displayName("Private Slug User")
+                                .slug("private-slug")
+                                .profileRestricted(true)
+                                .reliabilityScore(88.0f)
+                                .build();
+
+                when(userService.getProfileBySlug(eq("private-slug"), any(UUID.class))).thenReturn(response);
+
+                mockMvc.perform(get("/api/v1/users/slug/private-slug/profile")
+                                .principal(new UsernamePasswordAuthenticationToken("550e8400-e29b-41d4-a716-446655440000", "pw")))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.profileRestricted").value(true))
+                                .andExpect(jsonPath("$.displayName").value("Private Slug User"))
+                                .andExpect(jsonPath("$.reliabilityScore").value(88.0));
+        }
+
+        // ── US-7.12 Privacy: settings endpoints ──────────────────────────────
+
+        @Test
+        @DisplayName("US-7.12: GET /privacy-settings returns settings")
+        void getPrivacySettings_ReturnsSettings() throws Exception {
+                UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+                PrivacySettingsDto.PrivacySettingsResponse response = PrivacySettingsDto.PrivacySettingsResponse.builder()
+                                .profileVisibility("friends")
+                                .skillsVisibility("public")
+                                .historyVisibility("friends")
+                                .mediaDefaultVisibility("participants")
+                                .locationVisibilityRule("confirmed_only")
+                                .allowProfileSearch(true)
+                                .build();
+
+                when(privacySettingsService.getPrivacySettings(userId)).thenReturn(response);
+
+                mockMvc.perform(get("/api/v1/users/privacy-settings")
+                                .principal(new UsernamePasswordAuthenticationToken(userId.toString(), "pw")))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.profileVisibility").value("friends"))
+                                .andExpect(jsonPath("$.allowProfileSearch").value(true));
+        }
+
+        @Test
+        @DisplayName("US-7.12: PUT /privacy-settings updates and returns settings")
+        void updatePrivacySettings_ReturnsUpdated() throws Exception {
+                UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+                PrivacySettingsDto.PrivacySettingsResponse response = PrivacySettingsDto.PrivacySettingsResponse.builder()
+                                .profileVisibility("private")
+                                .skillsVisibility("public")
+                                .historyVisibility("friends")
+                                .mediaDefaultVisibility("participants")
+                                .locationVisibilityRule("confirmed_only")
+                                .allowProfileSearch(false)
+                                .build();
+
+                when(privacySettingsService.updatePrivacySettings(eq(userId), any())).thenReturn(response);
+
+                PrivacySettingsDto.UpdatePrivacySettingsRequest request = PrivacySettingsDto.UpdatePrivacySettingsRequest.builder()
+                                .profileVisibility("private")
+                                .allowProfileSearch(false)
+                                .build();
+
+                mockMvc.perform(put("/api/v1/users/privacy-settings")
+                                .principal(new UsernamePasswordAuthenticationToken(userId.toString(), "pw"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.profileVisibility").value("private"))
+                                .andExpect(jsonPath("$.allowProfileSearch").value(false));
+
+                verify(privacySettingsService).updatePrivacySettings(eq(userId), any());
         }
 
         @Test

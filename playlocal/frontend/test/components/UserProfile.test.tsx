@@ -133,6 +133,72 @@ jest.mock('lucide-react', () => ({
   ChevronUp: () => <div />,
 }));
 
+describe('UserProfile Restricted Profile (US-7.12)', () => {
+  const currentUser = {
+    id: 2,
+    displayName: 'Current User',
+    userId: 200,
+    slug: 'current-user',
+  };
+
+  const restrictedUser = {
+    userId: 101,
+    displayName: 'Private User',
+    slug: 'testuser',
+    reliabilityScore: 95,
+    gamesCount: 42,
+    endorsementsCount: 7,
+    defaultIntensity: 'competitive',
+    bio: 'Secret bio',
+    location: 'Hidden City',
+    profileRestricted: true,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: currentUser,
+      isAuthenticated: true,
+      refreshUser: jest.fn(),
+    });
+    (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(restrictedUser);
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('shows lock icon and privacy message for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Some profile details are private')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('icon-lock')).toBeInTheDocument();
+  });
+
+  it('hides bio for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Private User')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Secret bio')).not.toBeInTheDocument();
+  });
+
+  it('shows trust metrics for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Private User')).toBeInTheDocument();
+    });
+
+    // Stats grid should be visible with trust metrics
+    expect(screen.getByText('Games Played')).toBeInTheDocument();
+    expect(screen.getByText('Reliability Score')).toBeInTheDocument();
+    expect(screen.getAllByText('Endorsements').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe('UserProfile Endorsements', () => {
   const mockUser = {
     id: 1,
