@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse } from '@/lib/api';
 import { MetricTooltip } from '@/components/stats/MetricTooltip';
+import { EmptyStatCard } from '@/components/stats/EmptyStatCard';
 
 interface WinRateCardProps {
   data: StatsResponse | null;
@@ -41,16 +42,12 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
 
   if (error || isEmpty) {
     return (
-      <div
+      <EmptyStatCard
         data-testid="win-rate-empty"
-        className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-2 text-center min-h-[140px]"
-      >
-        <TrendingUp className="w-8 h-8 text-gray-300" />
-        <p className="text-sm font-medium text-gray-500">No win rate data yet</p>
-        <p className="text-xs text-gray-400">
-          {error ?? 'Play more tracked games to see your win rate here.'}
-        </p>
-      </div>
+        icon={<TrendingUp className="w-8 h-8 text-gray-300" />}
+        title="No games recorded yet"
+        message={error ?? 'Join a match to start tracking your win rate.'}
+      />
     );
   }
 

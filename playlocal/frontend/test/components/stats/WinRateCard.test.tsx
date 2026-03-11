@@ -57,7 +57,7 @@ describe('WinRateCard', () => {
     it('renders empty state when data is null and not loading', () => {
       render(<WinRateCard data={null} isLoading={false} error={null} />);
       expect(screen.getByTestId('win-rate-empty')).toBeInTheDocument();
-      expect(screen.getByText('No win rate data yet')).toBeInTheDocument();
+      expect(screen.getByText('No games recorded yet')).toBeInTheDocument();
     });
 
     it('renders empty state when data.empty is true', () => {
@@ -71,6 +71,13 @@ describe('WinRateCard', () => {
       expect(screen.getByTestId('win-rate-empty')).toBeInTheDocument();
     });
 
+    it('shows guidance copy in empty state when no error', () => {
+      render(<WinRateCard data={null} isLoading={false} error={null} />);
+      expect(
+        screen.getByText('Join a match to start tracking your win rate.'),
+      ).toBeInTheDocument();
+    });
+
     it('shows error message in empty state when error is provided', () => {
       render(<WinRateCard data={null} isLoading={false} error="Network error" />);
       expect(screen.getByTestId('win-rate-empty')).toBeInTheDocument();
@@ -79,6 +86,13 @@ describe('WinRateCard', () => {
   });
 
   describe('Data state', () => {
+    it('renders metric tooltip trigger on the data card', () => {
+      render(<WinRateCard data={dataResponse()} isLoading={false} error={null} />);
+      const trigger = screen.getByTestId('metric-tooltip-trigger');
+      expect(trigger).toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-label', 'Win Rate information');
+    });
+
     it('renders the win rate card with correct value', () => {
       render(<WinRateCard data={dataResponse()} isLoading={false} error={null} />);
       expect(screen.getByTestId('win-rate-card')).toBeInTheDocument();

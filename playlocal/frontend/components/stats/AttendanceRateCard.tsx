@@ -4,6 +4,7 @@ import { Users, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse } from '@/lib/api';
 import { MetricTooltip } from '@/components/stats/MetricTooltip';
+import { EmptyStatCard } from '@/components/stats/EmptyStatCard';
 
 interface AttendanceRateCardProps {
   data: StatsResponse | null;
@@ -40,16 +41,12 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
 
   if (error || isEmpty) {
     return (
-      <div
+      <EmptyStatCard
         data-testid="attendance-rate-empty"
-        className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-2 text-center min-h-[140px]"
-      >
-        <Users className="w-8 h-8 text-gray-300" />
-        <p className="text-sm font-medium text-gray-500">No attendance data yet</p>
-        <p className="text-xs text-gray-400">
-          {error ?? 'Sign up for events to start tracking your attendance.'}
-        </p>
-      </div>
+        icon={<Users className="w-8 h-8 text-gray-300" />}
+        title="No attendance data yet"
+        message={error ?? 'Sign up for events to start tracking your attendance.'}
+      />
     );
   }
 

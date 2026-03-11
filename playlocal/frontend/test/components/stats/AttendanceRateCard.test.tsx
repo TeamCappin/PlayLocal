@@ -139,5 +139,16 @@ describe('AttendanceRateCard', () => {
       render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
       expect(screen.getByTestId('trend-flat')).toBeInTheDocument();
     });
+
+    it('shows stable indicator when two data points differ by less than 1 (flat trend)', () => {
+      const d = dataResponse({
+        dataPoints: [
+          { date: '2025-01', value: 80.0 },
+          { date: '2025-02', value: 80.5 },
+        ],
+      });
+      render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
+      expect(screen.getByTestId('trend-flat')).toBeInTheDocument();
+    });
   });
 });

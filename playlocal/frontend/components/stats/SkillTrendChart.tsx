@@ -13,6 +13,7 @@ import { TrendingUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse, StatsDataPoint } from '@/lib/api';
 import { MetricTooltip } from '@/components/stats/MetricTooltip';
+import { EmptyStatCard } from '@/components/stats/EmptyStatCard';
 
 interface SkillTrendChartProps {
   data: StatsResponse | null;
@@ -49,16 +50,13 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
 
   if (error || isEmpty) {
     return (
-      <div
+      <EmptyStatCard
         data-testid="skill-trend-empty"
-        className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center gap-2 text-center min-h-[240px]"
-      >
-        <TrendingUp className="w-10 h-10 text-gray-300" />
-        <p className="text-sm font-medium text-gray-500">No skill trend data yet</p>
-        <p className="text-xs text-gray-400">
-          {error ?? 'Play more games to see how your skill rating changes over time.'}
-        </p>
-      </div>
+        icon={<TrendingUp className="w-10 h-10 text-gray-300" />}
+        title="No skill trend data yet"
+        message={error ?? 'Play more games to see how your skill rating changes over time.'}
+        minHeight="min-h-[240px]"
+      />
     );
   }
 
@@ -118,7 +116,7 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
                 border: '1px solid #e5e7eb',
                 fontSize: '12px',
               }}
-              formatter={(val: number) => [`${val.toFixed(1)}`, 'Score']}
+              formatter={(val: number | undefined) => [val != null ? val.toFixed(1) : '–', 'Score']}
             />
             <Line
               type="monotone"
