@@ -1022,7 +1022,7 @@ export function GameRoom() {
                               <div className="flex items-center gap-2 text-sm flex-wrap">
                                 <span className="text-gray-600">
                                   Reliability:{' '}
-                                  {Math.round(player.reliabilityScore)}%
+                                  {Math.round(player.reliabilityScore ?? 0)}%
                                 </span>
                                 {/* US-32: Connection signals (only for logged-in viewers, exclude self) */}
                                 {isAuthenticated &&
@@ -1108,7 +1108,7 @@ export function GameRoom() {
                                   </Link>
                                   <div className="text-sm text-gray-600">
                                     Reliability:{' '}
-                                    {Math.round(player.reliabilityScore)}%
+                                    {Math.round(player.reliabilityScore ?? 0)}%
                                   </div>
                                   {/* US-32: Connection signals on waitlist */}
                                   {isAuthenticated &&
@@ -1419,7 +1419,7 @@ export function GameRoom() {
                 </div>
               </div>
 
-              {/* US-6.1: Organizer Quality Score */}
+              {/* US-6.1: Organizer Quality Score (always visible — community trust metric) */}
               {game.organizer?.userId && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <OrganizerQualityBadge

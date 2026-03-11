@@ -70,6 +70,12 @@ class GameServiceJoinLeaveTest {
         @Mock
         private GameTagConfirmationRepository tagConfirmationRepository;
 
+        @Mock
+        private PrivacySettingsService privacySettingsService;
+
+        @Mock
+        private FriendshipRepository friendshipRepository;
+
         @InjectMocks
         private GameService gameService;
 
@@ -709,7 +715,7 @@ class GameServiceJoinLeaveTest {
                         when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of(waitlisted));
 
                         // When
-                        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+                        GameDto.RosterResponse roster = gameService.getRoster(gameId, userId);
 
                         // Then
                         assertThat(roster.getConfirmed()).hasSize(1);
@@ -734,7 +740,7 @@ class GameServiceJoinLeaveTest {
                         when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(Collections.emptyList());
 
                         // When
-                        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+                        GameDto.RosterResponse roster = gameService.getRoster(gameId, userId);
 
                         // Then
                         assertThat(roster.getSpotsAvailable()).isEqualTo(2); // 5 - 3 = 2

@@ -16,6 +16,7 @@ import com.backend.playlocal.repository.LocationRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,6 +68,10 @@ class GameServiceLifecycleTest {
     private GameTagAssignmentRepository tagAssignmentRepository;
     @Mock
     private GameTagConfirmationRepository tagConfirmationRepository;
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+    @Mock
+    private FriendshipRepository friendshipRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -324,7 +329,9 @@ class GameServiceLifecycleTest {
                 tagConfirmationRepository,
                 null,
                 oqsService,
-                locationRepository);
+                locationRepository,
+                privacySettingsService,
+                friendshipRepository);
 
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(participationRepository.findConfirmedByGame(gameId))

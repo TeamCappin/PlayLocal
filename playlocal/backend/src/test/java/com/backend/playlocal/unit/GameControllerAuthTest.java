@@ -223,15 +223,16 @@ class GameControllerAuthTest {
                     .maxPlayers(10)
                     .spotsAvailable(9)
                     .build();
-            when(gameService.getRoster(gameId)).thenReturn(roster);
+            when(gameService.getRoster(eq(gameId), any(UUID.class))).thenReturn(roster);
+            when(authentication.getName()).thenReturn(UUID.randomUUID().toString());
 
-            ResponseEntity<GameDto.RosterResponse> response = gameController.getRoster(gameId);
+            ResponseEntity<GameDto.RosterResponse> response = gameController.getRoster(gameId, authentication);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getConfirmed()).hasSize(1);
             assertThat(response.getBody().getMaxPlayers()).isEqualTo(10);
-            verify(gameService).getRoster(gameId);
+            verify(gameService).getRoster(eq(gameId), any(UUID.class));
         }
 
         @Test

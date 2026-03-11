@@ -22,13 +22,16 @@ public class AuthService {
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final PrivacySettingsService privacySettingsService;
 
     public AuthService(UserRepository userRepository, UserRoleRepository userRoleRepository,
-            PasswordEncoder passwordEncoder, JwtService jwtService) {
+            PasswordEncoder passwordEncoder, JwtService jwtService,
+            PrivacySettingsService privacySettingsService) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.privacySettingsService = privacySettingsService;
     }
 
     /**
@@ -61,6 +64,9 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+
+        // US-7.12: Create default privacy settings for new user
+        privacySettingsService.createDefaultSettings(user.getUserId());
 
         // Note: Default 'user' role is assigned by database trigger (V7 migration)
 
