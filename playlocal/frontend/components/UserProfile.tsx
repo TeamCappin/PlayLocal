@@ -462,11 +462,12 @@ export function UserProfile() {
                     {endorsements.length}
                   </div>
                 </div>
-                {loadingEndorsements ? (
+                {loadingEndorsements && (
                   <div className="text-center py-4 text-gray-400">
                     Loading endorsements...
                   </div>
-                ) : endorsements.length > 0 ? (
+                )}
+                {!loadingEndorsements && endorsements.length > 0 && (
                   <div className="space-y-3">
                     {endorsements.slice(0, 5).map((endorsement) => (
                       <div
@@ -491,7 +492,8 @@ export function UserProfile() {
                       </div>
                     ))}
                   </div>
-                ) : (
+                )}
+                {!loadingEndorsements && endorsements.length === 0 && (
                   <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
                     <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                     <p>No endorsements yet</p>
@@ -724,11 +726,12 @@ export function UserProfile() {
                       {endorsements.length}
                     </div>
                   </div>
-                  {loadingEndorsements ? (
+                  {loadingEndorsements && (
                     <div className="text-center py-4 text-gray-400">
                       Loading endorsements...
                     </div>
-                  ) : endorsements.length > 0 ? (
+                  )}
+                  {!loadingEndorsements && endorsements.length > 0 && (
                     <div className="space-y-3">
                       {endorsements.slice(0, 5).map((endorsement) => (
                         <div
@@ -769,7 +772,8 @@ export function UserProfile() {
                         </div>
                       )}
                     </div>
-                  ) : (
+                  )}
+                  {!loadingEndorsements && endorsements.length === 0 && (
                     <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
                       <Medal className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                       <p>No endorsements yet</p>
