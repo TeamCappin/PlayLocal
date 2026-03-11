@@ -60,6 +60,7 @@ export function CreateGame() {
   const { createGame, isCreating, error: createError } = useCreateGame();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   // Address Autocomplete State
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
@@ -207,41 +208,60 @@ export function CreateGame() {
   };
 
   const validateStep2 = (): boolean => {
+    const errors: Record<string, boolean> = {};
+    
     if (!formData.minPlayers) {
       setError('Please enter minimum players');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.maxPlayers) {
       setError('Please enter maximum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     const min = Number.parseInt(formData.minPlayers, 10);
     const max = Number.parseInt(formData.maxPlayers, 10);
     if (Number.isNaN(min) || Number.isNaN(max)) {
       setError('Player counts must be numbers');
+      errors.minPlayers = true;
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (min < 2) {
       setError('Minimum players must be at least 2');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (max < min) {
       setError('Maximum players cannot be less than minimum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.skillLevel) {
       setError('Please select a skill level');
+      errors.skillLevel = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.intensity) {
       setError('Please select an intensity level');
+      errors.intensity = true;
+      setFieldErrors(errors);
       return false;
     }
+    setFieldErrors({});
     return true;
   };
 
   const validateStep = (currentStep: number): boolean => {
     setError(null);
+    setFieldErrors({});
     if (currentStep === 1) return validateStep1();
     if (currentStep === 2) return validateStep2();
     return true;
@@ -348,9 +368,9 @@ export function CreateGame() {
 
         {/* Error Alert */}
         {(error || createError) && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2 animate-pulse">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{error || createError}</span>
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <span className="text-red-700 font-medium">{error || createError}</span>
           </div>
         )}
 
@@ -392,6 +412,14 @@ export function CreateGame() {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
+          {/* Error Display - Inside Form */}
+          {(error || createError) && (
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <span className="text-red-700 font-medium">{error || createError}</span>
+            </div>
+          )}
+
           {/* Auth Warning */}
           {!isAuthenticated && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
@@ -612,7 +640,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 6"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.minPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -635,7 +667,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 10"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.maxPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -652,7 +688,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, skillLevel: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.skillLevel
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select skill level</option>
@@ -672,7 +712,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, intensity: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.intensity
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select intensity</option>

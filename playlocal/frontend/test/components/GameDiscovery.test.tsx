@@ -525,7 +525,7 @@ describe('GameDiscovery Component', () => {
       }
 
       // Click search button
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -553,16 +553,14 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(sportInput, { target: { value: 'Basketball' } });
       });
 
-      // Click Reset
-      const resetButton = screen.getByRole('button', { name: /reset/i });
+      // Click Clear
+      const clearButton = screen.getByRole('button', { name: /clear/i });
       await act(async () => {
-        fireEvent.click(resetButton);
+        fireEvent.click(clearButton);
       });
 
-      // Modal should close
-      await waitFor(() => {
-        expect(screen.queryByText('Distance')).not.toBeInTheDocument();
-      });
+      // Verify filters are cleared (input should be empty)
+      expect(sportInput).toHaveValue('');
 
       // useGames should have been called with no filters (undefined)
       const calls = (useGames as jest.Mock).mock.calls;
@@ -792,7 +790,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(sportInput, { target: { value: 'Basketball' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -830,7 +828,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(skillSelect, { target: { value: 'beginner' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -868,7 +866,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(locationSelect, { target: { value: 'indoor' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -903,7 +901,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(intensitySelect, { target: { value: 'high' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -961,7 +959,7 @@ describe('GameDiscovery Component', () => {
       // Clear initial calls before applying filter
       (useGames as jest.Mock).mockClear();
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1056,7 +1054,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1100,7 +1098,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1139,7 +1137,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1189,7 +1187,7 @@ describe('GameDiscovery Component', () => {
       });
 
       // Distance is already "any distance" by default, so just click search
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
