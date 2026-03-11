@@ -41,7 +41,7 @@ export function MetricTooltip({ content, label }: MetricTooltipProps) {
           data-testid="metric-tooltip-trigger"
           className="inline-flex items-center justify-center text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition-colors"
         >
-          <Info className="w-3.5 h-3.5" aria-hidden="true" />
+          <Info className="w-3 h-3" aria-hidden="true" />
         </button>
       </TooltipTrigger>
       <TooltipContent

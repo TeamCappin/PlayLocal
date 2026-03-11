@@ -1,6 +1,5 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatsResponse } from '@/lib/api';
 import { MetricTooltip } from '@/components/stats/MetricTooltip';
@@ -13,123 +12,58 @@ interface WinRateCardProps {
 }
 
 /**
- * Displays the Win Rate metric as a large percentage with a trend indicator.
- *
- * - Loading: animated skeleton placeholder
- * - Error or empty: shows an empty-state placeholder (empty-state guidance is
- *   handled by the parent page / Task 5 component; this card stays layout-stable)
+ * Displays the Win Rate metric as a progress bar row, matching the
+ * "Performance Stats" design from the profile page.
  */
 export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
-  // Show skeleton only on the initial fetch (no previous data to display).
-  // On subsequent re-fetches (timeframe change) we keep the stale card visible
-  // at reduced opacity so the layout never shifts.
   if (isLoading && !data) {
     return (
-      <div
-        data-testid="win-rate-skeleton"
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4"
-      >
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-10 w-20" />
-        <Skeleton className="h-4 w-48" />
+      <div data-testid="win-rate-skeleton" className="space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-2 w-full rounded-full" />
       </div>
     );
   }
 
   const isRefreshing = isLoading && data !== null;
-
   const isEmpty = !data || data.empty || data.value === null;
 
   if (error || isEmpty) {
     return (
-      <EmptyStatCard
-        data-testid="win-rate-empty"
-        icon={<TrendingUp className="w-8 h-8 text-gray-300" />}
-        title="No games recorded yet"
-        message={error ?? 'Join a match to start tracking your win rate.'}
-      />
+      <div data-testid="win-rate-empty">
+        <EmptyStatCard
+          icon={<span className="text-gray-300 text-lg">—</span>}
+          title="No games recorded yet"
+          message={error ?? 'Join a match to start tracking your win rate.'}
+          minHeight="min-h-[60px]"
+        />
+      </div>
     );
   }
 
   const value = data.value as number;
-  const trend = getTrend(data);
 
   return (
     <div
       data-testid="win-rate-card"
-      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-1 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
+      className={`transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-          Win Rate
-        </span>
-        <MetricTooltip
-          content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted — draws and unknown results are excluded."
-          label="Win Rate information"
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          <span className="text-gray-600">Win Rate</span>
+          <MetricTooltip
+            content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted — draws and unknown results are excluded."
+            label="Win Rate information"
+          />
+        </div>
+        <span className="text-gray-900">{Math.round(value)}%</span>
+      </div>
+      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-emerald-500 transition-all duration-300"
+          style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
-
-      <div className="flex items-end gap-2 mt-1">
-        <span className="text-4xl font-bold text-gray-900">
-          {value.toFixed(1)}
-          <span className="text-2xl">%</span>
-        </span>
-        <TrendIndicator trend={trend} />
-      </div>
-
-      <p className="text-xs text-gray-400 mt-1">
-        Last {data.timeframe === 'all' ? 'all time' : `${data.timeframe} days`} ·{' '}
-        {data.dataPoints.length} month{data.dataPoints.length !== 1 ? 's' : ''} of data
-      </p>
     </div>
-  );
-}
-
-// ─── Trend indicator ──────────────────────────────────────────────────────────
-
-type TrendDirection = 'up' | 'down' | 'flat';
-
-function getTrend(data: StatsResponse): TrendDirection {
-  const pts = data.dataPoints;
-  if (pts.length < 2) return 'flat';
-  const first = pts[0].value;
-  const last = pts[pts.length - 1].value;
-  if (last > first + 1) return 'up';
-  if (last < first - 1) return 'down';
-  return 'flat';
-}
-
-function TrendIndicator({ trend }: { trend: TrendDirection }) {
-  if (trend === 'up')
-    return (
-      <span
-        data-testid="trend-up"
-        className="flex items-center gap-0.5 text-xs font-semibold text-emerald-600 mb-1"
-        aria-label="Trending up"
-      >
-        <TrendingUp className="w-4 h-4" />
-        Up
-      </span>
-    );
-  if (trend === 'down')
-    return (
-      <span
-        data-testid="trend-down"
-        className="flex items-center gap-0.5 text-xs font-semibold text-red-500 mb-1"
-        aria-label="Trending down"
-      >
-        <TrendingDown className="w-4 h-4" />
-        Down
-      </span>
-    );
-  return (
-    <span
-      data-testid="trend-flat"
-      className="flex items-center gap-0.5 text-xs font-semibold text-gray-400 mb-1"
-      aria-label="Stable"
-    >
-      <Minus className="w-4 h-4" />
-      Stable
-    </span>
   );
 }

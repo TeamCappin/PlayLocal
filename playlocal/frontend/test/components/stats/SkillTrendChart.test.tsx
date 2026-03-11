@@ -69,7 +69,6 @@ describe('SkillTrendChart', () => {
   describe('Empty state', () => {
     it('renders empty state when data is null and not loading', () => {
       render(<SkillTrendChart data={null} isLoading={false} error={null} />);
-      expect(screen.getByTestId('skill-trend-empty')).toBeInTheDocument();
       expect(screen.getByText('No skill trend data yet')).toBeInTheDocument();
     });
 
@@ -81,7 +80,7 @@ describe('SkillTrendChart', () => {
           error={null}
         />,
       );
-      expect(screen.getByTestId('skill-trend-empty')).toBeInTheDocument();
+      expect(screen.getByText('No skill trend data yet')).toBeInTheDocument();
     });
 
     it('renders empty state when dataPoints is an empty array', () => {
@@ -92,7 +91,7 @@ describe('SkillTrendChart', () => {
           error={null}
         />,
       );
-      expect(screen.getByTestId('skill-trend-empty')).toBeInTheDocument();
+      expect(screen.getByText('No skill trend data yet')).toBeInTheDocument();
     });
 
     it('shows error text in empty state when error is provided', () => {
@@ -122,76 +121,25 @@ describe('SkillTrendChart', () => {
       expect(screen.getByTestId('line-chart')).toBeInTheDocument();
     });
 
-    it('shows current score as the headline value', () => {
-      render(<SkillTrendChart data={dataResponse({ value: 92.0 })} isLoading={false} error={null} />);
-      expect(screen.getByText('92.0')).toBeInTheDocument();
-    });
-
-    it('shows "Skill Trend" heading', () => {
+    it('shows "Skill Evolution" heading', () => {
       render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
-      expect(screen.getByText('Skill Trend')).toBeInTheDocument();
+      expect(screen.getByText('Skill Evolution')).toBeInTheDocument();
     });
 
-    it('shows "reliability score" label', () => {
+    it('renders recharts components (grid, axes, tooltip, line)', () => {
       render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
-      expect(screen.getByText('reliability score')).toBeInTheDocument();
+      expect(screen.getByTestId('recharts-grid')).toBeInTheDocument();
+      expect(screen.getByTestId('recharts-xaxis')).toBeInTheDocument();
+      expect(screen.getByTestId('recharts-yaxis')).toBeInTheDocument();
+      expect(screen.getByTestId('recharts-tooltip')).toBeInTheDocument();
+      expect(screen.getByTestId('recharts-line')).toBeInTheDocument();
     });
 
-    it('shows improving badge when last data point is higher than first', () => {
+    it('uses profile-matching card styling (rounded-xl, border-gray-200)', () => {
       render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
-      // 85 → 92: delta = +7 → "Improving"
-      expect(screen.getByText('▲ Improving')).toBeInTheDocument();
-    });
-
-    it('shows declining badge when last data point is lower than first', () => {
-      const d = dataResponse({
-        value: 60.0,
-        dataPoints: [
-          { date: '2025-11-01T10:00:00Z', value: 90.0 },
-          { date: '2026-01-01T10:00:00Z', value: 60.0 },
-        ],
-      });
-      render(<SkillTrendChart data={d} isLoading={false} error={null} />);
-      expect(screen.getByText('▼ Declining')).toBeInTheDocument();
-    });
-
-    it('shows stable badge when delta is within ±1', () => {
-      const d = dataResponse({
-        value: 90.5,
-        dataPoints: [
-          { date: '2025-11-01T10:00:00Z', value: 90.0 },
-          { date: '2026-01-01T10:00:00Z', value: 90.5 },
-        ],
-      });
-      render(<SkillTrendChart data={d} isLoading={false} error={null} />);
-      expect(screen.getByText('● Stable')).toBeInTheDocument();
-    });
-
-    it('does not show a trend badge when only one data point exists', () => {
-      const d = dataResponse({
-        dataPoints: [{ date: '2025-11-01T10:00:00Z', value: 90.0 }],
-      });
-      render(<SkillTrendChart data={d} isLoading={false} error={null} />);
-      expect(screen.queryByText('▲ Improving')).not.toBeInTheDocument();
-      expect(screen.queryByText('▼ Declining')).not.toBeInTheDocument();
-      expect(screen.queryByText('● Stable')).not.toBeInTheDocument();
-    });
-
-    it('shows "all time" label for all-time timeframe', () => {
-      render(
-        <SkillTrendChart data={dataResponse({ timeframe: 'all' })} isLoading={false} error={null} />,
-      );
-      expect(screen.getByText(/Last all time/)).toBeInTheDocument();
-    });
-
-    it('shows "30 days" label for 30-day timeframe', () => {
-      render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
-      expect(screen.getByText(/Last 30 days/)).toBeInTheDocument();
-    });
-
-    it('shows correct data point count', () => {
-      render(<SkillTrendChart data={dataResponse()} isLoading={false} error={null} />);
-      expect(screen.getByText(/3 data points/)).toBeInTheDocument();
+      const card = screen.getByTestId('skill-trend-chart');
+      expect(card).toHaveClass('rounded-xl');
+      expect(card).toHaveClass('border-gray-200');
     });
   });
 });

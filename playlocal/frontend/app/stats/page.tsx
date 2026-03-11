@@ -30,21 +30,24 @@ export default function StatsPage() {
           <TimeframeToggle value={timeframe} onChange={setTimeframe} />
         </div>
 
-        {/* ── Metric cards grid ───────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <WinRateCard
-            data={winRate.data}
-            isLoading={winRate.isLoading}
-            error={winRate.error}
-          />
-          <AttendanceRateCard
-            data={attendanceRate.data}
-            isLoading={attendanceRate.isLoading}
-            error={attendanceRate.error}
-          />
+        {/* ── Performance Stats card ─────────────────────────── */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+          <h2 className="text-xl text-gray-900 mb-6">Performance Stats</h2>
+          <div className="space-y-4">
+            <WinRateCard
+              data={winRate.data}
+              isLoading={winRate.isLoading}
+              error={winRate.error}
+            />
+            <AttendanceRateCard
+              data={attendanceRate.data}
+              isLoading={attendanceRate.isLoading}
+              error={attendanceRate.error}
+            />
+          </div>
         </div>
 
-        {/* ── Skill trend chart (full width) ──────────────────── */}
+        {/* ── Skill Evolution chart ───────────────────────────── */}
         <SkillTrendChart
           data={skillTrend.data}
           isLoading={skillTrend.isLoading}

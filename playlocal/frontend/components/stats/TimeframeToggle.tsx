@@ -30,7 +30,7 @@ export function TimeframeToggle({ value, onChange }: TimeframeToggleProps) {
       role="group"
       aria-label="Select timeframe"
       data-testid="timeframe-toggle"
-      className="inline-flex rounded-lg border border-gray-200 bg-white shadow-sm"
+      className="inline-flex bg-gray-100 rounded-lg p-1"
     >
       {TIMEFRAMES.map(({ label, value: tf }) => (
         <button
@@ -40,10 +40,10 @@ export function TimeframeToggle({ value, onChange }: TimeframeToggleProps) {
           onClick={() => onChange(tf)}
           aria-pressed={value === tf}
           className={[
-            'px-4 py-2 text-sm font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
+            'px-4 py-2 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500',
             value === tf
-              ? 'bg-emerald-600 text-white'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
+              ? 'bg-white text-emerald-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900',
           ].join(' ')}
         >
           {label}

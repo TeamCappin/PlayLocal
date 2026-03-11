@@ -22,24 +22,17 @@ interface SkillTrendChartProps {
 }
 
 /**
- * Renders the Skill (reliability score) Trend as a line chart.
- * Uses recharts directly (already installed) rather than the shadcn chart wrapper,
- * which requires a stricter config DSL not needed for this single-series chart.
- *
- * - Loading: animated skeleton placeholder preserving chart height
- * - Error or empty: shows an inline empty-state
+ * Renders the Skill Evolution chart, matching the profile page design language.
  */
 export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps) {
-  // Show skeleton only on the initial fetch (no previous data to display).
-  // On re-fetches, keep the stale chart visible at reduced opacity.
   if (isLoading && !data) {
     return (
       <div
         data-testid="skill-trend-skeleton"
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4"
+        className="bg-white rounded-xl border border-gray-200 p-6"
       >
-        <Skeleton className="h-5 w-28" />
-        <Skeleton className="h-[180px] w-full rounded-lg" />
+        <Skeleton className="h-6 w-40 mb-6" />
+        <Skeleton className="h-[300px] w-full rounded-lg" />
       </div>
     );
   }
@@ -50,90 +43,49 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
 
   if (error || isEmpty) {
     return (
-      <EmptyStatCard
-        data-testid="skill-trend-empty"
-        icon={<TrendingUp className="w-10 h-10 text-gray-300" />}
-        title="No skill trend data yet"
-        message={error ?? 'Play more games to see how your skill rating changes over time.'}
-        minHeight="min-h-[240px]"
-      />
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <EmptyStatCard
+          data-testid="skill-trend-empty"
+          icon={<TrendingUp className="w-10 h-10 text-gray-300" />}
+          title="No skill trend data yet"
+          message={error ?? 'Play more games to see how your skill rating changes over time.'}
+          minHeight="min-h-[240px]"
+        />
+      </div>
     );
   }
 
   const chartData = formatChartData(data.dataPoints);
-  const currentScore = data.value !== null ? (data.value as number).toFixed(1) : '–';
-  const trend = getTrendLabel(data.dataPoints);
 
   return (
     <div
       data-testid="skill-trend-chart"
-      className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col gap-4 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
+      className={`bg-white rounded-xl border border-gray-200 p-6 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-              Skill Trend
-            </span>
-            <MetricTooltip
-              content="How your skill (reliability) rating has changed over the selected timeframe. A higher score means you more consistently show up to events you commit to."
-              label="Skill Trend information"
-            />
-          </div>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="text-3xl font-bold text-gray-900">{currentScore}</span>
-            <span className="text-sm text-gray-500">reliability score</span>
-          </div>
-        </div>
-        {trend && (
-          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${trend.className}`}>
-            {trend.label}
-          </span>
-        )}
+      <div className="flex items-center gap-1 mb-6">
+        <h2 className="text-xl text-gray-900">Skill Evolution</h2>
+        <MetricTooltip
+          content="Your skill evolution based on the skill level and intensity of games you've played. 100 = Advanced & Competitive, 0 = Beginner & Beginner-Friendly. Games marked 'All Levels Welcome' are not counted."
+          label="Skill Trend information"
+        />
       </div>
 
-      {/* Chart */}
-      <div className="h-[180px] w-full" data-testid="skill-trend-recharts">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              contentStyle={{
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                fontSize: '12px',
-              }}
-              formatter={(val: number | undefined) => [val != null ? val.toFixed(1) : '–', 'Score']}
-            />
+      <div data-testid="skill-trend-recharts">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" />
+            <YAxis domain={[0, 100]} />
+            <Tooltip />
             <Line
               type="monotone"
               dataKey="value"
               stroke="#10b981"
               strokeWidth={2}
-              dot={{ r: 3, fill: '#10b981', strokeWidth: 0 }}
-              activeDot={{ r: 5 }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      <p className="text-xs text-gray-400">
-        Last {data.timeframe === 'all' ? 'all time' : `${data.timeframe} days`} ·{' '}
-        {data.dataPoints.length} data point{data.dataPoints.length !== 1 ? 's' : ''}
-      </p>
     </div>
   );
 }
@@ -161,12 +113,4 @@ function formatAxisLabel(dateStr: string): string {
   } catch {
     return dateStr;
   }
-}
-
-function getTrendLabel(pts: StatsDataPoint[]) {
-  if (pts.length < 2) return null;
-  const delta = pts[pts.length - 1].value - pts[0].value;
-  if (delta > 1) return { label: '▲ Improving', className: 'bg-emerald-50 text-emerald-700' };
-  if (delta < -1) return { label: '▼ Declining', className: 'bg-red-50 text-red-600' };
-  return { label: '● Stable', className: 'bg-gray-50 text-gray-500' };
 }

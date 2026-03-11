@@ -12,7 +12,7 @@ public class StatsDto {
 
     /**
      * A single data point for a chart series.
-     * For skill trend: date is an ISO-8601 instant string, value is the reliability score.
+     * For skill trend: date is a "yyyy-MM" month string, value is the cumulative average skill score (0–100).
      * For win rate / attendance rate: date is a "yyyy-MM" month string, value is the rate (0–100).
      */
     @Getter
@@ -44,7 +44,7 @@ public class StatsDto {
         /**
          * Aggregate value for the timeframe.
          * Win rate / attendance rate: percentage (0–100, one decimal place).
-         * Skill trend: current reliability score.
+         * Skill trend: cumulative average skill score (0–100).
          * Null when {@code empty} is true.
          */
         private Double value;

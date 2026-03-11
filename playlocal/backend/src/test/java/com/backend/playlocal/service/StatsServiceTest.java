@@ -296,9 +296,9 @@ class StatsServiceTest {
     class GetSkillTrendTests {
 
         @Test
-        @DisplayName("Returns empty response when no score history exists")
-        void getSkillTrend_noHistory_returnsEmpty() {
-            when(scoreHistoryRepository.findByUserIdSince(eq(userId), any(Instant.class)))
+        @DisplayName("Returns empty response when user has no confirmed participations")
+        void getSkillTrend_noParticipations_returnsEmpty() {
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(List.of());
 
             StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
@@ -310,65 +310,183 @@ class StatsServiceTest {
         }
 
         @Test
-        @DisplayName("Returns correct current score (last entry's newScore) and all dataPoints")
-        void getSkillTrend_withHistory_returnsCurrentScoreAndDataPoints() {
-            List<ScoreHistory> history = List.of(
-                    buildScoreHistory(100.0f, 95.0f, daysAgo(20)),  // previous 100 → new 95
-                    buildScoreHistory(95.0f,  90.0f, daysAgo(10)),  // previous 95 → new 90
-                    buildScoreHistory(90.0f,  92.0f, daysAgo(2))    // previous 90 → new 92
+        @DisplayName("Returns empty response when all games are ALL_LEVELS")
+        void getSkillTrend_allAllLevels_returnsEmpty() {
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("ALL_LEVELS", "CASUAL", Instant.parse("2025-01-15T10:00:00Z")),
+                    buildSkillParticipation("all_levels", "COMPETITIVE", Instant.parse("2025-02-15T10:00:00Z"))
             );
-            when(scoreHistoryRepository.findByUserIdSince(eq(userId), any(Instant.class)))
-                    .thenReturn(history);
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
+
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
+
+            assertThat(response.isEmpty()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Advanced + Competitive = 100")
+        void getSkillTrend_advancedCompetitive_returns100() {
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("ADVANCED", "COMPETITIVE", Instant.parse("2025-01-15T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
 
             StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
 
             assertThat(response.isEmpty()).isFalse();
-            assertThat(response.getValue()).isEqualTo(92.0); // last entry
-            assertThat(response.getDataPoints()).hasSize(3);
-            assertThat(response.getDataPoints().get(0).getValue()).isEqualTo(95.0);
-            assertThat(response.getDataPoints().get(1).getValue()).isEqualTo(90.0);
-            assertThat(response.getDataPoints().get(2).getValue()).isEqualTo(92.0);
+            assertThat(response.getValue()).isEqualTo(100.0);
         }
 
         @Test
-        @DisplayName("DataPoints are in chronological order (oldest first)")
-        void getSkillTrend_dataPointsChronological() {
-            Instant earlier = Instant.parse("2025-01-01T10:00:00Z");
-            Instant later   = Instant.parse("2025-02-01T10:00:00Z");
-
-            // Repository returns oldest-first (ORDER BY createdAt ASC)
-            List<ScoreHistory> history = List.of(
-                    buildScoreHistory(100.0f, 95.0f, earlier),
-                    buildScoreHistory(95.0f,  98.0f, later)
+        @DisplayName("Beginner + Beginner intensity = 0")
+        void getSkillTrend_beginnerBeginner_returns0() {
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("BEGINNER", "BEGINNER", Instant.parse("2025-01-15T10:00:00Z"))
             );
-            when(scoreHistoryRepository.findByUserIdSince(eq(userId), any(Instant.class)))
-                    .thenReturn(history);
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
+
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
+
+            assertThat(response.getValue()).isEqualTo(0.0);
+        }
+
+        @Test
+        @DisplayName("Intermediate + Casual = 50")
+        void getSkillTrend_intermediateCasual_returns50() {
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("INTERMEDIATE", "CASUAL", Instant.parse("2025-01-15T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
+
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
+
+            assertThat(response.getValue()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("Filters out ALL_LEVELS games (case-insensitive) and averages the rest")
+        void getSkillTrend_filtersAllLevels_averagesRest() {
+            // Advanced+Competitive=100, ALL_LEVELS excluded, Beginner+Beginner=0 → avg = 50
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("ADVANCED", "COMPETITIVE", Instant.parse("2025-01-15T10:00:00Z")),
+                    buildSkillParticipation("all_levels", "CASUAL", Instant.parse("2025-01-20T10:00:00Z")),
+                    buildSkillParticipation("BEGINNER", "BEGINNER", Instant.parse("2025-02-15T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
 
             StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "all");
 
-            assertThat(response.getDataPoints().get(0).getDate())
-                    .isEqualTo(earlier.toString());
-            assertThat(response.getDataPoints().get(1).getDate())
-                    .isEqualTo(later.toString());
+            assertThat(response.getValue()).isEqualTo(50.0);
         }
 
         @Test
-        @DisplayName("All-time timeframe passes Instant.EPOCH cutoff to repository")
-        void getSkillTrend_allTimeframe_passesEpochCutoff() {
-            when(scoreHistoryRepository.findByUserIdSince(eq(userId), eq(Instant.EPOCH)))
-                    .thenReturn(List.of());
+        @DisplayName("Monthly data points show cumulative running average")
+        void getSkillTrend_cumulativeAveragePerMonth() {
+            // Jan: Advanced+Competitive=100 → cumulative avg = 100
+            // Feb: Beginner+Beginner=0 → cumulative avg = (100+0)/2 = 50
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("ADVANCED", "COMPETITIVE", Instant.parse("2025-01-15T10:00:00Z")),
+                    buildSkillParticipation("BEGINNER", "BEGINNER", Instant.parse("2025-02-15T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
 
-            statsService.getSkillTrend(userId, "all");
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "all");
 
-            verify(scoreHistoryRepository).findByUserIdSince(userId, Instant.EPOCH);
+            assertThat(response.getDataPoints()).hasSize(2);
+            assertThat(response.getDataPoints().get(0).getDate()).isEqualTo("2025-01");
+            assertThat(response.getDataPoints().get(0).getValue()).isEqualTo(100.0);
+            assertThat(response.getDataPoints().get(1).getDate()).isEqualTo("2025-02");
+            assertThat(response.getDataPoints().get(1).getValue()).isEqualTo(50.0);
         }
 
         @Test
-        @DisplayName("Invalid timeframe throws IllegalArgumentException before querying")
-        void getSkillTrend_invalidTimeframe_throwsBeforeQuery() {
+        @DisplayName("Multiple games in same month are grouped together in cumulative average")
+        void getSkillTrend_multipleGamesPerMonth() {
+            // Jan game 1: Advanced+Competitive=100, Jan game 2: Beginner+Casual=25
+            // → cumulative avg after Jan = (100+25)/2 = 62.5
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation("ADVANCED", "COMPETITIVE", Instant.parse("2025-01-10T10:00:00Z")),
+                    buildSkillParticipation("BEGINNER", "CASUAL", Instant.parse("2025-01-20T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
+
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "all");
+
+            assertThat(response.getDataPoints()).hasSize(1);
+            assertThat(response.getDataPoints().get(0).getDate()).isEqualTo("2025-01");
+            assertThat(response.getDataPoints().get(0).getValue()).isEqualTo(62.5);
+        }
+
+        @Test
+        @DisplayName("Invalid timeframe throws IllegalArgumentException")
+        void getSkillTrend_invalidTimeframe_throws() {
             assertThatThrownBy(() -> statsService.getSkillTrend(userId, "invalid"))
                     .isInstanceOf(IllegalArgumentException.class);
-            verifyNoInteractions(scoreHistoryRepository);
+        }
+
+        @Test
+        @DisplayName("Games with null skillBand are excluded")
+        void getSkillTrend_nullSkillBand_excluded() {
+            List<GameParticipation> participations = List.of(
+                    buildSkillParticipation(null, "COMPETITIVE", Instant.parse("2025-01-15T10:00:00Z"))
+            );
+            when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
+                    .thenReturn(participations);
+
+            StatsDto.StatsResponse response = statsService.getSkillTrend(userId, "30");
+
+            assertThat(response.isEmpty()).isTrue();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // gameSkillScore static helpers
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("Skill score helpers")
+    class SkillScoreHelperTests {
+
+        @Test
+        @DisplayName("skillBandScore maps correctly")
+        void skillBandScore_mapping() {
+            assertThat(StatsService.skillBandScore("BEGINNER")).isEqualTo(0.0);
+            assertThat(StatsService.skillBandScore("INTERMEDIATE")).isEqualTo(50.0);
+            assertThat(StatsService.skillBandScore("ADVANCED")).isEqualTo(100.0);
+            assertThat(StatsService.skillBandScore("beginner")).isEqualTo(0.0);
+            assertThat(StatsService.skillBandScore(null)).isEqualTo(50.0);
+            assertThat(StatsService.skillBandScore("UNKNOWN")).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("intensityBandScore maps correctly")
+        void intensityBandScore_mapping() {
+            assertThat(StatsService.intensityBandScore("BEGINNER")).isEqualTo(0.0);
+            assertThat(StatsService.intensityBandScore("CASUAL")).isEqualTo(50.0);
+            assertThat(StatsService.intensityBandScore("COMPETITIVE")).isEqualTo(100.0);
+            assertThat(StatsService.intensityBandScore("casual")).isEqualTo(50.0);
+            assertThat(StatsService.intensityBandScore(null)).isEqualTo(50.0);
+            assertThat(StatsService.intensityBandScore("UNKNOWN")).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("gameSkillScore averages skill and intensity")
+        void gameSkillScore_averages() {
+            Game game1 = Game.builder().skillBand("ADVANCED").intensityBand("COMPETITIVE").build();
+            assertThat(StatsService.gameSkillScore(game1)).isEqualTo(100.0);
+
+            Game game2 = Game.builder().skillBand("BEGINNER").intensityBand("BEGINNER").build();
+            assertThat(StatsService.gameSkillScore(game2)).isEqualTo(0.0);
+
+            Game game3 = Game.builder().skillBand("ADVANCED").intensityBand("CASUAL").build();
+            assertThat(StatsService.gameSkillScore(game3)).isEqualTo(75.0);
         }
     }
 
@@ -394,6 +512,29 @@ class StatsServiceTest {
                 .sport(sport)
                 .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
                 .attendanceStatus(status)
+                .build();
+    }
+
+    private GameParticipation buildSkillParticipation(String skillBand, String intensityBand,
+                                                       Instant gameStartTime) {
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Test Game")
+                .startTime(gameStartTime)
+                .sport(sport)
+                .createdBy(user)
+                .status(Game.GameStatus.COMPLETED)
+                .skillBand(skillBand)
+                .intensityBand(intensityBand)
+                .build();
+
+        return GameParticipation.builder()
+                .participationId(UUID.randomUUID())
+                .user(user)
+                .game(game)
+                .sport(sport)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .attendanceStatus(GameParticipation.AttendanceStatus.ATTENDED)
                 .build();
     }
 

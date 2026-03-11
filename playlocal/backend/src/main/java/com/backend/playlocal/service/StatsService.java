@@ -1,10 +1,9 @@
 package com.backend.playlocal.service;
 
 import com.backend.playlocal.model.dto.StatsDto;
+import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.GameParticipation;
-import com.backend.playlocal.model.entity.ScoreHistory;
 import com.backend.playlocal.repository.GameParticipationRepository;
-import com.backend.playlocal.repository.ScoreHistoryRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -29,8 +28,9 @@ import java.util.stream.Collectors;
  *   <li><b>Attendance rate</b>: ATTENDED / total CONFIRMED for all games the user joined
  *       (including games where attendance was never formally confirmed, i.e. UNKNOWN).
  *       A broader measure of participation relative to commitments.</li>
- *   <li><b>Skill trend</b>: Reliability score over time from ScoreHistory, plotted as a
- *       chronological line chart.</li>
+ *   <li><b>Skill trend</b>: Skill evolution based on the skill level and intensity of games
+ *       the user has played. 100 = Advanced + Competitive, 0 = Beginner + Beginner-Friendly.
+ *       Games with "All Levels" skill band are excluded.</li>
  * </ul>
  *
  * <p>All metrics support timeframe filtering via a string parameter ("30", "90", "all").
@@ -43,12 +43,9 @@ public class StatsService {
             DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC);
 
     private final GameParticipationRepository participationRepository;
-    private final ScoreHistoryRepository scoreHistoryRepository;
 
-    public StatsService(GameParticipationRepository participationRepository,
-                        ScoreHistoryRepository scoreHistoryRepository) {
+    public StatsService(GameParticipationRepository participationRepository) {
         this.participationRepository = participationRepository;
-        this.scoreHistoryRepository = scoreHistoryRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -132,39 +129,97 @@ public class StatsService {
     // -------------------------------------------------------------------------
 
     /**
-     * Skill (reliability score) trend from ScoreHistory, ordered chronologically.
-     * Each data point is {@code {date: ISO-8601 instant, value: newScore}}.
-     * The aggregate {@code value} is the most recent reliability score in the timeframe.
+     * Skill evolution based on the skill level and intensity of games the user has
+     * played.  100&nbsp;=&nbsp;Advanced&nbsp;+&nbsp;Competitive, 0&nbsp;=&nbsp;Beginner&nbsp;+&nbsp;Beginner-Friendly.
+     *
+     * <p>Games with skill band "all_levels" / "ALL_LEVELS" are excluded.
+     * For each qualifying game a score is computed as
+     * {@code (skillScore + intensityScore) / 2}.
+     * Monthly data points show the <em>cumulative</em> average of all games up to that month.
      *
      * @param userId    the authenticated user's ID
      * @param timeframe "30", "90", or "all"
-     * @return stats response; {@code empty=true} when user has no score history
+     * @return stats response; {@code empty=true} when no qualifying games exist
      */
     public StatsDto.StatsResponse getSkillTrend(UUID userId, String timeframe) {
         Instant cutoff = parseCutoff(timeframe);
-        List<ScoreHistory> history = scoreHistoryRepository.findByUserIdSince(userId, cutoff);
+        List<GameParticipation> all = participationRepository.findConfirmedByUserSince(userId, cutoff);
 
-        if (history.isEmpty()) {
+        // Filter out games with "ALL_LEVELS" skill band (case-insensitive)
+        List<GameParticipation> qualifying = all.stream()
+                .filter(gp -> {
+                    String sb = gp.getGame().getSkillBand();
+                    return sb != null && !sb.equalsIgnoreCase("all_levels");
+                })
+                .collect(Collectors.toList());
+
+        if (qualifying.isEmpty()) {
             return emptyResponse("skill_trend", timeframe);
         }
 
-        List<StatsDto.DataPoint> dataPoints = history.stream()
-                .map(sh -> StatsDto.DataPoint.builder()
-                        .date(sh.getCreatedAt().toString())
-                        .value(sh.getNewScore())
-                        .build())
-                .collect(Collectors.toList());
+        // Build cumulative-average data points per month
+        Map<String, List<Double>> monthlyScores = new TreeMap<>();
+        for (GameParticipation gp : qualifying) {
+            String month = MONTH_FMT.format(gp.getGame().getStartTime());
+            double score = gameSkillScore(gp.getGame());
+            monthlyScores.computeIfAbsent(month, k -> new java.util.ArrayList<>()).add(score);
+        }
 
-        // Most recent score as the headline value
-        double currentScore = history.get(history.size() - 1).getNewScore();
+        List<StatsDto.DataPoint> dataPoints = new java.util.ArrayList<>();
+        double cumulativeSum = 0;
+        int cumulativeCount = 0;
+        for (Map.Entry<String, List<Double>> entry : monthlyScores.entrySet()) {
+            for (double s : entry.getValue()) {
+                cumulativeSum += s;
+                cumulativeCount++;
+            }
+            dataPoints.add(StatsDto.DataPoint.builder()
+                    .date(entry.getKey())
+                    .value(round1(cumulativeSum / cumulativeCount))
+                    .build());
+        }
+
+        double currentAvg = round1(cumulativeSum / cumulativeCount);
 
         return StatsDto.StatsResponse.builder()
                 .metric("skill_trend")
-                .value(currentScore)
+                .value(currentAvg)
                 .timeframe(timeframe)
                 .dataPoints(dataPoints)
                 .empty(false)
                 .build();
+    }
+
+    /**
+     * Compute a 0-100 skill score for a single game as the average of its
+     * skill-band score and intensity-band score.
+     */
+    static double gameSkillScore(Game game) {
+        double skill = skillBandScore(game.getSkillBand());
+        double intensity = intensityBandScore(game.getIntensityBand());
+        return (skill + intensity) / 2.0;
+    }
+
+    /** Map skill band string to a 0-100 numeric score. */
+    static double skillBandScore(String band) {
+        if (band == null) return 50.0; // default to middle if unknown
+        return switch (band.toUpperCase()) {
+            case "BEGINNER"     -> 0.0;
+            case "INTERMEDIATE" -> 50.0;
+            case "ADVANCED"     -> 100.0;
+            default             -> 50.0;
+        };
+    }
+
+    /** Map intensity band string to a 0-100 numeric score. */
+    static double intensityBandScore(String band) {
+        if (band == null) return 50.0; // default to middle if unknown
+        return switch (band.toUpperCase()) {
+            case "BEGINNER"    -> 0.0;
+            case "CASUAL"      -> 50.0;
+            case "COMPETITIVE" -> 100.0;
+            default            -> 50.0;
+        };
     }
 
     // -------------------------------------------------------------------------

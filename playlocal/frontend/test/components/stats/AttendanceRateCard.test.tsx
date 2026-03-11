@@ -11,14 +11,6 @@ jest.mock('@/components/stats/MetricTooltip', () => ({
   ),
 }));
 
-// Mock lucide-react
-jest.mock('lucide-react', () => ({
-  Users:        () => <div data-testid="icon-users" />,
-  TrendingUp:   () => <div data-testid="icon-trend-up" />,
-  TrendingDown: () => <div data-testid="icon-trend-down" />,
-  Minus:        () => <div data-testid="icon-minus" />,
-}));
-
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
 const dataResponse = (overrides: Partial<StatsResponse> = {}): StatsResponse => ({
@@ -91,64 +83,33 @@ describe('AttendanceRateCard', () => {
       expect(trigger).toHaveAttribute('aria-label', 'Attendance Rate information');
     });
 
-    it('renders the attendance rate card with correct value', () => {
+    it('renders the attendance rate card with rounded percentage value', () => {
       render(<AttendanceRateCard data={dataResponse()} isLoading={false} error={null} />);
       expect(screen.getByTestId('attendance-rate-card')).toBeInTheDocument();
-      expect(screen.getByText('80.0')).toBeInTheDocument();
+      expect(screen.getByText('80%')).toBeInTheDocument();
       expect(screen.getByText('Attendance Rate')).toBeInTheDocument();
     });
 
-    it('shows "90 days" label for 90-day timeframe', () => {
-      render(
-        <AttendanceRateCard data={dataResponse({ timeframe: '90' })} isLoading={false} error={null} />,
-      );
-      expect(screen.getByText(/Last 90 days/)).toBeInTheDocument();
+    it('renders a progress bar with correct width', () => {
+      const { container } = render(<AttendanceRateCard data={dataResponse()} isLoading={false} error={null} />);
+      const bar = container.querySelector('.bg-blue-500');
+      expect(bar).toBeInTheDocument();
+      expect(bar).toHaveStyle({ width: '80%' });
     });
 
-    it('shows "all time" label for all-time timeframe', () => {
-      render(
-        <AttendanceRateCard data={dataResponse({ timeframe: 'all' })} isLoading={false} error={null} />,
-      );
-      expect(screen.getByText(/Last all time/)).toBeInTheDocument();
+    it('caps progress bar width at 100%', () => {
+      const d = dataResponse({ value: 120.0 });
+      const { container } = render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
+      const bar = container.querySelector('.bg-blue-500');
+      expect(bar).toHaveStyle({ width: '100%' });
     });
 
-    it('shows trending-up indicator when rate improves', () => {
-      const d = dataResponse({
-        dataPoints: [
-          { date: '2025-01', value: 50.0 },
-          { date: '2025-02', value: 90.0 },
-        ],
-      });
-      render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
-      expect(screen.getByTestId('trend-up')).toBeInTheDocument();
-    });
-
-    it('shows trending-down indicator when rate drops significantly', () => {
-      const d = dataResponse({
-        dataPoints: [
-          { date: '2025-01', value: 95.0 },
-          { date: '2025-02', value: 60.0 },
-        ],
-      });
-      render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
-      expect(screen.getByTestId('trend-down')).toBeInTheDocument();
-    });
-
-    it('shows stable indicator when single data point', () => {
-      const d = dataResponse({ dataPoints: [{ date: '2025-01', value: 80.0 }] });
-      render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
-      expect(screen.getByTestId('trend-flat')).toBeInTheDocument();
-    });
-
-    it('shows stable indicator when two data points differ by less than 1 (flat trend)', () => {
-      const d = dataResponse({
-        dataPoints: [
-          { date: '2025-01', value: 80.0 },
-          { date: '2025-02', value: 80.5 },
-        ],
-      });
-      render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
-      expect(screen.getByTestId('trend-flat')).toBeInTheDocument();
+    it('renders 0% progress bar for value 0', () => {
+      const d = dataResponse({ value: 0 });
+      const { container } = render(<AttendanceRateCard data={d} isLoading={false} error={null} />);
+      expect(screen.getByText('0%')).toBeInTheDocument();
+      const bar = container.querySelector('.bg-blue-500');
+      expect(bar).toHaveStyle({ width: '0%' });
     });
   });
 });
