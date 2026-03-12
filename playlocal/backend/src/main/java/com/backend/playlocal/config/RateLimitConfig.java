@@ -33,7 +33,7 @@ public class RateLimitConfig {
     }
 
     public static class ReportLimit {
-        private int maxPerHour = 10;
+        private int maxPerHour = 2;
 
         public int getMaxPerHour() {
             return maxPerHour;

@@ -46,7 +46,7 @@ rate-limit:
     max-attempts: 5
     window-minutes: 15
   report:
-    max-per-hour: 10
+    max-per-hour: 2
   general:
     requests-per-minute: 60
 
