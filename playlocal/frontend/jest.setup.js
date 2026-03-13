@@ -1,5 +1,10 @@
 require('@testing-library/jest-dom');
 
+// window.scrollTo is not implemented in jsdom (e.g. used by UserProfile and others)
+if (typeof window !== "undefined" && typeof window.scrollTo !== "function") {
+  window.scrollTo = jest.fn();
+}
+
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {

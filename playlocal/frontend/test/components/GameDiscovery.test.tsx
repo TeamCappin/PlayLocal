@@ -16,6 +16,11 @@ jest.mock('next/link', () => {
   };
 });
 
+const mockSearchParams = { get: jest.fn((key: string) => (key === "view" ? null : null)) };
+jest.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+}));
+
 jest.mock('../../hooks/useGames', () => ({
   useGames: jest.fn(),
 }));
@@ -46,8 +51,17 @@ import { useGames } from '../../hooks/useGames';
 describe('GameDiscovery Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Prevent view-mode persisted in sessionStorage from leaking between tests
     sessionStorage.clear();
+    mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? null : null));
+    Object.defineProperty(global.navigator, "geolocation", {
+      value: {
+        getCurrentPosition: jest.fn((success?: (p: unknown) => void, error?: (err: { code: number; message: string }) => void) => {
+          if (error) error({ code: 1, message: "User denied geolocation" });
+        }),
+      },
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe('Loading State', () => {
@@ -230,7 +244,7 @@ describe('GameDiscovery Component', () => {
       (useGames as jest.Mock).mockReturnValue({
         games: mockGames,
         isLoading: false,
-        error: null,
+        refetch: jest.fn(),
       });
 
       render(<GameDiscovery />);
@@ -249,7 +263,7 @@ describe('GameDiscovery Component', () => {
       (useGames as jest.Mock).mockReturnValue({
         games: mockGames,
         isLoading: false,
-        error: null,
+        refetch: jest.fn(),
       });
 
       render(<GameDiscovery />);
@@ -1722,11 +1736,11 @@ describe('GameDiscovery Component', () => {
       expect(sessionStorage.getItem('playlocal-view-mode')).toBe('grid');
     });
 
-    it('restores map view mode from sessionStorage on mount', () => {
-      sessionStorage.setItem('playlocal-view-mode', 'map');
+    it("restores map view mode from sessionStorage on mount", () => {
+      mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? "map" : null));
       render(<GameDiscovery />);
-      // Component should start in map mode
-      expect(screen.getByTestId('map-view')).toBeInTheDocument();
+      // URL view=map shows map
+      expect(screen.getByTestId("map-view")).toBeInTheDocument();
     });
 
     it('restores grid view mode from sessionStorage on mount', () => {

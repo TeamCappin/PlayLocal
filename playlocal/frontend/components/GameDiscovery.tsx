@@ -4,12 +4,10 @@ import { useSearchParams } from 'next/navigation';
 import {
   MapPin,
   Clock,
-  Users,
   TrendingUp,
   Filter,
   Calendar,
   MapIcon,
-  Cloud,
   Sun,
   Loader2,
   X,
@@ -447,7 +445,6 @@ const mockGames: GameResponse[] = [
     createdAt: new Date().toISOString(),
   },
 ];
-
 interface FilterState {
   sportName: string;
   distance: string;
@@ -461,16 +458,16 @@ export function GameDiscovery() {
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
   // URL is the source of truth: Browse Games = /discover (grid), Discover Games = /discover?view=map (map).
+  // Only update state when the URL-derived value actually changes to avoid cascading renders.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const viewFromUrl = searchParams.get('view');
-    if (viewFromUrl === 'map') {
-      setViewMode('map');
-      sessionStorage.setItem('playlocal-view-mode', 'map');
-    } else {
-      setViewMode('grid');
-      sessionStorage.setItem('playlocal-view-mode', 'grid');
-    }
+    const nextMode = viewFromUrl === 'map' ? 'map' : 'grid';
+    setViewMode((prev) => {
+      if (prev === nextMode) return prev;
+      sessionStorage.setItem('playlocal-view-mode', nextMode);
+      return nextMode;
+    });
   }, [searchParams]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{
@@ -595,7 +592,7 @@ export function GameDiscovery() {
     return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
   }, [appliedFilters, userLocation]);
 
-  const { games: apiGames, isLoading, error, refetch } = useGames(apiFilters);
+  const { games: apiGames, isLoading, refetch } = useGames(apiFilters);
 
   // Refetch when a game is updated (e.g. from GameRoom Save Changes) so Discover stays in sync
   useEffect(() => {
