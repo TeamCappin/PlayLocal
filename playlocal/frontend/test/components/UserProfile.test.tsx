@@ -18,40 +18,47 @@ jest.mock('../../context/AuthContext', () => ({
 jest.mock('../../lib/api', () => {
   const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
   const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
-  
+
   // Mock OQS data with proper structure
-  const createMockOqsFn = () => jest.fn(() => Promise.resolve({
-    userId: 'test-user-id',
-    displayName: 'Test Organizer',
-    oqsScore: 85.0,
-    gameCompletionRate: 90.0,
-    repeatPlayerRate: 75.0,
-    totalGamesHosted: 10,
-    completedGames: 9,
-    cancelledGames: 1,
-    totalUniquePlayers: 50,
-    repeatPlayers: 20,
-    confidenceLevel: 'HIGH',
-    confidenceDescription: 'Based on 10 games - score is highly reliable',
-    lastCalculatedAt: '2024-01-15T10:00:00Z',
-  }));
-  
-  const createMockOqsInfoCardFn = () => jest.fn(() => Promise.resolve({
-    oqsScore: 85.0,
-    overallDescription: 'Good organizer with reliable game history',
-    gameCompletionRate: 90.0,
-    completionRateDescription: 'Good reliability: 9 of 10 games completed',
-    completedGames: 9,
-    totalGames: 10,
-    repeatPlayerRate: 75.0,
-    repeatRateDescription: 'Great retention! 20 of 50 players have returned',
-    repeatPlayers: 20,
-    totalUniquePlayers: 50,
-    confidenceLevel: 'HIGH',
-    confidenceDescription: 'Based on 10 games - score is highly reliable',
-    gamesForNextLevel: 0,
-  }));
-  
+  const createMockOqsFn = () =>
+    jest.fn(() =>
+      Promise.resolve({
+        userId: 'test-user-id',
+        displayName: 'Test Organizer',
+        oqsScore: 85.0,
+        gameCompletionRate: 90.0,
+        repeatPlayerRate: 75.0,
+        totalGamesHosted: 10,
+        completedGames: 9,
+        cancelledGames: 1,
+        totalUniquePlayers: 50,
+        repeatPlayers: 20,
+        confidenceLevel: 'HIGH',
+        confidenceDescription: 'Based on 10 games - score is highly reliable',
+        lastCalculatedAt: '2024-01-15T10:00:00Z',
+      })
+    );
+
+  const createMockOqsInfoCardFn = () =>
+    jest.fn(() =>
+      Promise.resolve({
+        oqsScore: 85.0,
+        overallDescription: 'Good organizer with reliable game history',
+        gameCompletionRate: 90.0,
+        completionRateDescription: 'Good reliability: 9 of 10 games completed',
+        completedGames: 9,
+        totalGames: 10,
+        repeatPlayerRate: 75.0,
+        repeatRateDescription:
+          'Great retention! 20 of 50 players have returned',
+        repeatPlayers: 20,
+        totalUniquePlayers: 50,
+        confidenceLevel: 'HIGH',
+        confidenceDescription: 'Based on 10 games - score is highly reliable',
+        gamesForNextLevel: 0,
+      })
+    );
+
   return {
     usersApi: {
       getProfile: jest.fn(),
@@ -119,11 +126,78 @@ jest.mock('lucide-react', () => ({
   AlertCircle: () => <div />,
   UserPlus: () => <div />,
   Gamepad2: () => <div />,
+  Lock: () => <div data-testid="icon-lock" />,
   Info: () => <div />,
   XCircle: () => <div />,
   ChevronDown: () => <div />,
   ChevronUp: () => <div />,
 }));
+
+describe('UserProfile Restricted Profile (US-7.12)', () => {
+  const currentUser = {
+    id: 2,
+    displayName: 'Current User',
+    userId: 200,
+    slug: 'current-user',
+  };
+
+  const restrictedUser = {
+    userId: 101,
+    displayName: 'Private User',
+    slug: 'testuser',
+    reliabilityScore: 95,
+    gamesCount: 42,
+    endorsementsCount: 7,
+    defaultIntensity: 'competitive',
+    bio: 'Secret bio',
+    location: 'Hidden City',
+    profileRestricted: true,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: currentUser,
+      isAuthenticated: true,
+      refreshUser: jest.fn(),
+    });
+    (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(restrictedUser);
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('shows lock icon and privacy message for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Some profile details are private')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('icon-lock')).toBeInTheDocument();
+  });
+
+  it('hides bio for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Private User')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Secret bio')).not.toBeInTheDocument();
+  });
+
+  it('shows trust metrics for restricted profiles', async () => {
+    render(<UserProfile />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Private User')).toBeInTheDocument();
+    });
+
+    // Stats grid should be visible with trust metrics
+    expect(screen.getByText('Games Played')).toBeInTheDocument();
+    expect(screen.getByText('Reliability Score')).toBeInTheDocument();
+    expect(screen.getAllByText('Endorsements').length).toBeGreaterThanOrEqual(1);
+  });
+});
 
 describe('UserProfile Endorsements', () => {
   const mockUser = {
@@ -132,6 +206,7 @@ describe('UserProfile Endorsements', () => {
     userId: 101,
     gamesCount: 10,
     reliabilityScore: 95,
+    bio: 'Test bio',
   };
 
   beforeEach(() => {
@@ -161,12 +236,14 @@ describe('UserProfile Endorsements', () => {
       },
     ];
 
-    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue(mockEndorsements);
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue(
+      mockEndorsements
+    );
 
     render(<UserProfile />);
 
     await waitFor(() => {
-        expect(endorsementsApi.getUserEndorsements).toHaveBeenCalledWith(101);
+      expect(endorsementsApi.getUserEndorsements).toHaveBeenCalledWith(101);
     });
 
     // Check for "Endorsements" text (appears in stats and section header)
@@ -183,9 +260,11 @@ describe('UserProfile Endorsements', () => {
     // Check for endorsement details
     const organizerPicks = screen.getAllByText('Organizer Pick');
     expect(organizerPicks.length).toBeGreaterThanOrEqual(1);
-    
+
     expect(screen.getByText('by Organizer Bob')).toBeInTheDocument();
-    expect(screen.getByText((content) => content.includes('Saturday Basketball'))).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes('Saturday Basketball'))
+    ).toBeInTheDocument();
   });
 
   it('displays "No endorsements yet" when list is empty', async () => {
@@ -194,7 +273,7 @@ describe('UserProfile Endorsements', () => {
     render(<UserProfile />);
 
     await waitFor(() => {
-         expect(endorsementsApi.getUserEndorsements).toHaveBeenCalledWith(101);
+      expect(endorsementsApi.getUserEndorsements).toHaveBeenCalledWith(101);
     });
 
     expect(screen.getByText('No endorsements yet')).toBeInTheDocument();
@@ -203,7 +282,9 @@ describe('UserProfile Endorsements', () => {
   it('calls refreshUser when viewing own profile', async () => {
     const mockRefreshUser = jest.fn();
     // Override useParams to match the mock user's slug (Test User -> test-user)
-    jest.spyOn(require('next/navigation'), 'useParams').mockReturnValue({ username: 'test-user' });
+    jest
+      .spyOn(require('next/navigation'), 'useParams')
+      .mockReturnValue({ username: 'test-user' });
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isAuthenticated: true,
@@ -227,7 +308,9 @@ describe('UserProfile Endorsements', () => {
       gameDate: '2023-11-15T10:00:00',
     }));
 
-    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue(manyEndorsements);
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockResolvedValue(
+      manyEndorsements
+    );
 
     // Act
     render(<UserProfile />);
@@ -242,7 +325,9 @@ describe('UserProfile Endorsements', () => {
 
   it('handles username param as array (uses first element)', async () => {
     // Arrange: username array case
-    jest.spyOn(require('next/navigation'), 'useParams').mockReturnValue({ username: ['test-user'] });
+    jest
+      .spyOn(require('next/navigation'), 'useParams')
+      .mockReturnValue({ username: ['test-user'] });
 
     const refreshUserSpy = jest.fn();
     (useAuth as jest.Mock).mockReturnValue({
@@ -260,11 +345,17 @@ describe('UserProfile Endorsements', () => {
   });
 
   it('handles endorsements load failure and still shows profile', async () => {
-    (endorsementsApi.getUserEndorsements as jest.Mock).mockRejectedValue(new Error('Network error'));
+    (endorsementsApi.getUserEndorsements as jest.Mock).mockRejectedValue(
+      new Error('Network error')
+    );
 
     render(<UserProfile />);
 
-    await waitFor(() => expect(endorsementsApi.getUserEndorsements).toHaveBeenCalled());
-    expect(screen.getAllByText('Endorsements').length).toBeGreaterThanOrEqual(1);
+    await waitFor(() =>
+      expect(endorsementsApi.getUserEndorsements).toHaveBeenCalled()
+    );
+    expect(screen.getAllByText('Endorsements').length).toBeGreaterThanOrEqual(
+      1
+    );
   });
 });

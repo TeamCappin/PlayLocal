@@ -1,8 +1,11 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { useGame, usePastGamesByUserNeedingAttendanceUpdate } from "../../hooks/useGames";
-import { gamesApi } from "@/lib/api";
+import { act, renderHook, waitFor } from '@testing-library/react';
+import {
+  useGame,
+  usePastGamesByUserNeedingAttendanceUpdate,
+} from '../../hooks/useGames';
+import { gamesApi } from '@/lib/api';
 
-jest.mock("@/lib/api", () => {
+jest.mock('@/lib/api', () => {
   const mockFn = jest.fn(() => Promise.resolve({}));
   return {
     gamesApi: {
@@ -39,7 +42,7 @@ jest.mock("@/lib/api", () => {
   };
 });
 
-const hooksPath = "../../hooks/useGames";
+const hooksPath = '../../hooks/useGames';
 
 const mockGetById = gamesApi.getById as jest.MockedFunction<
   typeof gamesApi.getById
@@ -61,23 +64,23 @@ const mockGetPastByUserNeedingAttendanceUpdate =
   >;
 
 const mockGame = {
-  gameId: "g1",
-  title: "Test Game",
-  sportName: "Basketball",
-  startTime: "2025-02-01T10:00:00Z",
-  location: { name: "Park" },
-  skillBand: "Intermediate",
-  intensityBand: "Competitive",
+  gameId: 'g1',
+  title: 'Test Game',
+  sportName: 'Basketball',
+  startTime: '2025-02-01T10:00:00Z',
+  location: { name: 'Park' },
+  skillBand: 'Intermediate',
+  intensityBand: 'Competitive',
 } as any;
 
 const mockRoster = {
   confirmed: [
     {
-      participationId: "p1",
-      userId: "u1",
-      displayName: "Alice",
-      role: "PARTICIPANT",
-      joinStatus: "CONFIRMED",
+      participationId: 'p1',
+      userId: 'u1',
+      displayName: 'Alice',
+      role: 'PARTICIPANT',
+      joinStatus: 'CONFIRMED',
     },
   ],
   waitlisted: [],
@@ -85,12 +88,12 @@ const mockRoster = {
   spotsAvailable: 9,
 } as any;
 
-describe("useGame", () => {
+describe('useGame', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("does not fetch when gameId is undefined", async () => {
+  it('does not fetch when gameId is undefined', async () => {
     const { result } = renderHook(() => useGame(undefined));
 
     await waitFor(() => {
@@ -102,11 +105,11 @@ describe("useGame", () => {
     expect(result.current.roster).toBeNull();
   });
 
-  it("fetches game and roster on mount when gameId is set", async () => {
+  it('fetches game and roster on mount when gameId is set', async () => {
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
 
-    const { result } = renderHook(() => useGame("game-123"));
+    const { result } = renderHook(() => useGame('game-123'));
 
     expect(result.current.isLoading).toBe(true);
 
@@ -114,39 +117,39 @@ describe("useGame", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockGetById).toHaveBeenCalledWith("game-123");
-    expect(mockGetRoster).toHaveBeenCalledWith("game-123");
+    expect(mockGetById).toHaveBeenCalledWith('game-123');
+    expect(mockGetRoster).toHaveBeenCalledWith('game-123');
     expect(result.current.game).toEqual(mockGame);
     expect(result.current.roster).toEqual(mockRoster);
     expect(result.current.error).toBeNull();
   });
 
-  it("sets error when fetch fails", async () => {
-    mockGetById.mockRejectedValue(new Error("Not found"));
-    mockGetRoster.mockRejectedValue(new Error("Not found"));
+  it('sets error when fetch fails', async () => {
+    mockGetById.mockRejectedValue(new Error('Not found'));
+    mockGetRoster.mockRejectedValue(new Error('Not found'));
 
-    const { result } = renderHook(() => useGame("game-123"));
+    const { result } = renderHook(() => useGame('game-123'));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.error).toBe("Failed to load game");
+    expect(result.current.error).toBe('Failed to load game');
     expect(result.current.game).toBeNull();
     expect(result.current.roster).toBeNull();
   });
 
-  it("refetch loads game and roster again", async () => {
+  it('refetch loads game and roster again', async () => {
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
 
-    const { result } = renderHook(() => useGame("game-123"));
+    const { result } = renderHook(() => useGame('game-123'));
 
     await waitFor(() => {
       expect(result.current.game).toEqual(mockGame);
     });
 
-    const updatedGame = { ...mockGame, title: "Updated" };
+    const updatedGame = { ...mockGame, title: 'Updated' };
     mockGetById.mockResolvedValue(updatedGame);
 
     await act(async () => {
@@ -154,22 +157,22 @@ describe("useGame", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.game?.title).toBe("Updated");
+      expect(result.current.game?.title).toBe('Updated');
     });
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("joinGame calls API and refetches game", async () => {
+  it('joinGame calls API and refetches game', async () => {
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
     mockJoin.mockResolvedValue({
-      participationId: "p1",
-      joinStatus: "CONFIRMED",
+      participationId: 'p1',
+      joinStatus: 'CONFIRMED',
       waitlistPosition: null,
-      message: "Joined",
+      message: 'Joined',
     } as any);
 
-    const { result } = renderHook(() => useGame("game-123"));
+    const { result } = renderHook(() => useGame('game-123'));
 
     await waitFor(() => {
       expect(result.current.game).toEqual(mockGame);
@@ -180,26 +183,26 @@ describe("useGame", () => {
       joinResponse = await result.current.joinGame();
     });
 
-    expect(mockJoin).toHaveBeenCalledWith("game-123", undefined);
-    expect(joinResponse.joinStatus).toBe("CONFIRMED");
+    expect(mockJoin).toHaveBeenCalledWith('game-123', undefined);
+    expect(joinResponse.joinStatus).toBe('CONFIRMED');
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("joinGame throws when gameId is undefined", async () => {
+  it('joinGame throws when gameId is undefined', async () => {
     const { result } = renderHook(() => useGame(undefined));
 
     await expect(act(async () => result.current.joinGame())).rejects.toThrow(
-      "Game ID required",
+      'Game ID required'
     );
     expect(mockJoin).not.toHaveBeenCalled();
   });
 
-  it("leaveGame calls API and refetches game", async () => {
+  it('leaveGame calls API and refetches game', async () => {
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
     mockLeave.mockResolvedValue(undefined as any);
 
-    const { result } = renderHook(() => useGame("game-123"));
+    const { result } = renderHook(() => useGame('game-123'));
 
     await waitFor(() => {
       expect(result.current.game).toEqual(mockGame);
@@ -209,30 +212,30 @@ describe("useGame", () => {
       await result.current.leaveGame();
     });
 
-    expect(mockLeave).toHaveBeenCalledWith("game-123");
+    expect(mockLeave).toHaveBeenCalledWith('game-123');
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("leaveGame throws when gameId is undefined", async () => {
+  it('leaveGame throws when gameId is undefined', async () => {
     const { result } = renderHook(() => useGame(undefined));
 
     await expect(act(async () => result.current.leaveGame())).rejects.toThrow(
-      "Game ID required",
+      'Game ID required'
     );
     expect(mockLeave).not.toHaveBeenCalled();
   });
 });
 
-describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
+describe('usePastGamesByUserNeedingAttendanceUpdate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("fetches games on mount", async () => {
+  it('fetches games on mount', async () => {
     mockGetPastByUserNeedingAttendanceUpdate.mockResolvedValue([mockGame]);
 
     const { result } = renderHook(() =>
-      usePastGamesByUserNeedingAttendanceUpdate(),
+      usePastGamesByUserNeedingAttendanceUpdate()
     );
 
     expect(result.current.isLoading).toBe(true);
@@ -246,11 +249,11 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("returns empty list when no games need update", async () => {
+  it('returns empty list when no games need update', async () => {
     mockGetPastByUserNeedingAttendanceUpdate.mockResolvedValue([]);
 
     const { result } = renderHook(() =>
-      usePastGamesByUserNeedingAttendanceUpdate(),
+      usePastGamesByUserNeedingAttendanceUpdate()
     );
 
     await waitFor(() => {
@@ -260,13 +263,13 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
     expect(result.current.games).toEqual([]);
   });
 
-  it("sets error when fetch fails", async () => {
+  it('sets error when fetch fails', async () => {
     mockGetPastByUserNeedingAttendanceUpdate.mockRejectedValue(
-      new Error("Unauthorized"),
+      new Error('Unauthorized')
     );
 
     const { result } = renderHook(() =>
-      usePastGamesByUserNeedingAttendanceUpdate(),
+      usePastGamesByUserNeedingAttendanceUpdate()
     );
 
     await waitFor(() => {
@@ -274,16 +277,16 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
     });
 
     expect(result.current.error).toBe(
-      "Failed to load past games needing attendance update",
+      'Failed to load past games needing attendance update'
     );
     expect(result.current.games).toEqual([]);
   });
 
-  it("refetch reloads games", async () => {
+  it('refetch reloads games', async () => {
     mockGetPastByUserNeedingAttendanceUpdate.mockResolvedValue([mockGame]);
 
     const { result } = renderHook(() =>
-      usePastGamesByUserNeedingAttendanceUpdate(),
+      usePastGamesByUserNeedingAttendanceUpdate()
     );
 
     await waitFor(() => {
@@ -292,7 +295,7 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
 
     mockGetPastByUserNeedingAttendanceUpdate.mockResolvedValue([
       mockGame,
-      { ...mockGame, gameId: "g2" } as any,
+      { ...mockGame, gameId: 'g2' } as any,
     ]);
 
     await act(async () => {
@@ -309,7 +312,7 @@ describe("usePastGamesByUserNeedingAttendanceUpdate", () => {
 // ---------------------------------------------
 // useGames
 // ---------------------------------------------
-describe("useGames", () => {
+describe('useGames', () => {
   const mockGetUpcoming = gamesApi.getUpcoming as jest.MockedFunction<
     typeof gamesApi.getUpcoming
   >;
@@ -318,7 +321,7 @@ describe("useGames", () => {
     jest.clearAllMocks();
   });
 
-  it("fetches upcoming games on mount", async () => {
+  it('fetches upcoming games on mount', async () => {
     // Arrange
     mockGetUpcoming.mockResolvedValue([mockGame] as any);
 
@@ -338,9 +341,9 @@ describe("useGames", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("sets error when fetch fails", async () => {
+  it('sets error when fetch fails', async () => {
     // Arrange
-    mockGetUpcoming.mockRejectedValue(new Error("Network error"));
+    mockGetUpcoming.mockRejectedValue(new Error('Network error'));
 
     // Act
     const { result } = renderHook(() => require(hooksPath).useGames());
@@ -348,11 +351,11 @@ describe("useGames", () => {
     // Assert
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.error).toBe("Failed to load games");
+    expect(result.current.error).toBe('Failed to load games');
     expect(result.current.games).toEqual([]);
   });
 
-  it("refetch reloads games", async () => {
+  it('refetch reloads games', async () => {
     // Arrange
     mockGetUpcoming.mockResolvedValue([mockGame] as any);
 
@@ -362,7 +365,7 @@ describe("useGames", () => {
 
     mockGetUpcoming.mockResolvedValue([
       mockGame,
-      { ...mockGame, gameId: "g2" } as any,
+      { ...mockGame, gameId: 'g2' } as any,
     ]);
 
     // Act
@@ -379,7 +382,7 @@ describe("useGames", () => {
 // ---------------------------------------------
 // usePastGames
 // ---------------------------------------------
-describe("usePastGames", () => {
+describe('usePastGames', () => {
   const mockGetPast = gamesApi.getPast as jest.MockedFunction<
     typeof gamesApi.getPast
   >;
@@ -388,7 +391,7 @@ describe("usePastGames", () => {
     jest.clearAllMocks();
   });
 
-  it("fetches past games on mount", async () => {
+  it('fetches past games on mount', async () => {
     // Arrange
     mockGetPast.mockResolvedValue([mockGame] as any);
 
@@ -405,9 +408,9 @@ describe("usePastGames", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("sets error when fetch fails", async () => {
+  it('sets error when fetch fails', async () => {
     // Arrange
-    mockGetPast.mockRejectedValue(new Error("Server error"));
+    mockGetPast.mockRejectedValue(new Error('Server error'));
 
     // Act
     const { result } = renderHook(() => require(hooksPath).usePastGames());
@@ -415,11 +418,11 @@ describe("usePastGames", () => {
     // Assert
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.error).toBe("Failed to load past games");
+    expect(result.current.error).toBe('Failed to load past games');
     expect(result.current.games).toEqual([]);
   });
 
-  it("refetch reloads past games", async () => {
+  it('refetch reloads past games', async () => {
     // Arrange
     mockGetPast.mockResolvedValue([mockGame] as any);
 
@@ -429,7 +432,7 @@ describe("usePastGames", () => {
 
     mockGetPast.mockResolvedValue([
       mockGame,
-      { ...mockGame, gameId: "g3" } as any,
+      { ...mockGame, gameId: 'g3' } as any,
     ]);
 
     // Act
@@ -446,19 +449,21 @@ describe("usePastGames", () => {
 // ---------------------------------------------
 // useCreateGame
 // ---------------------------------------------
-describe("useCreateGame", () => {
-  const mockCreate = gamesApi.create as jest.MockedFunction<typeof gamesApi.create>;
+describe('useCreateGame', () => {
+  const mockCreate = gamesApi.create as jest.MockedFunction<
+    typeof gamesApi.create
+  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("creates a game successfully", async () => {
+  it('creates a game successfully', async () => {
     // Arrange
     const gameData = {
-      title: "New Game",
-      sportName: "Basketball",
-      startTime: "2025-02-01T10:00:00Z",
+      title: 'New Game',
+      sportName: 'Basketball',
+      startTime: '2025-02-01T10:00:00Z',
       maxPlayers: 10,
     } as any;
 
@@ -482,10 +487,12 @@ describe("useCreateGame", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("sets error when create fails", async () => {
+  it('sets error from error message when create fails', async () => {
     // Arrange
-    const gameData = { title: "New Game", sportName: "Basketball" } as any;
-    mockCreate.mockRejectedValue(new Error("Validation error"));
+    const gameData = { title: 'New Game', sportName: 'Basketball' } as any;
+    mockCreate.mockRejectedValue(
+      new Error('Start time must be in the future')
+    );
 
     const { result } = renderHook(() => require(hooksPath).useCreateGame());
 
@@ -494,13 +501,32 @@ describe("useCreateGame", () => {
       await expect(result.current.createGame(gameData)).rejects.toBeDefined();
     });
 
-    // Assert
-    expect(result.current.error).toBe("Failed to create game");
+    // Assert — now uses the actual error message instead of a hardcoded string
+    expect(result.current.error).toBe('Start time must be in the future');
+    await waitFor(() => expect(result.current.isCreating).toBe(false));
+  });
+
+  it('falls back to default error when error has no message', async () => {
+    // Arrange
+    const gameData = { title: 'New Game', sportName: 'Basketball' } as any;
+    const err = new Error();
+    err.message = '';
+    mockCreate.mockRejectedValue(err);
+
+    const { result } = renderHook(() => require(hooksPath).useCreateGame());
+
+    // Act
+    await act(async () => {
+      await expect(result.current.createGame(gameData)).rejects.toBeDefined();
+    });
+
+    // Assert — falls back to default
+    expect(result.current.error).toBe('Failed to create game');
     await waitFor(() => expect(result.current.isCreating).toBe(false));
   });
 });
 
-describe("useGame - cancelGame", () => {
+describe('useGame - cancelGame', () => {
   const mockCancel = gamesApi.cancel as jest.MockedFunction<
     typeof gamesApi.cancel
   >;
@@ -510,12 +536,12 @@ describe("useGame - cancelGame", () => {
     mockCancel.mockClear();
   });
 
-  it("cancels a game successfully and refreshes data", async () => {
-    const gameId = "game-123";
+  it('cancels a game successfully and refreshes data', async () => {
+    const gameId = 'game-123';
     const cancelledGame = {
       ...mockGame,
       gameId,
-      status: "CANCELLED",
+      status: 'CANCELLED',
     } as any;
 
     // Mock initial fetch
@@ -544,20 +570,20 @@ describe("useGame - cancelGame", () => {
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("throws error when gameId is missing", async () => {
+  it('throws error when gameId is missing', async () => {
     const { result } = renderHook(() => useGame(null as any));
 
     await expect(async () => {
       await result.current.cancelGame();
-    }).rejects.toThrow("Game ID required");
+    }).rejects.toThrow('Game ID required');
   });
 
-  it("handles cancel failure gracefully", async () => {
-    const gameId = "game-456";
+  it('handles cancel failure gracefully', async () => {
+    const gameId = 'game-456';
 
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
-    mockCancel.mockRejectedValue(new Error("Not authorized"));
+    mockCancel.mockRejectedValue(new Error('Not authorized'));
 
     const { result } = renderHook(() => useGame(gameId));
 
@@ -567,25 +593,25 @@ describe("useGame - cancelGame", () => {
 
     await expect(async () => {
       await result.current.cancelGame();
-    }).rejects.toThrow("Not authorized");
+    }).rejects.toThrow('Not authorized');
 
     expect(mockCancel).toHaveBeenCalledWith(gameId);
   });
 });
 
-describe("useGame - completeGame and archiveGame", () => {
+describe('useGame - completeGame and archiveGame', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockComplete.mockClear();
     mockArchive.mockClear();
   });
 
-  it("completes a game successfully and refreshes data", async () => {
-    const gameId = "game-789";
+  it('completes a game successfully and refreshes data', async () => {
+    const gameId = 'game-789';
     const completedGame = {
       ...mockGame,
       gameId,
-      status: "COMPLETED",
+      status: 'COMPLETED',
     } as any;
 
     mockGetById.mockResolvedValueOnce(mockGame);
@@ -607,12 +633,12 @@ describe("useGame - completeGame and archiveGame", () => {
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("archives a game successfully and refreshes data", async () => {
-    const gameId = "game-900";
+  it('archives a game successfully and refreshes data', async () => {
+    const gameId = 'game-900';
     const archivedGame = {
       ...mockGame,
       gameId,
-      status: "ARCHIVED",
+      status: 'ARCHIVED',
     } as any;
 
     mockGetById.mockResolvedValueOnce(mockGame);
@@ -634,8 +660,8 @@ describe("useGame - completeGame and archiveGame", () => {
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
-  it("completeGame throws when gamesApi.complete is unavailable", async () => {
-    const gameId = "game-901";
+  it('completeGame throws when gamesApi.complete is unavailable', async () => {
+    const gameId = 'game-901';
     const originalComplete = (gamesApi as any).complete;
     (gamesApi as any).complete = undefined;
 
@@ -644,14 +670,14 @@ describe("useGame - completeGame and archiveGame", () => {
 
       await expect(async () => {
         await result.current.completeGame();
-      }).rejects.toThrow("gamesApi.complete is not available");
+      }).rejects.toThrow('gamesApi.complete is not available');
     } finally {
       (gamesApi as any).complete = originalComplete;
     }
   });
 
-  it("archiveGame throws when gamesApi.archive is unavailable", async () => {
-    const gameId = "game-902";
+  it('archiveGame throws when gamesApi.archive is unavailable', async () => {
+    const gameId = 'game-902';
     const originalArchive = (gamesApi as any).archive;
     (gamesApi as any).archive = undefined;
 
@@ -660,7 +686,7 @@ describe("useGame - completeGame and archiveGame", () => {
 
       await expect(async () => {
         await result.current.archiveGame();
-      }).rejects.toThrow("gamesApi.archive is not available");
+      }).rejects.toThrow('gamesApi.archive is not available');
     } finally {
       (gamesApi as any).archive = originalArchive;
     }

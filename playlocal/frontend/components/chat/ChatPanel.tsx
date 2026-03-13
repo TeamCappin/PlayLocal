@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatUser } from "@/lib/chat/types";
-import { dayKey, formatFullDate } from "@/lib/chat/time";
-import { useGameChat } from "@/hooks/useGameChat";
-import { ChatMessageRow } from "./ChatMessageRow";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChatUser } from '@/lib/chat/types';
+import { dayKey, formatFullDate } from '@/lib/chat/time';
+import { useGameChat } from '@/hooks/useGameChat';
+import { ChatMessageRow } from './ChatMessageRow';
 
 export function ChatPanel({
   gameId,
@@ -24,7 +23,7 @@ export function ChatPanel({
     enabled: canChat,
   });
 
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -33,7 +32,7 @@ export function ChatPanel({
   function scrollToBottom(smooth = true) {
     const el = listRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }
 
   function onListScroll() {
@@ -51,13 +50,14 @@ export function ChatPanel({
   useEffect(() => {
     if (!listRef.current) return;
     if (isNearBottom) scrollToBottom(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowJump(!isNearBottom);
   }, [messages.length, isNearBottom]);
 
   const grouped = useMemo(() => {
     const out: Array<
-      | { type: "day"; key: string; label: string }
-      | { type: "msg"; id: string; senderId: string; isHost: boolean; any: any }
+      | { type: 'day'; key: string; label: string }
+      | { type: 'msg'; id: string; senderId: string; isHost: boolean; any: any }
     > = [];
 
     let lastDay: string | null = null;
@@ -66,10 +66,10 @@ export function ChatPanel({
       if (dk !== lastDay) {
         lastDay = dk;
         const d = new Date(m.createdAt);
-        out.push({ type: "day", key: dk, label: formatFullDate(d) });
+        out.push({ type: 'day', key: dk, label: formatFullDate(d) });
       }
       out.push({
-        type: "msg",
+        type: 'msg',
         id: m.id,
         senderId: m.senderId,
         isHost: !!hostUserId && m.senderId === hostUserId,
@@ -84,7 +84,7 @@ export function ChatPanel({
     if (!text) return;
 
     sendMessage(text);
-    setDraft("");
+    setDraft('');
 
     setIsNearBottom(true);
     setShowJump(false);
@@ -106,14 +106,14 @@ export function ChatPanel({
     // and give it a predictable height so input can sit at the bottom.
     <div
       className="w-full min-w-0"
-      style={{ display: "flex", flexDirection: "column" }}
+      style={{ display: 'flex', flexDirection: 'column' }}
     >
       {/* Chat "card" area */}
       <div
         className="w-full min-w-0 rounded-lg"
         style={{
-          display: "flex",
-          flexDirection: "column",
+          display: 'flex',
+          flexDirection: 'column',
           // This is the IMPORTANT part:
           // It limits the chat area height so the page doesn't grow infinitely.
           // Adjust if you want bigger/smaller.
@@ -123,7 +123,7 @@ export function ChatPanel({
       >
         {/* Banner (never scrolls) */}
         <div className="shrink-0 w-full p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
-          {connected ? "Chat is live." : "Connecting to chat..."} Messages are
+          {connected ? 'Chat is live.' : 'Connecting to chat...'} Messages are
           visible only to this game room.
         </div>
 
@@ -137,27 +137,30 @@ export function ChatPanel({
         <div
           className="mt-4 w-full min-w-0"
           style={{
-            display: "flex",
-            flexDirection: "column",
+            display: 'flex',
+            flexDirection: 'column',
             flex: 1,
             minHeight: 0, // CRITICAL for scroll to work inside flex
           }}
         >
           {/* Message list (THIS scrolls) */}
-          <div className="relative w-full min-w-0" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            className="relative w-full min-w-0"
+            style={{ flex: 1, minHeight: 0 }}
+          >
             <div
               ref={listRef}
               onScroll={onListScroll}
               className="w-full overflow-y-auto overflow-x-hidden pr-2"
               style={{
-                height: "100%",
+                height: '100%',
                 minHeight: 0,
-                overscrollBehavior: "contain",
+                overscrollBehavior: 'contain',
               }}
             >
               <div className="space-y-4">
                 {grouped.map((item) => {
-                  if (item.type === "day") {
+                  if (item.type === 'day') {
                     return (
                       <div
                         key={`day-${item.key}`}
@@ -184,13 +187,13 @@ export function ChatPanel({
             </div>
 
             {showJump && (
-  <button
-    onClick={() => {
-      setIsNearBottom(true);
-      setShowJump(false);
-      scrollToBottom(true);
-    }}
-    className="
+              <button
+                onClick={() => {
+                  setIsNearBottom(true);
+                  setShowJump(false);
+                  scrollToBottom(true);
+                }}
+                className="
       absolute right-3
       bottom-[64px]
       px-3 py-1.5
@@ -204,12 +207,11 @@ export function ChatPanel({
       transition
       backdrop-blur
     "
-    style={{ zIndex: 30 }}
-  >
-    Jump to latest
-  </button>
-)}
-
+                style={{ zIndex: 30 }}
+              >
+                Jump to latest
+              </button>
+            )}
           </div>
 
           {/* Input (always at bottom, never scrolls) */}
@@ -219,7 +221,7 @@ export function ChatPanel({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") onSend();
+                if (e.key === 'Enter') onSend();
               }}
               placeholder="Type your message..."
               className="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"

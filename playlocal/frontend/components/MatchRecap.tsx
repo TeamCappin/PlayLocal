@@ -1,12 +1,35 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Share2, Download, Trophy, Users, MapPin, Calendar, Star, TrendingUp, Camera, MessageCircle, ThumbsUp, Award } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Share2,
+  Download,
+  Trophy,
+  Users,
+  MapPin,
+  Calendar,
+  Star,
+  TrendingUp,
+  Camera,
+  MessageCircle,
+  ThumbsUp,
+  Award,
+} from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 export function MatchRecap() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState<'summary' | 'stats' | 'highlights'>('summary');
+  const [activeTab, setActiveTab] = useState<
+    'summary' | 'stats' | 'highlights'
+  >('summary');
 
   const recap = {
     id: '1',
@@ -25,23 +48,94 @@ export function MatchRecap() {
       avatar: 'OE',
       stats: ' 15 pts, 8 rebs, 3 asts',
     },
-    image: 'https://images.unsplash.com/photo-1709552899537-8f0a171aaf40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBvdXRkb29yfGVufDF8fHx8MTc2NjE2MTQzMnww&ixlib=rb-4.1.0&q=80&w=1080',
+    image:
+      'https://images.unsplash.com/photo-1709552899537-8f0a171aaf40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBvdXRkb29yfGVufDF8fHx8MTc2NjE2MTQzMnww&ixlib=rb-4.1.0&q=80&w=1080',
   };
 
   const teams = {
     team1: [
-      { name: 'Minh Huynh', avatar: 'MH', points: 12, assists: 5, rebounds: 3, rating: 8.5 },
-      { name: 'Omar Elmasaoudi', avatar: 'OE', points: 15, assists: 3, rebounds: 8, rating: 9.2 },
-      { name: 'Asif Ali Khan', avatar: 'AK', points: 8, assists: 4, rebounds: 6, rating: 7.8 },
-      { name: 'Melissa Rahman', avatar: 'MR', points: 6, assists: 2, rebounds: 2, rating: 7.2 },
-      { name: 'Younes Bouhaba', avatar: 'YB', points: 10, assists: 6, rebounds: 4, rating: 8.3 },
+      {
+        name: 'Minh Huynh',
+        avatar: 'MH',
+        points: 12,
+        assists: 5,
+        rebounds: 3,
+        rating: 8.5,
+      },
+      {
+        name: 'Omar Elmasaoudi',
+        avatar: 'OE',
+        points: 15,
+        assists: 3,
+        rebounds: 8,
+        rating: 9.2,
+      },
+      {
+        name: 'Asif Ali Khan',
+        avatar: 'AK',
+        points: 8,
+        assists: 4,
+        rebounds: 6,
+        rating: 7.8,
+      },
+      {
+        name: 'Melissa Rahman',
+        avatar: 'MR',
+        points: 6,
+        assists: 2,
+        rebounds: 2,
+        rating: 7.2,
+      },
+      {
+        name: 'Younes Bouhaba',
+        avatar: 'YB',
+        points: 10,
+        assists: 6,
+        rebounds: 4,
+        rating: 8.3,
+      },
     ],
     team2: [
-      { name: 'Alexander El Ghaoui', avatar: 'AG', points: 14, assists: 3, rebounds: 5, rating: 8.7 },
-      { name: 'David Onwionoko', avatar: 'DO', points: 9, assists: 2, rebounds: 7, rating: 7.9 },
-      { name: 'Steven Zrihen', avatar: 'SZ', points: 11, assists: 4, rebounds: 3, rating: 8.1 },
-      { name: 'Youssef Yacoub', avatar: 'YY', points: 7, assists: 5, rebounds: 4, rating: 7.5 },
-      { name: 'Hudson Lu', avatar: 'HL', points: 5, assists: 3, rebounds: 2, rating: 7.0 },
+      {
+        name: 'Alexander El Ghaoui',
+        avatar: 'AG',
+        points: 14,
+        assists: 3,
+        rebounds: 5,
+        rating: 8.7,
+      },
+      {
+        name: 'David Onwionoko',
+        avatar: 'DO',
+        points: 9,
+        assists: 2,
+        rebounds: 7,
+        rating: 7.9,
+      },
+      {
+        name: 'Steven Zrihen',
+        avatar: 'SZ',
+        points: 11,
+        assists: 4,
+        rebounds: 3,
+        rating: 8.1,
+      },
+      {
+        name: 'Youssef Yacoub',
+        avatar: 'YY',
+        points: 7,
+        assists: 5,
+        rebounds: 4,
+        rating: 7.5,
+      },
+      {
+        name: 'Hudson Lu',
+        avatar: 'HL',
+        points: 5,
+        assists: 3,
+        rebounds: 2,
+        rating: 7.0,
+      },
     ],
   };
 
@@ -60,7 +154,8 @@ export function MatchRecap() {
       uploader: 'Minh H.',
       likes: 24,
       comments: 5,
-      image: 'https://images.unsplash.com/photo-1763318252210-7618a678c1f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjB0ZWFtJTIwY2VsZWJyYXRpb258ZW58MXx8fHwxNzY2Mjc2ODIzfDA&ixlib=rb-4.1.0&q=80&w=1080',
+      image:
+        'https://images.unsplash.com/photo-1763318252210-7618a678c1f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjB0ZWFtJTIwY2VsZWJyYXRpb258ZW58MXx8fHwxNzY2Mjc2ODIzfDA&ixlib=rb-4.1.0&q=80&w=1080',
     },
     {
       id: '2',
@@ -69,15 +164,36 @@ export function MatchRecap() {
       uploader: 'Omar E.',
       likes: 18,
       comments: 3,
-      image: 'https://images.unsplash.com/photo-1715313055891-af120687e23b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZW9wbGUlMjBwbGF5aW5nJTIwc3BvcnRzfGVufDF8fHx8MTc2NjI2Nzc4M3ww&ixlib=rb-4.1.0&q=80&w=1080',
+      image:
+        'https://images.unsplash.com/photo-1715313055891-af120687e23b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZW9wbGUlMjBwbGF5aW5nJTIwc3BvcnRzfGVufDF8fHx8MTc2NjI2Nzc4M3ww&ixlib=rb-4.1.0&q=80&w=1080',
     },
   ];
 
   const awards = [
-    { icon: '🏆', title: 'MVP', winner: 'Omar E.', reason: 'Highest overall rating' },
-    { icon: '🎯', title: 'Sharpshooter', winner: 'Alexander E.', reason: 'Most points scored' },
-    { icon: '🤝', title: 'Playmaker', winner: 'Younes B.', reason: 'Most assists' },
-    { icon: '💪', title: 'Defensive Beast', winner: 'Omar E.', reason: 'Most rebounds' },
+    {
+      icon: '🏆',
+      title: 'MVP',
+      winner: 'Omar E.',
+      reason: 'Highest overall rating',
+    },
+    {
+      icon: '🎯',
+      title: 'Sharpshooter',
+      winner: 'Alexander E.',
+      reason: 'Most points scored',
+    },
+    {
+      icon: '🤝',
+      title: 'Playmaker',
+      winner: 'Younes B.',
+      reason: 'Most assists',
+    },
+    {
+      icon: '💪',
+      title: 'Defensive Beast',
+      winner: 'Omar E.',
+      reason: 'Most rebounds',
+    },
   ];
 
   return (
@@ -132,19 +248,29 @@ export function MatchRecap() {
               <div className="grid grid-cols-2 gap-8 pt-6 border-t border-gray-200">
                 <div className="text-center">
                   <div className="text-gray-600 mb-2">Team 1</div>
-                  <div className="text-3xl text-emerald-600">{recap.score.team1}</div>
+                  <div className="text-3xl text-emerald-600">
+                    {recap.score.team1}
+                  </div>
                   <div className="mt-2 flex items-center justify-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <div key={i} className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full"></div>
+                      <div
+                        key={i}
+                        className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full"
+                      ></div>
                     ))}
                   </div>
                 </div>
                 <div className="text-center">
                   <div className="text-gray-600 mb-2">Team 2</div>
-                  <div className="text-3xl text-gray-900">{recap.score.team2}</div>
+                  <div className="text-3xl text-gray-900">
+                    {recap.score.team2}
+                  </div>
                   <div className="mt-2 flex items-center justify-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                      <div key={i} className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full"></div>
+                      <div
+                        key={i}
+                        className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full"
+                      ></div>
                     ))}
                   </div>
                 </div>
@@ -163,7 +289,9 @@ export function MatchRecap() {
                     </div>
                     <div>
                       <div className="text-gray-900">{recap.mvp.name}</div>
-                      <div className="text-sm text-gray-600">{recap.mvp.stats}</div>
+                      <div className="text-sm text-gray-600">
+                        {recap.mvp.stats}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -177,28 +305,31 @@ export function MatchRecap() {
                 <div className="flex">
                   <button
                     onClick={() => setActiveTab('summary')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'summary'
-                      ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'summary'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     Summary
                   </button>
                   <button
                     onClick={() => setActiveTab('stats')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'stats'
-                      ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'stats'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     Player Stats
                   </button>
                   <button
                     onClick={() => setActiveTab('highlights')}
-                    className={`flex-1 px-6 py-4 text-center transition-colors ${activeTab === 'highlights'
-                      ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                    className={`flex-1 px-6 py-4 text-center transition-colors ${
+                      activeTab === 'highlights'
+                        ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
                     Highlights
                   </button>
@@ -210,24 +341,40 @@ export function MatchRecap() {
                   <div className="space-y-6">
                     {/* Game Summary */}
                     <div>
-                      <h3 className="text-lg text-gray-900 mb-3">Game Summary</h3>
+                      <h3 className="text-lg text-gray-900 mb-3">
+                        Game Summary
+                      </h3>
                       <p className="text-gray-700 leading-relaxed">
-                        An intense matchup between two well-balanced teams. Team 1 took an early lead with strong shooting from Omar and Minh. Team 2 fought back in the second half with excellent defense and playmaking. The game came down to the final possessions, with Team 1 securing the victory 21-18.
+                        An intense matchup between two well-balanced teams. Team
+                        1 took an early lead with strong shooting from Omar and
+                        Minh. Team 2 fought back in the second half with
+                        excellent defense and playmaking. The game came down to
+                        the final possessions, with Team 1 securing the victory
+                        21-18.
                       </p>
                     </div>
 
                     {/* Awards */}
                     <div>
-                      <h3 className="text-lg text-gray-900 mb-3">Game Awards</h3>
+                      <h3 className="text-lg text-gray-900 mb-3">
+                        Game Awards
+                      </h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         {awards.map((award, index) => (
-                          <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                          <div
+                            key={index}
+                            className="p-4 bg-gray-50 rounded-lg"
+                          >
                             <div className="flex items-center gap-3 mb-2">
                               <span className="text-2xl">{award.icon}</span>
                               <div className="text-gray-900">{award.title}</div>
                             </div>
-                            <div className="text-emerald-600 mb-1">{award.winner}</div>
-                            <div className="text-sm text-gray-600">{award.reason}</div>
+                            <div className="text-emerald-600 mb-1">
+                              {award.winner}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {award.reason}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -235,7 +382,9 @@ export function MatchRecap() {
 
                     {/* Team Stats Comparison */}
                     <div>
-                      <h3 className="text-lg text-gray-900 mb-4">Team Comparison</h3>
+                      <h3 className="text-lg text-gray-900 mb-4">
+                        Team Comparison
+                      </h3>
                       <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={teamStats}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -260,7 +409,11 @@ export function MatchRecap() {
                       </div>
                       <div className="space-y-2">
                         {teams.team1.map((player, index) => (
-                          <PlayerStatRow key={index} player={player} rank={index + 1} />
+                          <PlayerStatRow
+                            key={index}
+                            player={player}
+                            rank={index + 1}
+                          />
                         ))}
                       </div>
                     </div>
@@ -273,7 +426,11 @@ export function MatchRecap() {
                       </div>
                       <div className="space-y-2">
                         {teams.team2.map((player, index) => (
-                          <PlayerStatRow key={index} player={player} rank={index + 1} />
+                          <PlayerStatRow
+                            key={index}
+                            player={player}
+                            rank={index + 1}
+                          />
                         ))}
                       </div>
                     </div>
@@ -285,14 +442,19 @@ export function MatchRecap() {
                     {highlights.length > 0 ? (
                       <>
                         {highlights.map((highlight) => (
-                          <div key={highlight.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div
+                            key={highlight.id}
+                            className="border border-gray-200 rounded-lg overflow-hidden"
+                          >
                             <img
                               src={highlight.image}
                               alt={highlight.caption}
                               className="w-full h-64 object-cover"
                             />
                             <div className="p-4">
-                              <p className="text-gray-900 mb-2">{highlight.caption}</p>
+                              <p className="text-gray-900 mb-2">
+                                {highlight.caption}
+                              </p>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">
                                   Posted by {highlight.uploader}
@@ -300,11 +462,15 @@ export function MatchRecap() {
                                 <div className="flex items-center gap-4">
                                   <button className="flex items-center gap-1 text-gray-600 hover:text-emerald-600 transition-colors">
                                     <ThumbsUp className="w-4 h-4" />
-                                    <span className="text-sm">{highlight.likes}</span>
+                                    <span className="text-sm">
+                                      {highlight.likes}
+                                    </span>
                                   </button>
                                   <button className="flex items-center gap-1 text-gray-600 hover:text-emerald-600 transition-colors">
                                     <MessageCircle className="w-4 h-4" />
-                                    <span className="text-sm">{highlight.comments}</span>
+                                    <span className="text-sm">
+                                      {highlight.comments}
+                                    </span>
                                   </button>
                                 </div>
                               </div>
@@ -354,7 +520,11 @@ export function MatchRecap() {
               <div className="space-y-3">
                 <InfoRow icon={<Calendar />} label="Date" value={recap.date} />
                 <InfoRow icon={<Clock />} label="Time" value={recap.time} />
-                <InfoRow icon={<MapPin />} label="Location" value={recap.location} />
+                <InfoRow
+                  icon={<MapPin />}
+                  label="Location"
+                  value={recap.location}
+                />
                 <InfoRow icon={<Users />} label="Players" value="10" />
               </div>
             </div>
@@ -408,7 +578,15 @@ function PlayerStatRow({ player, rank }: { player: any; rank: number }) {
   );
 }
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3">
       <div className="text-gray-400">{icon}</div>
@@ -422,7 +600,18 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 function Clock(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
     </svg>

@@ -24,6 +24,7 @@ public class FriendDto {
         private Integer gamesCount;
         private String status; // PENDING, ACCEPTED
         private String createdAt;
+        private Boolean profileRestricted; // US-7.12: true when viewer cannot see full profile
     }
 
     @Data

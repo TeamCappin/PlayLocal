@@ -104,8 +104,17 @@ public class OrganizerQualityService {
     }
 
     /**
-     * Calculate/recalculate OQS for an organizer.
-     * Called on game completion, cancellation, or when attendance is confirmed.
+     * Recomputes and persists the Organizer Quality Score for a single organizer.
+     * Major inputs that affect the output:
+     * - Organizer id 
+     * - Hosted games and their final statuses 
+     * - Participation/attendance records for completed games
+     *
+     * Expected behavior:
+     * - Updates metric fields, recalculates the weighted score, and saves the entity.
+     * - Writes a history record when the score changes meaningfully or on initial calculation.
+     *
+     * Typically called on game completion, cancellation, or attendance confirmation.
      */
     @Transactional
     public OrganizerQualityDto.OqsResponse calculateOqs(UUID organizerId, OrganizerScoreHistory.OqsChangeReason reason, Game triggeringGame) {
@@ -210,6 +219,20 @@ public class OrganizerQualityService {
 
     // ==================== Private Helper Methods ====================
 
+    /**
+     * Aggregates an organizer's objective hosting metrics and stores them onto the provided OQS entity.
+     *
+     * Business intent: produce a simple, explainable signal of organizer reliability (finishing games) and retention
+     * (players choosing to come back), which can be displayed to players and used to build trust.
+     *
+     * Major inputs that affect the output:
+     * - All games created by the organizer (only FINAL statuses are counted: COMPLETED/CANCELLED)
+     * - Participation records for completed games (used to compute repeat-player rate)
+     *
+     * Expected behavior:
+     * - Games not in a final state (SCHEDULED/IN_PROGRESS/ARCHIVED) do not contribute yet.
+     * - With no finalized games, completion rate defaults to 100% (no evidence of cancellations yet).
+     */
     private void calculateMetrics(OrganizerQualityScore oqs, UUID organizerId) {
         // Get all games hosted by this organizer
         List<Game> hostedGames = gameRepository.findByOrganizer(organizerId);
@@ -244,6 +267,21 @@ public class OrganizerQualityService {
         calculateRepeatPlayerRate(oqs, organizerId, hostedGames);
     }
 
+    /**
+     * Computes how often players return to this organizer's games.
+     *
+     * Business intent: reward organizers who create experiences players want to repeat, distinct from pure
+     * reliability/cancellation behavior.
+     *
+     * Major inputs that affect the output:
+     * - Completed games for this organizer (only COMPLETED games count toward repeat behavior)
+     * - Participation join/attendance status (counts only CONFIRMED + ATTENDED)
+     * - Organizer id (organizer's own participation is excluded)
+     *
+     * Expected behavior:
+     * - A "repeat player" is any unique player who attended 2+ of the organizer's completed games.
+     * - Rate is computed as \(repeatPlayers / totalUniquePlayers * 100\). If there are no eligible players, rate is 0.
+     */
     private void calculateRepeatPlayerRate(OrganizerQualityScore oqs, UUID organizerId, List<Game> hostedGames) {
         if (hostedGames.isEmpty()) {
             oqs.setTotalUniquePlayers(0);
@@ -297,6 +335,19 @@ public class OrganizerQualityService {
         oqs.setRepeatPlayerRate(repeatRate);
     }
 
+    /**
+     * Combines the two underlying metrics into a single score via a fixed-weight weighted average.
+     *
+     * Business intent: keep OQS easy to reason about and stable over time while still reflecting two key dimensions:
+     * organizer reliability (completion) and player retention (repeat attendance).
+     *
+     * Major inputs that affect the output:
+     * - Completion rate (0-100)
+     * - Repeat player rate (0-100)
+     *
+     * Expected behavior:
+     * - Returns \(completionRate * 0.6 + repeatPlayerRate * 0.4\).
+     */
     private float calculateOqsScore(float completionRate, float repeatPlayerRate) {
         // Weighted average: 60% completion rate + 40% repeat player rate
         return (completionRate * COMPLETION_RATE_WEIGHT) + (repeatPlayerRate * REPEAT_PLAYER_RATE_WEIGHT);
@@ -331,7 +382,7 @@ public class OrganizerQualityService {
                 .build();
     }
 
-private void logOqsChange(OrganizerQualityScore oqs, Game game,
+    private void logOqsChange(OrganizerQualityScore oqs, Game game,
                               float previousOqs, float newOqs, float delta,
                               float previousCompletionRate, float newCompletionRate,
                               float previousRepeatRate, float newRepeatRate,

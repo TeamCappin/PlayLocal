@@ -1,6 +1,12 @@
 // Re-export all hooks for convenience
 export { useAuth, AuthProvider } from '@/context/AuthContext';
-export { useGames, useGame, useCreateGame, usePastGames, usePastGamesByUserNeedingAttendanceUpdate } from './useGames';
+export {
+  useGames,
+  useGame,
+  useCreateGame,
+  usePastGames,
+  usePastGamesByUserNeedingAttendanceUpdate,
+} from './useGames';
 export { useNotifications } from './useNotifications';
 export { useReportUser } from './useReportUser';
 export { useAttendance } from './useAttendance';

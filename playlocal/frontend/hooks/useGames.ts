@@ -1,40 +1,40 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import {
   gamesApi,
   GameResponse,
   RosterResponse,
   JoinResponse,
-  GameFilters
-} from "@/lib/api";
+  GameFilters,
+} from '@/lib/api';
 
 export function useGames(filters?: GameFilters) {
-    const [games, setGames] = useState<GameResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [games, setGames] = useState<GameResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    const fetchGames = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            if (!gamesApi || typeof gamesApi.getUpcoming !== 'function') {
-                throw new Error('gamesApi.getUpcoming is not available');
-            }
-            const data = await gamesApi.getUpcoming(filters);
-            setGames(data || []);
-        } catch (err) {
-            setError("Failed to load games");
-            console.error("Error fetching games:", err);
-            setGames([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [filters]);
+  const fetchGames = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      if (!gamesApi || typeof gamesApi.getUpcoming !== 'function') {
+        throw new Error('gamesApi.getUpcoming is not available');
+      }
+      const data = await gamesApi.getUpcoming(filters);
+      setGames(data || []);
+    } catch (err) {
+      setError('Failed to load games');
+      console.error('Error fetching games:', err);
+      setGames([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters]);
 
-    useEffect(() => {
-        fetchGames();
-    }, [fetchGames]);
+  useEffect(() => {
+    fetchGames();
+  }, [fetchGames]);
 
-    return { games, isLoading, error, refetch: fetchGames };
+  return { games, isLoading, error, refetch: fetchGames };
 }
 
 export function usePastGames() {
@@ -51,8 +51,8 @@ export function usePastGames() {
       const data = await gamesApi.getPast();
       setGames(data || []);
     } catch (err) {
-      setError("Failed to load past games");
-      console.error("Error fetching past games:", err);
+      setError('Failed to load past games');
+      console.error('Error fetching past games:', err);
       setGames([]);
     } finally {
       setIsLoading(false);
@@ -74,16 +74,21 @@ export function usePastGamesByUserNeedingAttendanceUpdate() {
     setIsLoading(true);
     setError(null);
     try {
-      if (!gamesApi || typeof gamesApi.getPastByUserNeedingAttendanceUpdate !== 'function') {
-        throw new Error('gamesApi.getPastByUserNeedingAttendanceUpdate is not available');
+      if (
+        !gamesApi ||
+        typeof gamesApi.getPastByUserNeedingAttendanceUpdate !== 'function'
+      ) {
+        throw new Error(
+          'gamesApi.getPastByUserNeedingAttendanceUpdate is not available'
+        );
       }
       const data = await gamesApi.getPastByUserNeedingAttendanceUpdate();
       setGames(data || []);
     } catch (err) {
-      setError("Failed to load past games needing attendance update");
+      setError('Failed to load past games needing attendance update');
       console.error(
-        "Error fetching past games needing attendance update:",
-        err,
+        'Error fetching past games needing attendance update:',
+        err
       );
       setGames([]);
     } finally {
@@ -109,7 +114,11 @@ export function useGame(gameId: string | undefined) {
     setIsLoading(true);
     setError(null);
     try {
-      if (!gamesApi || typeof gamesApi.getById !== 'function' || typeof gamesApi.getRoster !== 'function') {
+      if (
+        !gamesApi ||
+        typeof gamesApi.getById !== 'function' ||
+        typeof gamesApi.getRoster !== 'function'
+      ) {
         throw new Error('gamesApi methods are not available');
       }
       const [gameData, rosterData] = await Promise.all([
@@ -119,8 +128,8 @@ export function useGame(gameId: string | undefined) {
       setGame(gameData || null);
       setRoster(rosterData || null);
     } catch (err) {
-      setError("Failed to load game");
-      console.error("Error fetching game:", err);
+      setError('Failed to load game');
+      console.error('Error fetching game:', err);
       setGame(null);
       setRoster(null);
     } finally {
@@ -133,22 +142,22 @@ export function useGame(gameId: string | undefined) {
   }, [fetchGame]);
 
   const joinGame = async (
-    confirmedTagIds?: string[],
+    confirmedTagIds?: string[]
   ): Promise<JoinResponse> => {
-    if (!gameId) throw new Error("Game ID required");
+    if (!gameId) throw new Error('Game ID required');
     if (!gamesApi || typeof gamesApi.join !== 'function') {
       throw new Error('gamesApi.join is not available');
     }
     const response = await gamesApi.join(
       gameId,
-      confirmedTagIds ? { confirmedTagIds } : undefined,
+      confirmedTagIds ? { confirmedTagIds } : undefined
     );
     await fetchGame(); // Refresh data
     return response;
   };
 
   const leaveGame = async (): Promise<void> => {
-    if (!gameId) throw new Error("Game ID required");
+    if (!gameId) throw new Error('Game ID required');
     if (!gamesApi || typeof gamesApi.leave !== 'function') {
       throw new Error('gamesApi.leave is not available');
     }
@@ -213,8 +222,8 @@ export function useCreateGame() {
       }
       const game = await gamesApi.create(data);
       return game;
-    } catch (err) {
-      setError("Failed to create game");
+    } catch (err: any) {
+      setError(err.message || 'Failed to create game');
       throw err;
     } finally {
       setIsCreating(false);
