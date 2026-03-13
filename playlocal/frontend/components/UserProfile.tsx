@@ -5,7 +5,6 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
-  Award,
   Users,
   Star,
   CheckCircle,
@@ -104,7 +103,9 @@ export function UserProfile() {
             ? await usersApi.getProfile(usernameStr)
             : await usersApi.getProfileBySlug(usernameStr);
           setOtherUser(data);
-          window.scrollTo(0, 0);
+          if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+            window.scrollTo(0, 0);
+          }
         } catch (err) {
           console.error('Failed to fetch profile', err);
           setProfileError('Failed to load profile. Please try again later.');
