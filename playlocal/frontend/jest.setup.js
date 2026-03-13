@@ -1,7 +1,7 @@
 require('@testing-library/jest-dom');
 
-// window.scrollTo is not implemented in jsdom (e.g. used by UserProfile and others)
-if (typeof window !== "undefined" && typeof window.scrollTo !== "function") {
+// window.scrollTo is not implemented in jsdom (throws "Not implemented" when called)
+if (typeof window !== 'undefined') {
   window.scrollTo = jest.fn();
 }
 
