@@ -5,7 +5,6 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
-  Award,
   Users,
   Star,
   CheckCircle,
