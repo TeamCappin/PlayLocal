@@ -54,7 +54,7 @@ public class ReportService {
         User reporter = userRepository.findActiveById(reporterId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Rate limit check (10 reports per hour)
+        // Rate limit check (2 reports per hour to avoid spam/abuse)
         int recentReports = reportRepository.countRecentReportsByUser(
                 reporterId, Instant.now().minus(1, ChronoUnit.HOURS));
         if (recentReports >= rateLimitConfig.getReport().getMaxPerHour()) {

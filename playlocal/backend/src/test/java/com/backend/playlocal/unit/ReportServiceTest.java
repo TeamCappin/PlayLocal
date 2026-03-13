@@ -101,7 +101,7 @@ class ReportServiceTest {
                                 .build();
 
                 when(rateLimitConfig.getReport()).thenReturn(reportLimit);
-                when(reportLimit.getMaxPerHour()).thenReturn(10);
+                when(reportLimit.getMaxPerHour()).thenReturn(2);
         }
 
         @Test
@@ -248,11 +248,11 @@ class ReportServiceTest {
         }
 
         @Test
-        @DisplayName("US-1.4: createReport rate limit exceeded throws exception")
+        @DisplayName("US-1.4: createReport rate limit exceeded throws exception (max 2 per hour)")
         void createReport_RateLimitExceeded_ThrowsException() {
-                // Given
+                // Given: user already has 2 reports in the last hour (limit is 2)
                 when(userRepository.findActiveById(reporterId)).thenReturn(Optional.of(reporter));
-                when(reportRepository.countRecentReportsByUser(eq(reporterId), any(Instant.class))).thenReturn(10);
+                when(reportRepository.countRecentReportsByUser(eq(reporterId), any(Instant.class))).thenReturn(2);
 
                 ReportDto.CreateRequest request = ReportDto.CreateRequest.builder()
                                 .reportedUserId(reportedUserId.toString())
