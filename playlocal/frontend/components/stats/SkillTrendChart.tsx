@@ -62,13 +62,7 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
       data-testid="skill-trend-chart"
       className={`bg-white rounded-xl border border-gray-200 p-6 transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
-      <div className="flex items-center gap-1 mb-6">
-        <h2 className="text-xl text-gray-900">Skill Evolution</h2>
-        <MetricTooltip
-          content="Your skill evolution based on the skill level and intensity of games you've played. 100 = Advanced & Competitive, 0 = Beginner & Beginner-Friendly. Games marked 'All Levels Welcome' are not counted."
-          label="Skill Trend information"
-        />
-      </div>
+      <h2 className="text-xl text-gray-900 mb-6">Skill Evolution</h2>
 
       <div data-testid="skill-trend-recharts">
         <ResponsiveContainer width="100%" height={300}>
@@ -86,6 +80,11 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      <MetricTooltip
+        content="Your skill evolution based on the skill level and intensity of games you've played. 100 = Advanced & Competitive, 0 = Beginner & Beginner-Friendly. Games marked 'All Levels Welcome' are not counted."
+        label="Skill Trend information"
+      />
     </div>
   );
 }

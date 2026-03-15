@@ -1,11 +1,7 @@
 'use client';
 
-import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Info } from 'lucide-react';
 
 interface MetricTooltipProps {
   /**
@@ -21,37 +17,40 @@ interface MetricTooltipProps {
 }
 
 /**
- * A small ⓘ icon that surfaces a tooltip with a plain-language explanation of
- * the metric on hover and keyboard focus.
- *
- * Accessibility guarantees:
- *  - Trigger is a `<button>` with an `aria-label` so screen readers announce its purpose.
- *  - Radix Tooltip automatically sets `role="tooltip"` on the content panel and
- *    manages `aria-describedby` linkage between trigger and content.
- *  - The icon carries `aria-hidden="true"` to avoid double-reading.
- *  - Visible focus ring (`focus-visible:ring-2`) meets WCAG 2.4.7 (Focus Visible).
+ * OQS-style expandable explanation row for a metric.
  */
 export function MetricTooltip({ content, label }: MetricTooltipProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const title = label.replace(/\s+information$/i, '');
+
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          data-testid="metric-tooltip-trigger"
-          className="inline-flex items-center justify-center text-gray-400 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition-colors"
-        >
-          <Info className="w-3 h-3" aria-hidden="true" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        role="tooltip"
-        data-testid="metric-tooltip-content"
-        className="max-w-[220px] text-center leading-snug"
+    <div className="mt-3 border-t border-gray-200 pt-3">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={isOpen}
+        data-testid="metric-tooltip-trigger"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between text-sm text-gray-600 transition-colors hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md"
       >
-        {content}
-      </TooltipContent>
-    </Tooltip>
+        <span className="flex items-center gap-2">
+          <Info className="h-4 w-4" aria-hidden="true" />
+          How is {title} calculated?
+        </span>
+        {isOpen ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+      </button>
+
+      {isOpen && (
+        <div
+          role="tooltip"
+          data-testid="metric-tooltip-content"
+          className="mt-3"
+        >
+          <div className="rounded-lg bg-gray-50 p-3">
+            <p className="text-xs leading-relaxed text-gray-600">{content}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

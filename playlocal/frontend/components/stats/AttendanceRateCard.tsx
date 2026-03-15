@@ -49,13 +49,7 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
       className={`transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          <span className="text-gray-600">Attendance Rate</span>
-          <MetricTooltip
-            content="How often you showed up to events you signed up for. Calculated as games you attended divided by your total confirmed games, including no-shows."
-            label="Attendance Rate information"
-          />
-        </div>
+        <span className="text-gray-600">Attendance Rate</span>
         <span className="text-gray-900">{Math.round(value)}%</span>
       </div>
       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -64,6 +58,10 @@ export function AttendanceRateCard({ data, isLoading, error }: AttendanceRateCar
           style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
+      <MetricTooltip
+        content="How often you showed up to events you signed up for. Calculated as games you attended divided by your total confirmed games, including no-shows."
+        label="Attendance Rate information"
+      />
     </div>
   );
 }

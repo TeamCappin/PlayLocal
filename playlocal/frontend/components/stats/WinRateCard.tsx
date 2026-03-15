@@ -49,13 +49,7 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
       className={`transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          <span className="text-gray-600">Win Rate</span>
-          <MetricTooltip
-            content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted — draws and unknown results are excluded."
-            label="Win Rate information"
-          />
-        </div>
+        <span className="text-gray-600">Win Rate</span>
         <span className="text-gray-900">{Math.round(value)}%</span>
       </div>
       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -64,6 +58,10 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
           style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
+      <MetricTooltip
+        content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted - draws and unknown results are excluded."
+        label="Win Rate information"
+      />
     </div>
   );
 }
