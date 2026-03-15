@@ -41,6 +41,7 @@ perform_request() {
   shift 4
 
   local curl_output
+  # Always create the response file so error paths can safely print it.
   : > "$response_file"
   if [[ -n "$body_file" ]]; then
     if ! curl_output="$(curl -sS --max-time "$TIMEOUT_SECONDS" -X "$method" "$url" \
@@ -69,6 +70,7 @@ perform_request() {
 json_get() {
   local response_file="$1"
   local expression="$2"
+  # Dot-path extractor used for simple response fields (for example: token, message).
   python3 - "$response_file" "$expression" <<'PY'
 import json
 import sys
@@ -128,6 +130,7 @@ join_one_game() {
   local join_request_file="$work_dir/join-request.json"
   printf '{}\n' > "$join_request_file"
 
+  # Try discovered games in order and stop at the first successful join.
   while IFS= read -r game_id; do
     [[ -n "$game_id" ]] || continue
 
@@ -186,6 +189,7 @@ EOF
 
   discovery_response="$work_dir/discovery-$iteration-response.json"
   discovery_url="$BASE_URL/games?lat=$LAT&lon=$LON&radiusKm=$RADIUS_KM"
+  # Discovery is the geospatial path under test.
   discovery_meta="$(perform_request "GET" "$discovery_url" "" "$discovery_response" -H "Authorization: Bearer $token")"
   discovery_code="${discovery_meta%% *}"
   discovery_time="${discovery_meta##* }"
@@ -223,6 +227,7 @@ def read_values(path_str):
 
 
 def percentile_95(values):
+  # Use nearest-rank style p95 for small sample sizes.
     ordered = sorted(values)
     index = max(0, math.ceil(0.95 * len(ordered)) - 1)
     return ordered[index]
