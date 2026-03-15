@@ -23,3 +23,7 @@ Quick commands
 - Backend unit/integration: (cd playlocal/backend && ./mvnw test)
 - Backend concurrency: requires Docker (Testcontainers)
 - Frontend: (cd playlocal/frontend && npm test)
+
+CI checks
+
+- Docker image build on PRs: `.github/workflows/docker-build-pr.yml` builds the backend and frontend images to catch container regressions early.
