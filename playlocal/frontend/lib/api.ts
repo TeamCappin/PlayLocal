@@ -2,20 +2,20 @@
 // Connects the React frontend to the Spring Boot backend
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
 // Token management
 let authToken: string | null =
-  typeof window !== "undefined"
-    ? localStorage.getItem("playlocal_token")
+  typeof window !== 'undefined'
+    ? localStorage.getItem('playlocal_token')
     : null;
 
 export const setAuthToken = (token: string | null) => {
   authToken = token;
   if (token) {
-    localStorage.setItem("playlocal_token", token);
+    localStorage.setItem('playlocal_token', token);
   } else {
-    localStorage.removeItem("playlocal_token");
+    localStorage.removeItem('playlocal_token');
   }
 };
 
@@ -24,15 +24,15 @@ export const getAuthToken = () => authToken;
 // Base fetch wrapper with auth
 async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit = {}
 ): Promise<T> {
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...options.headers,
   };
 
   if (authToken) {
-    (headers as Record<string, string>)["Authorization"] =
+    (headers as Record<string, string>)['Authorization'] =
       `Bearer ${authToken}`;
   }
 
@@ -44,18 +44,18 @@ async function apiFetch<T>(
     });
   } catch (networkError: any) {
     // Handle network errors (no connection, CORS, etc.)
-    const base = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+    const base = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
     throw new ApiError(
       0,
-      "Unable to connect to server. Ensure the backend is running (e.g. at " +
+      'Unable to connect to server. Ensure the backend is running (e.g. at ' +
         base +
-        ") and try again.",
-      { originalError: networkError.message || "Network request failed" },
+        ') and try again.',
+      { originalError: networkError.message || 'Network request failed' }
     );
   }
 
   if (!response.ok) {
-    let errorData: any = { message: "An error occurred" };
+    let errorData: any = { message: 'An error occurred' };
     try {
       const text = await response.text();
       if (text) {
@@ -63,12 +63,18 @@ async function apiFetch<T>(
       }
     } catch (e) {
       // If response is not JSON, use status text
-      errorData = { message: response.statusText || "An error occurred" };
+      errorData = { message: response.statusText || 'An error occurred' };
+    }
+    // Build a descriptive error message: prefer `message`, then summarize `fieldErrors`, then fall back
+    let errorMessage = errorData.message;
+    if (!errorMessage && errorData.fieldErrors) {
+      const fieldMessages = Object.values(errorData.fieldErrors) as string[];
+      errorMessage = fieldMessages.join('. ');
     }
     throw new ApiError(
       response.status,
-      errorData.message || "An error occurred",
-      errorData,
+      errorMessage || 'An error occurred',
+      errorData
     );
   }
 
@@ -77,13 +83,13 @@ async function apiFetch<T>(
     return undefined as T;
   }
 
-  const contentLength = response.headers.get("content-length");
-  if (contentLength === "0") {
+  const contentLength = response.headers.get('content-length');
+  if (contentLength === '0') {
     return undefined as T;
   }
 
-  const ct = response.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) {
+  const ct = response.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
     // Some endpoints return empty string even with 200
     return undefined as T;
   }
@@ -91,7 +97,7 @@ async function apiFetch<T>(
   try {
     return (await response.json()) as T;
   } catch (e) {
-    throw new ApiError(response.status, "Invalid JSON response", {
+    throw new ApiError(response.status, 'Invalid JSON response', {
       originalError: e,
     });
   }
@@ -101,10 +107,10 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: any,
+    public data?: any
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
   }
 }
 
@@ -146,22 +152,23 @@ export interface UserDto {
   gamesCount: number;
   endorsementsCount?: number; // New field for endorsements count [US-3.3]
   createdAt?: string;
+  profileRestricted?: boolean; // US-7.12: true when viewer cannot see full profile
 }
 
 export const authApi = {
   register: (data: RegisterRequest) =>
-    apiFetch<AuthResponse>("/auth/register", {
-      method: "POST",
+    apiFetch<AuthResponse>('/auth/register', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
   login: (data: LoginRequest) =>
-    apiFetch<AuthResponse>("/auth/login", {
-      method: "POST",
+    apiFetch<AuthResponse>('/auth/login', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  getCurrentUser: () => apiFetch<UserDto>("/auth/me"),
+  getCurrentUser: () => apiFetch<UserDto>('/auth/me'),
 
   logout: () => {
     setAuthToken(null);
@@ -191,8 +198,8 @@ export interface SearchUsersResponse {
 
 export const usersApi = {
   updateProfile: (data: UpdateProfileRequest) =>
-    apiFetch<UserDto>("/users/profile", {
-      method: "PUT",
+    apiFetch<UserDto>('/users/profile', {
+      method: 'PUT',
       body: JSON.stringify(data),
     }),
 
@@ -204,19 +211,18 @@ export const usersApi = {
 
   search: (query?: string, page = 0, size = 20) =>
     apiFetch<SearchUsersResponse>(
-      `/users/search?q=${encodeURIComponent(query || "")}&page=${page}&size=${size}`,
+      `/users/search?q=${encodeURIComponent(query || '')}&page=${page}&size=${size}`
     ),
 
   getConnectionSignals: (targetUserId: string) =>
     apiFetch<ConnectionSignals>(`/users/${targetUserId}/connection-signals`),
 
   getConnectionSignalsBatch: (userIds: string[]) =>
-    apiFetch<ConnectionSignalsBatchResponse>("/users/connection-signals", {
-      method: "POST",
+    apiFetch<ConnectionSignalsBatchResponse>('/users/connection-signals', {
+      method: 'POST',
       body: JSON.stringify({ userIds }),
     }),
 };
-
 
 export interface ConnectionSignals {
   mutualFriendCount: number;
@@ -226,6 +232,39 @@ export interface ConnectionSignals {
 export interface ConnectionSignalsBatchResponse {
   signalsByUserId: Record<string, ConnectionSignals>;
 }
+
+// ============================================
+// PRIVACY SETTINGS API (US-7.12)
+// ============================================
+
+export interface PrivacySettingsResponse {
+  profileVisibility: string;
+  skillsVisibility: string;
+  historyVisibility: string;
+  mediaDefaultVisibility: string;
+  locationVisibilityRule: string;
+  allowProfileSearch: boolean;
+}
+
+export interface UpdatePrivacySettingsRequest {
+  profileVisibility?: string;
+  skillsVisibility?: string;
+  historyVisibility?: string;
+  mediaDefaultVisibility?: string;
+  locationVisibilityRule?: string;
+  allowProfileSearch?: boolean;
+}
+
+export const privacyApi = {
+  getSettings: () =>
+    apiFetch<PrivacySettingsResponse>('/users/privacy-settings'),
+
+  updateSettings: (data: UpdatePrivacySettingsRequest) =>
+    apiFetch<PrivacySettingsResponse>('/users/privacy-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
 
 // ============================================
 // FRIENDS API
@@ -238,10 +277,11 @@ export interface FriendInfo {
   avatarUrl?: string;
   bio?: string;
   location?: string;
-  reliabilityScore: number;
-  gamesCount: number;
+  reliabilityScore?: number;
+  gamesCount?: number;
   status: string;
   createdAt: string;
+  profileRestricted?: boolean; // US-7.12
 }
 
 export interface FriendsListResponse {
@@ -257,26 +297,26 @@ export interface FriendshipAction {
 }
 
 export const friendsApi = {
-  getFriends: () => apiFetch<FriendsListResponse>("/friends"),
+  getFriends: () => apiFetch<FriendsListResponse>('/friends'),
 
   sendRequest: (userId: string) =>
     apiFetch<FriendshipAction>(`/friends/request/${userId}`, {
-      method: "POST",
+      method: 'POST',
     }),
 
   acceptRequest: (friendshipId: string) =>
     apiFetch<FriendshipAction>(`/friends/${friendshipId}/accept`, {
-      method: "POST",
+      method: 'POST',
     }),
 
   declineRequest: (friendshipId: string) =>
     apiFetch<FriendshipAction>(`/friends/${friendshipId}/decline`, {
-      method: "POST",
+      method: 'POST',
     }),
 
   removeFriend: (friendshipId: string) =>
     apiFetch<FriendshipAction>(`/friends/${friendshipId}`, {
-      method: "DELETE",
+      method: 'DELETE',
     }),
 };
 
@@ -309,7 +349,12 @@ export interface CreateGameRequest {
   maxAge?: number;
 }
 
-export type GameStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
+export type GameStatus =
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'ARCHIVED';
 export interface UpdateGameRequest {
   title?: string;
   description?: string;
@@ -373,7 +418,8 @@ export interface LocationDto {
 export interface OrganizerDto {
   userId: string;
   displayName: string;
-  reliabilityScore: number;
+  reliabilityScore?: number;
+  profileRestricted?: boolean; // US-7.12
 }
 
 export interface JoinResponse {
@@ -399,9 +445,10 @@ export interface ParticipantDto {
   joinStatus: string;
   attendanceStatus: string; // UNKNOWN, ATTENDED, NO_SHOW
   waitlistPosition?: number;
-  reliabilityScore: number;
+  reliabilityScore?: number;
   joinedAt: string;
   isEndorsedByOrganizer?: boolean;
+  profileRestricted?: boolean; // US-7.12
 }
 
 // US-4.2: Community Tags
@@ -413,13 +460,13 @@ export interface TagDto {
 }
 
 export interface GameFilters {
-    lat?: number;
-    lon?: number;
-    radiusKm?: number;
-    sportName?: string;
-    skillLevel?: string;
-    locationType?: string;
-    intensity?: string;
+  lat?: number;
+  lon?: number;
+  radiusKm?: number;
+  sportName?: string;
+  skillLevel?: string;
+  locationType?: string;
+  intensity?: string;
 }
 
 // US-4.2: Join request with tag confirmations
@@ -428,23 +475,29 @@ export interface JoinRequest {
 }
 export const gamesApi = {
   create: (data: CreateGameRequest) =>
-    apiFetch<GameResponse>("/games", {
-      method: "POST",
+    apiFetch<GameResponse>('/games', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
   getUpcoming: (filters?: GameFilters) => {
     const params = new URLSearchParams();
-    if (filters?.lat !== undefined) params.append('lat', filters.lat.toString());
-    if (filters?.lon !== undefined) params.append('lon', filters.lon.toString());
-    if (filters?.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters?.lat !== undefined)
+      params.append('lat', filters.lat.toString());
+    if (filters?.lon !== undefined)
+      params.append('lon', filters.lon.toString());
+    if (filters?.radiusKm !== undefined)
+      params.append('radiusKm', filters.radiusKm.toString());
     if (filters?.sportName) params.append('sportName', filters.sportName);
     if (filters?.skillLevel) params.append('skillLevel', filters.skillLevel);
-    if (filters?.locationType) params.append('locationType', filters.locationType);
+    if (filters?.locationType)
+      params.append('locationType', filters.locationType);
     if (filters?.intensity) params.append('intensity', filters.intensity);
-    
+
     const queryString = params.toString();
-    return apiFetch<GameResponse[]>(`/games${queryString ? `?${queryString}` : ''}`);
+    return apiFetch<GameResponse[]>(
+      `/games${queryString ? `?${queryString}` : ''}`
+    );
   },
 
   getPast: () => apiFetch<GameResponse[]>(`/games/past`),
@@ -462,31 +515,31 @@ export const gamesApi = {
   // US-4.2: Updated join to accept tag confirmations
   join: (gameId: string, joinRequest?: JoinRequest) =>
     apiFetch<JoinResponse>(`/games/${gameId}/join`, {
-      method: "POST",
+      method: 'POST',
       body: joinRequest ? JSON.stringify(joinRequest) : undefined,
     }),
 
   leave: (gameId: string) =>
-    apiFetch<void>(`/games/${gameId}/leave`, { method: "DELETE" }),
+    apiFetch<void>(`/games/${gameId}/leave`, { method: 'DELETE' }),
 
   complete: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: "POST" }),
+    apiFetch<GameResponse>(`/games/${gameId}/complete`, { method: 'POST' }),
 
   archive: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: "POST" }),
+    apiFetch<GameResponse>(`/games/${gameId}/archive`, { method: 'POST' }),
   // US-4.1: Update game settings (min reliability, etc.)
   update: (gameId: string, data: UpdateGameRequest) =>
     apiFetch<GameResponse>(`/games/${gameId}`, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(data),
     }),
 
   // US-2.4: Cancel game endpoint
   cancel: (gameId: string) =>
-    apiFetch<GameResponse>(`/games/${gameId}`, { method: "DELETE" }),
+    apiFetch<GameResponse>(`/games/${gameId}`, { method: 'DELETE' }),
 
   // US-4.2: Get all available tags
-  getTags: () => apiFetch<TagDto[]>("/games/tags"),
+  getTags: () => apiFetch<TagDto[]>('/games/tags'),
 };
 
 // ============================================
@@ -495,7 +548,7 @@ export const gamesApi = {
 
 export interface AttendanceEntry {
   participationId: string;
-  attendanceStatus: "ATTENDED" | "NO_SHOW" | "UNKNOWN";
+  attendanceStatus: 'ATTENDED' | 'NO_SHOW' | 'UNKNOWN';
   userId: string;
   sportId: string;
   requestedPositionRoleId: string;
@@ -522,7 +575,7 @@ export const attendanceApi = {
 
   confirm: (gameId: string, attendances: AttendanceEntry[]) =>
     apiFetch<AttendanceResponse>(`/games/${gameId}/attendance`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ attendances }),
     }),
 };
@@ -535,7 +588,7 @@ export interface CreateReportRequest {
   reportedUserId?: string;
   gameId?: string;
   endorsementId?: string;
-  reportType: "HARASSMENT" | "SPORTSMANSHIP" | "SAFETY" | "SPAM" | "OTHER";
+  reportType: 'HARASSMENT' | 'SPORTSMANSHIP' | 'SAFETY' | 'SPAM' | 'OTHER';
   details: string;
 }
 
@@ -553,8 +606,8 @@ export interface ReportResponse {
 
 export const reportsApi = {
   create: (data: CreateReportRequest) =>
-    apiFetch<ReportResponse>("/reports", {
-      method: "POST",
+    apiFetch<ReportResponse>('/reports', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 };
@@ -573,16 +626,16 @@ export interface NotificationDto {
 }
 
 export const notificationsApi = {
-  getAll: () => apiFetch<NotificationDto[]>("/notifications"),
+  getAll: () => apiFetch<NotificationDto[]>('/notifications'),
 
   getUnreadCount: () =>
-    apiFetch<{ count: number }>("/notifications/unread-count"),
+    apiFetch<{ count: number }>('/notifications/unread-count'),
 
   markAsRead: (notificationId: string) =>
-    apiFetch<void>(`/notifications/${notificationId}/read`, { method: "POST" }),
+    apiFetch<void>(`/notifications/${notificationId}/read`, { method: 'POST' }),
 
   markAllAsRead: () =>
-    apiFetch<void>("/notifications/mark-all-read", { method: "POST" }),
+    apiFetch<void>('/notifications/mark-all-read', { method: 'POST' }),
 };
 
 // ============================================
@@ -610,8 +663,8 @@ export interface EndorsementResponse {
 // US 3.3 Organizer Endorsments
 export const endorsementsApi = {
   create: (data: EndorsementRequest) =>
-    apiFetch<EndorsementResponse>("/endorsements", {
-      method: "POST",
+    apiFetch<EndorsementResponse>('/endorsements', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
@@ -625,7 +678,7 @@ export const endorsementsApi = {
 
 export const healthApi = {
   check: () =>
-    apiFetch<{ status: string; service: string; version: string }>("/health"),
+    apiFetch<{ status: string; service: string; version: string }>('/health'),
 };
 
 // ============================================
@@ -640,7 +693,7 @@ export interface ScoreHistoryEntry {
   previousScore: number;
   newScore: number;
   delta: number;
-  reason: "ATTENDANCE" | "NO_SHOW" | "MANUAL_ADJUSTMENT" | "DISPUTE_RESOLVED";
+  reason: 'ATTENDANCE' | 'NO_SHOW' | 'MANUAL_ADJUSTMENT' | 'DISPUTE_RESOLVED';
   description?: string;
   createdAt: string;
   createdByUserId?: string;
@@ -666,7 +719,6 @@ export interface ScoreSummary {
   attendanceRate: number;
 }
 
-
 // ============================================
 // ORGANIZER QUALITY SCORE (OQS) API - US-6.1
 // ============================================
@@ -682,7 +734,7 @@ export interface OqsResponse {
   cancelledGames: number;
   totalUniquePlayers: number;
   repeatPlayers: number;
-  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   confidenceDescription: string;
   lastCalculatedAt?: string;
 }
@@ -690,7 +742,7 @@ export interface OqsResponse {
 export interface OqsSummary {
   userId: string;
   oqsScore: number;
-  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   totalGamesHosted: number;
 }
 
@@ -706,7 +758,13 @@ export interface OqsHistoryEntry {
   newCompletionRate?: number;
   previousRepeatRate?: number;
   newRepeatRate?: number;
-  reason: "GAME_COMPLETED" | "GAME_CANCELLED" | "PLAYER_RETURNED" | "INITIAL_CALCULATION" | "MANUAL_ADJUSTMENT" | "RECALCULATION";
+  reason:
+    | 'GAME_COMPLETED'
+    | 'GAME_CANCELLED'
+    | 'PLAYER_RETURNED'
+    | 'INITIAL_CALCULATION'
+    | 'MANUAL_ADJUSTMENT'
+    | 'RECALCULATION';
   description?: string;
   createdAt: string;
 }
@@ -732,7 +790,7 @@ export interface OqsInfoCard {
   repeatRateDescription: string;
   repeatPlayers: number;
   totalUniquePlayers: number;
-  confidenceLevel: "LOW" | "MEDIUM" | "HIGH";
+  confidenceLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   confidenceDescription: string;
   gamesForNextLevel: number;
 }
@@ -742,16 +800,15 @@ export interface OqsWeights {
   repeatPlayerRateWeight: number;
 }
 
-
 export const scoreHistoryApi = {
   getHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
-      `/users/${userId}/score-history?page=${page}&size=${size}`,
+      `/users/${userId}/score-history?page=${page}&size=${size}`
     ),
 
   getMyHistory: (page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
-      `/users/me/score-history?page=${page}&size=${size}`,
+      `/users/me/score-history?page=${page}&size=${size}`
     ),
 
   getSummary: (userId: string) =>
@@ -760,15 +817,12 @@ export const scoreHistoryApi = {
   getMySummary: () => apiFetch<ScoreSummary>(`/users/me/score-summary`),
 };
 
-
 export const organizerQualityApi = {
   // Get full OQS for a user
-  getOqs: (userId: string) =>
-    apiFetch<OqsResponse>(`/users/${userId}/oqs`),
+  getOqs: (userId: string) => apiFetch<OqsResponse>(`/users/${userId}/oqs`),
 
   // Get OQS for current user
-  getMyOqs: () =>
-    apiFetch<OqsResponse>(`/users/me/oqs`),
+  getMyOqs: () => apiFetch<OqsResponse>(`/users/me/oqs`),
 
   // Get OQS summary (simplified for game cards)
   getOqsSummary: (userId: string) =>
@@ -779,24 +833,22 @@ export const organizerQualityApi = {
     apiFetch<OqsInfoCard>(`/users/${userId}/oqs/info`),
 
   // Get OQS info card for current user
-  getMyOqsInfoCard: () =>
-    apiFetch<OqsInfoCard>(`/users/me/oqs/info`),
+  getMyOqsInfoCard: () => apiFetch<OqsInfoCard>(`/users/me/oqs/info`),
 
   // Get OQS change history
   getOqsHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<OqsHistoryResponse>(
-      `/users/${userId}/oqs/history?page=${page}&size=${size}`,
+      `/users/${userId}/oqs/history?page=${page}&size=${size}`
     ),
 
   // Get OQS change history for current user
   getMyOqsHistory: (page = 0, size = 10) =>
     apiFetch<OqsHistoryResponse>(
-      `/users/me/oqs/history?page=${page}&size=${size}`,
+      `/users/me/oqs/history?page=${page}&size=${size}`
     ),
 
   // Get OQS calculation weights
-  getWeights: () =>
-    apiFetch<OqsWeights>(`/oqs/weights`),
+  getWeights: () => apiFetch<OqsWeights>(`/oqs/weights`),
 };
 // ============================================
 // Photos API
@@ -804,7 +856,7 @@ export const organizerQualityApi = {
 
 export interface UploadSlotReq {
   fileName: string;
-  contentType: string;   // MUST be image/*
+  contentType: string; // MUST be image/*
   sizeBytes: number;
 }
 
@@ -829,14 +881,14 @@ export const photosApi = {
   // Create an upload slot (backend returns presigned PUT URL)
   requestUploadSlot: (gameId: string, data: UploadSlotReq) =>
     apiFetch<UploadSlotRes>(`/games/${gameId}/media/photos/upload-slot`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
   // Finalize upload
   finalizeUpload: (gameId: string, mediaId: string) =>
     apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
-      method: "POST",
+      method: 'POST',
     }),
 };
 
@@ -896,4 +948,5 @@ export default {
   scoreHistory: scoreHistoryApi,
   organizerQuality: organizerQualityApi,
   stats: statsApi,
+  privacy: privacyApi,
 };

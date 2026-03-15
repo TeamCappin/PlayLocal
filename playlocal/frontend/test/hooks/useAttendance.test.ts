@@ -9,8 +9,12 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-const mockGetPending = attendanceApi.getPending as jest.MockedFunction<typeof attendanceApi.getPending>;
-const mockConfirm = attendanceApi.confirm as jest.MockedFunction<typeof attendanceApi.confirm>;
+const mockGetPending = attendanceApi.getPending as jest.MockedFunction<
+  typeof attendanceApi.getPending
+>;
+const mockConfirm = attendanceApi.confirm as jest.MockedFunction<
+  typeof attendanceApi.confirm
+>;
 
 const mockEntry = {
   participationId: 'p1',

@@ -2,6 +2,11 @@ spring:
   application:
     name: playlocal-backend
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/playlocal}
     username: ${DATABASE_USERNAME:playlocal}
@@ -41,7 +46,7 @@ rate-limit:
     max-attempts: 5
     window-minutes: 15
   report:
-    max-per-hour: 10
+    max-per-hour: 2
   general:
     requests-per-minute: 60
 
@@ -57,7 +62,10 @@ s3:
   presignExpirySeconds: 900
   
 # Logging
+# %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId:-no-id}] %-5level %logger{36} - %msg%n"
   level:
     com.backend.playlocal: DEBUG
     org.springframework.security: INFO

@@ -137,6 +137,7 @@ public class GameDto {
         private String userId;
         private String displayName;
         private Float reliabilityScore;
+        private Boolean profileRestricted; // US-7.12
     }
 
     @Data
@@ -155,6 +156,7 @@ public class GameDto {
         private Float reliabilityScore;
         private Instant joinedAt;
         private Boolean isEndorsedByOrganizer;
+        private Boolean profileRestricted; // US-7.12
     }
 
     @Data

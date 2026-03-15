@@ -72,5 +72,6 @@ public class AuthDto {
         private Integer gamesCount;
         private Integer endorsementsCount; // New field for endorsements count [US-3.3]
         private String createdAt;
+        private Boolean profileRestricted; // US-7.12: true when viewer cannot see full profile
     }
 }

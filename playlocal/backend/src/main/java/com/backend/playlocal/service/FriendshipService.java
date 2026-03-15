@@ -23,10 +23,13 @@ public class FriendshipService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final PrivacySettingsService privacySettingsService;
 
-    public FriendshipService(FriendshipRepository friendshipRepository, UserRepository userRepository) {
+    public FriendshipService(FriendshipRepository friendshipRepository, UserRepository userRepository,
+            PrivacySettingsService privacySettingsService) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.privacySettingsService = privacySettingsService;
     }
 
     /**
@@ -228,17 +231,28 @@ public class FriendshipService {
                 ? friendship.getAddressee()
                 : friendship.getRequester();
 
-        return FriendDto.FriendInfo.builder()
+        // US-7.12: Check if the friend's profile is visible to the current user
+        boolean isFriend = friendship.getStatus() == Friendship.FriendshipStatus.ACCEPTED;
+        boolean canView = privacySettingsService.canViewProfile(friend.getUserId(), currentUserId, isFriend);
+
+        // Trust metrics are always visible
+        FriendDto.FriendInfo.FriendInfoBuilder builder = FriendDto.FriendInfo.builder()
                 .friendshipId(friendship.getFriendshipId().toString())
                 .friendUserId(friend.getUserId().toString())
                 .displayName(friend.getDisplayName())
                 .avatarUrl(friend.getAvatarUrl())
-                .bio(friend.getBio())
-                .location(friend.getLocation())
                 .reliabilityScore(friend.getReliabilityScore())
                 .gamesCount(friend.getGamesCount())
                 .status(friendship.getStatus().name())
-                .createdAt(friendship.getCreatedAt() != null ? friendship.getCreatedAt().toString() : null)
-                .build();
+                .createdAt(friendship.getCreatedAt() != null ? friendship.getCreatedAt().toString() : null);
+
+        if (canView) {
+            builder.bio(friend.getBio())
+                    .location(friend.getLocation());
+        } else {
+            builder.profileRestricted(true);
+        }
+
+        return builder.build();
     }
 }
