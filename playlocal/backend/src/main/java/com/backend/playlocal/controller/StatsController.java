@@ -27,26 +27,26 @@ public class StatsController {
     }
 
     /**
-     * Win rate for the authenticated user.
-     * Win rate = percentage of games (where attendance was formally confirmed) that the user attended.
+     * Show-up rate for the authenticated user.
+     * Show-up rate = percentage of games (where attendance was formally confirmed) that the user attended.
      *
-     * <p>GET /api/v1/stats/win-rate?timeframe=30|90|all
+     * <p>GET /api/v1/stats/show-up-rate?timeframe=30|90|all
      *
      * @param timeframe "30", "90", or "all" (default "30")
      * @param authentication injected by Spring Security
      * @return 200 with {@link StatsDto.StatsResponse}; {@code empty=true} when no data exists
      */
-    @GetMapping("/win-rate")
-    public ResponseEntity<StatsDto.StatsResponse> getWinRate(
+    @GetMapping("/show-up-rate")
+    public ResponseEntity<StatsDto.StatsResponse> getShowUpRate(
             @RequestParam(defaultValue = "30") String timeframe,
             Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(statsService.getWinRate(userId, timeframe));
+        return ResponseEntity.ok(statsService.getShowUpRate(userId, timeframe));
     }
 
     /**
-     * Skill (reliability score) trend for the authenticated user.
-     * DataPoints are the user's reliability score changes over time, ordered chronologically.
+     * Skill trend for the authenticated user.
+     * DataPoints reflect the user's skill/intensity-derived average scores from completed games, grouped chronologically by month.
      *
      * <p>GET /api/v1/stats/skill-trend?timeframe=30|90|all
      *

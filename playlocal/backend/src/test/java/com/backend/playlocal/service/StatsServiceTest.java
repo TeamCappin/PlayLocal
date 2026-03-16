@@ -114,23 +114,23 @@ class StatsServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // getWinRate
+    // getShowUpRate
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("getWinRate")
-    class GetWinRateTests {
+    @DisplayName("getShowUpRate")
+    class GetShowUpRateTests {
 
         @Test
         @DisplayName("Returns empty response when no confirmed participations exist")
-        void getWinRate_noParticipations_returnsEmpty() {
+        void getShowUpRate_noParticipations_returnsEmpty() {
             when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(List.of());
 
-            StatsDto.StatsResponse response = statsService.getWinRate(userId, "30");
+            StatsDto.StatsResponse response = statsService.getShowUpRate(userId, "30");
 
             assertThat(response.isEmpty()).isTrue();
-            assertThat(response.getMetric()).isEqualTo("win_rate");
+            assertThat(response.getMetric()).isEqualTo("show_up_rate");
             assertThat(response.getTimeframe()).isEqualTo("30");
             assertThat(response.getValue()).isNull();
             assertThat(response.getDataPoints()).isEmpty();
@@ -138,7 +138,7 @@ class StatsServiceTest {
 
         @Test
         @DisplayName("Returns empty response when all participations have UNKNOWN attendance")
-        void getWinRate_allUnknownAttendance_returnsEmpty() {
+        void getShowUpRate_allUnknownAttendance_returnsEmpty() {
             List<GameParticipation> participations = List.of(
                     buildParticipation(GameParticipation.AttendanceStatus.UNKNOWN, daysAgo(20)),
                     buildParticipation(GameParticipation.AttendanceStatus.UNKNOWN, daysAgo(10))
@@ -146,14 +146,14 @@ class StatsServiceTest {
             when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(participations);
 
-            StatsDto.StatsResponse response = statsService.getWinRate(userId, "30");
+            StatsDto.StatsResponse response = statsService.getShowUpRate(userId, "30");
 
             assertThat(response.isEmpty()).isTrue();
         }
 
         @Test
-        @DisplayName("Returns correct win rate: 2 attended out of 3 tracked = 66.7%")
-        void getWinRate_twoAttendedOneNoShow_returns66Percent() {
+        @DisplayName("Returns correct show-up rate: 2 attended out of 3 tracked = 66.7%")
+        void getShowUpRate_twoAttendedOneNoShow_returns66Percent() {
             List<GameParticipation> participations = List.of(
                     buildParticipation(GameParticipation.AttendanceStatus.ATTENDED, daysAgo(25)),
                     buildParticipation(GameParticipation.AttendanceStatus.ATTENDED, daysAgo(15)),
@@ -162,17 +162,17 @@ class StatsServiceTest {
             when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(participations);
 
-            StatsDto.StatsResponse response = statsService.getWinRate(userId, "30");
+            StatsDto.StatsResponse response = statsService.getShowUpRate(userId, "30");
 
             assertThat(response.isEmpty()).isFalse();
             assertThat(response.getValue()).isEqualTo(66.7);
-            assertThat(response.getMetric()).isEqualTo("win_rate");
+            assertThat(response.getMetric()).isEqualTo("show_up_rate");
             assertThat(response.getDataPoints()).isNotEmpty();
         }
 
         @Test
         @DisplayName("Returns 100.0 when all tracked games were attended")
-        void getWinRate_allAttended_returns100() {
+        void getShowUpRate_allAttended_returns100() {
             List<GameParticipation> participations = List.of(
                     buildParticipation(GameParticipation.AttendanceStatus.ATTENDED, daysAgo(20)),
                     buildParticipation(GameParticipation.AttendanceStatus.ATTENDED, daysAgo(10))
@@ -180,14 +180,14 @@ class StatsServiceTest {
             when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(participations);
 
-            StatsDto.StatsResponse response = statsService.getWinRate(userId, "30");
+            StatsDto.StatsResponse response = statsService.getShowUpRate(userId, "30");
 
             assertThat(response.getValue()).isEqualTo(100.0);
         }
 
         @Test
-        @DisplayName("UNKNOWN participations are excluded from win rate denominator")
-        void getWinRate_unknownParticipationsExcluded_fromDenominator() {
+        @DisplayName("UNKNOWN participations are excluded from show-up rate denominator")
+        void getShowUpRate_unknownParticipationsExcluded_fromDenominator() {
             // 1 attended, 1 no-show, 1 unknown → tracked = 2, rate = 50.0
             List<GameParticipation> participations = List.of(
                     buildParticipation(GameParticipation.AttendanceStatus.ATTENDED, daysAgo(20)),
@@ -197,15 +197,15 @@ class StatsServiceTest {
             when(participationRepository.findConfirmedByUserSince(eq(userId), any(Instant.class)))
                     .thenReturn(participations);
 
-            StatsDto.StatsResponse response = statsService.getWinRate(userId, "30");
+            StatsDto.StatsResponse response = statsService.getShowUpRate(userId, "30");
 
             assertThat(response.getValue()).isEqualTo(50.0);
         }
 
         @Test
         @DisplayName("Invalid timeframe propagates IllegalArgumentException")
-        void getWinRate_invalidTimeframe_throwsException() {
-            assertThatThrownBy(() -> statsService.getWinRate(userId, "7"))
+        void getShowUpRate_invalidTimeframe_throwsException() {
+            assertThatThrownBy(() -> statsService.getShowUpRate(userId, "7"))
                     .isInstanceOf(IllegalArgumentException.class);
             verifyNoInteractions(participationRepository);
         }
@@ -531,20 +531,6 @@ class StatsServiceTest {
                 .sport(sport)
                 .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
                 .attendanceStatus(GameParticipation.AttendanceStatus.ATTENDED)
-                .build();
-    }
-
-    private ScoreHistory buildScoreHistory(float previousScore, float newScore, Instant createdAt) {
-        return ScoreHistory.builder()
-                .scoreHistoryId(UUID.randomUUID())
-                .user(user)
-                .previousScore(previousScore)
-                .newScore(newScore)
-                .delta(newScore - previousScore)
-                .reason(newScore >= previousScore
-                        ? ScoreHistory.ScoreChangeReason.ATTENDANCE
-                        : ScoreHistory.ScoreChangeReason.NO_SHOW)
-                .createdAt(createdAt)
                 .build();
     }
 

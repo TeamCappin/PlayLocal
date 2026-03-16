@@ -900,9 +900,9 @@ export const photosApi = {
 
 /** A single data point returned from the stats API. */
 export interface StatsDataPoint {
-  /** ISO-8601 instant (skill_trend) or "yyyy-MM" month string (win_rate, attendance_rate). */
+  /** A 'yyyy-MM' month string representing the grouping period. */
   date: string;
-  /** Numeric value – reliability score or percentage (0–100). */
+  /** Numeric value – can be a percentage (0–100) or derived skill/intensity score. */
   value: number;
 }
 
@@ -911,11 +911,11 @@ export interface StatsDataPoint {
  * When `empty` is true the frontend should show an empty-state instead of a chart.
  */
 export interface StatsResponse {
-  /** Metric identifier: "win_rate" | "skill_trend" | "attendance_rate" */
+  /** Metric identifier: 'show_up_rate' | 'skill_trend' | 'attendance_rate' */
   metric: string;
   /** Aggregate value for the timeframe; null when `empty` is true. */
   value: number | null;
-  /** Requested timeframe: "30" | "90" | "all" */
+  /** Requested timeframe: '30' | '90' | 'all' */
   timeframe: string;
   /** Ordered data points for charting; empty array when `empty` is true. */
   dataPoints: StatsDataPoint[];
@@ -923,16 +923,16 @@ export interface StatsResponse {
   empty: boolean;
 }
 
-export type StatsTimeframe = "30" | "90" | "all";
+export type StatsTimeframe = '30' | '90' | 'all';
 
 export const statsApi = {
-  getWinRate: (timeframe: StatsTimeframe = "30") =>
-    apiFetch<StatsResponse>(`/stats/win-rate?timeframe=${timeframe}`),
+  getShowUpRate: (timeframe: StatsTimeframe = '30') =>
+    apiFetch<StatsResponse>(`/stats/show-up-rate?timeframe=${timeframe}`),
 
-  getSkillTrend: (timeframe: StatsTimeframe = "30") =>
+  getSkillTrend: (timeframe: StatsTimeframe = '30') =>
     apiFetch<StatsResponse>(`/stats/skill-trend?timeframe=${timeframe}`),
 
-  getAttendanceRate: (timeframe: StatsTimeframe = "30") =>
+  getAttendanceRate: (timeframe: StatsTimeframe = '30') =>
     apiFetch<StatsResponse>(`/stats/attendance-rate?timeframe=${timeframe}`),
 };
 

@@ -13,7 +13,7 @@ public class StatsDto {
     /**
      * A single data point for a chart series.
      * For skill trend: date is a "yyyy-MM" month string, value is the cumulative average skill score (0–100).
-     * For win rate / attendance rate: date is a "yyyy-MM" month string, value is the rate (0–100).
+     * For show-up rate / attendance rate: date is a "yyyy-MM" month string, value is the rate (0–100).
      */
     @Getter
     @Builder
@@ -38,12 +38,12 @@ public class StatsDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class StatsResponse {
-        /** Metric identifier: "win_rate", "skill_trend", or "attendance_rate". */
+        /** Metric identifier: "show_up_rate", "skill_trend", or "attendance_rate". */
         private String metric;
 
         /**
          * Aggregate value for the timeframe.
-         * Win rate / attendance rate: percentage (0–100, one decimal place).
+         * Show-up rate / attendance rate: percentage (0–100, one decimal place).
          * Skill trend: cumulative average skill score (0–100).
          * Null when {@code empty} is true.
          */

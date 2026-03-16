@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { statsApi, StatsResponse, StatsTimeframe } from '@/lib/api';
 
 export interface UseStatsState {
@@ -8,7 +9,7 @@ export interface UseStatsState {
 }
 
 export interface UseStatsResult {
-  winRate: UseStatsState;
+  showUpRate: UseStatsState;
   skillTrend: UseStatsState;
   attendanceRate: UseStatsState;
   timeframe: StatsTimeframe;
@@ -31,14 +32,14 @@ const INITIAL_STATE: UseStatsState = {
 export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResult {
   const [timeframe, setTimeframe] = useState<StatsTimeframe>(initialTimeframe);
 
-  const [winRate,       setWinRate]       = useState<UseStatsState>(INITIAL_STATE);
+  const [showUpRate,       setShowUpRate]       = useState<UseStatsState>(INITIAL_STATE);
   const [skillTrend,    setSkillTrend]    = useState<UseStatsState>(INITIAL_STATE);
   const [attendanceRate, setAttendanceRate] = useState<UseStatsState>(INITIAL_STATE);
 
   const fetchMetric = useCallback(
     async <T extends UseStatsState>(
       fetcher: () => Promise<StatsResponse>,
-      setter: React.Dispatch<React.SetStateAction<T>>,
+      setter: Dispatch<SetStateAction<T>>,
       label: string,
     ) => {
       setter((prev) => ({ ...prev, isLoading: true, error: null }));
@@ -57,7 +58,7 @@ export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResul
   );
 
   const fetchAll = useCallback(() => {
-    fetchMetric(() => statsApi.getWinRate(timeframe),       setWinRate,       'win rate');
+    fetchMetric(() => statsApi.getShowUpRate(timeframe),       setShowUpRate,       'show-up rate');
     fetchMetric(() => statsApi.getSkillTrend(timeframe),    setSkillTrend,    'skill trend');
     fetchMetric(() => statsApi.getAttendanceRate(timeframe), setAttendanceRate, 'attendance rate');
   }, [timeframe, fetchMetric]);
@@ -67,7 +68,7 @@ export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResul
   }, [fetchAll]);
 
   return {
-    winRate,
+    showUpRate,
     skillTrend,
     attendanceRate,
     timeframe,

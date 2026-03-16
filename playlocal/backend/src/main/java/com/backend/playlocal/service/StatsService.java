@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  *
  * <p>Three metrics are supported:
  * <ul>
- *   <li><b>Win rate</b>: ATTENDED / (ATTENDED + NO_SHOW) for games where attendance was formally
+ *   <li><b>Show-up rate</b>: ATTENDED / (ATTENDED + NO_SHOW) for games where attendance was formally
  *       confirmed by the organizer. Represents how often the user showed up among games they
  *       committed to and had their attendance recorded.</li>
  *   <li><b>Attendance rate</b>: ATTENDED / total CONFIRMED for all games the user joined
@@ -49,18 +49,18 @@ public class StatsService {
     }
 
     // -------------------------------------------------------------------------
-    // Win Rate
+    // Show-up Rate
     // -------------------------------------------------------------------------
 
     /**
-     * Win rate = ATTENDED / (ATTENDED + NO_SHOW) for the games where the organizer
+     * Show-up rate = ATTENDED / (ATTENDED + NO_SHOW) for the games where the organizer
      * formally confirmed attendance. Monthly data points are included for charting.
      *
      * @param userId    the authenticated user's ID
      * @param timeframe "30", "90", or "all"
      * @return stats response; {@code empty=true} when no tracked-attendance games exist
      */
-    public StatsDto.StatsResponse getWinRate(UUID userId, String timeframe) {
+    public StatsDto.StatsResponse getShowUpRate(UUID userId, String timeframe) {
         Instant cutoff = parseCutoff(timeframe);
         List<GameParticipation> all = participationRepository.findConfirmedByUserSince(userId, cutoff);
 
@@ -70,7 +70,7 @@ public class StatsService {
                 .collect(Collectors.toList());
 
         if (tracked.isEmpty()) {
-            return emptyResponse("win_rate", timeframe);
+            return emptyResponse("show_up_rate", timeframe);
         }
 
         long attended = counted(tracked, GameParticipation.AttendanceStatus.ATTENDED);
@@ -80,7 +80,7 @@ public class StatsService {
                 tracked, GameParticipation.AttendanceStatus.ATTENDED);
 
         return StatsDto.StatsResponse.builder()
-                .metric("win_rate")
+                .metric("show_up_rate")
                 .value(rate)
                 .timeframe(timeframe)
                 .dataPoints(dataPoints)

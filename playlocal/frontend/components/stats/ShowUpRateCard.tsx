@@ -5,7 +5,7 @@ import { StatsResponse } from '@/lib/api';
 import { MetricTooltip } from '@/components/stats/MetricTooltip';
 import { EmptyStatCard } from '@/components/stats/EmptyStatCard';
 
-interface WinRateCardProps {
+interface ShowUpRateCardProps {
   data: StatsResponse | null;
   isLoading: boolean;
   error: string | null;
@@ -15,10 +15,10 @@ interface WinRateCardProps {
  * Displays the Show-up Rate metric as a progress bar row, matching the
  * "Performance Stats" design from the profile page.
  */
-export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
+export function ShowUpRateCard({ data, isLoading, error }: ShowUpRateCardProps) {
   if (isLoading && !data) {
     return (
-      <div data-testid="win-rate-skeleton" className="space-y-2">
+      <div data-testid="show-up-rate-skeleton" className="space-y-2">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-2 w-full rounded-full" />
       </div>
@@ -30,7 +30,7 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
 
   if (error || isEmpty) {
     return (
-      <div data-testid="win-rate-empty">
+      <div data-testid="show-up-rate-empty">
         <EmptyStatCard
           icon={<span className="text-gray-300 text-lg">—</span>}
           title="No games recorded yet"
@@ -45,7 +45,7 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
 
   return (
     <div
-      data-testid="win-rate-card"
+      data-testid="show-up-rate-card"
       className={`transition-opacity duration-200${isRefreshing ? ' opacity-60' : ''}`}
     >
       <div className="flex items-center justify-between mb-2">
@@ -59,7 +59,7 @@ export function WinRateCard({ data, isLoading, error }: WinRateCardProps) {
         />
       </div>
       <MetricTooltip
-        content="Percentage of your confirmed games where you successfully showed up. No-shows and unknown attendance negatively impact this score."
+        content="Percentage of your confirmed games that resulted in a win. Only games with a clear win or loss outcome are counted - draws and unknown results are excluded."
         label="Show-up Rate information"
       />
     </div>

@@ -5,7 +5,6 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
-  Award,
   Users,
   Star,
   CheckCircle,
@@ -19,20 +18,6 @@ import {
   Gamepad2,
   Lock,
 } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
 import {
@@ -47,7 +32,7 @@ import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { usePastGames } from '@/hooks/useGames';
 import { OrganizerQualityBadge } from './OrganizerQualityBadge';
-import { WinRateCard } from './stats/WinRateCard';
+import { ShowUpRateCard } from './stats/ShowUpRateCard';
 import { AttendanceRateCard } from './stats/AttendanceRateCard';
 import { SkillTrendChart } from './stats/SkillTrendChart';
 import { TimeframeToggle } from './stats/TimeframeToggle';
@@ -805,7 +790,7 @@ export function UserProfile() {
                       <span className="text-gray-900">8</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Win Rate</span>
+                      <span className="text-gray-600">Show-up Rate</span>
                       <span className="text-emerald-600">62.5%</span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1016,7 +1001,7 @@ function SportProfileCard({
 }
 
 function StatsTabContent() {
-  const { winRate, skillTrend, attendanceRate, timeframe, setTimeframe } = useStats();
+  const { showUpRate, skillTrend, attendanceRate, timeframe, setTimeframe } = useStats();
 
   return (
     <div className="space-y-4">
@@ -1029,10 +1014,10 @@ function StatsTabContent() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg text-gray-900 mb-4">Performance Stats</h3>
         <div className="space-y-4">
-          <WinRateCard
-            data={winRate.data}
-            isLoading={winRate.isLoading}
-            error={winRate.error}
+          <ShowUpRateCard
+            data={showUpRate.data}
+            isLoading={showUpRate.isLoading}
+            error={showUpRate.error}
           />
           <AttendanceRateCard
             data={attendanceRate.data}

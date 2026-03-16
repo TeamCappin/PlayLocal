@@ -10,7 +10,7 @@ interface MetricTooltipProps {
    */
   content: string;
   /**
-   * Concise accessible label for the trigger button, e.g. "Win Rate information".
+   * Concise accessible label for the trigger button, e.g. "Show-up Rate information".
    * Read aloud by screen readers instead of the icon character.
    */
   label: string;

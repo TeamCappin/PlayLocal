@@ -66,20 +66,20 @@ class StatsControllerTest {
     }
 
     // -------------------------------------------------------------------------
-    // GET /api/v1/stats/win-rate
+    // GET /api/v1/stats/show-up-rate
     // -------------------------------------------------------------------------
 
     @Nested
-    @DisplayName("GET /api/v1/stats/win-rate")
-    class GetWinRateTests {
+    @DisplayName("GET /api/v1/stats/show-up-rate")
+    class GetShowUpRateTests {
 
         @Test
         @DisplayName("Returns 200 with data response for authenticated user")
-        void getWinRate_withData_returns200() {
-            when(statsService.getWinRate(eq(testUserId), eq("30"))).thenReturn(dataResponse);
+        void getShowUpRate_withData_returns200() {
+            when(statsService.getShowUpRate(eq(testUserId), eq("30"))).thenReturn(dataResponse);
 
             ResponseEntity<StatsDto.StatsResponse> result =
-                    statsController.getWinRate("30", authentication);
+                    statsController.getShowUpRate("30", authentication);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(result.getBody()).isNotNull();
@@ -89,11 +89,11 @@ class StatsControllerTest {
 
         @Test
         @DisplayName("Returns 200 with empty response when user has no data")
-        void getWinRate_noData_returns200WithEmpty() {
-            when(statsService.getWinRate(eq(testUserId), eq("30"))).thenReturn(emptyResponse);
+        void getShowUpRate_noData_returns200WithEmpty() {
+            when(statsService.getShowUpRate(eq(testUserId), eq("30"))).thenReturn(emptyResponse);
 
             ResponseEntity<StatsDto.StatsResponse> result =
-                    statsController.getWinRate("30", authentication);
+                    statsController.getShowUpRate("30", authentication);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(result.getBody()).isNotNull();
@@ -104,31 +104,31 @@ class StatsControllerTest {
 
         @Test
         @DisplayName("Passes timeframe parameter to service")
-        void getWinRate_passesTimeframeToService() {
-            when(statsService.getWinRate(any(UUID.class), eq("90"))).thenReturn(dataResponse);
+        void getShowUpRate_passesTimeframeToService() {
+            when(statsService.getShowUpRate(any(UUID.class), eq("90"))).thenReturn(dataResponse);
 
-            statsController.getWinRate("90", authentication);
+            statsController.getShowUpRate("90", authentication);
 
-            verify(statsService).getWinRate(testUserId, "90");
+            verify(statsService).getShowUpRate(testUserId, "90");
         }
 
         @Test
         @DisplayName("Passes all-time timeframe to service")
-        void getWinRate_allTimeframe_passedCorrectly() {
-            when(statsService.getWinRate(any(UUID.class), eq("all"))).thenReturn(dataResponse);
+        void getShowUpRate_allTimeframe_passedCorrectly() {
+            when(statsService.getShowUpRate(any(UUID.class), eq("all"))).thenReturn(dataResponse);
 
-            statsController.getWinRate("all", authentication);
+            statsController.getShowUpRate("all", authentication);
 
-            verify(statsService).getWinRate(testUserId, "all");
+            verify(statsService).getShowUpRate(testUserId, "all");
         }
 
         @Test
         @DisplayName("Propagates IllegalArgumentException for invalid timeframe")
-        void getWinRate_invalidTimeframe_propagatesException() {
-            when(statsService.getWinRate(any(UUID.class), eq("7")))
+        void getShowUpRate_invalidTimeframe_propagatesException() {
+            when(statsService.getShowUpRate(any(UUID.class), eq("7")))
                     .thenThrow(new IllegalArgumentException("Invalid timeframe '7'"));
 
-            assertThatThrownBy(() -> statsController.getWinRate("7", authentication))
+            assertThatThrownBy(() -> statsController.getShowUpRate("7", authentication))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Invalid timeframe '7'");
         }

@@ -1,4 +1,4 @@
--- V19: Historical games spread across 6 months for Stats & Analytics skill evolution chart.
+-- V20: Historical games spread across 6 months for Stats & Analytics skill evolution chart.
 -- Each game has a different skill_band / intensity_band combination so the chart shows
 -- a progression over time.  Eight demo users are added as confirmed participants.
 
@@ -212,10 +212,10 @@ ON CONFLICT (participation_id) DO NOTHING;
 
 -- ============================================================================
 -- Attendance: mark most historical participations as ATTENDED, a few as NO_SHOW.
--- This gives users realistic win-rate and attendance-rate data.
+-- This gives users realistic show-up-rate and attendance-rate data.
 -- ============================================================================
 
--- Bulk-set all V19 participations to ATTENDED first
+-- Bulk-set all V20 participations to ATTENDED first
 UPDATE game_participation
    SET attendance_status = 'ATTENDED',
        attendance_confirmed_at = joined_at

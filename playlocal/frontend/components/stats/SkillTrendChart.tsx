@@ -91,7 +91,7 @@ export function SkillTrendChart({ data, isLoading, error }: SkillTrendChartProps
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Format ISO-instant data points for the chart.  */
+/** Format data points for the chart. */
 function formatChartData(pts: StatsDataPoint[]) {
   return pts.map((pt) => ({
     label: formatAxisLabel(pt.date),
@@ -102,12 +102,19 @@ function formatChartData(pts: StatsDataPoint[]) {
 
 /**
  * Convert an ISO-8601 instant like "2025-11-03T10:00:00Z" to a short label "Nov 3".
- * If the string is already a "yyyy-MM" month, show "Nov 25".
+ * If the string is a "yyyy-MM" month, show "Nov 25".
  */
 function formatAxisLabel(dateStr: string): string {
   try {
-    const d = new Date(dateStr);
+    const isYearMonth = /^\d{4}-\d{2}$/.test(dateStr);
+    // Use noon to avoid timezone shift on rendering
+    const parseableStr = isYearMonth ? `${dateStr}-01T12:00:00` : dateStr;
+    const d = new Date(parseableStr);
     if (isNaN(d.getTime())) return dateStr;
+    
+    if (isYearMonth) {
+      return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    }
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return dateStr;

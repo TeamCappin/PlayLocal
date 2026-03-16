@@ -12,7 +12,7 @@ describe('EmptyStatCard', () => {
         <EmptyStatCard
           icon={<div data-testid="icon" />}
           title="No games recorded yet"
-          message="Join a match to start tracking your win rate."
+          message="Join a match to start tracking your show-up rate."
         />,
       );
       expect(screen.getByText('No games recorded yet')).toBeInTheDocument();
@@ -23,11 +23,11 @@ describe('EmptyStatCard', () => {
         <EmptyStatCard
           icon={<div data-testid="icon" />}
           title="No games recorded yet"
-          message="Join a match to start tracking your win rate."
+          message="Join a match to start tracking your show-up rate."
         />,
       );
       expect(
-        screen.getByText('Join a match to start tracking your win rate.'),
+        screen.getByText('Join a match to start tracking your show-up rate.'),
       ).toBeInTheDocument();
     });
 
@@ -47,13 +47,13 @@ describe('EmptyStatCard', () => {
     it('forwards data-testid to the root element', () => {
       render(
         <EmptyStatCard
-          data-testid="win-rate-empty"
+          data-testid="show-up-rate-empty"
           icon={<div />}
           title="No data"
           message="Some guidance."
         />,
       );
-      expect(screen.getByTestId('win-rate-empty')).toBeInTheDocument();
+      expect(screen.getByTestId('show-up-rate-empty')).toBeInTheDocument();
     });
 
     it('renders without a testid when none is provided', () => {
@@ -88,18 +88,18 @@ describe('EmptyStatCard', () => {
   });
 
   describe('Per-metric copy', () => {
-    it('renders win rate empty-state copy', () => {
+    it('renders show-up rate empty-state copy', () => {
       render(
         <EmptyStatCard
-          data-testid="win-rate-empty"
+          data-testid="show-up-rate-empty"
           icon={<div />}
           title="No games recorded yet"
-          message="Join a match to start tracking your win rate."
+          message="Join a match to start tracking your show-up rate."
         />,
       );
       expect(screen.getByText('No games recorded yet')).toBeInTheDocument();
       expect(
-        screen.getByText('Join a match to start tracking your win rate.'),
+        screen.getByText('Join a match to start tracking your show-up rate.'),
       ).toBeInTheDocument();
     });
 
@@ -138,10 +138,10 @@ describe('EmptyStatCard', () => {
         <EmptyStatCard
           icon={<div />}
           title="No games recorded yet"
-          message="Failed to load win rate"
+          message="Failed to load show-up rate"
         />,
       );
-      expect(screen.getByText('Failed to load win rate')).toBeInTheDocument();
+      expect(screen.getByText('Failed to load show-up rate')).toBeInTheDocument();
     });
   });
 });

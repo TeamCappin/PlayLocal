@@ -103,7 +103,7 @@ jest.mock('recharts', () => ({
 
 jest.mock('@/hooks/useStats', () => ({
   useStats: () => ({
-    winRate: { data: null, isLoading: false, error: null },
+    showUpRate: { data: null, isLoading: false, error: null },
     skillTrend: { data: null, isLoading: false, error: null },
     attendanceRate: { data: null, isLoading: false, error: null },
     timeframe: '30',

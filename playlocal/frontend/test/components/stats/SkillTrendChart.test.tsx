@@ -34,9 +34,9 @@ const dataResponse = (overrides: Partial<StatsResponse> = {}): StatsResponse => 
   value: 92.0,
   timeframe: '30',
   dataPoints: [
-    { date: '2025-11-01T10:00:00Z', value: 85.0 },
-    { date: '2025-12-01T10:00:00Z', value: 90.0 },
-    { date: '2026-01-01T10:00:00Z', value: 92.0 },
+    { date: '2025-11', value: 85.0 },
+    { date: '2025-12', value: 90.0 },
+    { date: '2026-01', value: 92.0 },
   ],
   empty: false,
   ...overrides,
