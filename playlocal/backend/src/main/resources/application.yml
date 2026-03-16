@@ -39,7 +39,9 @@ game:
 # The default fallback value below is a LOCAL DEVELOPMENT placeholder only.
 # It must NEVER be used in production. In production (spring.profiles.active=prod)
 # the JWT_SECRET environment variable is required and must not match this value.
-# JwtSecretValidator enforces this at startup when the prod profile is active.
+# JwtSecretValidator enforces this at startup when the prod profile is active:
+#   - must not be blank or a known default placeholder
+#   - UTF-8 encoding must be at least 32 bytes (HMAC-SHA256 requirement)
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production-minimum-32-chars}
   expiration: ${JWT_EXPIRATION:86400000}  # 24 hours in milliseconds

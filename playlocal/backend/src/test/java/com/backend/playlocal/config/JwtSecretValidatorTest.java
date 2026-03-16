@@ -3,6 +3,9 @@ package com.backend.playlocal.config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.core.env.Environment;
+import org.springframework.mock.env.MockEnvironment;
+
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -20,9 +23,15 @@ class JwtSecretValidatorTest {
     // -----------------------------------------------------------------------
 
     private JwtSecretValidator validatorWithSecret(String secret) {
+        return validatorWithSecretAndProfile(secret, "prod");
+    }
+
+    private JwtSecretValidator validatorWithSecretAndProfile(String secret, String profile) {
         JwtConfig config = new JwtConfig();
         config.setSecret(secret);
-        return new JwtSecretValidator(config);
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(profile);
+        return new JwtSecretValidator(config, env);
     }
 
     // -----------------------------------------------------------------------
@@ -80,7 +89,21 @@ class JwtSecretValidatorTest {
     }
 
     // -----------------------------------------------------------------------
-    // Acceptance Test 4 — production with a valid, non-default secret
+    // Acceptance Test 4 — production with a secret shorter than 32 bytes
+    // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("US-FB-4: validateSecret throws when secret is shorter than 32 bytes")
+    void validateSecret_throwsForShortSecret() {
+        JwtSecretValidator validator = validatorWithSecret("too-short");
+
+        assertThatThrownBy(validator::validateSecret)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("[SECURITY]");
+    }
+
+    // -----------------------------------------------------------------------
+    // Acceptance Test 5 — production with a valid, non-default secret
     // -----------------------------------------------------------------------
 
     @Test

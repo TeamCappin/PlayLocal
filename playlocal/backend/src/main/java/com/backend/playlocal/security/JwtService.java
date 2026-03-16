@@ -3,6 +3,8 @@ package com.backend.playlocal.security;
 import com.backend.playlocal.config.JwtConfig;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.ObjectProvider;
+import com.backend.playlocal.config.JwtSecretValidator;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -17,9 +19,15 @@ public class JwtService {
     private final JwtConfig jwtConfig;
     private final SecretKey signingKey;
 
-    public JwtService(JwtConfig jwtConfig) {
+    public JwtService(JwtConfig jwtConfig, JwtSecretValidator validator) {
+        // Validation executes and finishes before we reach this point 
+        // because Spring guarantees validator is initialized prior to injection.
         this.jwtConfig = jwtConfig;
-        this.signingKey = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        
+        String secret = jwtConfig.getSecret();
+        // Guard against null to prevent exception inside HMAC in non-prod profiles
+        byte[] keyBytes = (secret != null) ? secret.getBytes(StandardCharsets.UTF_8) : new byte[32];
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(UUID userId, String email, List<String> roles) {
