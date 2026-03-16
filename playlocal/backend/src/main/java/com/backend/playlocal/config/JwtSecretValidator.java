@@ -2,11 +2,10 @@ package com.backend.playlocal.config;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.core.env.Environment;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -16,17 +15,19 @@ import java.util.Set;
  * <ul>
  *   <li>null or blank</li>
  *   <li>equal to a known default placeholder value</li>
+ *   <li>shorter than 32 bytes</li>
  * </ul>
  *
- * <p>This validator only enforces constraints when the {@code prod} Spring 
- * profile is active. It has no effect in {@code dev}, {@code test}, or 
- * {@code local} profiles.</p>
+ * <p>This validator is explicitly scoped to the {@code prod} Spring profile. 
+ * Therefore, it does not exist and has no effect in {@code dev}, {@code test}, 
+ * or {@code local} profiles.</p>
  *
  * <p>To resolve a startup failure, set the {@code JWT_SECRET} environment
  * variable to a strong, unique value whose UTF-8 encoding is at least 32 bytes
  * (required for HMAC-SHA256) before deploying.</p>
  */
 @Component
+@Profile("prod")
 @Lazy(false)
 public class JwtSecretValidator {
 
@@ -46,19 +47,13 @@ public class JwtSecretValidator {
     );
 
     private final JwtConfig jwtConfig;
-    private final Environment environment;
 
-    public JwtSecretValidator(JwtConfig jwtConfig, Environment environment) {
+    public JwtSecretValidator(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
-        this.environment = environment;
     }
 
     @PostConstruct
     public void validateSecret() {
-        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod");
-        if (!isProd) {
-            return;
-        }
         String secret = jwtConfig.getSecret();
 
         if (secret == null || secret.isBlank()) {

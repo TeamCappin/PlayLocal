@@ -18,14 +18,14 @@ class JwtSecretValidatorContextTest {
             .withUserConfiguration(JwtSecretValidatorTestConfig.class);
 
     @Test
-    @DisplayName("US-FB-4: validator Bean is created but has no effect outside prod profile")
-    void validatorBeanHasNoEffectOutsideProdProfile() {
+    @DisplayName("US-FB-4: validator Bean is NOT created outside prod profile")
+    void validatorBeanIsNotCreatedOutsideProdProfile() {
         contextRunner
                 .withPropertyValues("jwt.secret=development-secret-key-change-in-production-min-32-chars")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    // Bean is always created now, but fast-returns if not "prod"
-                    assertThat(context).hasSingleBean(JwtSecretValidator.class);
+                    // Because of @Profile("prod"), it shouldn't exist
+                    assertThat(context).doesNotHaveBean(JwtSecretValidator.class);
                 });
     }
 

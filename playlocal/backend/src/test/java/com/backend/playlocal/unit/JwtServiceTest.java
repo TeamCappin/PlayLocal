@@ -30,7 +30,7 @@ class JwtServiceTest {
         jwtConfig.setSecret("test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256");
         jwtConfig.setExpiration(86400000L); // 24 hours in ms
 
-        jwtService = new JwtService(jwtConfig, null);
+        jwtService = new JwtService(jwtConfig);
     }
 
     // ==========================================
@@ -140,7 +140,7 @@ class JwtServiceTest {
         JwtConfig differentConfig = new JwtConfig();
         differentConfig.setSecret("different-secret-key-that-is-also-at-least-256-bits-long");
         differentConfig.setExpiration(86400000L);
-        JwtService differentService = new JwtService(differentConfig, null);
+        JwtService differentService = new JwtService(differentConfig);
 
         // Generate token with different service
         String tokenFromDifferentKey = differentService.generateToken(TEST_USER_ID, TEST_EMAIL, TEST_ROLES);
@@ -171,7 +171,7 @@ class JwtServiceTest {
         expiredConfig.setSecret("test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256");
         expiredConfig.setExpiration(-1000L); // Negative = already expired
 
-        JwtService expiredService = new JwtService(expiredConfig, null);
+        JwtService expiredService = new JwtService(expiredConfig);
         String expiredToken = expiredService.generateToken(TEST_USER_ID, TEST_EMAIL, TEST_ROLES);
 
         // Wait a moment to ensure expiration

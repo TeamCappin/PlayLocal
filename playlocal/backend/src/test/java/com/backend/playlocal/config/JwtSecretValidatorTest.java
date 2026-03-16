@@ -3,8 +3,6 @@ package com.backend.playlocal.config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.core.env.Environment;
-import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,15 +21,9 @@ class JwtSecretValidatorTest {
     // -----------------------------------------------------------------------
 
     private JwtSecretValidator validatorWithSecret(String secret) {
-        return validatorWithSecretAndProfile(secret, "prod");
-    }
-
-    private JwtSecretValidator validatorWithSecretAndProfile(String secret, String profile) {
         JwtConfig config = new JwtConfig();
         config.setSecret(secret);
-        MockEnvironment env = new MockEnvironment();
-        env.setActiveProfiles(profile);
-        return new JwtSecretValidator(config, env);
+        return new JwtSecretValidator(config);
     }
 
     // -----------------------------------------------------------------------
