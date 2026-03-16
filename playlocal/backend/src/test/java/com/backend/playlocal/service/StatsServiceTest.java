@@ -3,7 +3,6 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.model.dto.StatsDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.GameParticipationRepository;
-import com.backend.playlocal.repository.ScoreHistoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,9 +31,6 @@ class StatsServiceTest {
 
     @Mock
     private GameParticipationRepository participationRepository;
-
-    @Mock
-    private ScoreHistoryRepository scoreHistoryRepository;
 
     @InjectMocks
     private StatsService statsService;
