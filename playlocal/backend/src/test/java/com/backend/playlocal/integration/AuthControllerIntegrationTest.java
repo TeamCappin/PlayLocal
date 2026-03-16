@@ -41,6 +41,9 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
         private com.backend.playlocal.repository.UserRoleRepository userRoleRepository;
 
         @Autowired
+        private com.backend.playlocal.repository.UserPrivacySettingsRepository userPrivacySettingsRepository;
+
+        @Autowired
         private PasswordEncoder passwordEncoder;
 
         private static final String BASE_URL = "/api/v1/auth";
@@ -63,8 +66,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                                         .findActiveRolesByUserId(user.getUserId());
                         userRoleRepository.deleteAll(roles);
 
-                        // Note: If there are revoked roles, this might still fail.
-                        // But in these tests we only create active roles.
+                        // Delete privacy settings to avoid FK constraint
+                        userPrivacySettingsRepository.deleteById(user.getUserId());
 
                         userRepository.delete(user);
                 });

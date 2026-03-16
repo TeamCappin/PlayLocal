@@ -16,36 +16,7 @@ import {
 import { useCreateGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { gamesApi, TagDto } from '@/lib/api';
-
-// Helper to get image by sport
-function getSportImage(sport: string) {
-  const images: Record<string, string> = {
-    Basketball:
-      'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
-    Soccer:
-      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
-    Tennis:
-      'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
-    Volleyball:
-      'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
-    Badminton:
-      'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
-    Baseball: '/images/sports/baseball.jpg',
-    Hockey:
-      'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
-    'Ultimate Frisbee': '/images/sports/ultimate-frisbee.jpg',
-    'Flag Football':
-      'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
-    Softball:
-      'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
-    Pickleball:
-      'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
-  };
-  return (
-    images[sport] ||
-    'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080'
-  );
-}
+import { getSportImage } from '@/constants/sportImages';
 
 function getVisibilityLabel(visibility: string): string {
   if (visibility === 'public') return 'Public';
@@ -60,6 +31,7 @@ export function CreateGame() {
   const { createGame, isCreating, error: createError } = useCreateGame();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   // Address Autocomplete State
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
@@ -186,13 +158,17 @@ export function CreateGame() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
-      setError('Date cannot be in the past');
+      setError('Date cannot be in the past.');
       return false;
     }
     const start = new Date(`${formData.date}T${formData.startTime}:00`);
+    if (start <= new Date()) {
+      setError('Start time cannot be in the past. Please choose a future time.');
+      return false;
+    }
     const end = new Date(`${formData.date}T${formData.endTime}:00`);
     if (end <= start) {
-      setError('End time must be after start time');
+      setError('End time must be after start time.');
       return false;
     }
     return true;
@@ -203,41 +179,60 @@ export function CreateGame() {
   };
 
   const validateStep2 = (): boolean => {
+    const errors: Record<string, boolean> = {};
+    
     if (!formData.minPlayers) {
       setError('Please enter minimum players');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.maxPlayers) {
       setError('Please enter maximum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     const min = Number.parseInt(formData.minPlayers, 10);
     const max = Number.parseInt(formData.maxPlayers, 10);
     if (Number.isNaN(min) || Number.isNaN(max)) {
       setError('Player counts must be numbers');
+      errors.minPlayers = true;
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (min < 2) {
       setError('Minimum players must be at least 2');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (max < min) {
       setError('Maximum players cannot be less than minimum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.skillLevel) {
       setError('Please select a skill level');
+      errors.skillLevel = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.intensity) {
       setError('Please select an intensity level');
+      errors.intensity = true;
+      setFieldErrors(errors);
       return false;
     }
+    setFieldErrors({});
     return true;
   };
 
   const validateStep = (currentStep: number): boolean => {
     setError(null);
+    setFieldErrors({});
     if (currentStep === 1) return validateStep1();
     if (currentStep === 2) return validateStep2();
     return true;
@@ -272,16 +267,6 @@ export function CreateGame() {
     if (!isAuthenticated) {
       navigate.push('/login');
       return;
-    }
-
-    // Client-side validation: End Time > Start Time
-    if (formData.date && formData.startTime && formData.endTime) {
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError('End time must be after start time');
-        return;
-      }
     }
 
     // Validate age requirements if both are provided
@@ -354,9 +339,9 @@ export function CreateGame() {
 
         {/* Error Alert */}
         {(error || createError) && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2 animate-pulse">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{error || createError}</span>
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <span className="text-red-700 font-medium">{error || createError}</span>
           </div>
         )}
 
@@ -398,10 +383,11 @@ export function CreateGame() {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* Error Display */}
+          {/* Error Display - Inside Form */}
           {(error || createError) && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error || createError}
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <span className="text-red-700 font-medium">{error || createError}</span>
             </div>
           )}
 
@@ -625,7 +611,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 6"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.minPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -648,7 +638,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 10"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.maxPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -665,7 +659,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, skillLevel: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.skillLevel
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select skill level</option>
@@ -685,7 +683,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, intensity: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.intensity
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select intensity</option>

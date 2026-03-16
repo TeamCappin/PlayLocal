@@ -1,0 +1,48 @@
+name: Docker Build (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'playlocal/backend/**'
+      - 'playlocal/frontend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/docker-build-pr.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: playlocal/backend
+            dockerfile: playlocal/backend/Dockerfile
+            build_args: ''
+          - name: frontend
+            context: playlocal/frontend
+            dockerfile: playlocal/frontend/Dockerfile
+            build_args: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.name }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          build-args: ${{ matrix.build_args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

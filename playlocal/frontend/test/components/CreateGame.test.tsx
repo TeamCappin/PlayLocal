@@ -306,7 +306,35 @@ describe('CreateGame', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     expect(
-      await screen.findAllByText(/date cannot be in the past/i)
+      await screen.findAllByText(/date cannot be in the past\./i)
+    ).not.toHaveLength(0);
+    // should stay on step 1
+    expect(screen.getByText(/basic information/i)).toBeInTheDocument();
+  });
+
+  it('shows error when start time is in the past for today', async () => {
+    // Set system time to late evening so any morning time is definitely in the past
+    jest.setSystemTime(new Date('2026-02-09T23:00:00.000Z'));
+
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    // Use today's date with a morning time that is definitely in the past
+    await fillStep1Valid({ date: '2026-02-09', start: '08:00', end: '09:00' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/start time cannot be in the past/i)
     ).not.toHaveLength(0);
     // should stay on step 1
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
@@ -816,9 +844,9 @@ describe('CreateGame', () => {
 
     render(<CreateGame />);
 
-    // It renders twice (top + inside form)
     const banners = await screen.findAllByText(/backend down/i);
-    expect(banners.length).toBeGreaterThanOrEqual(1);
+    expect(banners.length).toBeGreaterThan(0);
+    expect(banners[0]).toBeInTheDocument();
   });
 
   it('submit on step 1 via form submit acts like Continue (and advances)', async () => {

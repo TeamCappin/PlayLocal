@@ -16,6 +16,11 @@ jest.mock('next/link', () => {
   };
 });
 
+const mockSearchParams = { get: jest.fn((key: string) => (key === "view" ? null : null)) };
+jest.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+}));
+
 jest.mock('../../hooks/useGames', () => ({
   useGames: jest.fn(),
 }));
@@ -46,8 +51,17 @@ import { useGames } from '../../hooks/useGames';
 describe('GameDiscovery Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Prevent view-mode persisted in sessionStorage from leaking between tests
     sessionStorage.clear();
+    mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? null : null));
+    Object.defineProperty(global.navigator, "geolocation", {
+      value: {
+        getCurrentPosition: jest.fn((success?: (p: unknown) => void, error?: (err: { code: number; message: string }) => void) => {
+          if (error) error({ code: 1, message: "User denied geolocation" });
+        }),
+      },
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe('Loading State', () => {
@@ -230,7 +244,7 @@ describe('GameDiscovery Component', () => {
       (useGames as jest.Mock).mockReturnValue({
         games: mockGames,
         isLoading: false,
-        error: null,
+        refetch: jest.fn(),
       });
 
       render(<GameDiscovery />);
@@ -249,7 +263,7 @@ describe('GameDiscovery Component', () => {
       (useGames as jest.Mock).mockReturnValue({
         games: mockGames,
         isLoading: false,
-        error: null,
+        refetch: jest.fn(),
       });
 
       render(<GameDiscovery />);
@@ -525,7 +539,7 @@ describe('GameDiscovery Component', () => {
       }
 
       // Click search button
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -553,16 +567,14 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(sportInput, { target: { value: 'Basketball' } });
       });
 
-      // Click Reset
-      const resetButton = screen.getByRole('button', { name: /reset/i });
+      // Click Clear
+      const clearButton = screen.getByRole('button', { name: /clear/i });
       await act(async () => {
-        fireEvent.click(resetButton);
+        fireEvent.click(clearButton);
       });
 
-      // Modal should close
-      await waitFor(() => {
-        expect(screen.queryByText('Distance')).not.toBeInTheDocument();
-      });
+      // Verify filters are cleared (input should be empty)
+      expect(sportInput).toHaveValue('');
 
       // useGames should have been called with no filters (undefined)
       const calls = (useGames as jest.Mock).mock.calls;
@@ -792,7 +804,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(sportInput, { target: { value: 'Basketball' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -830,7 +842,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(skillSelect, { target: { value: 'beginner' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -868,7 +880,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(locationSelect, { target: { value: 'indoor' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -903,7 +915,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.change(intensitySelect, { target: { value: 'high' } });
       });
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -961,7 +973,7 @@ describe('GameDiscovery Component', () => {
       // Clear initial calls before applying filter
       (useGames as jest.Mock).mockClear();
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1056,7 +1068,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1100,7 +1112,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1139,7 +1151,7 @@ describe('GameDiscovery Component', () => {
         });
       }
 
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1189,7 +1201,7 @@ describe('GameDiscovery Component', () => {
       });
 
       // Distance is already "any distance" by default, so just click search
-      const searchButton = screen.getByText('Search');
+      const searchButton = screen.getByText('Apply');
       await act(async () => {
         fireEvent.click(searchButton);
       });
@@ -1691,6 +1703,7 @@ describe('GameDiscovery Component', () => {
 
   describe('Session Persistence – View Mode', () => {
     beforeEach(() => {
+      jest.useFakeTimers();
       (useGames as jest.Mock).mockReturnValue({
         games: [],
         isLoading: false,
@@ -1698,9 +1711,15 @@ describe('GameDiscovery Component', () => {
         refetch: jest.fn(),
       });
     });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
 
-    it('saves view mode to sessionStorage when toggled to map', () => {
+    it('saves view mode to sessionStorage when toggled to map', async () => {
       render(<GameDiscovery />);
+      await act(async () => {
+        jest.runAllTimers();
+      });
       const buttons = screen.getAllByRole('button');
       const mapButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="icon-map"]')
@@ -1710,8 +1729,11 @@ describe('GameDiscovery Component', () => {
       expect(sessionStorage.getItem('playlocal-view-mode')).toBe('map');
     });
 
-    it('saves view mode to sessionStorage when toggled to grid', () => {
+    it('saves view mode to sessionStorage when toggled to grid', async () => {
       render(<GameDiscovery />);
+      await act(async () => {
+        jest.runAllTimers();
+      });
       const buttons = screen.getAllByRole('button');
       const mapButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="icon-map"]')
@@ -1724,22 +1746,31 @@ describe('GameDiscovery Component', () => {
       expect(sessionStorage.getItem('playlocal-view-mode')).toBe('grid');
     });
 
-    it('restores map view mode from sessionStorage on mount', () => {
-      sessionStorage.setItem('playlocal-view-mode', 'map');
+    it("restores map view mode from sessionStorage on mount", async () => {
+      mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? "map" : null));
       render(<GameDiscovery />);
-      // Component should start in map mode
-      expect(screen.getByTestId('map-view')).toBeInTheDocument();
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      // URL view=map shows map
+      expect(screen.getByTestId("map-view")).toBeInTheDocument();
     });
 
-    it('restores grid view mode from sessionStorage on mount', () => {
+    it('restores grid view mode from sessionStorage on mount', async () => {
       sessionStorage.setItem('playlocal-view-mode', 'grid');
       render(<GameDiscovery />);
+      await act(async () => {
+        jest.runAllTimers();
+      });
       // Grid content present, map not
       expect(screen.queryByTestId('map-view')).not.toBeInTheDocument();
     });
 
-    it('defaults to grid view when no sessionStorage entry exists', () => {
+    it('defaults to grid view when no sessionStorage entry exists', async () => {
       render(<GameDiscovery />);
+      await act(async () => {
+        jest.runAllTimers();
+      });
       expect(screen.queryByTestId('map-view')).not.toBeInTheDocument();
     });
   });

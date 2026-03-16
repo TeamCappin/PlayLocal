@@ -1,8 +1,10 @@
 package com.backend.playlocal.controller;
 
 import com.backend.playlocal.model.dto.AuthDto;
+import com.backend.playlocal.model.dto.PrivacySettingsDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
+import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +21,13 @@ public class UserController {
 
     private final UserService userService;
     private final ConnectionSignalsService connectionSignalsService;
+    private final PrivacySettingsService privacySettingsService;
 
-    public UserController(UserService userService, ConnectionSignalsService connectionSignalsService) {
+    public UserController(UserService userService, ConnectionSignalsService connectionSignalsService,
+            PrivacySettingsService privacySettingsService) {
         this.userService = userService;
         this.connectionSignalsService = connectionSignalsService;
+        this.privacySettingsService = privacySettingsService;
     }
 
     /**
@@ -33,8 +38,10 @@ public class UserController {
     public ResponseEntity<UserDto.SearchResponse> searchUsers(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        UserDto.SearchResponse response = userService.searchUsers(q, page, Math.min(size, 100));
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        UUID viewerId = UUID.fromString(authentication.getName());
+        UserDto.SearchResponse response = userService.searchUsers(q, page, Math.min(size, 100), viewerId);
         return ResponseEntity.ok(response);
     }
 
@@ -55,10 +62,14 @@ public class UserController {
      * Get a user's public profile by ID.
      * GET /api/v1/users/{userId}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]
+     * US-7.12: Enforces privacy visibility toggles.
      */
     @GetMapping("/{userId}/profile")
-    public ResponseEntity<AuthDto.UserDto> getUserProfile(@PathVariable String userId) {
-        AuthDto.UserDto user = userService.getUserProfile(userId);
+    public ResponseEntity<AuthDto.UserDto> getUserProfile(
+            @PathVariable String userId,
+            Authentication authentication) {
+        UUID viewerId = UUID.fromString(authentication.getName());
+        AuthDto.UserDto user = userService.getUserProfile(userId, viewerId);
         return ResponseEntity.ok(user);
     }
 
@@ -66,11 +77,40 @@ public class UserController {
      * Get a user's public profile by slug (URL-friendly display name).
      * GET /api/v1/users/slug/{slug}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]
+     * US-7.12: Enforces privacy visibility toggles.
      */
     @GetMapping("/slug/{slug}/profile")
-    public ResponseEntity<AuthDto.UserDto> getProfileBySlug(@PathVariable String slug) {
-        AuthDto.UserDto user = userService.getProfileBySlug(slug);
+    public ResponseEntity<AuthDto.UserDto> getProfileBySlug(
+            @PathVariable String slug,
+            Authentication authentication) {
+        UUID viewerId = UUID.fromString(authentication.getName());
+        AuthDto.UserDto user = userService.getProfileBySlug(slug, viewerId);
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * US-7.12: Get the authenticated user's privacy settings.
+     * GET /api/v1/users/privacy-settings
+     */
+    @GetMapping("/privacy-settings")
+    public ResponseEntity<PrivacySettingsDto.PrivacySettingsResponse> getPrivacySettings(
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        PrivacySettingsDto.PrivacySettingsResponse response = privacySettingsService.getPrivacySettings(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * US-7.12: Update the authenticated user's privacy settings.
+     * PUT /api/v1/users/privacy-settings
+     */
+    @PutMapping("/privacy-settings")
+    public ResponseEntity<PrivacySettingsDto.PrivacySettingsResponse> updatePrivacySettings(
+            Authentication authentication,
+            @Valid @RequestBody PrivacySettingsDto.UpdatePrivacySettingsRequest request) {
+        UUID userId = UUID.fromString(authentication.getName());
+        PrivacySettingsDto.PrivacySettingsResponse response = privacySettingsService.updatePrivacySettings(userId, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

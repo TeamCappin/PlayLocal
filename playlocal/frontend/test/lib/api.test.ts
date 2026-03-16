@@ -292,6 +292,52 @@ describe('gamesApi lifecycle endpoints', () => {
       });
     });
 
+    it('extracts fieldErrors when response has no message field', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          errorJsonResponse(400, {
+            error: 'Validation failed',
+            fieldErrors: { startTime: 'Start time must be in the future' },
+          })
+        );
+      (globalThis as any).fetch = fetchMock;
+
+      await expect(gamesApi.getById('g-past')).rejects.toMatchObject({
+        name: 'ApiError',
+        status: 400,
+        message: 'Start time must be in the future',
+        data: expect.objectContaining({
+          fieldErrors: { startTime: 'Start time must be in the future' },
+        }),
+      });
+    });
+
+    it('joins multiple fieldErrors into a single message', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          errorJsonResponse(400, {
+            error: 'Validation failed',
+            fieldErrors: {
+              startTime: 'Start time must be in the future',
+              title: 'Title is required',
+            },
+          })
+        );
+      (globalThis as any).fetch = fetchMock;
+
+      try {
+        await gamesApi.getById('g-multi');
+        throw new Error('expected to throw');
+      } catch (e: any) {
+        expect(e).toBeInstanceOf(ApiError);
+        expect(e.status).toBe(400);
+        expect(e.message).toContain('Start time must be in the future');
+        expect(e.message).toContain('Title is required');
+      }
+    });
+
     it('falls back to statusText when error body is not JSON', async () => {
       const fetchMock = jest
         .fn()
