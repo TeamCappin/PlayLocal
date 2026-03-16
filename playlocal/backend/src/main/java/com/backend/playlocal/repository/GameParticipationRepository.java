@@ -89,4 +89,19 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     @Query("SELECT gp.user.userId, gp.game.gameId FROM GameParticipation gp WHERE gp.game.status = :completedStatus " +
             "AND gp.attendanceStatus = 'ATTENDED' AND gp.game.startTime >= :since AND gp.user.userId IN :userIds")
     List<Object[]> findAttendedCompletedGamePairsSince(@Param("userIds") List<UUID> userIds, @Param("since") Instant since, @Param("completedStatus") Game.GameStatus completedStatus);
+
+    /**
+     * Stats US-7.6: Find confirmed participations for a user since a cutoff date,
+     * with game eagerly fetched for access to startTime without lazy-load issues.
+     * Pass {@code Instant.EPOCH} as cutoff for all-time.
+     */
+    @Query("SELECT gp FROM GameParticipation gp " +
+            "JOIN FETCH gp.game g " +
+            "WHERE gp.user.userId = :userId " +
+            "AND gp.joinStatus = 'CONFIRMED' " +
+            "AND g.startTime >= :cutoff " +
+            "ORDER BY g.startTime ASC")
+    List<GameParticipation> findConfirmedByUserSince(
+            @Param("userId") UUID userId,
+            @Param("cutoff") Instant cutoff);
 }

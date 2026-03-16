@@ -892,6 +892,50 @@ export const photosApi = {
     }),
 };
 
+
+
+// ============================================
+// STATS & ANALYTICS API (US-7.6)
+// ============================================
+
+/** A single data point returned from the stats API. */
+export interface StatsDataPoint {
+  /** A 'yyyy-MM' month string representing the grouping period. */
+  date: string;
+  /** Numeric value – can be a percentage (0–100) or derived skill/intensity score. */
+  value: number;
+}
+
+/**
+ * Standard response shape for all three stats metrics.
+ * When `empty` is true the frontend should show an empty-state instead of a chart.
+ */
+export interface StatsResponse {
+  /** Metric identifier: 'show_up_rate' | 'skill_trend' | 'attendance_rate' */
+  metric: string;
+  /** Aggregate value for the timeframe; null when `empty` is true. */
+  value: number | null;
+  /** Requested timeframe: '30' | '90' | 'all' */
+  timeframe: string;
+  /** Ordered data points for charting; empty array when `empty` is true. */
+  dataPoints: StatsDataPoint[];
+  /** True when the user has no data for this metric. */
+  empty: boolean;
+}
+
+export type StatsTimeframe = '30' | '90' | 'all';
+
+export const statsApi = {
+  getShowUpRate: (timeframe: StatsTimeframe = '30') =>
+    apiFetch<StatsResponse>(`/stats/show-up-rate?timeframe=${timeframe}`),
+
+  getSkillTrend: (timeframe: StatsTimeframe = '30') =>
+    apiFetch<StatsResponse>(`/stats/skill-trend?timeframe=${timeframe}`),
+
+  getAttendanceRate: (timeframe: StatsTimeframe = '30') =>
+    apiFetch<StatsResponse>(`/stats/attendance-rate?timeframe=${timeframe}`),
+};
+
 export default {
   auth: authApi,
   games: gamesApi,
@@ -903,5 +947,6 @@ export default {
   health: healthApi,
   scoreHistory: scoreHistoryApi,
   organizerQuality: organizerQualityApi,
+  stats: statsApi,
   privacy: privacyApi,
 };

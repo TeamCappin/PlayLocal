@@ -83,6 +83,11 @@ jest.mock('@/lib/api', () => {
     scoreHistoryApi: {
       getHistory: createMockArrayFn(),
     },
+    statsApi: {
+      getShowUpRate: createMockObjectFn(),
+      getSkillTrend: createMockObjectFn(),
+      getAttendanceRate: createMockObjectFn(),
+    },
     // Export default object
     __esModule: true,
     default: {
@@ -95,6 +100,7 @@ jest.mock('@/lib/api', () => {
       health: {},
       scoreHistory: {},
       organizerQuality: {},
+      stats: {},
     },
   };
 });

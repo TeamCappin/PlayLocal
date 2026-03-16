@@ -93,7 +93,7 @@ jest.mock('../../lib/api', () => {
   };
 });
 
-// Mock Recharts
+// Mock Recharts (used by stats components embedded in StatsTabContent)
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
   LineChart: () => <div>LineChart</div>,
@@ -102,11 +102,17 @@ jest.mock('recharts', () => ({
   YAxis: () => <div>YAxis</div>,
   CartesianGrid: () => <div>CartesianGrid</div>,
   Tooltip: () => <div>Tooltip</div>,
-  RadarChart: () => <div>RadarChart</div>,
-  PolarGrid: () => <div>PolarGrid</div>,
-  PolarAngleAxis: () => <div>PolarAngleAxis</div>,
-  PolarRadiusAxis: () => <div>PolarRadiusAxis</div>,
-  Radar: () => <div>Radar</div>,
+}));
+
+// Mock useStats hook
+jest.mock('@/hooks/useStats', () => ({
+  useStats: () => ({
+    showUpRate: { data: null, isLoading: false, error: null },
+    skillTrend: { data: null, isLoading: false, error: null },
+    attendanceRate: { data: null, isLoading: false, error: null },
+    timeframe: '30',
+    setTimeframe: jest.fn(),
+  }),
 }));
 
 // Mock Lucide icons (UserProfile imports: MapPin, Calendar, TrendingUp, Award, Users, Star, CheckCircle, Edit, Settings, Flag, Loader2, AlertCircle, Medal, UserPlus, Gamepad2)
@@ -359,3 +365,68 @@ describe('UserProfile Endorsements', () => {
     );
   });
 });
+
+describe('UserProfile Tabs Navigation (US-7.6)', () => {
+  const mockUser = {
+    id: 1,
+    displayName: 'Test User',
+    userId: 101,
+    gamesCount: 10,
+    reliabilityScore: 95,
+    bio: 'Test bio',
+    profileRestricted: false,
+    sports: [{ sport: 'Tennis', skillLevel: 'Intermediate', active: true }],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      refreshUser: jest.fn(),
+    });
+    (usersApi.getProfile as jest.Mock).mockResolvedValue(mockUser);
+    (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(mockUser);
+  });
+
+  it('can navigate through all user profile tabs', async () => {
+    const { getByText } = render(<UserProfile />);
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(getByText('Overview')).toBeInTheDocument();
+    });
+
+    // Default Overview
+    expect(getByText('Test bio')).toBeInTheDocument();
+
+    // Click Stats & Analytics Tab
+    const statsTab = screen.getByRole('button', { name: /Stats & Analytics/i });
+    statsTab.click();
+    await waitFor(() => {
+      expect(screen.getByText('Performance Stats')).toBeInTheDocument(); // Inner text from StatsTabContent
+    });
+
+    // Click Sport Profiles Tab
+    const sportsTab = screen.getByRole('button', { name: /Sport Profiles/i });
+    sportsTab.click();
+    await waitFor(() => {
+      expect(sportsTab).toHaveClass('border-emerald-600');
+    });
+
+    // Click Match History Tab
+    const historyTab = screen.getByRole('button', { name: /Match History/i });
+    historyTab.click();
+    await waitFor(() => {
+      expect(historyTab).toHaveClass('border-emerald-600');
+    });
+
+    // Click Score History Tab
+    const scoresTab = screen.getByRole('button', { name: /Score History/i });
+    scoresTab.click();
+    await waitFor(() => {
+      expect(scoresTab).toHaveClass('border-emerald-600');
+    });
+  });
+});
+
