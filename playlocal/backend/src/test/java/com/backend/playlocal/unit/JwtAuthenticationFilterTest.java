@@ -46,7 +46,7 @@ class JwtAuthenticationFilterTest {
         JwtConfig jwtConfig = new JwtConfig();
         jwtConfig.setSecret("test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256");
         jwtConfig.setExpiration(86400000L);
-        jwtService = new JwtService(jwtConfig);
+        jwtService = new JwtService(jwtConfig, null);
 
         jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService);
 
