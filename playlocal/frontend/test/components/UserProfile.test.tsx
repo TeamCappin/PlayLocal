@@ -365,3 +365,68 @@ describe('UserProfile Endorsements', () => {
     );
   });
 });
+
+describe('UserProfile Tabs Navigation (US-7.6)', () => {
+  const mockUser = {
+    id: 1,
+    displayName: 'Test User',
+    userId: 101,
+    gamesCount: 10,
+    reliabilityScore: 95,
+    bio: 'Test bio',
+    profileRestricted: false,
+    sports: [{ sport: 'Tennis', skillLevel: 'Intermediate', active: true }],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      isAuthenticated: true,
+      refreshUser: jest.fn(),
+    });
+    (usersApi.getProfile as jest.Mock).mockResolvedValue(mockUser);
+    (usersApi.getProfileBySlug as jest.Mock).mockResolvedValue(mockUser);
+  });
+
+  it('can navigate through all user profile tabs', async () => {
+    const { getByText } = render(<UserProfile />);
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(getByText('Overview')).toBeInTheDocument();
+    });
+
+    // Default Overview
+    expect(getByText('Test bio')).toBeInTheDocument();
+
+    // Click Stats & Analytics Tab
+    const statsTab = screen.getByRole('button', { name: /Stats & Analytics/i });
+    statsTab.click();
+    await waitFor(() => {
+      expect(screen.getByText('Performance Stats')).toBeInTheDocument(); // Inner text from StatsTabContent
+    });
+
+    // Click Sport Profiles Tab
+    const sportsTab = screen.getByRole('button', { name: /Sport Profiles/i });
+    sportsTab.click();
+    await waitFor(() => {
+      expect(sportsTab).toHaveClass('border-emerald-600');
+    });
+
+    // Click Match History Tab
+    const historyTab = screen.getByRole('button', { name: /Match History/i });
+    historyTab.click();
+    await waitFor(() => {
+      expect(historyTab).toHaveClass('border-emerald-600');
+    });
+
+    // Click Score History Tab
+    const scoresTab = screen.getByRole('button', { name: /Score History/i });
+    scoresTab.click();
+    await waitFor(() => {
+      expect(scoresTab).toHaveClass('border-emerald-600');
+    });
+  });
+});
+
