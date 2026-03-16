@@ -33,7 +33,7 @@ server:
 # Startup will be rejected by JwtSecretValidator if this value is blank or
 # matches a known default placeholder.
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:}
   expiration: ${JWT_EXPIRATION:86400000}
 
 management:
