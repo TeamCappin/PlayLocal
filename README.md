@@ -141,6 +141,10 @@ curl http://localhost:8080/api/v1/health
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
+### CI Checks
+
+- Docker image build on PRs: `.github/workflows/docker-build-pr.yml` builds the backend and frontend images to validate container builds before merge.
+
 ### Manual Development
 
 ```sh

@@ -16,36 +16,7 @@ import {
 import { useCreateGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { gamesApi, TagDto } from '@/lib/api';
-
-// Helper to get image by sport
-function getSportImage(sport: string) {
-  const images: Record<string, string> = {
-    Basketball:
-      'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
-    Soccer:
-      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
-    Tennis:
-      'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
-    Volleyball:
-      'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
-    Badminton:
-      'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
-    Baseball: '/images/sports/baseball.jpg',
-    Hockey:
-      'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
-    'Ultimate Frisbee': '/images/sports/ultimate-frisbee.jpg',
-    'Flag Football':
-      'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
-    Softball:
-      'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
-    Pickleball:
-      'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
-  };
-  return (
-    images[sport] ||
-    'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080'
-  );
-}
+import { getSportImage } from '@/constants/sportImages';
 
 function getVisibilityLabel(visibility: string): string {
   if (visibility === 'public') return 'Public';

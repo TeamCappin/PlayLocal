@@ -75,7 +75,7 @@ export function Navigation() {
 
           <div className="flex items-center gap-6">
             <Link
-              href="/discover"
+              href="/discover?view=map"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                 pathname === '/discover'
                   ? 'text-emerald-600 bg-emerald-50'
@@ -83,7 +83,7 @@ export function Navigation() {
               }`}
             >
               <Search className="w-5 h-5" />
-              <span>Discover</span>
+              <span>Discover Games</span>
             </Link>
 
             <Link

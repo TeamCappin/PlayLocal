@@ -31,15 +31,25 @@ export function LandingPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
 
   useEffect(() => {
-    gamesApi.getUpcoming().then((games) => {
-      if (!games || games.length === 0) {
-        setStats(null);
-        return;
-      }
-      const activePlayers = games.reduce((sum, g) => sum + (g.confirmedCount ?? 0), 0);
-      const uniqueSports = new Set(games.map((g) => g.sportName)).size;
-      setStats({ activePlayers, gamesPlayed: games.length, sports: uniqueSports });
-    }).catch(() => setStats(null));
+    gamesApi
+      .getUpcoming()
+      .then((games) => {
+        if (!games || games.length === 0) {
+          setStats(null);
+          return;
+        }
+        const activePlayers = games.reduce(
+          (sum, g) => sum + (g.confirmedCount ?? 0),
+          0
+        );
+        const uniqueSports = new Set(games.map((g) => g.sportName)).size;
+        setStats({
+          activePlayers,
+          gamesPlayed: games.length,
+          sports: uniqueSports,
+        });
+      })
+      .catch(() => setStats(null));
   }, []);
 
   return (
@@ -55,7 +65,7 @@ export function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link
-                href="/discover"
+                href="/discover?view=map"
                 className="text-white hover:text-emerald-200 transition-colors"
               >
                 Discover Games
@@ -112,15 +122,21 @@ export function LandingPage() {
               {stats && (
                 <div className="mt-12 flex gap-8">
                   <div>
-                    <div className="text-3xl text-white">{stats.activePlayers.toLocaleString()}+</div>
+                    <div className="text-3xl text-white">
+                      {stats.activePlayers.toLocaleString()}+
+                    </div>
                     <div className="text-emerald-200">Active Players</div>
                   </div>
                   <div>
-                    <div className="text-3xl text-white">{stats.gamesPlayed.toLocaleString()}+</div>
+                    <div className="text-3xl text-white">
+                      {stats.gamesPlayed.toLocaleString()}+
+                    </div>
                     <div className="text-emerald-200">Upcoming Games</div>
                   </div>
                   <div>
-                    <div className="text-3xl text-white">{stats.sports}+</div>
+                    <div className="text-3xl text-white">
+                      {stats.sports}+
+                    </div>
                     <div className="text-emerald-200">Sports</div>
                   </div>
                 </div>
@@ -281,7 +297,7 @@ export function LandingPage() {
               <ul className="space-y-2 text-gray-400">
                 <li>
                   <Link
-                    href="/discover"
+                    href="/discover?view=map"
                     className="hover:text-emerald-400 transition-colors"
                   >
                     Discover Games
@@ -432,7 +448,7 @@ function TestimonialCard({
           <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
         ))}
       </div>
-      <p className="text-white mb-4">&ldquo;{quote}&ldquo;</p>
+      <p className="text-white mb-4">&ldquo;{quote}&rdquo;</p>
       <div>
         <div className="text-emerald-200">{author}</div>
         <div className="text-emerald-300 text-sm">{role}</div>

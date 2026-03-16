@@ -18,3 +18,10 @@ Code-based test suites live in the backend and frontend apps.
 - Frontend: `cd playlocal/frontend && npm test`
 
 Performance validation lives in `performance/` at the repo root — see `performance/README.md`.
+- Backend unit/integration: (cd playlocal/backend && ./mvnw test)
+- Backend concurrency: requires Docker (Testcontainers)
+- Frontend: (cd playlocal/frontend && npm test)
+
+CI checks
+
+- Docker image build on PRs: `.github/workflows/docker-build-pr.yml` builds the backend and frontend images to catch container regressions early.

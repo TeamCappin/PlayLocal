@@ -47,6 +47,9 @@ class FriendshipServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private com.backend.playlocal.service.PrivacySettingsService privacySettingsService;
+
     @InjectMocks
     private FriendshipService friendshipService;
 
@@ -557,6 +560,9 @@ class FriendshipServiceTest {
                 .thenReturn(new ArrayList<>());
         when(friendshipRepository.findPendingRequestsSent(requesterId))
                 .thenReturn(new ArrayList<>());
+        // US-7.12: Mock profile visibility check so friend data is visible
+        when(privacySettingsService.canViewProfile(addresseeId, requesterId, true))
+                .thenReturn(true);
 
         // When
         FriendDto.FriendsListResponse response = friendshipService.getFriendsList(
