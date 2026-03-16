@@ -21,7 +21,9 @@ interface MetricTooltipProps {
  */
 export function MetricTooltip({ content, label }: MetricTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const title = label.replace(/\s+information$/i, '');
+  const title = label.toLowerCase().endsWith(' information')
+    ? label.slice(0, -12).trimEnd()
+    : label;
 
   return (
     <div className="mt-3 border-t border-gray-200 pt-3">
