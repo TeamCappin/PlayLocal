@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -367,6 +368,43 @@ class GameServiceDiscoveryTest {
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), eq("competitive"));
+        }
+
+        @Test
+        @DisplayName("findNearbyGames with no matches skips batched metadata lookups")
+        void findNearbyGames_NoMatches_SkipsBatchedMetadataLookups() {
+                when(gameRepository.findNearbyGameIdsWithFilters(
+                                any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
+                                isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of());
+
+                List<GameDto.GameResponse> result = gameService.findNearbyGames(
+                                45.5f, -73.5f, 10.0, null, null, null, null, userId);
+
+                assertThat(result).isEmpty();
+                verify(gameRepository, never()).findAllByGameIdIn(any());
+                verify(participationRepository, never()).countParticipationSummaryByGameIds(any());
+                verify(tagAssignmentRepository, never()).findAllByGame_GameIdIn(any());
+                verify(participationRepository, never()).findConfirmedGameIdsForUser(any(), any());
+        }
+
+        @Test
+        @DisplayName("getUpcomingGames defaults counts to zero when summary rows are missing")
+        void getUpcomingGames_MissingSummaryRows_DefaultsCountsToZero() {
+                when(gameRepository.findUpcomingGamesWithFilters(
+                                any(Instant.class), isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(game));
+                when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any())).thenReturn(List.of());
+
+                List<GameDto.GameResponse> result = gameService.getUpcomingGames(
+                                null, null, null, null, userId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getConfirmedCount()).isZero();
+                assertThat(result.get(0).getWaitlistCount()).isZero();
+                assertThat(result.get(0).getHasExactLocationAccess()).isFalse();
         }
 
         @Test
