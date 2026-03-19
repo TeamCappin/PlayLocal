@@ -2,6 +2,7 @@ package com.backend.playlocal.controller;
 
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +61,16 @@ public class AuthController {
     public ResponseEntity<Void> logout() {
         // Stateless JWT - client discards token
         // Could implement token blacklist for enhanced security
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        String userId = authentication.getName();
+        authService.changePassword(userId, request);
         return ResponseEntity.noContent().build();
     }
 }

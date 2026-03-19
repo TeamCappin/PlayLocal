@@ -3,6 +3,7 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
+import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.UserRoleRepository;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -140,5 +142,22 @@ public class AuthService {
                 .gamesCount(user.getGamesCount())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .build();
+    }
+
+    @Transactional
+    public void changePassword(String userId, ChangePasswordRequest request) {
+        User user = userRepository.findActiveById(UUID.fromString(userId))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new IllegalArgumentException("New password and confirmation do not match");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }
