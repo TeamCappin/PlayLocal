@@ -31,6 +31,14 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     @Query("SELECT COUNT(gp) FROM GameParticipation gp WHERE gp.game.gameId = :gameId AND gp.joinStatus = 'CONFIRMED'")
     int countConfirmedParticipants(UUID gameId);
 
+    @Query("SELECT gp.game.gameId, " +
+            "SUM(CASE WHEN gp.joinStatus = 'CONFIRMED' THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN gp.joinStatus = 'WAITLISTED' THEN 1 ELSE 0 END) " +
+            "FROM GameParticipation gp " +
+            "WHERE gp.game.gameId IN :gameIds " +
+            "GROUP BY gp.game.gameId")
+    List<Object[]> countParticipationSummaryByGameIds(@Param("gameIds") List<UUID> gameIds);
+
     /**
      * Get all confirmed participants for a game.
      */
@@ -74,6 +82,12 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
      */
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.user.userId = :userId ORDER BY gp.joinedAt DESC")
     List<GameParticipation> findByUser(UUID userId);
+
+    @Query("SELECT gp.game.gameId FROM GameParticipation gp " +
+            "WHERE gp.user.userId = :userId " +
+            "AND gp.game.gameId IN :gameIds " +
+            "AND gp.joinStatus = 'CONFIRMED'")
+    List<UUID> findConfirmedGameIdsForUser(@Param("userId") UUID userId, @Param("gameIds") List<UUID> gameIds);
 
     /**
      * Find all participations for a specific game.

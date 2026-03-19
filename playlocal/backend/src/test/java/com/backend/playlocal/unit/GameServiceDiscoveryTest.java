@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,16 +93,11 @@ class GameServiceDiscoveryTest {
         }
 
     private void mockMapToGameResponseDependencies() {
-        when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
-        when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
-        // Mock tag assignment repository (used by getGameTags in mapToGameResponse)
-        when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
-        // lenient: when user is organizer we don't call findByGameAndUser
-        lenient().when(participationRepository.findByGameAndUser(any(), eq(userId)))
-                .thenReturn(Optional.of(GameParticipation.builder()
-                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                        .user(organizer)
-                        .build()));
+        when(participationRepository.countParticipationSummaryByGameIds(any()))
+                .thenReturn(List.of(new Object[] { game.getGameId(), 1L, 0L }));
+        when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+        lenient().when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
+                .thenReturn(List.of(game.getGameId()));
     }
 
         @Test
@@ -243,9 +237,8 @@ class GameServiceDiscoveryTest {
                 when(gameRepository.findUpcomingGamesWithFilters(
                                 any(Instant.class), isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game));
-                when(participationRepository.countConfirmedParticipants(any())).thenReturn(0);
-                when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
-                when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
+                when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(null, null, null, null, null);
 
