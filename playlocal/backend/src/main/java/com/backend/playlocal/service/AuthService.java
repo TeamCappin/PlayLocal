@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class AuthService {
 
-    private static final long RESET_CODE_TTL_SECONDS = 10 * 60; // 10 minutes
+    private static final long RESET_CODE_TTL_SECONDS = (long) 10 * 60; // 10 minutes
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;

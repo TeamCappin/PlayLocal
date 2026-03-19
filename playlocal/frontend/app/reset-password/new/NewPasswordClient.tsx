@@ -234,7 +234,7 @@ const NewPasswordClient: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-black text-white rounded-full hover:opacity-90 transition font-semibold disabled:opacity-50"
+              className="w-full py-3.5 bg-black text-black rounded-full hover:opacity-90 transition font-semibold disabled:opacity-50"
             >
               {isLoading ? 'Updating...' : 'Continue'}
             </button>
