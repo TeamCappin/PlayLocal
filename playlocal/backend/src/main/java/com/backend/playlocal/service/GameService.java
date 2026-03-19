@@ -20,9 +20,11 @@ import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -179,10 +181,16 @@ public class GameService {
                                 Instant.now(), userLat, userLon, radiusKm,
                                 params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
+                if (gameIds.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<UUID, Game> gamesById = gameRepository.findAllByGameIdIn(gameIds).stream()
+                                .collect(Collectors.toMap(Game::getGameId, Function.identity()));
+
                 List<Game> games = gameIds.stream()
-                                .map(gameId -> gameRepository.findById(gameId))
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
+                                .map(gamesById::get)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
                 return games.stream()
                                 .map(game -> mapToGameResponse(game, userId))

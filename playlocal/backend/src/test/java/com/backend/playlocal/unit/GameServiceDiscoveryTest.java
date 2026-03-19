@@ -176,7 +176,7 @@ class GameServiceDiscoveryTest {
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game.getGameId()));
-                when(gameRepository.findById(game.getGameId())).thenReturn(Optional.of(game));
+                when(gameRepository.findAllByGameIdIn(List.of(game.getGameId()))).thenReturn(List.of(game));
                 mockMapToGameResponseDependencies();
 
                 List<GameDto.GameResponse> result = gameService.findNearbyGames(
@@ -187,7 +187,7 @@ class GameServiceDiscoveryTest {
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), isNull());
-                verify(gameRepository).findById(game.getGameId());
+                verify(gameRepository).findAllByGameIdIn(List.of(game.getGameId()));
         }
 
         @Test
