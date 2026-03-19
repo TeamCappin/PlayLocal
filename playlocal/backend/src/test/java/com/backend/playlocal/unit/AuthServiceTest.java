@@ -8,6 +8,8 @@ import com.backend.playlocal.repository.UserRoleRepository;
 import com.backend.playlocal.security.JwtService;
 import com.backend.playlocal.service.AuthService;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.exception.ResourceNotFoundException;
+import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,7 @@ class AuthServiceTest {
     private AuthDto.RegisterRequest registerRequest;
     private AuthDto.LoginRequest loginRequest;
     private User user;
+    private ChangePasswordRequest changePasswordRequest;
 
     @BeforeEach
     void setUp() {
@@ -80,6 +83,11 @@ class AuthServiceTest {
                 .slug("test-user-" + UUID.randomUUID())
                 .status(User.UserStatus.ACTIVE)
                 .build();
+
+        changePasswordRequest = new ChangePasswordRequest();
+        changePasswordRequest.setCurrentPassword("PlayLocalSecure2026!");
+        changePasswordRequest.setNewPassword("NewPassword123!");
+        changePasswordRequest.setConfirmNewPassword("NewPassword123!");
     }
 
     // ==========================================
@@ -199,4 +207,91 @@ class AuthServiceTest {
         assertThat(dto.getEmail()).isEqualTo(user.getEmail());
         assertThat(dto.getReliabilityScore()).isEqualTo(100.0f);
     }
+
+    // Test Password Changes
+
+    @Test
+    @DisplayName("US-7.9: changePassword should succeed with valid current password and matching confirmation")
+    void changePassword_Success() {
+        UUID userId = user.getUserId();
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(true);
+        when(passwordEncoder.encode(changePasswordRequest.getNewPassword()))
+                .thenReturn("newEncodedPassword");
+
+        authService.changePassword(userId.toString(), changePasswordRequest);
+
+        assertThat(user.getPasswordHash()).isEqualTo("newEncodedPassword");
+        verify(userRepository).findActiveById(userId);
+        verify(passwordEncoder).matches("PlayLocalSecure2026!", "encodedPassword");
+        verify(passwordEncoder).encode("NewPassword123!");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("US-7.9: changePassword should throw ResourceNotFoundException when user is not found")
+    void changePassword_UserNotFound_ThrowsException() {
+        UUID missingUserId = UUID.randomUUID();
+
+        when(userRepository.findActiveById(missingUserId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.changePassword(missingUserId.toString(), changePasswordRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User not found");
+
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: changePassword should throw BadCredentialsException when current password is incorrect")
+    void changePassword_WrongCurrentPassword_ThrowsException() {
+        UUID userId = user.getUserId();
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(userId.toString(), changePasswordRequest))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Current password is incorrect");
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: changePassword should throw IllegalArgumentException when new password confirmation does not match")
+    void changePassword_ConfirmationMismatch_ThrowsException() {
+        UUID userId = user.getUserId();
+        changePasswordRequest.setConfirmNewPassword("differentPassword");
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> authService.changePassword(userId.toString(), changePasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("New password and confirmation do not match");
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: changePassword should throw IllegalArgumentException when userId is not a valid UUID")
+    void changePassword_InvalidUuid_ThrowsException() {
+        assertThatThrownBy(() -> authService.changePassword("not-a-uuid", changePasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(userRepository, never()).findActiveById(any());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+
 }
