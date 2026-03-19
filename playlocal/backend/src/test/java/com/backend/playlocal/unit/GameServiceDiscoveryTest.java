@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -94,9 +95,9 @@ class GameServiceDiscoveryTest {
         }
 
     private void mockMapToGameResponseDependencies() {
-        when(participationRepository.countParticipationSummaryByGameIds(any()))
-                .thenReturn(List.of(new Object[] { game.getGameId(), 1L, 0L }));
-        when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+        lenient().when(participationRepository.countParticipationSummaryByGameIds(any()))
+                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
+        lenient().when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
         lenient().when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
                 .thenReturn(List.of(game.getGameId()));
     }
@@ -231,7 +232,7 @@ class GameServiceDiscoveryTest {
                                 any(Instant.class), isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game));
                 when(participationRepository.countParticipationSummaryByGameIds(any()))
-                                .thenReturn(List.of(new Object[] { game.getGameId(), 1L, 0L }));
+                                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
                 when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
                                 .thenReturn(List.of(game.getGameId()));
@@ -324,7 +325,7 @@ class GameServiceDiscoveryTest {
                                 .thenReturn(List.of(game.getGameId()));
                 when(gameRepository.findAllByGameIdIn(List.of(game.getGameId()))).thenReturn(List.of(game));
                 when(participationRepository.countParticipationSummaryByGameIds(any()))
-                                .thenReturn(List.of(new Object[] { game.getGameId(), 1L, 0L }));
+                                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
                 when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
                                 .thenReturn(List.of(game.getGameId()));
@@ -391,15 +392,16 @@ class GameServiceDiscoveryTest {
         @Test
         @DisplayName("getUpcomingGames defaults counts to zero when summary rows are missing")
         void getUpcomingGames_MissingSummaryRows_DefaultsCountsToZero() {
+                UUID requesterId = UUID.randomUUID();
                 when(gameRepository.findUpcomingGamesWithFilters(
                                 any(Instant.class), isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game));
                 when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
-                when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(requesterId), any())).thenReturn(List.of());
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(
-                                null, null, null, null, userId);
+                                null, null, null, null, requesterId);
 
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).getConfirmedCount()).isZero();
