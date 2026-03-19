@@ -205,4 +205,140 @@ class AuthControllerUnitTest {
 
         verify(authService, never()).changePassword(any(), any());
     }
+
+    @Test
+    @DisplayName("US-7.9: Forgot password request should return 204 No Content")
+    void forgotPassword_Success_Returns204() throws Exception {
+        AuthDto.ForgotPasswordRequest request = AuthDto.ForgotPasswordRequest.builder()
+                .email("test@example.com")
+                .build();
+
+        doNothing().when(authService).forgotPassword(any());
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).forgotPassword(any(AuthDto.ForgotPasswordRequest.class));
+    }
+
+    @Test
+    @DisplayName("US-7.9: Forgot password with invalid email should return 400 Bad Request")
+    void forgotPassword_InvalidEmail_Returns400() throws Exception {
+        AuthDto.ForgotPasswordRequest request = AuthDto.ForgotPasswordRequest.builder()
+                .email("invalid-email")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).forgotPassword(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: Verify reset code should return 204 No Content")
+    void verifyResetCode_Success_Returns204() throws Exception {
+        AuthDto.VerifyResetCodeRequest request = AuthDto.VerifyResetCodeRequest.builder()
+                .email("test@example.com")
+                .code("123456")
+                .build();
+
+        doNothing().when(authService).verifyResetCode(any());
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password/verify-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).verifyResetCode(any(AuthDto.VerifyResetCodeRequest.class));
+    }
+
+    @Test
+    @DisplayName("US-7.9: Verify reset code with invalid code format should return 400 Bad Request")
+    void verifyResetCode_InvalidFormat_Returns400() throws Exception {
+        AuthDto.VerifyResetCodeRequest request = AuthDto.VerifyResetCodeRequest.builder()
+                .email("test@example.com")
+                .code("123")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password/verify-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).verifyResetCode(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: Resend reset code should return 204 No Content")
+    void resendResetCode_Success_Returns204() throws Exception {
+        AuthDto.ForgotPasswordRequest request = AuthDto.ForgotPasswordRequest.builder()
+                .email("test@example.com")
+                .build();
+
+        doNothing().when(authService).resendResetCode(any());
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password/resend")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).resendResetCode(any(AuthDto.ForgotPasswordRequest.class));
+    }
+
+    @Test
+    @DisplayName("US-7.9: Reset password should return 204 No Content")
+    void resetPassword_Success_Returns204() throws Exception {
+        AuthDto.ResetPasswordRequest request = AuthDto.ResetPasswordRequest.builder()
+                .email("test@example.com")
+                .code("123456")
+                .newPassword("ResetPassword123!")
+                .build();
+
+        doNothing().when(authService).resetPassword(any());
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).resetPassword(any(AuthDto.ResetPasswordRequest.class));
+    }
+
+    @Test
+    @DisplayName("US-7.9: Reset password with short password should return 400 Bad Request")
+    void resetPassword_ShortPassword_Returns400() throws Exception {
+        AuthDto.ResetPasswordRequest request = AuthDto.ResetPasswordRequest.builder()
+                .email("test@example.com")
+                .code("123456")
+                .newPassword("short")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).resetPassword(any());
+    }
+
+    @Test
+    @DisplayName("US-7.9: Reset password with invalid code format should return 400 Bad Request")
+    void resetPassword_InvalidCodeFormat_Returns400() throws Exception {
+        AuthDto.ResetPasswordRequest request = AuthDto.ResetPasswordRequest.builder()
+                .email("test@example.com")
+                .code("abc")
+                .newPassword("ResetPassword123!")
+                .build();
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).resetPassword(any());
+    }
 }
