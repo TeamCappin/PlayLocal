@@ -399,6 +399,31 @@ class GameServiceLifecycleTest {
     }
 
     @Test
+    void completeGameByScheduler_WhenNotificationServiceIsNull_CompletesWithoutReminder() {
+        GameService gameServiceWithoutNotifications = new GameService(
+                gameRepository,
+                participationRepository,
+                userRepository,
+                sportRepository,
+                gameVisibilityRepository,
+                endorsementRepository,
+                tagRepository,
+                tagAssignmentRepository,
+                tagConfirmationRepository,
+                null,
+                oqsService,
+                locationRepository,
+                privacySettingsService,
+                friendshipRepository);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        Game completed = gameServiceWithoutNotifications.completeGameByScheduler(gameId);
+
+        assertThat(completed.getStatus()).isEqualTo(Game.GameStatus.COMPLETED);
+        verify(gameRepository).save(any(Game.class));
+    }
+
+    @Test
     void cancelGame_GameMissing_ThrowsNotFound() {
         when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
 
