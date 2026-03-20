@@ -150,7 +150,7 @@ class GameServiceLifecycleTest {
 
         ArgumentCaptor<UUID> userCaptor = ArgumentCaptor.forClass(UUID.class);
         verify(notificationService, times(2))
-                .createInAppNotification(userCaptor.capture(), eq("game_cancelled"), anyMap());
+                .createInAppNotification(userCaptor.capture(), eq("GAME_CANCELLED"), anyMap());
         assertThat(userCaptor.getAllValues())
                 .containsExactlyInAnyOrder(confirmedUser.getUserId(), waitlistedUser.getUserId());
     }
@@ -172,6 +172,30 @@ class GameServiceLifecycleTest {
         ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
         verify(gameRepository).save(gameCaptor.capture());
         assertThat(gameCaptor.getValue().getStatus()).isEqualTo(Game.GameStatus.COMPLETED);
+        verify(notificationService).notifyAttendanceConfirmationNeeded(gameCaptor.getValue());
+    }
+
+    @Test
+    void completeGame_WhenAlreadyCompleted_DoesNotSaveAgain() {
+        game.setStatus(Game.GameStatus.COMPLETED);
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(gameRepository, times(0)).save(any(Game.class));
+        verify(notificationService, times(0)).notifyAttendanceConfirmationNeeded(any(Game.class));
+    }
+
+    @Test
+    void completeGameByScheduler_CompletesAndNotifiesOrganizer() {
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+
+        gameService.completeGameByScheduler(gameId);
+
+        ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
+        verify(gameRepository).save(gameCaptor.capture());
+        assertThat(gameCaptor.getValue().getStatus()).isEqualTo(Game.GameStatus.COMPLETED);
+        verify(notificationService).notifyAttendanceConfirmationNeeded(gameCaptor.getValue());
     }
 
     @Test
@@ -280,6 +304,35 @@ class GameServiceLifecycleTest {
     }
 
     @Test
+    void leaveGame_WhenConfirmedUserLeaves_PromotesWaitlistedAndNotifies() {
+        GameParticipation leavingParticipation = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                .build();
+        GameParticipation promotedParticipation = GameParticipation.builder()
+                .game(game)
+                .user(waitlistedUser)
+                .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                .waitlistPosition(1)
+                .participationRole(GameParticipation.ParticipationRole.PARTICIPANT)
+                .build();
+
+        when(participationRepository.findByGameAndUser(gameId, confirmedUser.getUserId()))
+                .thenReturn(Optional.of(leavingParticipation));
+        when(participationRepository.findFirstWaitlisted(gameId))
+                .thenReturn(List.of(promotedParticipation));
+
+        gameService.leaveGame(gameId, confirmedUser.getUserId());
+
+        assertThat(promotedParticipation.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
+        assertThat(promotedParticipation.getWaitlistPosition()).isNull();
+        verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 1);
+        verify(notificationService).notifyWaitlistPromoted(game, waitlistedUser.getUserId());
+    }
+
+    @Test
     void cancelGame_WhenParticipantAppearsInBothLists_NotifiesOnlyOnce() {
         GameParticipation organizerParticipation = GameParticipation.builder()
                 .game(game)
@@ -306,7 +359,7 @@ class GameServiceLifecycleTest {
         gameService.cancelGame(gameId, organizer.getUserId());
 
         verify(notificationService, times(1))
-                .createInAppNotification(eq(confirmedUser.getUserId()), eq("game_cancelled"), anyMap());
+                .createInAppNotification(eq(confirmedUser.getUserId()), eq("GAME_CANCELLED"), anyMap());
     }
 
     @Test
