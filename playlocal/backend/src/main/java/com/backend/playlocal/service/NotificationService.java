@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +27,10 @@ import java.util.stream.Collectors;
 public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
+    public static final String TYPE_GAME_CANCELLED = "GAME_CANCELLED";
+    public static final String TYPE_WAITLIST_PROMOTED = "WAITLIST_PROMOTED";
+    public static final String TYPE_GAME_STARTING_SOON = "GAME_STARTING_SOON";
+    public static final String TYPE_ATTENDANCE_PROMPT = "ATTENDANCE_PROMPT";
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -44,6 +49,18 @@ public class NotificationService {
      */
     @Transactional
     public Notification createInAppNotification(UUID userId, String type, Map<String, Object> payload) {
+        return createInAppNotification(userId, type, payload, null);
+    }
+
+    /**
+     * Create in-app notification for a user with optional idempotency key.
+     */
+    @Transactional
+    public Notification createInAppNotification(UUID userId, String type, Map<String, Object> payload, String idempotencyKey) {
+        if (idempotencyKey != null && notificationRepository.existsByProviderMessageId(idempotencyKey)) {
+            return null;
+        }
+
         User user = userRepository.findActiveById(userId).orElse(null);
         if (user == null) {
             log.warn("Attempted to notify non-existent user: {}", userId);
@@ -65,6 +82,7 @@ public class NotificationService {
                 .scheduledFor(Instant.now())
                 .status(Notification.NotificationStatus.SENT)
                 .sentAt(Instant.now())
+                .providerMessageId(idempotencyKey)
                 .build();
 
         return notificationRepository.save(notification);
@@ -77,11 +95,16 @@ public class NotificationService {
     @Transactional
     public Notification scheduleAttendanceReminder(Game game, Instant scheduledFor) {
         User organizer = game.getCreatedBy();
+        String inAppKey = buildIdempotencyKey(TYPE_ATTENDANCE_PROMPT, game.getGameId(), organizer.getUserId());
+        if (notificationRepository.existsByProviderMessageId(inAppKey)) {
+            return null;
+        }
 
         Map<String, Object> payload = Map.of(
                 "gameId", game.getGameId().toString(),
                 "gameTitle", game.getTitle(),
-                "message", "Please confirm attendance for your game: " + game.getTitle());
+                "message", "Please confirm attendance for your game: " + game.getTitle(),
+                "link", "/games/" + game.getGameId());
 
         String payloadJson = null;
         try {
@@ -94,19 +117,22 @@ public class NotificationService {
         Notification inAppNotification = Notification.builder()
                 .user(organizer)
                 .channel(Notification.NotificationChannel.IN_APP)
-                .notifType("attendance_prompt")
+                .notifType(TYPE_ATTENDANCE_PROMPT)
                 .payloadJson(payloadJson)
                 .scheduledFor(scheduledFor)
                 .status(Notification.NotificationStatus.PENDING)
+                .providerMessageId(inAppKey)
                 .build();
 
         Notification emailNotification = Notification.builder()
                 .user(organizer)
                 .channel(Notification.NotificationChannel.EMAIL)
-                .notifType("attendance_prompt")
+                .notifType(TYPE_ATTENDANCE_PROMPT)
                 .payloadJson(payloadJson)
                 .scheduledFor(scheduledFor)
                 .status(Notification.NotificationStatus.PENDING)
+                .providerMessageId(
+                        "EMAIL:" + buildIdempotencyKey(TYPE_ATTENDANCE_PROMPT, game.getGameId(), organizer.getUserId()))
                 .build();
 
         notificationRepository.save(inAppNotification);
@@ -135,11 +161,12 @@ public class NotificationService {
      * Mark notification as read.
      */
     @Transactional
-    public void markAsRead(UUID notificationId) {
-        notificationRepository.findById(notificationId).ifPresent(n -> {
+    public boolean markAsRead(UUID userId, UUID notificationId) {
+        return notificationRepository.findByNotificationIdAndUser_UserId(notificationId, userId).map(n -> {
             n.setStatus(Notification.NotificationStatus.READ);
             notificationRepository.save(n);
-        });
+            return true;
+        }).orElse(false);
     }
 
     /**
@@ -171,6 +198,47 @@ public class NotificationService {
             notification.setSentAt(Instant.now());
             notificationRepository.save(notification);
         }
+    }
+
+    @Transactional
+    public Notification notifyWaitlistPromoted(Game game, UUID userId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("title", "Spot confirmed");
+        payload.put("message", String.format("You were promoted from waitlist to confirmed for \"%s\".", game.getTitle()));
+        payload.put("gameId", game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put("link", "/games/" + game.getGameId());
+        String key = buildIdempotencyKey(TYPE_WAITLIST_PROMOTED, game.getGameId(), userId);
+        return createInAppNotification(userId, TYPE_WAITLIST_PROMOTED, payload, key);
+    }
+
+    @Transactional
+    public Notification notifyGameStartingSoon(Game game, UUID userId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("title", "Game starting soon");
+        payload.put("message", String.format("\"%s\" starts soon. Get ready.", game.getTitle()));
+        payload.put("gameId", game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put("link", "/games/" + game.getGameId());
+        String key = buildIdempotencyKey(TYPE_GAME_STARTING_SOON, game.getGameId(), userId);
+        return createInAppNotification(userId, TYPE_GAME_STARTING_SOON, payload, key);
+    }
+
+    @Transactional
+    public Notification notifyAttendanceConfirmationNeeded(Game game) {
+        UUID organizerId = game.getCreatedBy().getUserId();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("title", "Attendance confirmation needed");
+        payload.put("message", String.format("Please confirm attendance for \"%s\".", game.getTitle()));
+        payload.put("gameId", game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put("link", "/games/" + game.getGameId());
+        String key = buildIdempotencyKey(TYPE_ATTENDANCE_PROMPT, game.getGameId(), organizerId);
+        return createInAppNotification(organizerId, TYPE_ATTENDANCE_PROMPT, payload, key);
+    }
+
+    private String buildIdempotencyKey(String type, UUID gameId, UUID userId) {
+        return String.format("IN_APP:%s:%s:%s", type, gameId, userId);
     }
 
     private NotificationDto mapToDto(Notification n) {
