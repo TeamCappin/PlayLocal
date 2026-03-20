@@ -131,4 +131,22 @@ class GameLifecycleSchedulerTest {
 
         verify(notificationService, never()).notifyGameStartingSoon(any(), any());
     }
+
+    @Test
+    void sendStartingSoonNotifications_SkipsOrganizerIfPresentInWaitlist() {
+        GameParticipation organizerWaitlisted = GameParticipation.builder()
+                .game(game)
+                .user(organizer)
+                .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                .waitlistPosition(1)
+                .build();
+
+        when(gameRepository.findGamesStartingSoon(any(), any())).thenReturn(List.of(game));
+        when(participationRepository.findConfirmedByGame(game.getGameId())).thenReturn(List.of());
+        when(participationRepository.findWaitlistedByGame(game.getGameId())).thenReturn(List.of(organizerWaitlisted));
+
+        scheduler.sendStartingSoonNotifications();
+
+        verify(notificationService, never()).notifyGameStartingSoon(game, organizer.getUserId());
+    }
 }
