@@ -44,10 +44,16 @@ function buildNotificationTitle(type: string): string {
   switch (type) {
     case 'GAME_CANCELLED':
       return 'Game cancelled';
+    case 'GAME_STARTING_SOON':
+      return 'Game starting soon';
     case 'GAME_UPDATED':
       return 'Game updated';
     case 'GAME_REMOVED_REQUIREMENTS':
       return 'Removed from game';
+    case 'WAITLIST_PROMOTED':
+      return 'Spot confirmed';
+    case 'ATTENDANCE_CONFIRMATION':
+      return 'Attendance confirmation needed';
     case 'ATTENDANCE_PROMPT':
       return 'Attendance reminder';
     default:
