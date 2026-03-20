@@ -116,8 +116,8 @@ export function MobileBottomNav() {
                 {/* Label — expands in on active, collapses on inactive */}
                 <span
                   style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
+                    fontSize: '15px',
+                    fontWeight: 500,
                     color: 'rgba(255, 255, 255, 0.95)',
                     whiteSpace: 'nowrap',
                     letterSpacing: '0.01em',
