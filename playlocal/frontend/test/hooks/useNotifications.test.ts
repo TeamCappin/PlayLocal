@@ -108,6 +108,68 @@ describe('useNotifications', () => {
     expect(result.current.notifications[0].title).toBe('Removed from game');
   });
 
+  it('maps WAITLIST_PROMOTED and GAME_STARTING_SOON to user-friendly titles', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n1',
+        type: 'WAITLIST_PROMOTED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
+      },
+      {
+        notificationId: 'n2',
+        type: 'GAME_STARTING_SOON',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T11:00:00Z',
+      },
+    ]);
+    mockGetUnreadCount.mockResolvedValue({ count: 2 });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.notifications[0].title).toBe('Spot confirmed');
+    expect(result.current.notifications[1].title).toBe('Game starting soon');
+  });
+
+  it('maps ATTENDANCE_CONFIRMATION and humanizes unknown types', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n1',
+        type: 'ATTENDANCE_CONFIRMATION',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
+      },
+      {
+        notificationId: 'n2',
+        type: 'NEW_BADGE_UNLOCKED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T11:00:00Z',
+      },
+    ]);
+    mockGetUnreadCount.mockResolvedValue({ count: 2 });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.notifications[0].title).toBe(
+      'Attendance confirmation needed'
+    );
+    expect(result.current.notifications[1].title).toBe('New Badge Unlocked');
+  });
+
   it('markAsRead dispatches playlocal-refresh-notifications event on success', async () => {
     const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
     const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
