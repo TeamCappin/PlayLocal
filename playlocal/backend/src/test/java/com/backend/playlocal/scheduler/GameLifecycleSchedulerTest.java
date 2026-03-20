@@ -149,4 +149,28 @@ class GameLifecycleSchedulerTest {
 
         verify(notificationService, never()).notifyGameStartingSoon(game, organizer.getUserId());
     }
+
+    @Test
+    void sendStartingSoonNotifications_DedupesWithinConfirmedList() {
+        GameParticipation confirmedA = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .build();
+        GameParticipation confirmedDuplicate = GameParticipation.builder()
+                .game(game)
+                .user(confirmedUser)
+                .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
+                .build();
+
+        when(gameRepository.findGamesStartingSoon(any(), any())).thenReturn(List.of(game));
+        when(participationRepository.findConfirmedByGame(game.getGameId()))
+                .thenReturn(List.of(confirmedA, confirmedDuplicate));
+        when(participationRepository.findWaitlistedByGame(game.getGameId()))
+                .thenReturn(List.of());
+
+        scheduler.sendStartingSoonNotifications();
+
+        verify(notificationService, times(1)).notifyGameStartingSoon(game, confirmedUser.getUserId());
+    }
 }
