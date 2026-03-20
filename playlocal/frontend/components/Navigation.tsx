@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useIsMobile } from '@/components/ui/use-mobile';
 
 export function Navigation() {
   const [mounted, setMounted] = useState(false);
@@ -29,6 +30,7 @@ export function Navigation() {
   }, []);
 
   const isLanding = pathname === '/';
+  const isMobile = useIsMobile();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   // Get notification count (silently fail if backend unavailable)
@@ -49,10 +51,10 @@ export function Navigation() {
               <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
             </div>
-            <div className="flex items-center gap-6">
+            {!isMobile && <div className="flex items-center gap-6">
               <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
               <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
-            </div>
+            </div>}
           </div>
         </div>
       </nav>
@@ -73,7 +75,35 @@ export function Navigation() {
             <span className="text-xl text-gray-900">PlayLocal</span>
           </Link>
 
-          <div className="flex items-center gap-6">
+          {/* Mobile: notification bell (authenticated) or sign-in (unauthenticated) */}
+          {isMobile && <div className="flex items-center gap-2">
+            {isLoading ? (
+              <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+            ) : isAuthenticated ? (
+              <Link
+                href="/notifications"
+                className="relative flex items-center justify-center min-h-[44px] min-w-[44px] text-gray-600 hover:text-gray-900 rounded-lg transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 rounded-lg transition-colors"
+              >
+                <LogIn className="w-5 h-5" />
+                <span>Sign In</span>
+              </Link>
+            )}
+          </div>}
+
+          {/* Desktop: full navigation links */}
+          {!isMobile && <div className="flex items-center gap-6">
             <Link
               href="/discover?view=map"
               className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
@@ -111,7 +141,6 @@ export function Navigation() {
             </Link>
 
             {isLoading ? (
-              // Show loading skeleton while checking auth
               <div className="flex items-center gap-4">
                 <div className="w-20 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
                 <div className="w-16 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
@@ -190,7 +219,7 @@ export function Navigation() {
                 </Link>
               </>
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </nav>
