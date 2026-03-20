@@ -51,7 +51,7 @@ public class GameLifecycleScheduler {
     @Transactional
     public void sendStartingSoonNotifications() {
         Instant now = Instant.now();
-        Instant windowEnd = now.plusSeconds(2 * 60 * 60); // 2h
+        Instant windowEnd = now.plusSeconds(2L * 60 * 60); // 2h
         List<Game> games = gameRepository.findGamesStartingSoon(now, windowEnd);
         for (Game game : games) {
             notifyParticipantsGameStartingSoon(game);
