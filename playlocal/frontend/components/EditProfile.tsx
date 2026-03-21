@@ -5,6 +5,7 @@ import { ArrowLeft, Eye, CheckCircle, Info, Save } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usersApi } from '@/lib/api';
 import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
 
 export function EditProfile() {
   const navigate = useRouter();
@@ -54,11 +55,14 @@ export function EditProfile() {
         await refreshUser();
       }
 
+      toast.success('Profile updated');
       navigate.push(
         `/profile/${displayName?.toLowerCase().replace(/\s+/g, '-') || 'me'}`
       );
     } catch (err: any) {
-      setSaveError(err.message || 'Failed to save changes');
+      const errorMessage = getActionableErrorMessage(err, 'update profile');
+      setSaveError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
