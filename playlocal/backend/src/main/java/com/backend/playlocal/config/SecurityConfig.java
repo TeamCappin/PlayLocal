@@ -44,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        // Stats & Analytics require authentication [US-7.6]
+                        .requestMatchers("/api/v1/stats/**").authenticated()
                         // Endorsements require authentication
                         .requestMatchers("/api/v1/endorsements/**").authenticated()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
