@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   User,
   Lock,
@@ -16,7 +17,10 @@ import {
   privacyApi,
   PrivacySettingsResponse,
   UpdatePrivacySettingsRequest,
+  usersApi,
 } from '@/lib/api';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
+import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -424,6 +428,41 @@ function NotificationSettings() {
 }
 
 function SecuritySettings() {
+  const navigate = useRouter();
+  const { logout } = useAuth();
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleAccountAction = async () => {
+    if (!accountAction) return;
+
+    setIsProcessing(true);
+    try {
+      if (accountAction === 'deactivate') {
+        await usersApi.deactivateAccount();
+        toast.success('Account deactivated');
+      } else {
+        await usersApi.deleteAccount();
+        toast.success('Account deleted');
+      }
+
+      // Log out and redirect
+      await logout();
+      navigate.push('/');
+    } catch (err: any) {
+      const errorMessage = getActionableErrorMessage(
+        err,
+        `${accountAction} account`
+      );
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setShowAccountDialog(false);
+      setAccountAction(null);
+    }
+  };
+
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -484,7 +523,13 @@ function SecuritySettings() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
         <div className="space-y-3">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('deactivate');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <Lock className="w-5 h-5 text-gray-400" />
             <div>
               <div>Deactivate Account</div>
@@ -493,7 +538,13 @@ function SecuritySettings() {
               </div>
             </div>
           </button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('delete');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
             <Trash2 className="w-5 h-5" />
             <div>
               <div>Delete Account</div>
@@ -504,6 +555,20 @@ function SecuritySettings() {
           </button>
         </div>
       </div>
+
+      {/* Account Action Confirmation Dialog */}
+      {accountAction && (
+        <ConfirmAccountActionDialog
+          isOpen={showAccountDialog}
+          onClose={() => {
+            setShowAccountDialog(false);
+            setAccountAction(null);
+          }}
+          onConfirm={handleAccountAction}
+          action={accountAction}
+          isLoading={isProcessing}
+        />
+      )}
     </>
   );
 }
