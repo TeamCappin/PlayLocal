@@ -3,7 +3,17 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { MapPin, Search, PlusCircle, User, Bell, Calendar, Users, LogOut, LogIn } from 'lucide-react';
+import {
+  MapPin,
+  Search,
+  PlusCircle,
+  User,
+  Bell,
+  Calendar,
+  Users,
+  LogOut,
+  LogIn,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -14,6 +24,7 @@ export function Navigation() {
 
   // Ensure hydration is complete before rendering
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -64,22 +75,24 @@ export function Navigation() {
 
           <div className="flex items-center gap-6">
             <Link
-              href="/discover"
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/discover'
-                ? 'text-emerald-600 bg-emerald-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+              href="/discover?view=map"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/discover'
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
               <Search className="w-5 h-5" />
-              <span>Discover</span>
+              <span>Discover Games</span>
             </Link>
 
             <Link
               href="/calendar"
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/calendar'
-                ? 'text-emerald-600 bg-emerald-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/calendar'
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
               <Calendar className="w-5 h-5" />
               <span>Calendar</span>
@@ -87,10 +100,11 @@ export function Navigation() {
 
             <Link
               href="/players"
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/players'
-                ? 'text-emerald-600 bg-emerald-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/players'
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
               <Users className="w-5 h-5" />
               <span>Players</span>
@@ -106,10 +120,11 @@ export function Navigation() {
               <>
                 <Link
                   href="/games/create"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/games/create'
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    pathname === '/games/create'
+                      ? 'text-emerald-600 bg-emerald-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
                 >
                   <PlusCircle className="w-5 h-5" />
                   <span>Create</span>
@@ -129,10 +144,11 @@ export function Navigation() {
 
                 <Link
                   href="/profile"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname.startsWith('/profile')
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    pathname.startsWith('/profile')
+                      ? 'text-emerald-600 bg-emerald-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
                 >
                   {user?.displayName ? (
                     <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
@@ -156,10 +172,11 @@ export function Navigation() {
               <>
                 <Link
                   href="/login"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${pathname === '/login'
-                    ? 'text-emerald-600 bg-emerald-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    pathname === '/login'
+                      ? 'text-emerald-600 bg-emerald-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
                 >
                   <LogIn className="w-5 h-5" />
                   <span>Sign In</span>

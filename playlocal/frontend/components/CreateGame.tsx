@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   MapPin,
   Clock,
@@ -12,94 +12,68 @@ import {
   X,
   Loader2,
   AlertCircle,
-} from "lucide-react";
-import { useCreateGame } from "@/hooks/useGames";
-import { useAuth } from "@/context/AuthContext";
-import { gamesApi, TagDto } from "@/lib/api";
-
-// Helper to get image by sport
-function getSportImage(sport: string) {
-  const images: Record<string, string> = {
-    Basketball:
-      "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080",
-    Soccer:
-      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080",
-    Tennis:
-      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080",
-    Volleyball:
-      "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080",
-    Badminton:
-      "https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080",
-    Baseball: "/images/sports/baseball.jpg",
-    Hockey:
-      "https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080",
-    "Ultimate Frisbee": "/images/sports/ultimate-frisbee.jpg",
-    "Flag Football":
-      "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080",
-    Softball:
-      "https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080",
-    Pickleball:
-      "https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080",
-  };
-  return (
-    images[sport] ||
-    "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080"
-  );
-}
+} from 'lucide-react';
+import { useCreateGame } from '@/hooks/useGames';
+import { useAuth } from '@/context/AuthContext';
+import { gamesApi, TagDto } from '@/lib/api';
+import { getSportImage } from '@/constants/sportImages';
 
 function getVisibilityLabel(visibility: string): string {
-  if (visibility === "public") return "Public";
-  if (visibility === "friends") return "Friends Only";
-  return "Invite Only";
+  if (visibility === 'public') return 'Public';
+  if (visibility === 'friends') return 'Friends Only';
+  return 'Invite Only';
 }
 
 export function CreateGame() {
+  const MAX_LOCATION_NAME_LENGTH = 255;
   const navigate = useRouter();
   const { isAuthenticated, user } = useAuth();
   const { createGame, isCreating, error: createError } = useCreateGame();
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   // Address Autocomplete State
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const [isAddressValid, setIsAddressValid] = useState(false);
   const [availableTags, setAvailableTags] = useState<TagDto[]>([]);
   const [formData, setFormData] = useState({
-    title: "",
-    sport: "",
-    location: "",
-    date: "",
-    startTime: "",
-    endTime: "",
-    minPlayers: "",
-    maxPlayers: "",
-    skillLevel: "",
-    intensity: "",
-    indoor: "",
+    title: '',
+    sport: '',
+    location: '',
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
+    date: '',
+    startTime: '',
+    endTime: '',
+    minPlayers: '',
+    maxPlayers: '',
+    skillLevel: '',
+    intensity: '',
+    indoor: '',
     allowWaitlist: true,
     requireCheckin: true,
-    description: "",
-    visibility: "public",
-    minReliabilityRequired: "",
+    description: '',
+    visibility: 'public',
+    minReliabilityRequired: '',
     tagNames: [] as string[],
-    minAge: "",
-    maxAge: "",
+    minAge: '',
+    maxAge: '',
   });
 
   const sports = [
-    "Basketball",
-    "Soccer",
-    "Volleyball",
-    "Tennis",
-    "Badminton",
-    "Ultimate Frisbee",
-    "Flag Football",
-    "Softball",
-    "Baseball",
-    "Pickleball",
-    "Hockey",
+    'Basketball',
+    'Soccer',
+    'Volleyball',
+    'Tennis',
+    'Badminton',
+    'Ultimate Frisbee',
+    'Flag Football',
+    'Softball',
+    'Baseball',
+    'Pickleball',
+    'Hockey',
   ];
 
   const [isSubmittingCooldown, setIsSubmittingCooldown] = useState(false);
@@ -109,7 +83,7 @@ export function CreateGame() {
     gamesApi
       .getTags()
       .then(setAvailableTags)
-      .catch((err) => console.error("Failed to load tags:", err));
+      .catch((err) => console.error('Failed to load tags:', err));
   }, []);
 
   // Address search debounce
@@ -119,12 +93,12 @@ export function CreateGame() {
         setIsSearchingAddress(true);
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}`,
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}`
           );
           const data = await response.json();
           setAddressSuggestions(data.slice(0, 5));
         } catch (e) {
-          console.error("Address search failed", e);
+          console.error('Address search failed', e);
         } finally {
           setIsSearchingAddress(false);
         }
@@ -135,59 +109,66 @@ export function CreateGame() {
   }, [formData.location, showSuggestions]);
 
   const handleAddressSelect = (address: any) => {
-    setFormData({ ...formData, location: address.display_name });
+    const selectedAddress = String(address.display_name || '').trim();
+    const lat = address.lat ? parseFloat(address.lat) : undefined;
+    const lon = address.lon ? parseFloat(address.lon) : undefined;
+    setFormData({
+      ...formData,
+      location: selectedAddress.slice(0, MAX_LOCATION_NAME_LENGTH),
+      latitude: lat,
+      longitude: lon,
+    });
     setShowSuggestions(false);
-    setIsAddressValid(true);
   };
 
   const validateStep1RequiredFields = (): boolean => {
     if (!formData.title) {
-      setError("Please enter a game title");
+      setError('Please enter a game title');
       return false;
     }
     if (!formData.sport) {
-      setError("Please select a sport");
+      setError('Please select a sport');
       return false;
     }
     if (!formData.location) {
-      setError("Please enter a location");
-      return false;
-    }
-    if (!isAddressValid) {
-      setError("Please select a valid address from the suggestions");
+      setError('Please enter a location');
       return false;
     }
     if (!formData.date) {
-      setError("Please select a date");
+      setError('Please select a date');
       return false;
     }
     if (!formData.indoor) {
-      setError("Please select location type (Indoor/Outdoor)");
+      setError('Please select location type (Indoor/Outdoor)');
       return false;
     }
     if (!formData.startTime) {
-      setError("Please select a start time");
+      setError('Please select a start time');
       return false;
     }
     if (!formData.endTime) {
-      setError("Please select an end time");
+      setError('Please select an end time');
       return false;
     }
     return true;
   };
 
   const validateStep1DateAndTime = (): boolean => {
-    const selectedDate = new Date(formData.date + "T00:00:00");
+    const selectedDate = new Date(formData.date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
-      setError("Date cannot be in the past");
+      setError('Date cannot be in the past.');
       return false;
     }
     const start = new Date(`${formData.date}T${formData.startTime}:00`);
+    if (start <= new Date()) {
+      setError('Start time cannot be in the past. Please choose a future time.');
+      return false;
+    }
     const end = new Date(`${formData.date}T${formData.endTime}:00`);
     if (end <= start) {
-      setError("End time must be after start time");
+      setError('End time must be after start time.');
       return false;
     }
     return true;
@@ -198,41 +179,60 @@ export function CreateGame() {
   };
 
   const validateStep2 = (): boolean => {
+    const errors: Record<string, boolean> = {};
+    
     if (!formData.minPlayers) {
-      setError("Please enter minimum players");
+      setError('Please enter minimum players');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.maxPlayers) {
-      setError("Please enter maximum players");
+      setError('Please enter maximum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     const min = Number.parseInt(formData.minPlayers, 10);
     const max = Number.parseInt(formData.maxPlayers, 10);
     if (Number.isNaN(min) || Number.isNaN(max)) {
-      setError("Player counts must be numbers");
+      setError('Player counts must be numbers');
+      errors.minPlayers = true;
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (min < 2) {
-      setError("Minimum players must be at least 2");
+      setError('Minimum players must be at least 2');
+      errors.minPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (max < min) {
-      setError("Maximum players cannot be less than minimum players");
+      setError('Maximum players cannot be less than minimum players');
+      errors.maxPlayers = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.skillLevel) {
-      setError("Please select a skill level");
+      setError('Please select a skill level');
+      errors.skillLevel = true;
+      setFieldErrors(errors);
       return false;
     }
     if (!formData.intensity) {
-      setError("Please select an intensity level");
+      setError('Please select an intensity level');
+      errors.intensity = true;
+      setFieldErrors(errors);
       return false;
     }
+    setFieldErrors({});
     return true;
   };
 
   const validateStep = (currentStep: number): boolean => {
     setError(null);
+    setFieldErrors({});
     if (currentStep === 1) return validateStep1();
     if (currentStep === 2) return validateStep2();
     return true;
@@ -265,18 +265,8 @@ export function CreateGame() {
     }
 
     if (!isAuthenticated) {
-      navigate.push("/login");
+      navigate.push('/login');
       return;
-    }
-
-    // Client-side validation: End Time > Start Time
-    if (formData.date && formData.startTime && formData.endTime) {
-      const start = new Date(`${formData.date}T${formData.startTime}:00`);
-      const end = new Date(`${formData.date}T${formData.endTime}:00`);
-      if (end <= start) {
-        setError("End time must be after start time");
-        return;
-      }
     }
 
     // Validate age requirements if both are provided
@@ -284,7 +274,7 @@ export function CreateGame() {
       const min = Number.parseInt(formData.minAge, 10);
       const max = Number.parseInt(formData.maxAge, 10);
       if (min > max) {
-        setError("Minimum age cannot be greater than maximum age");
+        setError('Minimum age cannot be greater than maximum age');
         return;
       }
     }
@@ -300,28 +290,38 @@ export function CreateGame() {
         title: formData.title,
         description: formData.description || undefined,
         sportName: formData.sport,
-        locationName: formData.location,
-        city: "Montreal", // Could be extracted from location search
+        locationName: formData.location
+          .trim()
+          .slice(0, MAX_LOCATION_NAME_LENGTH),
+        city: 'Montreal', // Could be extracted from location search
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         indoorOutdoor: formData.indoor, // Now sends INDOOR/OUTDOOR
         intensityBand: formData.intensity, // Now sends BEGINNER/CASUAL/COMPETITIVE
         skillBand: formData.skillLevel, // Now sends ALL_LEVELS/BEGINNER/INTERMEDIATE/ADVANCED
         minPlayers: Number.parseInt(formData.minPlayers, 10) || 2,
         maxPlayers: Number.parseInt(formData.maxPlayers, 10) || 20,
         allowWaitlist: formData.allowWaitlist,
-        minReliabilityRequired: formData.minReliabilityRequired ? Number.parseFloat(formData.minReliabilityRequired) : undefined,
+        minReliabilityRequired: formData.minReliabilityRequired
+          ? Number.parseFloat(formData.minReliabilityRequired)
+          : undefined,
         startTime: new Date(startDateTime).toISOString(),
         endTime: endDateTime ? new Date(endDateTime).toISOString() : undefined,
         visibility: formData.visibility,
         tagNames: formData.tagNames.length > 0 ? formData.tagNames : undefined,
-        minAge: formData.minAge ? Number.parseInt(formData.minAge, 10) : undefined,
-        maxAge: formData.maxAge ? Number.parseInt(formData.maxAge, 10) : undefined,
+        minAge: formData.minAge
+          ? Number.parseInt(formData.minAge, 10)
+          : undefined,
+        maxAge: formData.maxAge
+          ? Number.parseInt(formData.maxAge, 10)
+          : undefined,
       });
 
       navigate.push(`/games/${game.gameId}`);
     } catch (err: any) {
       setError(
         err.message ||
-          "Failed to create game. Make sure the backend is running.",
+          'Failed to create game. Make sure the backend is running.'
       );
     }
   };
@@ -339,9 +339,9 @@ export function CreateGame() {
 
         {/* Error Alert */}
         {(error || createError) && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2 animate-pulse">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{error || createError}</span>
+          <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <span className="text-red-700 font-medium">{error || createError}</span>
           </div>
         )}
 
@@ -356,8 +356,8 @@ export function CreateGame() {
             />
             <div className="flex-1 h-0.5 bg-gray-200 mx-4">
               <div
-                className={`h-full transition-all ${step > 1 ? "bg-emerald-600" : "bg-gray-200"}`}
-                style={{ width: step > 1 ? "100%" : "0%" }}
+                className={`h-full transition-all ${step > 1 ? 'bg-emerald-600' : 'bg-gray-200'}`}
+                style={{ width: step > 1 ? '100%' : '0%' }}
               ></div>
             </div>
             <StepIndicator
@@ -368,8 +368,8 @@ export function CreateGame() {
             />
             <div className="flex-1 h-0.5 bg-gray-200 mx-4">
               <div
-                className={`h-full transition-all ${step > 2 ? "bg-emerald-600" : "bg-gray-200"}`}
-                style={{ width: step > 2 ? "100%" : "0%" }}
+                className={`h-full transition-all ${step > 2 ? 'bg-emerald-600' : 'bg-gray-200'}`}
+                style={{ width: step > 2 ? '100%' : '0%' }}
               ></div>
             </div>
             <StepIndicator
@@ -383,20 +383,21 @@ export function CreateGame() {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* Error Display */}
+          {/* Error Display - Inside Form */}
           {(error || createError) && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error || createError}
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <span className="text-red-700 font-medium">{error || createError}</span>
             </div>
           )}
 
           {/* Auth Warning */}
           {!isAuthenticated && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700">
-              You need to{" "}
+              You need to{' '}
               <a href="/login" className="font-medium underline">
                 sign in
-              </a>{" "}
+              </a>{' '}
               to create a game.
             </div>
           )}
@@ -451,9 +452,25 @@ export function CreateGame() {
                       type="text"
                       value={formData.location}
                       onChange={(e) => {
-                        setFormData({ ...formData, location: e.target.value });
+                        const nextLocation = e.target.value.slice(
+                          0,
+                          MAX_LOCATION_NAME_LENGTH
+                        );
+                        setFormData((prev) => {
+                          const locationChanged =
+                            nextLocation !== prev.location;
+                          return {
+                            ...prev,
+                            location: nextLocation,
+                            latitude: locationChanged
+                              ? undefined
+                              : prev.latitude,
+                            longitude: locationChanged
+                              ? undefined
+                              : prev.longitude,
+                          };
+                        });
                         setShowSuggestions(true);
-                        setIsAddressValid(false);
                       }}
                       onFocus={() => setShowSuggestions(true)}
                       placeholder="Search address or venue..."
@@ -594,7 +611,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 6"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.minPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -617,7 +638,11 @@ export function CreateGame() {
                         }
                         placeholder="e.g., 10"
                         min="2"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                        className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                          fieldErrors.maxPlayers
+                            ? 'border-red-500 bg-red-50'
+                            : 'border-gray-300 focus:border-emerald-500'
+                        }`}
                         required
                       />
                     </div>
@@ -634,7 +659,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, skillLevel: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.skillLevel
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select skill level</option>
@@ -654,7 +683,11 @@ export function CreateGame() {
                       onChange={(e) =>
                         setFormData({ ...formData, intensity: e.target.value })
                       }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${
+                        fieldErrors.intensity
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300 focus:border-emerald-500'
+                      }`}
                       required
                     >
                       <option value="">Select intensity</option>
@@ -705,7 +738,7 @@ export function CreateGame() {
                                 setFormData({
                                   ...formData,
                                   tagNames: formData.tagNames.filter(
-                                    (t) => t !== tag.name,
+                                    (t) => t !== tag.name
                                   ),
                                 });
                               }
@@ -713,7 +746,7 @@ export function CreateGame() {
                             className="w-4 h-4 text-emerald-600"
                           />
                           <span className="text-sm capitalize">
-                            {tag.name.replace("-", " ")}
+                            {tag.name.replace('-', ' ')}
                             {tag.isRestricted && (
                               <span className="ml-1 text-xs text-red-600">
                                 ⚠️
@@ -765,7 +798,8 @@ export function CreateGame() {
                   </div>
                   {formData.minAge &&
                     formData.maxAge &&
-                    Number.parseInt(formData.minAge, 10) > Number.parseInt(formData.maxAge, 10) && (
+                    Number.parseInt(formData.minAge, 10) >
+                      Number.parseInt(formData.maxAge, 10) && (
                       <p className="text-sm text-red-600 mt-2">
                         Minimum age cannot be greater than maximum age
                       </p>
@@ -786,7 +820,7 @@ export function CreateGame() {
                       </p>
                       <select className="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option>Random Assignment</option>
-                        <option>Captain's Pick</option>
+                        <option>Captain&apos;s Pick</option>
                         <option>Smart Balancing (Recommended)</option>
                       </select>
                     </div>
@@ -866,7 +900,10 @@ export function CreateGame() {
 
                 {/* Minimum Reliability Score */}
                 <div>
-                  <label htmlFor="min-reliability-create" className="block text-gray-700 mb-2">
+                  <label
+                    htmlFor="min-reliability-create"
+                    className="block text-gray-700 mb-2"
+                  >
                     Minimum Reliability Score (Optional)
                   </label>
                   <div className="space-y-2">
@@ -877,7 +914,12 @@ export function CreateGame() {
                         min="0"
                         max="100"
                         value={formData.minReliabilityRequired}
-                        onChange={(e) => setFormData({ ...formData, minReliabilityRequired: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            minReliabilityRequired: e.target.value,
+                          })
+                        }
                         placeholder="e.g., 85"
                         className="w-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                       />
@@ -885,7 +927,12 @@ export function CreateGame() {
                       {formData.minReliabilityRequired && (
                         <button
                           type="button"
-                          onClick={() => setFormData({ ...formData, minReliabilityRequired: '' })}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              minReliabilityRequired: '',
+                            })
+                          }
                           className="text-sm text-red-600 hover:text-red-700"
                         >
                           Clear
@@ -893,12 +940,16 @@ export function CreateGame() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">
-                      Set a minimum reliability score to ensure only reliable players can join. 
-                      Players with a score below this threshold will not be able to join the game.
+                      Set a minimum reliability score to ensure only reliable
+                      players can join. Players with a score below this
+                      threshold will not be able to join the game.
                     </p>
                     {user && (
                       <p className="text-sm text-emerald-700">
-                        Your reliability score: <span className="font-semibold">{user.reliabilityScore}%</span>
+                        Your reliability score:{' '}
+                        <span className="font-semibold">
+                          {user.reliabilityScore}%
+                        </span>
                       </p>
                     )}
                   </div>
@@ -910,22 +961,22 @@ export function CreateGame() {
                   <div className="space-y-3">
                     <SummaryRow
                       label="Title"
-                      value={formData.title || "Not set"}
+                      value={formData.title || 'Not set'}
                     />
                     <SummaryRow
                       label="Sport"
-                      value={formData.sport || "Not set"}
+                      value={formData.sport || 'Not set'}
                     />
                     <SummaryRow
                       label="Location"
-                      value={formData.location || "Not set"}
+                      value={formData.location || 'Not set'}
                     />
                     <SummaryRow
                       label="Date & Time"
                       value={
                         formData.date && formData.startTime
                           ? `${formData.date} at ${formData.startTime}`
-                          : "Not set"
+                          : 'Not set'
                       }
                     />
                     <SummaryRow
@@ -933,30 +984,40 @@ export function CreateGame() {
                       value={
                         formData.minPlayers && formData.maxPlayers
                           ? `${formData.minPlayers}-${formData.maxPlayers}`
-                          : "Not set"
+                          : 'Not set'
                       }
                     />
                     <SummaryRow
                       label="Skill Level"
-                      value={formData.skillLevel || "Not set"}
+                      value={formData.skillLevel || 'Not set'}
                     />
                     <SummaryRow
                       label="Intensity"
-                      value={formData.intensity || "Not set"}
+                      value={formData.intensity || 'Not set'}
                     />
                     <SummaryRow
                       label="Visibility"
                       value={getVisibilityLabel(formData.visibility)}
                     />
-                    <SummaryRow label="Skill Level" value={formData.skillLevel || "Not set"} />
-                    <SummaryRow label="Intensity" value={formData.intensity || "Not set"} />
+                    <SummaryRow
+                      label="Skill Level"
+                      value={formData.skillLevel || 'Not set'}
+                    />
+                    <SummaryRow
+                      label="Intensity"
+                      value={formData.intensity || 'Not set'}
+                    />
                     <SummaryRow
                       label="Visibility"
                       value={getVisibilityLabel(formData.visibility)}
                     />
                     <SummaryRow
                       label="Min Reliability Required"
-                      value={formData.minReliabilityRequired ? `${formData.minReliabilityRequired}%` : "None (Open to all)"}
+                      value={
+                        formData.minReliabilityRequired
+                          ? `${formData.minReliabilityRequired}%`
+                          : 'None (Open to all)'
+                      }
                     />
                   </div>
                 </div>
@@ -1029,17 +1090,17 @@ function StepIndicator({
       <div
         className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
           completed
-            ? "bg-emerald-600 text-white"
+            ? 'bg-emerald-600 text-white'
             : active
-              ? "bg-emerald-100 text-emerald-600 border-2 border-emerald-600"
-              : "bg-gray-200 text-gray-600"
+              ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-600'
+              : 'bg-gray-200 text-gray-600'
         }`}
       >
-        {completed ? "✓" : number}
+        {completed ? '✓' : number}
       </div>
       <span
         className={`hidden sm:block ${
-          active || completed ? "text-gray-900" : "text-gray-500"
+          active || completed ? 'text-gray-900' : 'text-gray-500'
         }`}
       >
         {label}
@@ -1074,7 +1135,8 @@ function isValidStep(step: number, formData: any): boolean {
     return !!(
       formData.minPlayers &&
       formData.maxPlayers &&
-      Number.parseInt(formData.maxPlayers, 10) >= Number.parseInt(formData.minPlayers, 10) &&
+      Number.parseInt(formData.maxPlayers, 10) >=
+        Number.parseInt(formData.minPlayers, 10) &&
       formData.skillLevel &&
       formData.intensity
     );
@@ -1095,8 +1157,8 @@ function TimeSelect({
   const times = [];
   for (let i = 0; i < 24; i++) {
     for (let j = 0; j < 60; j += 15) {
-      const hour = i.toString().padStart(2, "0");
-      const minute = j.toString().padStart(2, "0");
+      const hour = i.toString().padStart(2, '0');
+      const minute = j.toString().padStart(2, '0');
       times.push(`${hour}:${minute}`);
     }
   }

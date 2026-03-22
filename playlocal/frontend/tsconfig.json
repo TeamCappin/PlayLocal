@@ -28,7 +28,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
-, "__tests__/smoke.test.js"  ],
+    "**/*.mts",
+    "__tests__/smoke.test.js"
+  ],
   "exclude": ["node_modules"]
 }

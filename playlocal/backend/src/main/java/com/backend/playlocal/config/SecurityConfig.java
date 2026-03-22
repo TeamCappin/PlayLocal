@@ -44,13 +44,24 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        // Reset password
+                        .requestMatchers("/api/v1/auth/forgot-password").permitAll()
+                        .requestMatchers("/api/v1/auth/forgot-password/verify-code").permitAll()
+                        .requestMatchers("/api/v1/auth/forgot-password/resend").permitAll()
+                        .requestMatchers("/api/v1/auth/reset-password").permitAll()
+                        // Stats & Analytics require authentication [US-7.6]
+                        .requestMatchers("/api/v1/stats/**").authenticated()
                         // Endorsements require authentication
                         .requestMatchers("/api/v1/endorsements/**").authenticated()
                         // Games are discoverable by everyone (exact location hidden for guests) [US-1.3]
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/tags").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/games/*/roster").permitAll()
+                        .requestMatchers("/api/v1/games/**").authenticated()
                         .requestMatchers("/ws/**").permitAll()
                         // For attendance confirmation testing [US-3.3]
                         .requestMatchers(HttpMethod.POST, "/api/v1/games/*/attendance").authenticated()
-                        .requestMatchers("/api/v1/games/**").permitAll()
                         // Profiles require authentication to view [US-1.3 Privacy Defaults]
                         .requestMatchers("/api/v1/users/*/profile").authenticated()
                         .requestMatchers("/api/v1/users/*/endorsements").authenticated()

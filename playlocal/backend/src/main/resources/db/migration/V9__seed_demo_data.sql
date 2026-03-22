@@ -5,11 +5,11 @@
 -- NOSONAR: Intentional demo credentials for local development only
 INSERT INTO "user" (user_id, email, password_hash, display_name, bio, location, default_intensity, availability, reliability_score, games_count, created_at)
 VALUES
-    ('11111111-1111-1111-1111-111111111111', 'alex.chen@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Alex Chen', 'Basketball enthusiast.', 'San Francisco, CA', 'competitive', 'weekdays,evenings', 98.5, 47, NOW() - INTERVAL '6 months'),
-    ('22222222-2222-2222-2222-222222222222', 'sarah.kim@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Sarah Kim', 'Soccer and volleyball player.', 'San Francisco, CA', 'casual', 'weekends,afternoons', 95.0, 32, NOW() - INTERVAL '4 months'),
-    ('33333333-3333-3333-3333-333333333333', 'marcus.johnson@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Marcus Johnson', 'Former college basketball player.', 'Oakland, CA', 'competitive', 'flexible', 100.0, 89, NOW() - INTERVAL '1 year'),
-    ('44444444-4444-4444-4444-444444444444', 'emily.nguyen@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'Emily Nguyen', 'Tennis and badminton lover.', 'Berkeley, CA', 'beginner', 'weekends,mornings', 92.0, 18, NOW() - INTERVAL '2 months'),
-    ('55555555-5555-5555-5555-555555555555', 'david.martinez@demo.com', '$2a$10$iCQPGQhQSssocFVEH6kLt.UmeFazgIk555WFzAzLIg5yrFSb3/Inq', 'David Martinez', 'Jack of all sports!', 'San Jose, CA', 'casual', 'flexible', 88.0, 56, NOW() - INTERVAL '8 months')
+    ('11111111-1111-1111-1111-111111111111', 'alex.chen@demo.com', '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi', 'Alex Chen', 'Basketball enthusiast.', 'San Francisco, CA', 'competitive', 'weekdays,evenings', 98.5, 47, NOW() - INTERVAL '6 months'),
+    ('22222222-2222-2222-2222-222222222222', 'sarah.kim@demo.com', '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi', 'Sarah Kim', 'Soccer and volleyball player.', 'San Francisco, CA', 'casual', 'weekends,afternoons', 95.0, 32, NOW() - INTERVAL '4 months'),
+    ('33333333-3333-3333-3333-333333333333', 'marcus.johnson@demo.com', '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi', 'Marcus Johnson', 'Former college basketball player.', 'Oakland, CA', 'competitive', 'flexible', 100.0, 89, NOW() - INTERVAL '1 year'),
+    ('44444444-4444-4444-4444-444444444444', 'emily.nguyen@demo.com', '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi', 'Emily Nguyen', 'Tennis and badminton lover.', 'Berkeley, CA', 'beginner', 'weekends,mornings', 92.0, 18, NOW() - INTERVAL '2 months'),
+    ('55555555-5555-5555-5555-555555555555', 'david.martinez@demo.com', '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi', 'David Martinez', 'Jack of all sports!', 'San Jose, CA', 'casual', 'flexible', 88.0, 56, NOW() - INTERVAL '8 months')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- Assign user roles

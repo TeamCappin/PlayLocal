@@ -9,16 +9,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 
@@ -31,23 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * UserStory: US-1.1 Register/Login/Logout
  * Tests all authentication endpoints with a real database.
  */
-@SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers(disabledWithoutDocker = true)
-class AuthControllerIntegrationTest {
-
-        @Container
-        static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-                        .withDatabaseName("playlocal_test")
-                        .withUsername("test")
-                        .withPassword("test");
-
-        @DynamicPropertySource
-        static void configureProperties(DynamicPropertyRegistry registry) {
-                registry.add("spring.datasource.url", postgres::getJdbcUrl);
-                registry.add("spring.datasource.username", postgres::getUsername);
-                registry.add("spring.datasource.password", postgres::getPassword);
-        }
+class AuthControllerIntegrationTest extends IntegrationTestBase {
 
         @Autowired
         private MockMvc mockMvc;
@@ -60,6 +39,9 @@ class AuthControllerIntegrationTest {
 
         @Autowired
         private com.backend.playlocal.repository.UserRoleRepository userRoleRepository;
+
+        @Autowired
+        private com.backend.playlocal.repository.UserPrivacySettingsRepository userPrivacySettingsRepository;
 
         @Autowired
         private PasswordEncoder passwordEncoder;
@@ -84,8 +66,8 @@ class AuthControllerIntegrationTest {
                                         .findActiveRolesByUserId(user.getUserId());
                         userRoleRepository.deleteAll(roles);
 
-                        // Note: If there are revoked roles, this might still fail.
-                        // But in these tests we only create active roles.
+                        // Delete privacy settings to avoid FK constraint
+                        userPrivacySettingsRepository.deleteById(user.getUserId());
 
                         userRepository.delete(user);
                 });

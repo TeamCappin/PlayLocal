@@ -31,8 +31,13 @@ public class GameDto {
 
         // Location details
         @NotBlank(message = "Location name is required")
+        @Size(max = 255, message = "Location name must be at most 255 characters")
         private String locationName;
+
+        @Size(max = 500, message = "Address line must be at most 500 characters")
         private String addressLine;
+
+        @Size(max = 100, message = "City must be at most 100 characters")
         private String city;
         private Float latitude;
         private Float longitude;
@@ -132,6 +137,7 @@ public class GameDto {
         private String userId;
         private String displayName;
         private Float reliabilityScore;
+        private Boolean profileRestricted; // US-7.12
     }
 
     @Data
@@ -150,6 +156,7 @@ public class GameDto {
         private Float reliabilityScore;
         private Instant joinedAt;
         private Boolean isEndorsedByOrganizer;
+        private Boolean profileRestricted; // US-7.12
     }
 
     @Data
@@ -174,7 +181,7 @@ public class GameDto {
         private Integer spotsAvailable;
     }
 
-    // US-4.1: Update game request (reputation gate, etc.)
+    // US-4.1 / US-4.3: Update game request (all editable fields except title/sport)
     @Data
     @Builder
     @NoArgsConstructor
@@ -192,6 +199,23 @@ public class GameDto {
         @Min(value = 0, message = "Minimum reliability must be non-negative")
         @Max(value = 100, message = "Minimum reliability cannot exceed 100")
         private Float minReliabilityRequired;
+
+        // Location (update existing location fields)
+        private String locationName;
+        private String addressLine;
+        private String city;
+        private Float latitude;
+        private Float longitude;
+
+        private Instant startTime;
+        private Instant endTime;
+        private String visibility; // code: public, friends, invite
+
+        private List<String> tagNames;
+        @Min(13) @Max(120)
+        private Integer minAge;
+        @Min(13) @Max(120)
+        private Integer maxAge;
     }
 
     // US-4.2: Tag DTO

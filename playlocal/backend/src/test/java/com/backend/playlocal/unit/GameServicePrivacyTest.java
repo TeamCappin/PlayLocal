@@ -4,6 +4,9 @@ import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.*;
 import com.backend.playlocal.repository.*;
 import com.backend.playlocal.service.GameService;
+import com.backend.playlocal.service.NotificationService;
+import com.backend.playlocal.service.OrganizerQualityService;
+import com.backend.playlocal.service.PrivacySettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +20,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +37,8 @@ class GameServicePrivacyTest {
         @Mock
         private GameVisibilityRepository gameVisibilityRepository;
         @Mock
+        private NotificationService notificationService;
+        @Mock
         private EndorsementRepository endorsementRepository;
         @Mock
         private GameTagRepository tagRepository;
@@ -40,6 +46,14 @@ class GameServicePrivacyTest {
         private GameTagAssignmentRepository tagAssignmentRepository;
         @Mock
         private GameTagConfirmationRepository tagConfirmationRepository;
+        @Mock
+        private OrganizerQualityService oqsService;
+        @Mock
+        private LocationRepository locationRepository;
+        @Mock
+        private PrivacySettingsService privacySettingsService;
+        @Mock
+        private FriendshipRepository friendshipRepository;
 
         @InjectMocks
         private GameService gameService;
@@ -91,6 +105,10 @@ class GameServicePrivacyTest {
                                 .startTime(Instant.now().plusSeconds(3600))
                                 .endTime(Instant.now().plusSeconds(7200))
                                 .build();
+
+                // US-7.12: Default organizer profile to public for these tests
+                lenient().when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean()))
+                                .thenReturn(true);
         }
 
         @Test

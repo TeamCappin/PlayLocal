@@ -81,4 +81,40 @@ class AuthDtoTest {
         assertThat(user.getEmail()).isEqualTo("email");
         assertThat(user.getReliabilityScore()).isEqualTo(100f);
     }
+
+    @Test
+    @DisplayName("US-7.9: ForgotPasswordRequest builder should work")
+    void forgotPasswordRequestBuilder() {
+        AuthDto.ForgotPasswordRequest request = AuthDto.ForgotPasswordRequest.builder()
+                .email("test@example.com")
+                .build();
+
+        assertThat(request.getEmail()).isEqualTo("test@example.com");
+    }
+
+    @Test
+    @DisplayName("US-7.9: VerifyResetCodeRequest builder should work")
+    void verifyResetCodeRequestBuilder() {
+        AuthDto.VerifyResetCodeRequest request = AuthDto.VerifyResetCodeRequest.builder()
+                .email("test@example.com")
+                .code("123456")
+                .build();
+
+        assertThat(request.getEmail()).isEqualTo("test@example.com");
+        assertThat(request.getCode()).isEqualTo("123456");
+    }
+
+    @Test
+    @DisplayName("US-7.9: ResetPasswordRequest builder should work")
+    void resetPasswordRequestBuilder() {
+        AuthDto.ResetPasswordRequest request = AuthDto.ResetPasswordRequest.builder()
+                .email("test@example.com")
+                .code("123456")
+                .newPassword("ResetPassword123!")
+                .build();
+
+        assertThat(request.getEmail()).isEqualTo("test@example.com");
+        assertThat(request.getCode()).isEqualTo("123456");
+        assertThat(request.getNewPassword()).isEqualTo("ResetPassword123!");
+    }
 }

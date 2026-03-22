@@ -1,0 +1,53 @@
+services:
+  postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-playlocal}
+      POSTGRES_USER: ${POSTGRES_USER:-playlocal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+
+  minio:
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}
+
+  minio_init:
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb -p local/${S3_BUCKET_NAME:-uploads} || true;
+      mc anonymous set none local/${S3_BUCKET_NAME:-uploads} || true;
+      echo 'MinIO bucket ready';
+      "
+
+  backend:
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-playlocal}
+      DATABASE_USERNAME: ${POSTGRES_USER:-playlocal}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      PORT: ${BACKEND_PORT:-8080}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-uploads}
+      S3_BUCKET: ${S3_BUCKET_NAME:-uploads}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      S3_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env.prod}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env.prod}
+      S3_ACCESS_KEY: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env.prod}
+      S3_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env.prod}
+      endpoint: ${S3_ENDPOINT:-http://minio:9000}
+      publicEndpoint: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "true"
+
+  frontend:
+    restart: unless-stopped
+    build:
+      args:
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}

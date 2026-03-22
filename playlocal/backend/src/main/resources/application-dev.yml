@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/migration-dev
   jpa:
     show-sql: true
 
@@ -8,3 +10,7 @@ logging:
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+game: 
+  lifecycle:
+    update-interval-ms: 60000

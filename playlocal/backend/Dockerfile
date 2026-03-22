@@ -9,6 +9,9 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 
+# wget for Docker healthcheck
+RUN apk --no-cache add wget
+
 # Create non-root user for security
 RUN addgroup --system --gid 1001 spring && \
     adduser --system --uid 1001 --ingroup spring spring

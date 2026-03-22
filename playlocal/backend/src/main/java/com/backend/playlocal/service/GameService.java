@@ -17,10 +17,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,8 +46,11 @@ public class GameService {
         private final GameTagRepository tagRepository;
         private final GameTagAssignmentRepository tagAssignmentRepository;
         private final GameTagConfirmationRepository tagConfirmationRepository;
+        private final NotificationService notificationService;
         private final OrganizerQualityService oqsService;
-
+        private final LocationRepository locationRepository;
+        private final PrivacySettingsService privacySettingsService;
+        private final FriendshipRepository friendshipRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
@@ -50,7 +58,11 @@ public class GameService {
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
                         GameTagConfirmationRepository tagConfirmationRepository,
-                        OrganizerQualityService oqsService) {
+                        NotificationService notificationService,
+                        OrganizerQualityService oqsService,
+                        LocationRepository locationRepository,
+                        PrivacySettingsService privacySettingsService,
+                        FriendshipRepository friendshipRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -60,7 +72,11 @@ public class GameService {
                 this.tagRepository = tagRepository;
                 this.tagAssignmentRepository = tagAssignmentRepository;
                 this.tagConfirmationRepository = tagConfirmationRepository;
+                this.notificationService = notificationService;
                 this.oqsService = oqsService;
+                this.locationRepository = locationRepository;
+                this.privacySettingsService = privacySettingsService;
+                this.friendshipRepository = friendshipRepository;
         }
 
 
@@ -149,9 +165,7 @@ public class GameService {
                 List<Game> games = gameRepository.findUpcomingGamesWithFilters(
                                 Instant.now(), params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -166,14 +180,18 @@ public class GameService {
                                 Instant.now(), userLat, userLon, radiusKm,
                                 params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
+                if (gameIds.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<UUID, Game> gamesById = gameRepository.findAllByGameIdIn(gameIds).stream()
+                                .collect(Collectors.toMap(Game::getGameId, Function.identity()));
+
                 List<Game> games = gameIds.stream()
-                                .map(gameId -> gameRepository.findById(gameId))
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
+                                .map(gamesById::get)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -184,7 +202,7 @@ public class GameService {
         private static GameFilterParams normalizeGameFilters(
                         String sportName, String skillLevel, String locationType, String intensity) {
                 String normalizedSportName = (sportName != null && !sportName.trim().isEmpty())
-                                ? sportName.trim()
+                                ? sportName.trim().toLowerCase()
                                 : null;
                 String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty())
                                 ? skillLevel.toLowerCase().trim()
@@ -202,6 +220,62 @@ public class GameService {
         }
 
         private record GameFilterParams(String sportName, String skillLevel, String locationType, String intensity) {
+        }
+
+        private List<GameDto.GameResponse> mapGamesToResponses(List<Game> games, UUID requestingUserId) {
+                if (games.isEmpty()) {
+                        return List.of();
+                }
+
+                List<UUID> gameIds = games.stream()
+                                .map(Game::getGameId)
+                                .toList();
+                Map<UUID, ParticipationSummary> participationSummaryByGameId = loadParticipationSummary(gameIds);
+                Map<UUID, List<GameDto.TagDto>> tagsByGameId = loadTagsByGameId(gameIds);
+                Set<UUID> confirmedGameIdsForUser = loadConfirmedGameIdsForUser(gameIds, requestingUserId);
+
+                return games.stream()
+                                .map(game -> mapToGameResponse(
+                                                game,
+                                                requestingUserId,
+                                                participationSummaryByGameId.getOrDefault(
+                                                                game.getGameId(),
+                                                                ParticipationSummary.EMPTY),
+                                                tagsByGameId.getOrDefault(game.getGameId(), List.of()),
+                                                confirmedGameIdsForUser))
+                                .collect(Collectors.toList());
+        }
+
+        private Map<UUID, ParticipationSummary> loadParticipationSummary(List<UUID> gameIds) {
+                Map<UUID, ParticipationSummary> summaryByGameId = new HashMap<>();
+                for (Object[] row : participationRepository.countParticipationSummaryByGameIds(gameIds)) {
+                        UUID gameId = (UUID) row[0];
+                        int confirmedCount = ((Number) row[1]).intValue();
+                        int waitlistCount = ((Number) row[2]).intValue();
+                        summaryByGameId.put(gameId, new ParticipationSummary(confirmedCount, waitlistCount));
+                }
+                return summaryByGameId;
+        }
+
+        private Map<UUID, List<GameDto.TagDto>> loadTagsByGameId(List<UUID> gameIds) {
+                return tagAssignmentRepository.findAllByGame_GameIdIn(gameIds).stream()
+                                .collect(Collectors.groupingBy(
+                                                assignment -> assignment.getGame().getGameId(),
+                                                Collectors.mapping(
+                                                                assignment -> mapToTagDto(assignment.getTag()),
+                                                                Collectors.toList())));
+        }
+
+        private Set<UUID> loadConfirmedGameIdsForUser(List<UUID> gameIds, UUID requestingUserId) {
+                if (requestingUserId == null) {
+                        return Set.of();
+                }
+
+                return new HashSet<>(participationRepository.findConfirmedGameIdsForUser(requestingUserId, gameIds));
+        }
+
+        private record ParticipationSummary(int confirmedCount, int waitlistCount) {
+                private static final ParticipationSummary EMPTY = new ParticipationSummary(0, 0);
         }
 
         /**
@@ -397,6 +471,7 @@ public class GameService {
                 GameParticipation participation = participationRepository.findByGameAndUser(gameId, userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Participation not found"));
 
+                ensureNotArchived(participation.getGame());
                 if (participation.getParticipationRole() == GameParticipation.ParticipationRole.ORGANIZER) {
                         throw new IllegalStateException(
                                         "Organizer cannot leave their own game. Cancel the game instead.");
@@ -429,6 +504,155 @@ public class GameService {
                         // User was waitlisted - adjust positions
                         participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
                 }
+        }
+
+        /**
+         * US-4.3: When organizer raises min reliability, remove confirmed/waitlisted participants
+         * whose reliability is below the new threshold. Organizer is never removed.
+         * Process waitlisted first (by position), then confirmed, so promotions work correctly.
+         */
+        private void removeParticipantsBelowReliabilityThreshold(Game game, float newThreshold) {
+                UUID gameId = game.getGameId();
+                UUID organizerId = game.getCreatedBy().getUserId();
+
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+
+                List<GameParticipation> toRemove = new java.util.ArrayList<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId)) {
+                                float score = p.getUser().getReliabilityScore() != null
+                                                ? p.getUser().getReliabilityScore() : 0f;
+                                if (score < newThreshold) {
+                                        toRemove.add(p);
+                                }
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        float score = p.getUser().getReliabilityScore() != null
+                                        ? p.getUser().getReliabilityScore() : 0f;
+                        if (score < newThreshold) {
+                                toRemove.add(p);
+                        }
+                }
+
+                // Process waitlisted first (by position asc), then confirmed
+                toRemove.sort((a, b) -> {
+                        boolean aWait = a.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        boolean bWait = b.getJoinStatus() == GameParticipation.JoinStatus.WAITLISTED;
+                        if (aWait != bWait) return aWait ? -1 : 1;
+                        if (aWait) {
+                                int posA = a.getWaitlistPosition() != null ? a.getWaitlistPosition() : 0;
+                                int posB = b.getWaitlistPosition() != null ? b.getWaitlistPosition() : 0;
+                                return Integer.compare(posA, posB);
+                        }
+                        return 0;
+                });
+
+                for (GameParticipation p : toRemove) {
+                        boolean wasConfirmed = p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED;
+                        int oldWaitlistPosition = p.getWaitlistPosition() != null ? p.getWaitlistPosition() : 0;
+
+                        p.setJoinStatus(GameParticipation.JoinStatus.CANCELLED);
+                        p.setLeftAt(Instant.now());
+                        p.setWaitlistPosition(null);
+                        participationRepository.save(p);
+
+                        if (wasConfirmed) {
+                                List<GameParticipation> firstWaitlisted = participationRepository.findFirstWaitlisted(gameId);
+                                if (!firstWaitlisted.isEmpty()) {
+                                        GameParticipation promoted = firstWaitlisted.get(0);
+                                        promoted.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
+                                        promoted.setWaitlistPosition(null);
+                                        participationRepository.save(promoted);
+                                        participationRepository.decrementWaitlistPositionsAfter(gameId, 1);
+                                }
+                        } else if (oldWaitlistPosition > 0) {
+                                participationRepository.decrementWaitlistPositionsAfter(gameId, oldWaitlistPosition);
+                        }
+                        log.info("US-4.3 Removed participant userId={} from gameId={} (reliability {} < threshold {})",
+                                        p.getUser().getUserId(), gameId,
+                                        p.getUser().getReliabilityScore(), newThreshold);
+
+                        // US-4.3: Notify removed player they no longer meet the updated requirements
+                        if (notificationService != null) {
+                                Map<String, Object> payload = new java.util.HashMap<>();
+                                payload.put("title", "Removed from game");
+                                payload.put("message", String.format(
+                                                "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
+                                                game.getTitle()));
+                                payload.put("gameId", gameId.toString());
+                                payload.put("link", "/games/" + gameId.toString());
+                                notificationService.createInAppNotification(
+                                                p.getUser().getUserId(),
+                                                "GAME_REMOVED_REQUIREMENTS",
+                                                payload);
+                        }
+                }
+        }
+
+        /**
+         * US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer)
+         * that the game was updated.
+         */
+        private void notifyParticipantsGameUpdated(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameUpdatedNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameUpdatedNotification(Game game, UUID userId) {
+                if (notificationService == null) return;
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game updated");
+                payload.put("message", String.format("The game \"%s\" has been updated. Check the details for changes.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/games/" + game.getGameId().toString());
+                notificationService.createInAppNotification(userId, "GAME_UPDATED", payload);
+        }
+
+        /**
+         * US-4.3: Notify all joined players (confirmed + waitlisted, except organizer)
+         * that the game was cancelled.
+         */
+        private void notifyParticipantsGameCancelled(Game game, UUID organizerId) {
+                UUID gameId = game.getGameId();
+                List<GameParticipation> confirmed = participationRepository.findConfirmedByGame(gameId);
+                List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
+                java.util.Set<UUID> notified = new java.util.HashSet<>();
+                for (GameParticipation p : confirmed) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+                for (GameParticipation p : waitlisted) {
+                        if (notified.add(p.getUser().getUserId())) {
+                                sendGameCancelledNotification(game, p.getUser().getUserId());
+                        }
+                }
+        }
+
+        private void sendGameCancelledNotification(Game game, UUID userId) {
+                if (notificationService == null) return;
+                Map<String, Object> payload = new java.util.HashMap<>();
+                payload.put("title", "Game cancelled");
+                payload.put("message", String.format("The game \"%s\" has been cancelled by the organizer.",
+                                game.getTitle()));
+                payload.put("gameId", game.getGameId().toString());
+                payload.put("link", "/discover");
+                notificationService.createInAppNotification(userId, "GAME_CANCELLED", payload);
         }
 
         /**
@@ -477,20 +701,61 @@ public class GameService {
                 }
                 // US-4.1: Allow updating minReliabilityRequired (changes apply immediately to new join attempts)
                 // Note: To clear the requirement, send -1 or omit the field entirely
-                // We'll use a special sentinel value to indicate "clear" - but for now, 
-                // only update if a non-null value is provided
+                // US-4.3: When raising the threshold, automatically remove participants below it
+                Float oldMinReliability = game.getMinReliabilityRequired();
                 if (request.getMinReliabilityRequired() != null) {
                         if (request.getMinReliabilityRequired() < 0) {
-                                // Special value to clear the requirement
                                 game.setMinReliabilityRequired(null);
                         } else {
                                 game.setMinReliabilityRequired(request.getMinReliabilityRequired());
                         }
                 }
+                Float newMinReliability = game.getMinReliabilityRequired();
+                // US-4.3: Remove participants below new threshold when organizer raises min reliability
+                if (newMinReliability != null && (oldMinReliability == null || newMinReliability > oldMinReliability)) {
+                        removeParticipantsBelowReliabilityThreshold(game, newMinReliability);
+                }
 
-                game = gameRepository.save(game);
-                log.info("US-4.1 Game updated: gameId={}, organizerId={}, minReliabilityRequired={}", 
-                        gameId, organizerId, game.getMinReliabilityRequired());
+                // US-4.3: Location (update existing location entity and persist)
+                if (request.getLocationName() != null || request.getAddressLine() != null
+                                || request.getCity() != null || request.getLatitude() != null
+                                || request.getLongitude() != null) {
+                        Location loc = game.getLocation();
+                        if (loc != null) {
+                                if (request.getLocationName() != null) loc.setName(request.getLocationName());
+                                if (request.getAddressLine() != null) loc.setAddressLine(request.getAddressLine());
+                                if (request.getCity() != null) loc.setCity(request.getCity());
+                                if (request.getLatitude() != null) loc.setLatitude(request.getLatitude());
+                                if (request.getLongitude() != null) loc.setLongitude(request.getLongitude());
+                                locationRepository.saveAndFlush(loc);
+                        }
+                }
+
+                if (request.getStartTime() != null) game.setStartTime(request.getStartTime());
+                if (request.getEndTime() != null) game.setEndTime(request.getEndTime());
+
+                if (request.getVisibility() != null && !request.getVisibility().isBlank()) {
+                        GameVisibility vis = gameVisibilityRepository.findByCode(request.getVisibility().trim().toLowerCase())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Visibility not found: " + request.getVisibility()));
+                        game.setVisibility(vis);
+                }
+
+                if (request.getTagNames() != null) {
+                        tagAssignmentRepository.deleteAllByGame(game);
+                        tagAssignmentRepository.flush();
+                        if (!request.getTagNames().isEmpty()) {
+                                assignTagsToGame(game, request.getTagNames());
+                        }
+                }
+
+                if (request.getMinAge() != null) game.setMinAge(request.getMinAge());
+                if (request.getMaxAge() != null) game.setMaxAge(request.getMaxAge());
+
+                game = gameRepository.saveAndFlush(game);
+                log.info("US-4.1/4.3 Game updated: gameId={}, organizerId={}", gameId, organizerId);
+
+                // US-4.3: Notify all remaining participants (confirmed + waitlisted, except organizer) that game was updated
+                notifyParticipantsGameUpdated(game, organizerId);
 
                 return mapToGameResponse(game, organizerId);
         }
@@ -498,7 +763,7 @@ public class GameService {
         /**
          * Get game roster. US-2.4
          */
-        public GameDto.RosterResponse getRoster(UUID gameId) {
+        public GameDto.RosterResponse getRoster(UUID gameId, UUID requestingUserId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
@@ -512,9 +777,9 @@ public class GameService {
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
 
                 return GameDto.RosterResponse.builder()
-                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
+                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds, requestingUserId))
                                                 .collect(Collectors.toList()))
-                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
+                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds, requestingUserId))
                                                 .collect(Collectors.toList()))
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
@@ -547,9 +812,56 @@ public class GameService {
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
 
+                notifyCancellation(game);
                 // US-6.1: Recalculate OQS for the organizer after game cancellation
                 oqsService.onGameCancelled(gameId);
 
+                // US-4.3: Notify all joined players (confirmed + waitlisted, except organizer) that game was cancelled
+                notifyParticipantsGameCancelled(game, userId);
+
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Mark a game as completed (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse completeGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException(
+                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                game.setStatus(Game.GameStatus.COMPLETED);
+                game = gameRepository.save(game);
+                return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Archive a game (organizer only).
+         */
+        @Transactional
+        public GameDto.GameResponse archiveGame(UUID gameId, UUID userId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                assertOrganizer(game, userId);
+
+                if (game.getStatus() == Game.GameStatus.SCHEDULED
+                                || game.getStatus() == Game.GameStatus.IN_PROGRESS) {
+                        throw new IllegalStateException(
+                                        "Cannot archive a game that is " + game.getStatus().name().toLowerCase());
+                }
+
+                if (game.getStatus() != Game.GameStatus.ARCHIVED) {
+                        game.setStatus(Game.GameStatus.ARCHIVED);
+                        game = gameRepository.save(game);
+                }
 
                 return mapToGameResponse(game, userId);
         }
@@ -614,11 +926,7 @@ public class GameService {
                                 .startTime(game.getStartTime())
                                 .endTime(game.getEndTime())
                                 .status(game.getStatus().name())
-                                .organizer(GameDto.OrganizerDto.builder()
-                                                .userId(game.getCreatedBy().getUserId().toString())
-                                                .displayName(game.getCreatedBy().getDisplayName())
-                                                .reliabilityScore(game.getCreatedBy().getReliabilityScore())
-                                                .build())
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
                                 .confirmedCount(confirmedCount)
                                 .waitlistCount(waitlisted.size())
                                 .createdAt(game.getCreatedAt())
@@ -626,17 +934,86 @@ public class GameService {
                                 .build();
         }
 
-        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
-                return mapToParticipantDto(p,
-                                endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
+        private GameDto.GameResponse mapToGameResponse(
+                        Game game,
+                        UUID requestingUserId,
+                        ParticipationSummary participationSummary,
+                        List<GameDto.TagDto> tags,
+                        Set<UUID> confirmedGameIdsForUser) {
+                boolean showExactLocation = false;
+                if (requestingUserId != null) {
+                        if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
+                                showExactLocation = true;
+                        } else {
+                                showExactLocation = confirmedGameIdsForUser.contains(game.getGameId());
+                        }
+                }
+
+                Location loc = game.getLocation();
+                GameDto.LocationDto exactLocation = null;
+                String approximateLocation = (loc != null)
+                                ? "Near " + loc.getCity()
+                                : "Location unavailable";
+
+                if (showExactLocation && loc != null) {
+                        exactLocation = GameDto.LocationDto.builder()
+                                        .name(loc.getName())
+                                        .addressLine(loc.getAddressLine())
+                                        .city(loc.getCity())
+                                        .latitude(loc.getLatitude())
+                                        .longitude(loc.getLongitude())
+                                        .build();
+                }
+
+                return GameDto.GameResponse.builder()
+                                .gameId(game.getGameId().toString())
+                                .title(game.getTitle())
+                                .description(game.getDescription())
+                                .sportName(game.getSport().getName())
+                                .location(exactLocation)
+                                .approximateLocation(approximateLocation)
+                                .hasExactLocationAccess(showExactLocation)
+                                .indoorOutdoor(game.getIndoorOutdoor())
+                                .intensityBand(game.getIntensityBand())
+                                .skillBand(game.getSkillBand())
+                                .minPlayers(game.getMinPlayers())
+                                .maxPlayers(game.getMaxPlayers())
+                                .allowWaitlist(Boolean.TRUE.equals(game.getAllowWaitlist()))
+                                .minReliabilityRequired(game.getMinReliabilityRequired())
+                                .minAge(game.getMinAge())
+                                .maxAge(game.getMaxAge())
+                                .startTime(game.getStartTime())
+                                .endTime(game.getEndTime())
+                                .status(game.getStatus().name())
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
+                                .confirmedCount(participationSummary.confirmedCount())
+                                .waitlistCount(participationSummary.waitlistCount())
+                                .createdAt(game.getCreatedAt())
+                                .tags(tags)
+                                .build();
+        }
+
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds, UUID viewerId) {
+                boolean isEndorsed = endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId());
+                return mapToParticipantDto(p, isEndorsed, viewerId);
         }
 
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {
-                return mapToParticipantDto(p, false);
+                return mapToParticipantDto(p, false, null);
         }
 
-        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed) {
-                return GameDto.ParticipantDto.builder()
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed, UUID viewerId) {
+                UUID participantId = p.getUser().getUserId();
+                boolean canView = true;
+
+                // US-7.12: Check profile visibility (skip for self)
+                if (viewerId != null && !viewerId.equals(participantId)) {
+                        boolean isFriend = friendshipRepository.areFriends(viewerId, participantId);
+                        canView = privacySettingsService.canViewProfile(participantId, viewerId, isFriend);
+                }
+
+                // Reliability score is always visible (community trust metric)
+                GameDto.ParticipantDto.ParticipantDtoBuilder builder = GameDto.ParticipantDto.builder()
                                 .participationId(p.getParticipationId().toString())
                                 .userId(p.getUser().getUserId().toString())
                                 .displayName(p.getUser().getDisplayName())
@@ -648,6 +1025,17 @@ public class GameService {
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
                                 .isEndorsedByOrganizer(isEndorsed)
+                                .profileRestricted(!canView ? true : null);
+
+                return builder.build();
+        }
+
+        // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
+        private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
+                return GameDto.OrganizerDto.builder()
+                                .userId(organizer.getUserId().toString())
+                                .displayName(organizer.getDisplayName())
+                                .reliabilityScore(organizer.getReliabilityScore())
                                 .build();
         }
 
@@ -674,7 +1062,7 @@ public class GameService {
                         GameTag tag = tagRepository.findByName(tagName)
                                         .orElseThrow(() -> new IllegalArgumentException("Invalid tag: " + tagName));
 
-                        if (!tag.getIsSystemTag()) {
+                        if (!Boolean.TRUE.equals(tag.getIsSystemTag())) {
                                 throw new IllegalArgumentException("Only system tags can be assigned: " + tagName);
                         }
 
@@ -775,5 +1163,52 @@ public class GameService {
                                 .tagType(tag.getTagType())
                                 .isRestricted(tag.getIsRestricted())
                                 .build();
+        }
+
+        private void assertOrganizer(Game game, UUID organizerId) {
+                if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+                        throw new AccessDeniedException("Only the organizer can modify this game");
+                }
+        }
+
+        private void ensureNotArchived(Game game) {
+                if (game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException("Archived games are read-only");
+                }
+        }
+
+        private void notifyCancellation(Game game) {
+                List<GameParticipation> confirmed = Optional
+                                .ofNullable(participationRepository.findConfirmedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                List<GameParticipation> waitlisted = Optional
+                                .ofNullable(participationRepository.findWaitlistedByGame(game.getGameId()))
+                                .orElseGet(List::of);
+                Set<UUID> notified = new HashSet<>();
+
+                Map<String, Object> payload = Map.of(
+                                "gameId", game.getGameId().toString(),
+                                "gameTitle", game.getTitle(),
+                                "status", game.getStatus().name(),
+                                "message", "Game cancelled: " + game.getTitle());
+
+                for (GameParticipation participation : confirmed) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+                for (GameParticipation participation : waitlisted) {
+                        addCancellationNotification(participation, game, payload, notified);
+                }
+        }
+
+        private void addCancellationNotification(GameParticipation participation, Game game,
+                        Map<String, Object> payload, Set<UUID> notified) {
+                UUID userId = participation.getUser().getUserId();
+                if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
+                        return;
+                }
+                if (notificationService != null) {
+                        notificationService.createInAppNotification(userId, "game_cancelled", payload);
+                        notified.add(userId);
+                }
         }
 }

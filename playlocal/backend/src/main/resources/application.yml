@@ -2,8 +2,13 @@ spring:
   application:
     name: playlocal-backend
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/playlocal}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5439/playlocal}
     username: ${DATABASE_USERNAME:playlocal}
     password: ${DATABASE_PASSWORD:playlocal}
     driver-class-name: org.postgresql.Driver
@@ -25,6 +30,11 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+# Game lifecycle
+game:
+  lifecycle:
+    update-interval-ms: 60000
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production-minimum-32-chars}
@@ -36,7 +46,7 @@ rate-limit:
     max-attempts: 5
     window-minutes: 15
   report:
-    max-per-hour: 10
+    max-per-hour: 2
   general:
     requests-per-minute: 60
 
@@ -52,7 +62,10 @@ s3:
   presignExpirySeconds: 900
   
 # Logging
+# %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId:-no-id}] %-5level %logger{36} - %msg%n"
   level:
     com.backend.playlocal: DEBUG
     org.springframework.security: INFO
