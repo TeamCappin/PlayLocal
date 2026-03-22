@@ -3,6 +3,20 @@ require('@testing-library/jest-dom');
 // window.scrollTo is not implemented in jsdom (throws "Not implemented" when called)
 if (typeof window !== 'undefined') {
   window.scrollTo = jest.fn();
+
+  // matchMedia is not implemented in jsdom (required by useIsMobile hook)
+  window.matchMedia = window.matchMedia || function (query) {
+    return {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    };
+  };
 }
 
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)
