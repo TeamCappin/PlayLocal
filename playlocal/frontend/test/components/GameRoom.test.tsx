@@ -536,9 +536,8 @@ describe('GameRoom Component', () => {
         });
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Successfully joined the game!')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.success).toHaveBeenCalledWith('Joined game');
         });
       }
     });
@@ -757,9 +756,8 @@ describe('GameRoom Component', () => {
         fireEvent.click(joinButton);
 
         await waitFor(() => {
-          expect(
-            screen.getByText(/You're on the waitlist \(#3\)/i)
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.success).toHaveBeenCalledWith('Added to waitlist #3');
         });
       }
     });
@@ -778,9 +776,10 @@ describe('GameRoom Component', () => {
         fireEvent.click(joinButton);
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Age confirmation required')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.error).toHaveBeenCalledWith(
+            expect.stringContaining("Couldn't join game")
+          );
         });
       }
     });
@@ -850,9 +849,8 @@ describe('GameRoom Component', () => {
         });
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Successfully left the game')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.success).toHaveBeenCalledWith('Left game');
         });
       }
     });
@@ -899,7 +897,10 @@ describe('GameRoom Component', () => {
         fireEvent.click(leaveButton);
 
         await waitFor(() => {
-          expect(screen.getByText('Cannot leave game')).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.error).toHaveBeenCalledWith(
+            expect.stringContaining("Couldn't leave game")
+          );
         });
       }
     });
@@ -1482,11 +1483,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
       await waitFor(() => expect(mockCompleteGame).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(
-          screen.getByText('Game marked as completed.')
-        ).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game marked as completed');
+      });
     });
 
     it('shows error when complete game action fails', async () => {
@@ -1517,9 +1517,12 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Cannot complete game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't complete game")
+        );
+      });
     });
 
     it('shows fallback error when complete game fails with empty message', async () => {
@@ -1585,9 +1588,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
       await waitFor(() => expect(mockArchiveGame).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(screen.getByText('Game archived.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game archived');
+      });
     });
 
     it('shows error when archive game action fails', async () => {
@@ -1618,9 +1622,12 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Cannot archive game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't archive game")
+        );
+      });
     });
 
     it('shows fallback error when archive game fails with empty message', async () => {
