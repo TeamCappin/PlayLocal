@@ -95,6 +95,14 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             String skillLevel,
             String locationType,
             String intensity);
+
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.gameId IN :gameIds")
+    List<Game> findAllByGameIdIn(@Param("gameIds") List<UUID> gameIds);
+
     @Query("SELECT g FROM Game g " +
             "LEFT JOIN FETCH g.sport " +
             "LEFT JOIN FETCH g.createdBy " +
