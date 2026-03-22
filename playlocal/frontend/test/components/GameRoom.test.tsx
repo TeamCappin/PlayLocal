@@ -2849,8 +2849,9 @@ describe('GameRoom Component', () => {
         fireEvent.click(screen.getByTitle("Endorse as Organizer's Pick"));
 
         await waitFor(() => {
-          const { toast } = require('../../lib/toast');
-          expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to endorse player'));
+          expect(
+            screen.getByText('Failed to endorse player')
+          ).toBeInTheDocument();
         });
       });
     });
