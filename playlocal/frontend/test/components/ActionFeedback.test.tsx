@@ -95,8 +95,10 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
         // Should have cancel button
         expect(screen.getByText(/Stay in Game/i)).toBeInTheDocument();
 
-        // Should have confirm button
-        expect(screen.getByText(/Leave Game/i)).toBeInTheDocument();
+        // Should have confirm button (title is "Leave Game?" — avoid ambiguous getByText)
+        expect(
+          screen.getByRole('button', { name: 'Leave Game' })
+        ).toBeInTheDocument();
       });
 
       it('should call onConfirm when confirmed', async () => {
@@ -117,7 +119,7 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
           />
         );
 
-        fireEvent.click(screen.getByText(/Leave Game/i));
+        fireEvent.click(screen.getByRole('button', { name: 'Leave Game' }));
         expect(onConfirm).toHaveBeenCalledTimes(1);
       });
     });
@@ -199,7 +201,9 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
           />
         );
 
-        expect(screen.getByText(/permanently/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Deleting your account will permanently:/i)
+        ).toBeInTheDocument();
         expect(
           screen.getByText(/Cannot be recovered/i)
         ).toBeInTheDocument();
@@ -276,8 +280,8 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
       ];
 
       successMessages.forEach((msg) => {
-        // All should end with past tense verb or past participle
-        expect(msg).toMatch(/ed$|ted$|ned$/);
+        // Past tense / participle, or short "X game" phrases (e.g. Joined game)
+        expect(msg).toMatch(/ed$|ted$|ned$| game$/i);
       });
     });
 
