@@ -1120,9 +1120,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(mockGamesApiUpdate).toHaveBeenCalledWith(
         'game-123',
         expect.objectContaining({ minReliabilityRequired: 80 })
@@ -1292,9 +1293,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(
         within(dialog).getByRole('button', { name: /Save Changes/i })
       );
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(mockGamesApiUpdate).toHaveBeenCalledWith(
         'game-123',
         expect.objectContaining({
@@ -1685,9 +1687,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(dispatchSpy).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'playlocal-refresh-notifications' })
       );
