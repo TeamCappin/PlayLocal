@@ -21,7 +21,7 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { label: 'Discover', icon: Search, href: '/discover?view=map', match: '/discover' },
+  { label: 'Discover', icon: Search, href: '/discover', match: '/discover' },
   { label: 'Calendar', icon: Calendar, href: '/calendar', match: '/calendar' },
   { label: 'Create', icon: PlusCircle, href: '/games/create', match: '/games/create', authOnly: true },
   { label: 'Players', icon: Users, href: '/players', match: '/players' },
@@ -50,7 +50,7 @@ export function MobileBottomNav() {
     >
       <div
         style={{
-          background: 'rgba(0, 0, 0, 0.25)',
+          background: 'rgba(0, 0, 0, 0.35)',
           backdropFilter: 'saturate(180%) blur(12px)',
           WebkitBackdropFilter: 'saturate(180%) blur(12px)',
           borderRadius: '34px',
