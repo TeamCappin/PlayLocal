@@ -107,11 +107,12 @@ export function formatErrorMessage(error: any, defaultMessage: string): string {
  * Helper to determine if an error is a network/connection issue
  */
 export function isNetworkError(error: any): boolean {
+  const msg = error?.message?.toLowerCase();
   return (
     error?.status === 0 ||
-    error?.message?.toLowerCase().includes('network') ||
-    error?.message?.toLowerCase().includes('connection') ||
-    error?.message?.toLowerCase().includes('fetch')
+    !!msg?.includes('network') ||
+    !!msg?.includes('connection') ||
+    !!msg?.includes('fetch')
   );
 }
 
