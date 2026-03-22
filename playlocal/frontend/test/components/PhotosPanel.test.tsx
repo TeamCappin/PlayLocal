@@ -7,12 +7,26 @@ import {
   act,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { toast } from '@/lib/toast';
 import { PhotosPanel } from '../../components/photos/PhotosPanel'; // <-- adjust if needed
+
+jest.mock('@/lib/toast', () => {
+  const actual = jest.requireActual('@/lib/toast');
+  return {
+    ...actual,
+    toast: {
+      ...actual.toast,
+      success: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
 
 // Mock api module used by PhotosPanel (alias import)
 const mockListByGame = jest.fn();
 const mockRequestUploadSlot = jest.fn();
 const mockFinalizeUpload = jest.fn();
+const mockDeletePhoto = jest.fn();
 
 jest.mock('@/lib/api', () => ({
   __esModule: true,
@@ -21,6 +35,7 @@ jest.mock('@/lib/api', () => ({
       listByGame: (...args: any[]) => mockListByGame(...args),
       requestUploadSlot: (...args: any[]) => mockRequestUploadSlot(...args),
       finalizeUpload: (...args: any[]) => mockFinalizeUpload(...args),
+      delete: (...args: any[]) => mockDeletePhoto(...args),
     },
   },
 }));
@@ -42,6 +57,8 @@ describe('PhotosPanel Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (toast.success as jest.Mock).mockClear();
+    (toast.error as jest.Mock).mockClear();
 
     // jsdom does not implement these in many setups
     (HTMLElement.prototype as any).scrollIntoView = jest.fn();
@@ -391,6 +408,8 @@ describe('PhotosPanel Component', () => {
         expect(screen.getByText('1 / 2')).toBeInTheDocument();
         expect(screen.getByAltText('Thumbnail 2')).toBeInTheDocument();
       });
+
+      expect(toast.success).toHaveBeenCalledWith('Photo uploaded');
     });
 
     it('shows error when uploading non-image file', async () => {
@@ -537,6 +556,60 @@ describe('PhotosPanel Component', () => {
       expect(mockRequestUploadSlot).not.toHaveBeenCalled();
       expect(mockFinalizeUpload).not.toHaveBeenCalled();
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Delete photo flow', () => {
+    it('confirms delete, calls API, shows success toast, and refreshes', async () => {
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+      mockListByGame.mockResolvedValueOnce([]);
+      mockDeletePhoto.mockResolvedValueOnce(undefined);
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+
+      fireEvent.click(screen.getByTitle('Delete this photo'));
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Photo' }));
+
+      await waitFor(() => {
+        expect(mockDeletePhoto).toHaveBeenCalledWith(gameId, 'm1');
+      });
+
+      expect(toast.success).toHaveBeenCalledWith('Photo deleted');
+    });
+
+    it('shows error toast when delete fails', async () => {
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+      mockDeletePhoto.mockRejectedValueOnce(new Error('nope'));
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+
+      fireEvent.click(screen.getByTitle('Delete this photo'));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Photo' }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled();
+      });
+    });
+
+    it('hides delete control when canUpload is false', async () => {
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+
+      render(<PhotosPanel gameId={gameId} canUpload={false} />);
+
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+
+      expect(screen.queryByTitle('Delete this photo')).not.toBeInTheDocument();
     });
   });
 

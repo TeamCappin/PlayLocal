@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CreateGame } from '@/components/CreateGame';
+import { toast } from '@/lib/toast';
 
 // --------------------
 // Global polyfills (JSDOM quirks)
@@ -64,6 +65,18 @@ const getTagsMock = jest.fn();
 jest.mock('@/lib/api', () => ({
   gamesApi: { getTags: () => getTagsMock() },
 }));
+
+jest.mock('@/lib/toast', () => {
+  const actual = jest.requireActual('@/lib/toast');
+  return {
+    ...actual,
+    toast: {
+      ...actual.toast,
+      success: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
 
 // --------------------
 // Helpers
@@ -658,6 +671,9 @@ describe('CreateGame', () => {
         expect.objectContaining({ latitude: 45.5017, longitude: -73.5673 })
       );
     });
+
+    expect(toast.success).toHaveBeenCalledWith('Game created');
+    expect(pushMock).toHaveBeenCalledWith('/games/new-game-1');
   });
 
   it('address autocomplete: typing in the location field after selecting clears lat/lon', async () => {
@@ -870,5 +886,29 @@ describe('CreateGame', () => {
     fireEvent.submit(form);
 
     expect(await screen.findByText(/game details/i)).toBeInTheDocument();
+  });
+
+  it('toasts error when createGame rejects on submit', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockRejectedValue(new Error('nope'));
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+    act(() => jest.advanceTimersByTime(1000));
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+
+    await waitFor(() => expect(createGameMock).toHaveBeenCalled());
+    expect(toast.error).toHaveBeenCalled();
+    const banners = await screen.findAllByText(/nope\. Please try again\./i);
+    expect(banners.length).toBeGreaterThanOrEqual(1);
   });
 });
