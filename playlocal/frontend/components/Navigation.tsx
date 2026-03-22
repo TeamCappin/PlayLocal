@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { MapPin, Search, PlusCircle, User, Bell, Calendar, Users, LogOut, LogIn } from 'lucide-react';
+import { MapPin, Search, PlusCircle, User, Bell, Calendar, Users, LogOut, LogIn, Bot } from 'lucide-react';
+import { useAssistant } from '@/context/AssistantContext';
+import { inferAssistantRoute } from '@/lib/inferAssistantRoute';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -19,6 +21,7 @@ export function Navigation() {
 
   const isLanding = pathname === '/';
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { openAssistant } = useAssistant();
 
   // Get notification count (silently fail if backend unavailable)
   const { unreadCount } = useNotifications();
@@ -73,6 +76,19 @@ export function Navigation() {
               <Search className="w-5 h-5" />
               <span>Discover</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                const { context: c, gameId: gid } = inferAssistantRoute(pathname);
+                openAssistant(c, gid);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100"
+              aria-label="Open help assistant"
+            >
+              <Bot className="w-5 h-5 shrink-0" aria-hidden />
+              <span>Help</span>
+            </button>
 
             <Link
               href="/calendar"
