@@ -1408,7 +1408,9 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
       await waitFor(() => {
         const { toast } = require('../../lib/toast');
-        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Network error"));
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't update game")
+        );
       });
     });
 
@@ -2419,7 +2421,9 @@ describe('GameRoom Component', () => {
 
       await waitFor(() => {
         const { toast } = require('../../lib/toast');
-        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Only the organizer can cancel this game"));
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't delete game")
+        );
       });
     });
 
