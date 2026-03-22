@@ -1406,9 +1406,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Network error')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Network error"));
+      });
     });
 
     it('organizer save edit shows fallback error when update fails with empty message', async () => {
@@ -2417,9 +2418,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByText('Yes, Delete'));
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Only the organizer can cancel this game')
-        ).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Only the organizer can cancel this game"));
       });
     });
 
@@ -2849,9 +2849,8 @@ describe('GameRoom Component', () => {
         fireEvent.click(screen.getByTitle("Endorse as Organizer's Pick"));
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Failed to endorse player')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Failed to endorse player'));
         });
       });
     });
