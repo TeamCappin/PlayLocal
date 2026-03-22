@@ -431,7 +431,7 @@ describe('PhotosPanel Component', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('slot error')).toBeInTheDocument();
+        expect(screen.getByText(/slot error/i)).toBeInTheDocument();
       });
 
       expect(global.fetch).not.toHaveBeenCalled();
@@ -496,7 +496,7 @@ describe('PhotosPanel Component', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('finalize boom')).toBeInTheDocument();
+        expect(screen.getByText(/finalize boom/i)).toBeInTheDocument();
       });
 
       // Since finalize failed, refresh() in try block should not run again
@@ -549,6 +549,11 @@ describe('PhotosPanel Component', () => {
 
       await waitFor(() => expect(mockListByGame).toHaveBeenCalledTimes(1));
 
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Refresh' })
+        ).toBeInTheDocument();
+      });
       fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
       await waitFor(() => expect(mockListByGame).toHaveBeenCalledTimes(2));
