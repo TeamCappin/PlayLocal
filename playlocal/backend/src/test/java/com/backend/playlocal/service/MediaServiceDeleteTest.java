@@ -162,4 +162,27 @@ class MediaServiceDeleteTest {
 
         verify(mediaRepo).save(argThat(asset -> asset.getDeletedAt() != null));
     }
+
+    @Test
+    void deletePhoto_uploaderCanDeleteWhenGameRowMissing() {
+        when(mediaRepo.findById(mediaId)).thenReturn(Optional.of(mediaAsset));
+        when(gameRepo.findById(gameId)).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> mediaService.deletePhoto(gameId, mediaId, uploaderId));
+
+        verify(mediaRepo).save(argThat(asset -> asset.getDeletedAt() != null));
+        verify(s3).deleteObject(any(DeleteObjectRequest.class));
+    }
+
+    @Test
+    void deletePhoto_uploaderCanDeleteWhenGameHasNoOrganizerUser() {
+        game.setCreatedBy(null);
+        when(mediaRepo.findById(mediaId)).thenReturn(Optional.of(mediaAsset));
+        when(gameRepo.findById(gameId)).thenReturn(Optional.of(game));
+
+        assertDoesNotThrow(() -> mediaService.deletePhoto(gameId, mediaId, uploaderId));
+
+        verify(mediaRepo).save(argThat(asset -> asset.getDeletedAt() != null));
+        verify(s3).deleteObject(any(DeleteObjectRequest.class));
+    }
 }
