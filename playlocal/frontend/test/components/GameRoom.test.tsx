@@ -1082,9 +1082,12 @@ describe('GameRoom Component', () => {
         expect(screen.getByText(/Delete this game\?/i)).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Yes, Delete/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Game has been deleted.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        expect(mockCancelGame).toHaveBeenCalled();
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game deleted');
+      });
+      expect(mockPush).toHaveBeenCalledWith('/discover');
     });
 
     it('organizer save edit modal calls update and shows success', async () => {
@@ -2358,8 +2361,10 @@ describe('GameRoom Component', () => {
 
       await waitFor(() => {
         expect(mockCancelGame).toHaveBeenCalled();
-        expect(screen.getByText('Game has been deleted.')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game deleted');
       });
+      expect(mockPush).toHaveBeenCalledWith('/discover');
     });
 
     it('should show error when cancel fails', async () => {
