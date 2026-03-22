@@ -24,6 +24,16 @@ jest.mock('../../hooks/useGames', () => ({
   useGame: jest.fn(),
 }));
 
+// Mock toast library for US-7.15
+jest.mock('../../lib/toast', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    loading: jest.fn(),
+  },
+  getActionableErrorMessage: jest.fn((err, action) => `Couldn't ${action}`),
+}));
+
 const mockGamesApiUpdate = jest.fn();
 
 jest.mock('../../lib/api', () => {
@@ -787,7 +797,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(joinButton!);
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to join game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
       });
     });
   });
@@ -933,7 +944,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(leaveButton!);
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to leave game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
       });
     });
   });
@@ -1394,9 +1406,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Network error')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Network error"));
+      });
     });
 
     it('organizer save edit shows fallback error when update fails with empty message', async () => {
@@ -1427,11 +1440,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(
-          screen.getByText('Failed to update game settings')
-        ).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('organizer can complete game and sees success message', async () => {
@@ -1531,9 +1543,10 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to complete game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('organizer can archive game and sees success message', async () => {
@@ -1631,9 +1644,10 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to archive game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('dispatches playlocal-refresh events on successful update', async () => {
@@ -2404,9 +2418,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByText('Yes, Delete'));
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Only the organizer can cancel this game')
-        ).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Only the organizer can cancel this game"));
       });
     });
 
@@ -2466,7 +2479,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByText('Yes, Delete'));
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to delete game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Couldn't delete game"));
       });
     });
 

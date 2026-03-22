@@ -38,9 +38,11 @@ import {
 } from '@/lib/api';
 import { ReportModal } from './ReportModal';
 import { JoinConfirmationModal } from './JoinConfirmationModal';
+import { ConfirmLeaveGameDialog } from './ConfirmLeaveGameDialog';
 import { OrganizerQualityBadge } from './OrganizerQualityBadge';
 import { PhotosPanel } from './photos/PhotosPanel';
 import { getSportImage } from '@/constants/sportImages';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
@@ -140,6 +142,7 @@ export function GameRoom() {
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
@@ -386,7 +389,7 @@ export function GameRoom() {
       };
       await gamesApi.update(id, updateData);
       setActionError(null);
-      setActionSuccess('Changes saved.');
+      toast.success('Game updated');
       setShowEditModal(false);
       await refetch();
       if (typeof window !== 'undefined') {
@@ -395,10 +398,10 @@ export function GameRoom() {
         );
         window.dispatchEvent(new CustomEvent('playlocal-refresh-games'));
       }
-      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      setActionSuccess(null);
-      setActionError(err.message || 'Failed to update game settings');
+      const errorMessage = getActionableErrorMessage(err, 'update game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -437,15 +440,15 @@ export function GameRoom() {
     try {
       const result = await joinGame(confirmedTagIds);
       if (result.joinStatus === 'WAITLISTED') {
-        setActionSuccess(
-          `You're on the waitlist (#${result.waitlistPosition})`
-        );
+        toast.success(`Added to waitlist #${result.waitlistPosition}`);
       } else {
-        setActionSuccess('Successfully joined the game!');
+        toast.success('Joined game');
       }
       setShowJoinConfirmationModal(false);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to join game');
+      const errorMessage = getActionableErrorMessage(err, 'join game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsJoining(false);
     }
@@ -457,9 +460,12 @@ export function GameRoom() {
     setIsLeaving(true);
     try {
       await leaveGame();
-      setActionSuccess('Successfully left the game');
+      toast.success('Left game');
+      setShowLeaveConfirm(false);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to leave game');
+      const errorMessage = getActionableErrorMessage(err, 'leave game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLeaving(false);
     }
@@ -471,7 +477,7 @@ export function GameRoom() {
     setIsCancelling(true);
     try {
       await cancelGame();
-      setActionSuccess('Game has been deleted.');
+      toast.success('Game deleted');
       setShowCancelConfirm(false);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
@@ -480,7 +486,9 @@ export function GameRoom() {
       }
       navigate.push('/discover');
     } catch (err: any) {
-      setActionError(err.message || 'Failed to delete game');
+      const errorMessage = getActionableErrorMessage(err, 'delete game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCancelling(false);
     }
@@ -492,9 +500,11 @@ export function GameRoom() {
     setIsCompleting(true);
     try {
       await completeGame();
-      setActionSuccess('Game marked as completed.');
+      toast.success('Game marked as completed');
     } catch (err: any) {
-      setActionError(err.message || 'Failed to complete game');
+      const errorMessage = getActionableErrorMessage(err, 'complete game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCompleting(false);
     }
@@ -506,9 +516,11 @@ export function GameRoom() {
     setIsArchiving(true);
     try {
       await archiveGame();
-      setActionSuccess('Game archived.');
+      toast.success('Game archived');
     } catch (err: any) {
-      setActionError(err.message || 'Failed to archive game');
+      const errorMessage = getActionableErrorMessage(err, 'archive game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsArchiving(false);
     }
@@ -1184,7 +1196,7 @@ export function GameRoom() {
                   </div>
                   {!isOrganizer && isScheduled && (
                     <button
-                      onClick={handleLeave}
+                      onClick={() => setShowLeaveConfirm(true)}
                       disabled={isLeaving}
                       className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
@@ -1970,6 +1982,14 @@ export function GameRoom() {
         minAge={game.minAge}
         maxAge={game.maxAge}
         isJoining={isJoining}
+      />
+      {/* Leave Game Confirmation Modal */}
+      <ConfirmLeaveGameDialog
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={handleLeave}
+        gameTitle={game.title}
+        isLoading={isLeaving}
       />
     </div>
   );

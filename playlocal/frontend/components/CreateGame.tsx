@@ -17,6 +17,7 @@ import { useCreateGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { gamesApi, TagDto } from '@/lib/api';
 import { getSportImage } from '@/constants/sportImages';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
 
 function getVisibilityLabel(visibility: string): string {
   if (visibility === 'public') return 'Public';
@@ -317,12 +318,12 @@ export function CreateGame() {
           : undefined,
       });
 
+      toast.success('Game created');
       navigate.push(`/games/${game.gameId}`);
     } catch (err: any) {
-      setError(
-        err.message ||
-          'Failed to create game. Make sure the backend is running.'
-      );
+      const errorMessage = getActionableErrorMessage(err, 'create game');
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

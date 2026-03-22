@@ -3,13 +3,16 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.model.dto.MediaListItem;
 import com.backend.playlocal.model.dto.RequestUploadSlotRequest;
 import com.backend.playlocal.model.dto.RequestUploadSlotResponse;
+import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.MediaAsset;
+import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.MediaAssetRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -26,19 +29,21 @@ import java.util.UUID;
 public class MediaService {
 
     private final MediaAssetRepository mediaRepo;
+    private final GameRepository gameRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
     private static final int MAX_PHOTOS_PER_GAME = 5;
     private static final UUID DEFAULT_VISIBILITY_ID = UUID.fromString("77830009-26af-4661-9b9b-e778899cd9ae");
-    
+
     @Value("${s3.bucket:uploads}")
     private String bucketName;
 
     @Value("${s3.presignExpirySeconds:900}")
     private long presignExpirySeconds;
 
-    public MediaService(MediaAssetRepository mediaRepo, S3Client s3, S3Presigner presigner) {
+    public MediaService(MediaAssetRepository mediaRepo, GameRepository gameRepo, S3Client s3, S3Presigner presigner) {
         this.mediaRepo = mediaRepo;
+        this.gameRepo = gameRepo;
         this.s3 = s3;
         this.presigner = presigner;
     }
@@ -132,6 +137,66 @@ public class MediaService {
                         a.getUploaderUserId()
                 ))
                 .toList();
+    }
+
+    /**
+     * US-7.15: Delete a photo (soft delete in DB, hard delete from S3).
+     * Only the uploader or game organizer can delete.
+     */
+    public void deletePhoto(UUID gameId, UUID mediaId, UUID userId) {
+        // Get the media asset
+        MediaAsset asset = mediaRepo.findById(mediaId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Photo not found"
+                ));
+
+        // Verify it belongs to the correct game
+        if (asset.getGameId() == null || !asset.getGameId().equals(gameId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Photo does not belong to this game"
+            );
+        }
+
+        // Verify it's not already deleted
+        if (asset.getDeletedAt() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "Photo already deleted"
+            );
+        }
+
+        // Check authorization: uploader or game organizer
+        boolean isUploader = asset.getUploaderUserId().equals(userId);
+        boolean isOrganizer = false;
+
+        Game game = gameRepo.findById(gameId).orElse(null);
+        if (game != null && game.getCreatedBy() != null && game.getCreatedBy().getUserId().equals(userId)) {
+            isOrganizer = true;
+        }
+
+        if (!isUploader && !isOrganizer) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the photo uploader or game organizer can delete this photo"
+            );
+        }
+
+        // Soft delete in database
+        asset.setDeletedAt(Instant.now());
+        mediaRepo.save(asset);
+
+        // Hard delete from S3 (optional - could be done by scheduled cleanup job)
+        try {
+            s3.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(asset.getStorageUrl())
+                    .build());
+        } catch (Exception e) {
+            // Log but don't fail - the soft delete succeeded
+            System.err.println("Failed to delete photo from S3: " + e.getMessage());
+        }
     }
 
     private String presignPut(String bucket, String key, String contentType) {
