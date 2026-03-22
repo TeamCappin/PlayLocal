@@ -21,43 +21,47 @@ jest.mock('../hooks/useGames', () => ({
 }));
 
 jest.mock('../lib/api', () => {
-  const mockOqs = () => Promise.resolve({
-    userId: 'test-user-id',
-    displayName: 'Test Organizer',
-    oqsScore: 85.0,
-    gameCompletionRate: 90.0,
-    repeatPlayerRate: 75.0,
-    totalGamesHosted: 10,
-    completedGames: 9,
-    cancelledGames: 1,
-    totalUniquePlayers: 50,
-    repeatPlayers: 20,
-    confidenceLevel: 'HIGH',
-    confidenceDescription: 'Based on 10 games',
-    lastCalculatedAt: '2024-01-15T10:00:00Z',
-  });
-  const mockOqsInfoCard = () => Promise.resolve({
-    oqsScore: 85.0,
-    overallDescription: 'Good organizer',
-    gameCompletionRate: 90.0,
-    completionRateDescription: 'Good reliability',
-    completedGames: 9,
-    totalGames: 10,
-    repeatPlayerRate: 75.0,
-    repeatRateDescription: 'Great retention',
-    repeatPlayers: 20,
-    totalUniquePlayers: 50,
-    confidenceLevel: 'HIGH',
-    confidenceDescription: 'Based on 10 games',
-    gamesForNextLevel: 0,
-  });
+  const mockOqs = () =>
+    Promise.resolve({
+      userId: 'test-user-id',
+      displayName: 'Test Organizer',
+      oqsScore: 85.0,
+      gameCompletionRate: 90.0,
+      repeatPlayerRate: 75.0,
+      totalGamesHosted: 10,
+      completedGames: 9,
+      cancelledGames: 1,
+      totalUniquePlayers: 50,
+      repeatPlayers: 20,
+      confidenceLevel: 'HIGH',
+      confidenceDescription: 'Based on 10 games',
+      lastCalculatedAt: '2024-01-15T10:00:00Z',
+    });
+  const mockOqsInfoCard = () =>
+    Promise.resolve({
+      oqsScore: 85.0,
+      overallDescription: 'Good organizer',
+      gameCompletionRate: 90.0,
+      completionRateDescription: 'Good reliability',
+      completedGames: 9,
+      totalGames: 10,
+      repeatPlayerRate: 75.0,
+      repeatRateDescription: 'Great retention',
+      repeatPlayers: 20,
+      totalUniquePlayers: 50,
+      confidenceLevel: 'HIGH',
+      confidenceDescription: 'Based on 10 games',
+      gamesForNextLevel: 0,
+    });
   const mockEmpty = () => Promise.resolve([]);
   const mockObj = () => Promise.resolve({});
   return {
     usersApi: {
       getProfile: jest.fn(),
       getProfileBySlug: jest.fn(),
-      getConnectionSignals: jest.fn(() => Promise.resolve({ mutualFriendCount: 0, coPlayCount: 0 })),
+      getConnectionSignals: jest.fn(() =>
+        Promise.resolve({ mutualFriendCount: 0, coPlayCount: 0 })
+      ),
     },
     endorsementsApi: {
       getUserEndorsements: jest.fn(() => Promise.resolve([])),
@@ -95,11 +99,16 @@ jest.mock('recharts', () => ({
   YAxis: () => <div>YAxis</div>,
   CartesianGrid: () => <div>CartesianGrid</div>,
   Tooltip: () => <div>Tooltip</div>,
-  RadarChart: () => <div>RadarChart</div>,
-  PolarGrid: () => <div>PolarGrid</div>,
-  PolarAngleAxis: () => <div>PolarAngleAxis</div>,
-  PolarRadiusAxis: () => <div>PolarRadiusAxis</div>,
-  Radar: () => <div>Radar</div>,
+}));
+
+jest.mock('@/hooks/useStats', () => ({
+  useStats: () => ({
+    showUpRate: { data: null, isLoading: false, error: null },
+    skillTrend: { data: null, isLoading: false, error: null },
+    attendanceRate: { data: null, isLoading: false, error: null },
+    timeframe: '30',
+    setTimeframe: jest.fn(),
+  }),
 }));
 
 jest.mock('lucide-react', () => ({
@@ -205,11 +214,21 @@ describe('UserProfile load by slug vs userId', () => {
 
     render(<UserProfile />);
 
-    await waitFor(() => expect(usersApi.getProfileBySlug).toHaveBeenCalledWith('other-user'));
-    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalledWith(mockOtherUser.userId));
+    await waitFor(() =>
+      expect(usersApi.getProfileBySlug).toHaveBeenCalledWith('other-user')
+    );
+    await waitFor(() =>
+      expect(usersApi.getConnectionSignals).toHaveBeenCalledWith(
+        mockOtherUser.userId
+      )
+    );
 
-    expect(await screen.findByText('2 mutual friends', {}, { timeout: 3000 })).toBeInTheDocument();
-    expect(screen.getByText(/Played together 1 time in last 60 days/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('2 mutual friends', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Played together 1 time in last 60 days/)
+    ).toBeInTheDocument();
   });
 
   it('shows No mutuals yet and No games together yet when getConnectionSignals returns zeros', async () => {
@@ -221,29 +240,43 @@ describe('UserProfile load by slug vs userId', () => {
 
     render(<UserProfile />);
 
-    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalled());
-    expect(await screen.findByText('No mutuals yet', {}, { timeout: 3000 })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(usersApi.getConnectionSignals).toHaveBeenCalled()
+    );
+    expect(
+      await screen.findByText('No mutuals yet', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
     expect(screen.getByText('No games together yet')).toBeInTheDocument();
   });
 
   it('shows profile error when getProfileBySlug fails', async () => {
     mockUseParams.mockReturnValue({ username: 'other-user' });
-    (usersApi.getProfileBySlug as jest.Mock).mockRejectedValue(new Error('Network error'));
+    (usersApi.getProfileBySlug as jest.Mock).mockRejectedValue(
+      new Error('Network error')
+    );
 
     render(<UserProfile />);
 
     await waitFor(() => expect(usersApi.getProfileBySlug).toHaveBeenCalled());
-    expect(await screen.findByText(/Failed to load profile/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Failed to load profile/, {}, { timeout: 3000 })
+    ).toBeInTheDocument();
   });
 
   it('shows No mutuals yet when getConnectionSignals rejects', async () => {
     mockUseParams.mockReturnValue({ username: 'other-user' });
-    (usersApi.getConnectionSignals as jest.Mock).mockRejectedValue(new Error('API error'));
+    (usersApi.getConnectionSignals as jest.Mock).mockRejectedValue(
+      new Error('API error')
+    );
 
     render(<UserProfile />);
 
-    await waitFor(() => expect(usersApi.getConnectionSignals).toHaveBeenCalled());
-    expect(await screen.findByText('No mutuals yet', {}, { timeout: 3000 })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(usersApi.getConnectionSignals).toHaveBeenCalled()
+    );
+    expect(
+      await screen.findByText('No mutuals yet', {}, { timeout: 3000 })
+    ).toBeInTheDocument();
     expect(screen.getByText('No games together yet')).toBeInTheDocument();
   });
 });

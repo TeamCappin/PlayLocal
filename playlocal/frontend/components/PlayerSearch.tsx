@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Star, UserPlus, Filter, Loader2, CheckCircle, UserCheck, Clock } from 'lucide-react';
+import {
+  Search,
+  MapPin,
+  Star,
+  UserPlus,
+  Filter,
+  Loader2,
+  CheckCircle,
+  UserCheck,
+  Clock,
+} from 'lucide-react';
 import { usersApi, friendsApi, UserDto, FriendInfo } from '@/lib/api';
 
 export function PlayerSearch() {
@@ -10,34 +20,40 @@ export function PlayerSearch() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
-  
+
   // Track friend status for each player
-  const [friendsMap, setFriendsMap] = useState<Map<string, FriendInfo>>(new Map());
-  const [pendingSentMap, setPendingSentMap] = useState<Map<string, FriendInfo>>(new Map());
-  const [pendingReceivedMap, setPendingReceivedMap] = useState<Map<string, FriendInfo>>(new Map());
+  const [friendsMap, setFriendsMap] = useState<Map<string, FriendInfo>>(
+    new Map()
+  );
+  const [pendingSentMap, setPendingSentMap] = useState<Map<string, FriendInfo>>(
+    new Map()
+  );
+  const [pendingReceivedMap, setPendingReceivedMap] = useState<
+    Map<string, FriendInfo>
+  >(new Map());
 
   // Fetch friends list to check existing relationships
   const fetchFriendsList = useCallback(async () => {
     try {
       const friendsData = await friendsApi.getFriends();
-      
+
       // Create maps for quick lookup
       const friends = new Map<string, FriendInfo>();
       const sent = new Map<string, FriendInfo>();
       const received = new Map<string, FriendInfo>();
-      
-      (friendsData.friends || []).forEach(friend => {
+
+      (friendsData.friends || []).forEach((friend) => {
         friends.set(friend.friendUserId, friend);
       });
-      
-      (friendsData.pendingSent || []).forEach(request => {
+
+      (friendsData.pendingSent || []).forEach((request) => {
         sent.set(request.friendUserId, request);
       });
-      
-      (friendsData.pendingReceived || []).forEach(request => {
+
+      (friendsData.pendingReceived || []).forEach((request) => {
         received.set(request.friendUserId, request);
       });
-      
+
       setFriendsMap(friends);
       setPendingSentMap(sent);
       setPendingReceivedMap(received);
@@ -84,33 +100,39 @@ export function PlayerSearch() {
     try {
       setSendingRequestTo(userId);
       setError(null);
-      
+
       // Prevent duplicate requests
-      if (friendsMap.has(userId) || pendingSentMap.has(userId) || pendingReceivedMap.has(userId)) {
+      if (
+        friendsMap.has(userId) ||
+        pendingSentMap.has(userId) ||
+        pendingReceivedMap.has(userId)
+      ) {
         return;
       }
-      
+
       const response = await friendsApi.sendRequest(userId);
-      
+
       // Update the pending sent map
       const friendInfo: FriendInfo = {
         friendshipId: response.friendshipId,
         friendUserId: userId,
-        displayName: players.find(p => p.userId === userId)?.displayName || '',
+        displayName:
+          players.find((p) => p.userId === userId)?.displayName || '',
         status: 'PENDING',
         reliabilityScore: 0,
         gamesCount: 0,
         createdAt: new Date().toISOString(),
       };
-      
-      setPendingSentMap(prev => new Map(prev).set(userId, friendInfo));
+
+      setPendingSentMap((prev) => new Map(prev).set(userId, friendInfo));
     } catch (err: any) {
       // Extract user-friendly error message from various possible formats
       let errorMessage = 'Failed to send friend request';
-      
+
       // Handle network errors
       if (err?.status === 0 || err?.message?.includes('Network error')) {
-        errorMessage = 'Unable to connect to server. Please check your connection.';
+        errorMessage =
+          'Unable to connect to server. Please check your connection.';
       } else if (err?.data?.message) {
         errorMessage = err.data.message;
       } else if (err?.message) {
@@ -118,12 +140,14 @@ export function PlayerSearch() {
       } else if (typeof err === 'string') {
         errorMessage = err;
       }
-      
+
       // Handle specific error cases
       const lowerMessage = errorMessage.toLowerCase();
-      if (lowerMessage.includes('already exists') || 
-          lowerMessage.includes('friend request already') ||
-          lowerMessage.includes('duplicate')) {
+      if (
+        lowerMessage.includes('already exists') ||
+        lowerMessage.includes('friend request already') ||
+        lowerMessage.includes('duplicate')
+      ) {
         setError('A friend request already exists with this user');
         // Refresh friends list to get accurate state
         await fetchFriendsList();
@@ -132,7 +156,9 @@ export function PlayerSearch() {
       } else if (lowerMessage.includes('not found')) {
         setError('User not found');
       } else if (lowerMessage.includes('unexpected error')) {
-        setError('An error occurred. Please try again or contact support if the problem persists.');
+        setError(
+          'An error occurred. Please try again or contact support if the problem persists.'
+        );
       } else {
         setError(errorMessage);
       }
@@ -165,10 +191,11 @@ export function PlayerSearch() {
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${showFilters
+              className={`flex items-center gap-2 px-6 py-3 border rounded-lg transition-colors ${
+                showFilters
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
+              }`}
             >
               <Filter className="w-5 h-5" />
               <span>Filters</span>
@@ -178,7 +205,9 @@ export function PlayerSearch() {
           {showFilters && (
             <div className="mt-6 pt-6 border-t border-gray-200 grid md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sport</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sport
+                </label>
                 <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                   <option value="">All Sports</option>
                   <option value="basketball">Basketball</option>
@@ -188,7 +217,9 @@ export function PlayerSearch() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Skill Level</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Skill Level
+                </label>
                 <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                   <option value="">All Levels</option>
                   <option value="beginner">Beginner</option>
@@ -197,7 +228,9 @@ export function PlayerSearch() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Availability
+                </label>
                 <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
                   <option value="">Any Time</option>
                   <option value="weekdays">Weekdays</option>
@@ -230,7 +263,9 @@ export function PlayerSearch() {
         ) : players.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500">No players found. Try a different search.</p>
+            <p className="text-gray-500">
+              No players found. Try a different search.
+            </p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -238,7 +273,7 @@ export function PlayerSearch() {
               const isFriend = friendsMap.has(player.userId);
               const hasPendingSent = pendingSentMap.has(player.userId);
               const hasPendingReceived = pendingReceivedMap.has(player.userId);
-              
+
               return (
                 <PlayerCard
                   key={player.userId}
@@ -278,14 +313,19 @@ function PlayerCard({
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-4">
-        <Link href={`/profile/${player.userId}`} className="flex items-center gap-4">
+        <Link
+          href={`/profile/${player.userId}`}
+          className="flex items-center gap-4"
+        >
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
             {avatar}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 hover:text-emerald-600">{player.displayName}</h3>
+            <h3 className="font-semibold text-gray-900 hover:text-emerald-600">
+              {player.displayName}
+            </h3>
             <div className="flex items-center gap-1 text-sm text-gray-500">
-              {player.location && (
+              {!player.profileRestricted && player.location && (
                 <>
                   <MapPin className="w-3 h-3" />
                   <span>{player.location}</span>
@@ -297,7 +337,7 @@ function PlayerCard({
       </div>
 
       <div className="space-y-3 mb-4">
-        {player.bio && (
+        {!player.profileRestricted && player.bio && (
           <p className="text-sm text-gray-600 line-clamp-2">{player.bio}</p>
         )}
         <div className="flex items-center gap-4 text-sm">
@@ -308,13 +348,17 @@ function PlayerCard({
           <span className="text-gray-600">{player.gamesCount || 0} games</span>
         </div>
         {player.defaultIntensity && (
-          <span className={`inline-block px-2 py-1 text-xs rounded-full ${player.defaultIntensity === 'competitive'
-              ? 'bg-red-100 text-red-700'
-              : player.defaultIntensity === 'casual'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-green-100 text-green-700'
-            }`}>
-            {player.defaultIntensity.charAt(0).toUpperCase() + player.defaultIntensity.slice(1)}
+          <span
+            className={`inline-block px-2 py-1 text-xs rounded-full ${
+              player.defaultIntensity === 'competitive'
+                ? 'bg-red-100 text-red-700'
+                : player.defaultIntensity === 'casual'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-green-100 text-green-700'
+            }`}
+          >
+            {player.defaultIntensity.charAt(0).toUpperCase() +
+              player.defaultIntensity.slice(1)}
           </span>
         )}
       </div>

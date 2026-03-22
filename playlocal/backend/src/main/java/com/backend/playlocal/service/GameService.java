@@ -17,12 +17,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +49,8 @@ public class GameService {
         private final NotificationService notificationService;
         private final OrganizerQualityService oqsService;
         private final LocationRepository locationRepository;
+        private final PrivacySettingsService privacySettingsService;
+        private final FriendshipRepository friendshipRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, SportRepository sportRepository,
@@ -55,7 +60,9 @@ public class GameService {
                         GameTagConfirmationRepository tagConfirmationRepository,
                         NotificationService notificationService,
                         OrganizerQualityService oqsService,
-                        LocationRepository locationRepository) {
+                        LocationRepository locationRepository,
+                        PrivacySettingsService privacySettingsService,
+                        FriendshipRepository friendshipRepository) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -68,6 +75,8 @@ public class GameService {
                 this.notificationService = notificationService;
                 this.oqsService = oqsService;
                 this.locationRepository = locationRepository;
+                this.privacySettingsService = privacySettingsService;
+                this.friendshipRepository = friendshipRepository;
         }
 
 
@@ -156,9 +165,7 @@ public class GameService {
                 List<Game> games = gameRepository.findUpcomingGamesWithFilters(
                                 Instant.now(), params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -173,14 +180,18 @@ public class GameService {
                                 Instant.now(), userLat, userLon, radiusKm,
                                 params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
+                if (gameIds.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<UUID, Game> gamesById = gameRepository.findAllByGameIdIn(gameIds).stream()
+                                .collect(Collectors.toMap(Game::getGameId, Function.identity()));
+
                 List<Game> games = gameIds.stream()
-                                .map(gameId -> gameRepository.findById(gameId))
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
+                                .map(gamesById::get)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -191,7 +202,7 @@ public class GameService {
         private static GameFilterParams normalizeGameFilters(
                         String sportName, String skillLevel, String locationType, String intensity) {
                 String normalizedSportName = (sportName != null && !sportName.trim().isEmpty())
-                                ? sportName.trim()
+                                ? sportName.trim().toLowerCase()
                                 : null;
                 String normalizedSkillLevel = (skillLevel != null && !skillLevel.trim().isEmpty())
                                 ? skillLevel.toLowerCase().trim()
@@ -209,6 +220,62 @@ public class GameService {
         }
 
         private record GameFilterParams(String sportName, String skillLevel, String locationType, String intensity) {
+        }
+
+        private List<GameDto.GameResponse> mapGamesToResponses(List<Game> games, UUID requestingUserId) {
+                if (games.isEmpty()) {
+                        return List.of();
+                }
+
+                List<UUID> gameIds = games.stream()
+                                .map(Game::getGameId)
+                                .toList();
+                Map<UUID, ParticipationSummary> participationSummaryByGameId = loadParticipationSummary(gameIds);
+                Map<UUID, List<GameDto.TagDto>> tagsByGameId = loadTagsByGameId(gameIds);
+                Set<UUID> confirmedGameIdsForUser = loadConfirmedGameIdsForUser(gameIds, requestingUserId);
+
+                return games.stream()
+                                .map(game -> mapToGameResponse(
+                                                game,
+                                                requestingUserId,
+                                                participationSummaryByGameId.getOrDefault(
+                                                                game.getGameId(),
+                                                                ParticipationSummary.EMPTY),
+                                                tagsByGameId.getOrDefault(game.getGameId(), List.of()),
+                                                confirmedGameIdsForUser))
+                                .collect(Collectors.toList());
+        }
+
+        private Map<UUID, ParticipationSummary> loadParticipationSummary(List<UUID> gameIds) {
+                Map<UUID, ParticipationSummary> summaryByGameId = new HashMap<>();
+                for (Object[] row : participationRepository.countParticipationSummaryByGameIds(gameIds)) {
+                        UUID gameId = (UUID) row[0];
+                        int confirmedCount = ((Number) row[1]).intValue();
+                        int waitlistCount = ((Number) row[2]).intValue();
+                        summaryByGameId.put(gameId, new ParticipationSummary(confirmedCount, waitlistCount));
+                }
+                return summaryByGameId;
+        }
+
+        private Map<UUID, List<GameDto.TagDto>> loadTagsByGameId(List<UUID> gameIds) {
+                return tagAssignmentRepository.findAllByGame_GameIdIn(gameIds).stream()
+                                .collect(Collectors.groupingBy(
+                                                assignment -> assignment.getGame().getGameId(),
+                                                Collectors.mapping(
+                                                                assignment -> mapToTagDto(assignment.getTag()),
+                                                                Collectors.toList())));
+        }
+
+        private Set<UUID> loadConfirmedGameIdsForUser(List<UUID> gameIds, UUID requestingUserId) {
+                if (requestingUserId == null) {
+                        return Set.of();
+                }
+
+                return new HashSet<>(participationRepository.findConfirmedGameIdsForUser(requestingUserId, gameIds));
+        }
+
+        private record ParticipationSummary(int confirmedCount, int waitlistCount) {
+                private static final ParticipationSummary EMPTY = new ParticipationSummary(0, 0);
         }
 
         /**
@@ -696,7 +763,7 @@ public class GameService {
         /**
          * Get game roster. US-2.4
          */
-        public GameDto.RosterResponse getRoster(UUID gameId) {
+        public GameDto.RosterResponse getRoster(UUID gameId, UUID requestingUserId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
@@ -710,9 +777,9 @@ public class GameService {
                 List<GameParticipation> waitlisted = participationRepository.findWaitlistedByGame(gameId);
 
                 return GameDto.RosterResponse.builder()
-                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
+                                .confirmed(confirmed.stream().map(p -> mapToParticipantDto(p, endorsedUserIds, requestingUserId))
                                                 .collect(Collectors.toList()))
-                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds))
+                                .waitlisted(waitlisted.stream().map(p -> mapToParticipantDto(p, endorsedUserIds, requestingUserId))
                                                 .collect(Collectors.toList()))
                                 .maxPlayers(game.getMaxPlayers())
                                 .spotsAvailable(Math.max(0, game.getMaxPlayers() - confirmed.size()))
@@ -859,11 +926,7 @@ public class GameService {
                                 .startTime(game.getStartTime())
                                 .endTime(game.getEndTime())
                                 .status(game.getStatus().name())
-                                .organizer(GameDto.OrganizerDto.builder()
-                                                .userId(game.getCreatedBy().getUserId().toString())
-                                                .displayName(game.getCreatedBy().getDisplayName())
-                                                .reliabilityScore(game.getCreatedBy().getReliabilityScore())
-                                                .build())
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
                                 .confirmedCount(confirmedCount)
                                 .waitlistCount(waitlisted.size())
                                 .createdAt(game.getCreatedAt())
@@ -871,17 +934,86 @@ public class GameService {
                                 .build();
         }
 
-        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds) {
-                return mapToParticipantDto(p,
-                                endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId()));
+        private GameDto.GameResponse mapToGameResponse(
+                        Game game,
+                        UUID requestingUserId,
+                        ParticipationSummary participationSummary,
+                        List<GameDto.TagDto> tags,
+                        Set<UUID> confirmedGameIdsForUser) {
+                boolean showExactLocation = false;
+                if (requestingUserId != null) {
+                        if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
+                                showExactLocation = true;
+                        } else {
+                                showExactLocation = confirmedGameIdsForUser.contains(game.getGameId());
+                        }
+                }
+
+                Location loc = game.getLocation();
+                GameDto.LocationDto exactLocation = null;
+                String approximateLocation = (loc != null)
+                                ? "Near " + loc.getCity()
+                                : "Location unavailable";
+
+                if (showExactLocation && loc != null) {
+                        exactLocation = GameDto.LocationDto.builder()
+                                        .name(loc.getName())
+                                        .addressLine(loc.getAddressLine())
+                                        .city(loc.getCity())
+                                        .latitude(loc.getLatitude())
+                                        .longitude(loc.getLongitude())
+                                        .build();
+                }
+
+                return GameDto.GameResponse.builder()
+                                .gameId(game.getGameId().toString())
+                                .title(game.getTitle())
+                                .description(game.getDescription())
+                                .sportName(game.getSport().getName())
+                                .location(exactLocation)
+                                .approximateLocation(approximateLocation)
+                                .hasExactLocationAccess(showExactLocation)
+                                .indoorOutdoor(game.getIndoorOutdoor())
+                                .intensityBand(game.getIntensityBand())
+                                .skillBand(game.getSkillBand())
+                                .minPlayers(game.getMinPlayers())
+                                .maxPlayers(game.getMaxPlayers())
+                                .allowWaitlist(Boolean.TRUE.equals(game.getAllowWaitlist()))
+                                .minReliabilityRequired(game.getMinReliabilityRequired())
+                                .minAge(game.getMinAge())
+                                .maxAge(game.getMaxAge())
+                                .startTime(game.getStartTime())
+                                .endTime(game.getEndTime())
+                                .status(game.getStatus().name())
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
+                                .confirmedCount(participationSummary.confirmedCount())
+                                .waitlistCount(participationSummary.waitlistCount())
+                                .createdAt(game.getCreatedAt())
+                                .tags(tags)
+                                .build();
+        }
+
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, Set<UUID> endorsedUserIds, UUID viewerId) {
+                boolean isEndorsed = endorsedUserIds != null && endorsedUserIds.contains(p.getUser().getUserId());
+                return mapToParticipantDto(p, isEndorsed, viewerId);
         }
 
         private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p) {
-                return mapToParticipantDto(p, false);
+                return mapToParticipantDto(p, false, null);
         }
 
-        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed) {
-                return GameDto.ParticipantDto.builder()
+        private GameDto.ParticipantDto mapToParticipantDto(GameParticipation p, boolean isEndorsed, UUID viewerId) {
+                UUID participantId = p.getUser().getUserId();
+                boolean canView = true;
+
+                // US-7.12: Check profile visibility (skip for self)
+                if (viewerId != null && !viewerId.equals(participantId)) {
+                        boolean isFriend = friendshipRepository.areFriends(viewerId, participantId);
+                        canView = privacySettingsService.canViewProfile(participantId, viewerId, isFriend);
+                }
+
+                // Reliability score is always visible (community trust metric)
+                GameDto.ParticipantDto.ParticipantDtoBuilder builder = GameDto.ParticipantDto.builder()
                                 .participationId(p.getParticipationId().toString())
                                 .userId(p.getUser().getUserId().toString())
                                 .displayName(p.getUser().getDisplayName())
@@ -893,6 +1025,17 @@ public class GameService {
                                 .reliabilityScore(p.getUser().getReliabilityScore())
                                 .joinedAt(p.getJoinedAt())
                                 .isEndorsedByOrganizer(isEndorsed)
+                                .profileRestricted(!canView ? true : null);
+
+                return builder.build();
+        }
+
+        // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
+        private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
+                return GameDto.OrganizerDto.builder()
+                                .userId(organizer.getUserId().toString())
+                                .displayName(organizer.getDisplayName())
+                                .reliabilityScore(organizer.getReliabilityScore())
                                 .build();
         }
 
@@ -919,7 +1062,7 @@ public class GameService {
                         GameTag tag = tagRepository.findByName(tagName)
                                         .orElseThrow(() -> new IllegalArgumentException("Invalid tag: " + tagName));
 
-                        if (!tag.getIsSystemTag()) {
+                        if (!Boolean.TRUE.equals(tag.getIsSystemTag())) {
                                 throw new IllegalArgumentException("Only system tags can be assigned: " + tagName);
                         }
 

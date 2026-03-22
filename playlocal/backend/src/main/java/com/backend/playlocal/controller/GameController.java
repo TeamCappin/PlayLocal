@@ -134,8 +134,9 @@ public class GameController {
      * US-2.4: Game Page
      */
     @GetMapping("/{gameId}/roster")
-    public ResponseEntity<GameDto.RosterResponse> getRoster(@PathVariable UUID gameId) {
-        GameDto.RosterResponse roster = gameService.getRoster(gameId);
+    public ResponseEntity<GameDto.RosterResponse> getRoster(@PathVariable UUID gameId, Authentication authentication) {
+        UUID requestingUserId = requireAuthenticatedUserId(authentication);
+        GameDto.RosterResponse roster = gameService.getRoster(gameId, requestingUserId);
         return ResponseEntity.ok(roster);
     }
 

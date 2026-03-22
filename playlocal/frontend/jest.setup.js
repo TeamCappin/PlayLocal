@@ -1,8 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require("@testing-library/jest-dom");
+require('@testing-library/jest-dom');
+
+// window.scrollTo is not implemented in jsdom (throws "Not implemented" when called)
+if (typeof window !== 'undefined') {
+  window.scrollTo = jest.fn();
+}
 
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)
-if (typeof globalThis.ResizeObserver === "undefined") {
+if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {
     observe() {}
     unobserve() {}
@@ -13,33 +17,33 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 // Global API mocks to prevent undefined errors in tests
 // Individual test files can override these with jest.mock() if needed
 // Using factory function to ensure each test gets fresh mocks
-jest.mock("@/lib/api", () => {
+jest.mock('@/lib/api', () => {
   // Create mock functions that return appropriate types
   const createMockArrayFn = () => jest.fn(() => Promise.resolve([]));
   const createMockObjectFn = () => jest.fn(() => Promise.resolve({}));
-  
+
   return {
     gamesApi: {
-      getUpcoming: createMockArrayFn(), 
-      getPast: createMockArrayFn(), 
-      getPastByUserNeedingAttendanceUpdate: createMockArrayFn(), 
-      getById: createMockObjectFn(), 
-      getRoster: createMockObjectFn(), 
-      create: createMockObjectFn(), 
-      join: createMockObjectFn(), 
-      leave: createMockObjectFn(), 
-      cancel: createMockObjectFn(), 
-      getGameParticipation: createMockObjectFn(), 
+      getUpcoming: createMockArrayFn(),
+      getPast: createMockArrayFn(),
+      getPastByUserNeedingAttendanceUpdate: createMockArrayFn(),
+      getById: createMockObjectFn(),
+      getRoster: createMockObjectFn(),
+      create: createMockObjectFn(),
+      join: createMockObjectFn(),
+      leave: createMockObjectFn(),
+      cancel: createMockObjectFn(),
+      getGameParticipation: createMockObjectFn(),
     },
     organizerQualityApi: {
       getOqs: createMockObjectFn(),
-      getMyOqs: createMockObjectFn(), 
-      getOqsSummary: createMockObjectFn(), 
-      getOqsInfoCard: createMockObjectFn(), 
-      getMyOqsInfoCard: createMockObjectFn(), 
-      getOqsHistory: createMockObjectFn(), 
-      getMyOqsHistory: createMockObjectFn(), 
-      getWeights: createMockObjectFn(), 
+      getMyOqs: createMockObjectFn(),
+      getOqsSummary: createMockObjectFn(),
+      getOqsInfoCard: createMockObjectFn(),
+      getMyOqsInfoCard: createMockObjectFn(),
+      getOqsHistory: createMockObjectFn(),
+      getMyOqsHistory: createMockObjectFn(),
+      getWeights: createMockObjectFn(),
     },
     usersApi: {
       getProfile: createMockObjectFn(),
@@ -47,7 +51,9 @@ jest.mock("@/lib/api", () => {
       updateProfile: createMockObjectFn(),
       search: createMockObjectFn(),
       getConnectionSignals: createMockObjectFn(),
-      getConnectionSignalsBatch: jest.fn(() => Promise.resolve({ signalsByUserId: {} })),
+      getConnectionSignalsBatch: jest.fn(() =>
+        Promise.resolve({ signalsByUserId: {} })
+      ),
     },
     // Export other APIs with mock functions to prevent undefined errors
     attendanceApi: {
@@ -77,6 +83,11 @@ jest.mock("@/lib/api", () => {
     scoreHistoryApi: {
       getHistory: createMockArrayFn(),
     },
+    statsApi: {
+      getShowUpRate: createMockObjectFn(),
+      getSkillTrend: createMockObjectFn(),
+      getAttendanceRate: createMockObjectFn(),
+    },
     // Export default object
     __esModule: true,
     default: {
@@ -89,6 +100,7 @@ jest.mock("@/lib/api", () => {
       health: {},
       scoreHistory: {},
       organizerQuality: {},
+      stats: {},
     },
   };
 });

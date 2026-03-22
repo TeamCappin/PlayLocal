@@ -4,6 +4,8 @@ import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
+import com.backend.playlocal.repository.FriendshipRepository;
+import com.backend.playlocal.service.PrivacySettingsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,12 @@ class UserServiceAdditionalTest {
     @Mock
     private EndorsementRepository endorsementRepository;
 
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private FriendshipRepository friendshipRepository;
+
     @InjectMocks
     private UserService userService;
 
@@ -48,9 +56,11 @@ class UserServiceAdditionalTest {
                 .build();
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
+        when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
 
         // When
-        UserDto.SearchResponse response = userService.searchUsers("", 0, 10);
+        UUID viewerId = UUID.randomUUID();
+        UserDto.SearchResponse response = userService.searchUsers("", 0, 10, viewerId);
 
         // Then
         assertThat(response.getUsers()).hasSize(1);

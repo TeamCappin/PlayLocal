@@ -7,6 +7,9 @@ import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.UserRoleRepository;
 import com.backend.playlocal.security.JwtService;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.exception.ResourceNotFoundException;
+import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +19,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.time.Instant;
+import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.eq;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,12 +54,19 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private PrivacySettingsService privacySettingsService;
+
     @InjectMocks
     private AuthService authService;
 
     private AuthDto.RegisterRequest registerRequest;
     private AuthDto.LoginRequest loginRequest;
+    private AuthDto.ForgotPasswordRequest forgotPasswordRequest;
+    private AuthDto.VerifyResetCodeRequest verifyResetCodeRequest;
+    private AuthDto.ResetPasswordRequest resetPasswordRequest;
     private User user;
+    private ChangePasswordRequest changePasswordRequest;
 
     @BeforeEach
     void setUp() {
@@ -76,6 +91,41 @@ class AuthServiceTest {
                 .slug("test-user-" + UUID.randomUUID())
                 .status(User.UserStatus.ACTIVE)
                 .build();
+
+        forgotPasswordRequest = AuthDto.ForgotPasswordRequest.builder()
+                .email("test@example.com")
+                .build();
+
+        verifyResetCodeRequest = AuthDto.VerifyResetCodeRequest.builder()
+                .email("test@example.com")
+                .code("000000")
+                .build();
+
+        resetPasswordRequest = AuthDto.ResetPasswordRequest.builder()
+                .email("test@example.com")
+                .code("000000")
+                .newPassword("ResetPassword123!")
+                .build();
+
+        changePasswordRequest = new ChangePasswordRequest();
+        changePasswordRequest.setCurrentPassword("PlayLocalSecure2026!");
+        changePasswordRequest.setNewPassword("NewPassword123!");
+        changePasswordRequest.setConfirmNewPassword("NewPassword123!");
+    }
+
+    // private helper methods
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getResetCodeStore() throws Exception {
+        Field field = AuthService.class.getDeclaredField("resetCodeStore");
+        field.setAccessible(true);
+        return (Map<String, Object>) field.get(authService);
+    }
+
+    private Object invokeRecordMethod(Object target, String methodName) throws Exception {
+        Method method = target.getClass().getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        return method.invoke(target);
     }
 
     // ==========================================
@@ -195,4 +245,234 @@ class AuthServiceTest {
         assertThat(dto.getEmail()).isEqualTo(user.getEmail());
         assertThat(dto.getReliabilityScore()).isEqualTo(100.0f);
     }
+
+    // Test Password Changes
+
+    @Test
+    @DisplayName("US-7.11: changePassword should succeed with valid current password and matching confirmation")
+    void changePassword_Success() {
+        UUID userId = user.getUserId();
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(true);
+        when(passwordEncoder.encode(changePasswordRequest.getNewPassword()))
+                .thenReturn("newEncodedPassword");
+
+        authService.changePassword(userId.toString(), changePasswordRequest);
+
+        assertThat(user.getPasswordHash()).isEqualTo("newEncodedPassword");
+        verify(userRepository).findActiveById(userId);
+        verify(passwordEncoder).matches("PlayLocalSecure2026!", "encodedPassword");
+        verify(passwordEncoder).encode("NewPassword123!");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("US-7.11: changePassword should throw ResourceNotFoundException when user is not found")
+    void changePassword_UserNotFound_ThrowsException() {
+        UUID missingUserId = UUID.randomUUID();
+
+        when(userRepository.findActiveById(missingUserId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.changePassword(missingUserId.toString(), changePasswordRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User not found");
+
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.11: changePassword should throw BadCredentialsException when current password is incorrect")
+    void changePassword_WrongCurrentPassword_ThrowsException() {
+        UUID userId = user.getUserId();
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(userId.toString(), changePasswordRequest))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Current password is incorrect");
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.11: changePassword should throw IllegalArgumentException when new password confirmation does not match")
+    void changePassword_ConfirmationMismatch_ThrowsException() {
+        UUID userId = user.getUserId();
+        changePasswordRequest.setConfirmNewPassword("differentPassword");
+
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> authService.changePassword(userId.toString(), changePasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("New password and confirmation do not match");
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.11: changePassword should throw IllegalArgumentException when userId is not a valid UUID")
+    void changePassword_InvalidUuid_ThrowsException() {
+        assertThatThrownBy(() -> authService.changePassword("not-a-uuid", changePasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(userRepository, never()).findActiveById(any());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    // test forgot password US 7.9
+
+
+    @Test
+    @DisplayName("US-7.9: forgotPassword should store a 6-digit code for existing email")
+    void forgotPassword_ExistingEmail_StoresCode() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+
+        authService.forgotPassword(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        assertThat(store).containsKey("test@example.com");
+
+        Object entry = store.get("test@example.com");
+        String code = (String) invokeRecordMethod(entry, "code");
+        Instant expiresAt = (Instant) invokeRecordMethod(entry, "expiresAt");
+        boolean verified = (boolean) invokeRecordMethod(entry, "verified");
+
+        assertThat(code).matches("\\d{6}");
+        assertThat(expiresAt).isAfter(Instant.now());
+        assertThat(verified).isFalse();
+    }
+
+    @Test
+    @DisplayName("US-7.9: forgotPassword should do nothing visible for non-existent email")
+    void forgotPassword_NonExistentEmail_DoesNothing() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(false);
+
+        authService.forgotPassword(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        assertThat(store).doesNotContainKey("test@example.com");
+    }
+
+    @Test
+    @DisplayName("US-7.9: verifyResetCode should succeed for valid stored code")
+    void verifyResetCode_ValidCode_Succeeds() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+
+        authService.forgotPassword(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        Object entryBefore = store.get("test@example.com");
+        String generatedCode = (String) invokeRecordMethod(entryBefore, "code");
+
+        verifyResetCodeRequest.setCode(generatedCode);
+
+        authService.verifyResetCode(verifyResetCodeRequest);
+
+        Object entryAfter = store.get("test@example.com");
+        boolean verified = (boolean) invokeRecordMethod(entryAfter, "verified");
+        assertThat(verified).isTrue();
+    }
+
+    @Test
+    @DisplayName("US-7.9: verifyResetCode should throw when code is invalid")
+    void verifyResetCode_InvalidCode_ThrowsException() {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+
+        authService.forgotPassword(forgotPasswordRequest);
+        verifyResetCodeRequest.setCode("999999");
+
+        assertThatThrownBy(() -> authService.verifyResetCode(verifyResetCodeRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid or expired reset code");
+    }
+
+    @Test
+    @DisplayName("US-7.9: resendResetCode should create a reset code for existing email")
+    void resendResetCode_ExistingEmail_StoresCode() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+
+        authService.resendResetCode(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        assertThat(store).containsKey("test@example.com");
+
+        Object entry = store.get("test@example.com");
+        String code = (String) invokeRecordMethod(entry, "code");
+        assertThat(code).matches("\\d{6}");
+    }
+
+    @Test
+    @DisplayName("US-7.9: resetPassword should succeed after code verification")
+    void resetPassword_AfterVerification_Succeeds() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+        when(userRepository.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("ResetPassword123!")).thenReturn("resetEncodedPassword");
+
+        authService.forgotPassword(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        Object entry = store.get("test@example.com");
+        String generatedCode = (String) invokeRecordMethod(entry, "code");
+
+        verifyResetCodeRequest.setCode(generatedCode);
+        authService.verifyResetCode(verifyResetCodeRequest);
+
+        resetPasswordRequest.setCode(generatedCode);
+
+        authService.resetPassword(resetPasswordRequest);
+
+        assertThat(user.getPasswordHash()).isEqualTo("resetEncodedPassword");
+        verify(userRepository).findByEmailIgnoreCase("test@example.com");
+        verify(passwordEncoder).encode("ResetPassword123!");
+        verify(userRepository).save(user);
+        assertThat(store).doesNotContainKey("test@example.com");
+    }
+
+    @Test
+    @DisplayName("US-7.9: resetPassword should throw when code was not verified first")
+    void resetPassword_NotVerified_ThrowsException() throws Exception {
+        when(userRepository.existsByEmailIgnoreCase("test@example.com")).thenReturn(true);
+
+        authService.forgotPassword(forgotPasswordRequest);
+
+        Map<String, Object> store = getResetCodeStore();
+        Object entry = store.get("test@example.com");
+        String generatedCode = (String) invokeRecordMethod(entry, "code");
+
+        resetPasswordRequest.setCode(generatedCode);
+
+        assertThatThrownBy(() -> authService.resetPassword(resetPasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("verified");
+    }
+
+    @Test
+    @DisplayName("US-7.9: resetPassword should throw when code is invalid")
+    void resetPassword_InvalidCode_ThrowsException() {
+        resetPasswordRequest.setCode("123456");
+
+        assertThatThrownBy(() -> authService.resetPassword(resetPasswordRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid or expired reset code");
+
+        verify(userRepository, never()).findByEmailIgnoreCase(any());
+        verify(userRepository, never()).save(any());
+    }
+
+
+
+
+
 }

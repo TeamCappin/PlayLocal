@@ -2,27 +2,27 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Users, TrendingUp, Filter, Calendar, MapIcon, Cloud, Sun, Loader2, X, Search, Bot } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import {
+  MapPin,
+  Clock,
+  Users,
+  TrendingUp,
+  Filter,
+  Calendar,
+  MapIcon,
+  Cloud,
+  Sun,
+  Loader2,
+  X,
+  Search,
+  Bot,
+} from 'lucide-react';
 import { useAssistant } from '@/context/AssistantContext';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
-// Helper to get image by sport (US 2.2)
-function getSportImage(sport: string) {
-  const images: Record<string, string> = {
-    'Basketball': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1080',
-    'Soccer': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1080',
-    'Tennis': 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&q=80&w=1080',
-    'Volleyball': 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1080',
-    'Badminton': 'https://images.unsplash.com/photo-1599391398131-cd12dfc6c24e?auto=format&fit=crop&q=80&w=1080',
-    'Baseball': '/images/sports/baseball.jpg',
-    'Hockey': 'https://images.unsplash.com/photo-1580748141549-71748dbe0bdc?auto=format&fit=crop&q=80&w=1080',
-    'Ultimate Frisbee': '/images/sports/ultimate-frisbee.jpg',
-    'Flag Football': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1080',
-    'Softball': 'https://images.unsplash.com/photo-1578432014316-48b448d79d57?auto=format&fit=crop&q=80&w=1080',
-    'Pickleball': 'https://images.unsplash.com/photo-1526888935184-a82d2a4b7e67?auto=format&fit=crop&q=80&w=1080',
-  };
-  return images[sport] || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=1080';
-}
+import { getSportImage } from '@/constants/sportImages';
+import MapView from './MapView';
 
 // Transform API response to display format
 function transformApiGame(game: GameResponse) {
@@ -33,16 +33,26 @@ function transformApiGame(game: GameResponse) {
 
   let dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long' });
   if (startDate.toDateString() === today.toDateString()) dateStr = 'Today';
-  if (startDate.toDateString() === tomorrow.toDateString()) dateStr = 'Tomorrow';
+  if (startDate.toDateString() === tomorrow.toDateString())
+    dateStr = 'Tomorrow';
 
   return {
     id: game.gameId,
     title: game.title,
     sport: game.sportName,
-    location: (game.hasExactLocationAccess && game.location) ? game.location.name : 'Location Hidden', // Privacy-aware location [US-1.3]
-    distance: (game.hasExactLocationAccess && game.location?.city) ? game.location.city : (game.approximateLocation || 'Nearby'), // Use approximate location if exact is hidden
+    location:
+      game.hasExactLocationAccess && game.location
+        ? game.location.name
+        : 'Location Hidden', // Privacy-aware location [US-1.3]
+    distance:
+      game.hasExactLocationAccess && game.location?.city
+        ? game.location.city
+        : game.approximateLocation || 'Nearby', // Use approximate location if exact is hidden
     date: dateStr,
-    time: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    time: startDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
     duration: game.endTime
       ? `${Math.round((new Date(game.endTime).getTime() - startDate.getTime()) / 3600000)} hours`
       : '2 hours',
@@ -53,168 +63,19 @@ function transformApiGame(game: GameResponse) {
     weather: null,
     host: game.organizer.displayName || 'Host',
     image: getSportImage(game.sportName),
-    status: game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
+    status:
+      game.confirmedCount >= game.maxPlayers - 2 ? 'almost-full' : 'filling',
     minReliabilityRequired: game.minReliabilityRequired, // US-4.1: Reputation-gated games
+    lat:
+      game.hasExactLocationAccess && game.location?.latitude != null
+        ? game.location.latitude
+        : undefined,
+    lng:
+      game.hasExactLocationAccess && game.location?.longitude != null
+        ? game.location.longitude
+        : undefined,
   };
 }
-
-// Mock data for fallback - one game per sport
-const mockGames: GameResponse[] = [
-  {
-    gameId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-    title: '5v5 Basketball Pickup',
-    sportName: 'Basketball',
-    location: { name: 'Parc Jarry Courts', addressLine: '201 Rue Gary-Carter, Montréal, QC', city: 'Montreal', latitude: 45.5312, longitude: -73.6205 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
-    confirmedCount: 8, maxPlayers: 10, minPlayers: 6,
-    skillBand: 'Intermediate', intensityBand: 'High', indoorOutdoor: 'outdoor',
-    description: 'Competitive 5v5 full court.',
-    organizer: { userId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', displayName: 'Minh H.', reliabilityScore: 98 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'b2c3d4e5-f6a7-8901-bcde-f23456789012',
-    title: 'Sunday Soccer Friendly',
-    sportName: 'Soccer',
-    location: { name: 'Complexe Claude-Robillard', addressLine: '1000 Émile-Journault, Montréal', city: 'Montreal', latitude: 45.5401, longitude: -73.6241 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
-    confirmedCount: 12, maxPlayers: 22, minPlayers: 14,
-    skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'outdoor',
-    description: 'Casual 11v11 game. All levels welcome!',
-    organizer: { userId: 'c3d4e5f6-a7b8-9012-cdef-234567890123', displayName: 'Sarah K.', reliabilityScore: 95 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'c3d4e5f6-a7b8-9012-cdef-345678901234',
-    title: 'Beach Volleyball Tournament',
-    sportName: 'Volleyball',
-    location: { name: 'Parc Jean-Drapeau Beach', addressLine: 'Île Sainte-Hélène', city: 'Montreal', latitude: 45.5088, longitude: -73.5340 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 10800000).toISOString(),
-    confirmedCount: 10, maxPlayers: 12, minPlayers: 8,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
-    description: '6v6 beach volleyball. Bring sunscreen!',
-    organizer: { userId: 'd4e5f6a7-b890-1234-def0-456789012345', displayName: 'Omar E.', reliabilityScore: 92 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 2, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'd4e5f6a7-b890-1234-def0-567890123456',
-    title: 'Tennis Doubles Match',
-    sportName: 'Tennis',
-    location: { name: 'Parc Lafontaine Tennis', addressLine: 'Avenue du Parc Lafontaine', city: 'Montreal', latitude: 45.5256, longitude: -73.5698 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
-    confirmedCount: 3, maxPlayers: 4, minPlayers: 4,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
-    description: 'Looking for 1 more for doubles!',
-    organizer: { userId: 'e5f6a7b8-9012-3456-ef01-678901234567', displayName: 'Melissa R.', reliabilityScore: 97 },
-    status: 'SCHEDULED', allowWaitlist: false, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'e5f6a7b8-9012-3456-ef01-789012345678',
-    title: 'Badminton Drop-In',
-    sportName: 'Badminton',
-    location: { name: 'Centre sportif Côte-des-Neiges', addressLine: '4880 Avenue Van Horne', city: 'Montreal', latitude: 45.4920, longitude: -73.6241 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
-    confirmedCount: 6, maxPlayers: 8, minPlayers: 4,
-    skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'indoor',
-    description: 'Casual badminton. Beginners welcome!',
-    organizer: { userId: 'f6a7b890-1234-5678-f012-890123456789', displayName: 'Younes B.', reliabilityScore: 94 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'f6a7b890-1234-5678-f012-901234567890',
-    title: 'Ultimate Frisbee Pickup',
-    sportName: 'Ultimate Frisbee',
-    location: { name: 'Parc Maisonneuve', addressLine: '4601 Rue Sherbrooke E', city: 'Montreal', latitude: 45.5569, longitude: -73.5497 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 3600000).toISOString(),
-    endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 9000000).toISOString(),
-    confirmedCount: 10, maxPlayers: 14, minPlayers: 10,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
-    description: '7v7 ultimate. Spirit of the game!',
-    organizer: { userId: 'a7b89012-3456-789a-0123-012345678901', displayName: 'Alex G.', reliabilityScore: 96 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 1, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'a7b89012-3456-789a-0123-123456789012',
-    title: 'Flag Football League Game',
-    sportName: 'Flag Football',
-    location: { name: 'McGill Stadium', addressLine: '475 Avenue des Pins O', city: 'Montreal', latitude: 45.5087, longitude: -73.5816 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
-    confirmedCount: 12, maxPlayers: 14, minPlayers: 10,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
-    description: '7v7 flag football. No tackle!',
-    organizer: { userId: 'b8901234-5678-9abc-1234-234567890123', displayName: 'David O.', reliabilityScore: 91 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'b8901234-5678-9abc-1234-345678901234',
-    title: 'Softball Sunday',
-    sportName: 'Softball',
-    location: { name: 'Parc Jeanne-Mance', addressLine: 'Avenue du Mont-Royal', city: 'Montreal', latitude: 45.5163, longitude: -73.5854 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 10800000).toISOString(),
-    confirmedCount: 14, maxPlayers: 18, minPlayers: 12,
-    skillBand: 'All Levels', intensityBand: 'Casual', indoorOutdoor: 'outdoor',
-    description: 'Friendly co-ed softball game.',
-    organizer: { userId: 'c9012345-6789-abcd-2345-456789012345', displayName: 'Steven Z.', reliabilityScore: 93 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'c9012345-6789-abcd-2345-567890123456',
-    title: 'Baseball Diamond Practice',
-    sportName: 'Baseball',
-    location: { name: 'Gary Carter Memorial Field', addressLine: 'Parc Jarry', city: 'Montreal', latitude: 45.5325, longitude: -73.6180 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
-    endTime: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 14400000).toISOString(),
-    confirmedCount: 12, maxPlayers: 18, minPlayers: 10,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'outdoor',
-    description: '9-inning practice game.',
-    organizer: { userId: 'd0123456-789a-bcde-3456-678901234567', displayName: 'Youssef Y.', reliabilityScore: 89 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'd0123456-789a-bcde-3456-789012345678',
-    title: 'Pickleball Beginner Session',
-    sportName: 'Pickleball',
-    location: { name: 'YMCA du Parc', addressLine: '5550 Avenue du Parc', city: 'Montreal', latitude: 45.5214, longitude: -73.6058 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 3600000).toISOString(),
-    endTime: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 9000000).toISOString(),
-    confirmedCount: 6, maxPlayers: 8, minPlayers: 4,
-    skillBand: 'Beginner', intensityBand: 'Casual', indoorOutdoor: 'indoor',
-    description: 'Learn pickleball! Equipment provided.',
-    organizer: { userId: 'e1234567-89ab-cdef-4567-890123456789', displayName: 'Hudson L.', reliabilityScore: 88 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 0, createdAt: new Date().toISOString(),
-  },
-  {
-    gameId: 'e1234567-89ab-cdef-4567-901234567890',
-    title: 'Hockey Shinny Night',
-    sportName: 'Hockey',
-    location: { name: 'Aréna Mont-Royal', addressLine: '1000 Avenue du Mont-Royal E', city: 'Montreal', latitude: 45.5271, longitude: -73.5720 },
-    hasExactLocationAccess: true,
-    startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 3600000).toISOString(),
-    endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 9000000).toISOString(),
-    confirmedCount: 14, maxPlayers: 20, minPlayers: 12,
-    skillBand: 'Intermediate', intensityBand: 'Competitive', indoorOutdoor: 'indoor',
-    description: 'Drop-in hockey. Full gear required.',
-    organizer: { userId: 'f2345678-9abc-def0-5678-012345678901', displayName: 'Allaye D.', reliabilityScore: 99 },
-    status: 'SCHEDULED', allowWaitlist: true, waitlistCount: 3, createdAt: new Date().toISOString(),
-  },
-];
 
 interface FilterState {
   sportName: string;
@@ -226,9 +87,29 @@ interface FilterState {
 
 export function GameDiscovery() {
   const { openAssistant } = useAssistant();
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // URL is the source of truth: Browse Games = /discover (grid), Discover Games = /discover?view=map (map).
+  // Defer setState to avoid synchronous setState in effect (cascading render warning).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const viewFromUrl = searchParams.get('view');
+    const nextMode = viewFromUrl === 'map' ? 'map' : 'grid';
+    const id = setTimeout(() => {
+      setViewMode((prev) => {
+        if (prev === nextMode) return prev;
+        sessionStorage.setItem('playlocal-view-mode', nextMode);
+        return nextMode;
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  }, [searchParams]);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     sportName: '',
     distance: 'any distance',
@@ -243,6 +124,52 @@ export function GameDiscovery() {
     locationType: 'any',
     intensity: 'any',
   });
+
+  const [todayOnly, setTodayOnly] = useState(false);
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (appliedFilters.sportName.trim()) count++;
+    if (appliedFilters.distance !== 'any distance') count++;
+    if (appliedFilters.skillLevel !== 'any') count++;
+    if (appliedFilters.locationType !== 'any') count++;
+    if (appliedFilters.intensity !== 'any') count++;
+    return count;
+  }, [appliedFilters]);
+
+  // Save view mode preference to session storage when it changes
+  const handleViewModeChange = (mode: 'grid' | 'map') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('playlocal-view-mode', mode);
+    }
+  };
+
+  // Quick filter helpers — apply immediately without opening the modal
+  const handleSportQuickFilter = (sport: string) => {
+    const next =
+      appliedFilters.sportName.toLowerCase() === sport.toLowerCase()
+        ? ''
+        : sport;
+    // Sync both states so modal reflects current quick-filter state;
+    // opening then clicking "Search" without changes is a no-op.
+    setAppliedFilters((prev) => ({ ...prev, sportName: next }));
+    setFilters((prev) => ({ ...prev, sportName: next }));
+  };
+
+  const handleDistanceQuickFilter = () => {
+    if (!userLocation) {
+      window.alert(
+        'Unable to apply distance filter because your location is unavailable. Please enable location access and try again.'
+      );
+      return;
+    }
+    const next =
+      appliedFilters.distance === 'within 5km' ? 'any distance' : 'within 5km';
+    setAppliedFilters((prev) => ({ ...prev, distance: next }));
+    setFilters((prev) => ({ ...prev, distance: next }));
+  };
 
   // Get user location on mount (optional)
   useEffect(() => {
@@ -264,20 +191,14 @@ export function GameDiscovery() {
 
   // Convert filter state to API format
   const apiFilters = useMemo(() => {
-    const apiFilter: any = {};
+    const apiFilter: Record<string, string | number | boolean> = {};
 
     if (appliedFilters.sportName.trim()) {
-      apiFilter.sportName = appliedFilters.sportName.trim();
+      apiFilter.sportName = appliedFilters.sportName.trim().toLowerCase();
     }
 
     if (appliedFilters.skillLevel !== 'any') {
-      // Map to database format: Beginner, Intermediate, Advanced (capitalized)
-      const skillLevelMap: Record<string, string> = {
-        'beginner': 'Beginner',
-        'intermediate': 'Intermediate',
-        'advanced': 'Advanced',
-      };
-      apiFilter.skillLevel = skillLevelMap[appliedFilters.skillLevel.toLowerCase()] || appliedFilters.skillLevel;
+      apiFilter.skillLevel = appliedFilters.skillLevel.toLowerCase();
     }
 
     if (appliedFilters.locationType !== 'any') {
@@ -285,13 +206,7 @@ export function GameDiscovery() {
     }
 
     if (appliedFilters.intensity !== 'any') {
-      // Map to database format: Casual, High, Competitive (capitalized)
-      const intensityMap: Record<string, string> = {
-        'casual': 'Casual',
-        'high': 'High',
-        'competitive': 'Competitive',
-      };
-      apiFilter.intensity = intensityMap[appliedFilters.intensity.toLowerCase()] || appliedFilters.intensity;
+      apiFilter.intensity = appliedFilters.intensity.toLowerCase();
     }
 
     // Distance filter - convert to radiusKm
@@ -313,17 +228,29 @@ export function GameDiscovery() {
     return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
   }, [appliedFilters, userLocation]);
 
-  const { games: apiGames, isLoading, error, refetch } = useGames(apiFilters);
+  const { games: apiGames, isLoading, refetch } = useGames(apiFilters);
 
   // Refetch when a game is updated (e.g. from GameRoom Save Changes) so Discover stays in sync
   useEffect(() => {
     const handler = () => refetch();
-    window.addEventListener("playlocal-refresh-games", handler);
-    return () => window.removeEventListener("playlocal-refresh-games", handler);
+    window.addEventListener('playlocal-refresh-games', handler);
+    return () => window.removeEventListener('playlocal-refresh-games', handler);
   }, [refetch]);
 
-  // Transform games - backend already filters, so just transform
-  const displayGames = apiGames.map(transformApiGame);
+  // Transform games - apply optional client-side filters (e.g. Today)
+  const displayGames = useMemo(() => {
+    let games = apiGames;
+    if (todayOnly) {
+      // Compare dates in a consistent timezone (UTC) to avoid local timezone discrepancies
+      const todayUtcDateStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      games = games.filter(
+        (g) =>
+          g.startTime &&
+          new Date(g.startTime).toISOString().slice(0, 10) === todayUtcDateStr
+      );
+    }
+    return games.map(transformApiGame);
+  }, [apiGames, todayOnly]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -347,27 +274,38 @@ export function GameDiscovery() {
               </button>
               <button
                 onClick={() => setShowFilterModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  activeFilterCount > 0
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
                 <Filter className="w-5 h-5" />
                 <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-white text-emerald-600 rounded-full text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'grid'
-                    ? 'bg-white text-emerald-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                  onClick={() => handleViewModeChange('grid')}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-emerald-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
                 >
                   <Calendar className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setViewMode('map')}
-                  className={`px-4 py-2 rounded-md transition-colors ${viewMode === 'map'
-                    ? 'bg-white text-emerald-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                  onClick={() => handleViewModeChange('map')}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    viewMode === 'map'
+                      ? 'bg-white text-emerald-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
                 >
                   <MapIcon className="w-5 h-5" />
                 </button>
@@ -377,22 +315,74 @@ export function GameDiscovery() {
 
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-2">
-            <FilterChip label="All Sports" active />
-            <FilterChip label="Basketball" />
-            <FilterChip label="Soccer" />
-            <FilterChip label="Volleyball" />
-            <FilterChip label="Tennis" />
-            <FilterChip label="Today" />
-            <FilterChip label="Within 5km" />
-            <FilterChip label="My Skill Level" />
+            <FilterChip
+              label="All Sports"
+              active={!appliedFilters.sportName}
+              onClick={() => {
+                setAppliedFilters((prev) => ({ ...prev, sportName: '' }));
+                setFilters((prev) => ({ ...prev, sportName: '' }));
+              }}
+            />
+            <FilterChip
+              label="Basketball"
+              active={appliedFilters.sportName.toLowerCase() === 'basketball'}
+              onClick={() => handleSportQuickFilter('Basketball')}
+            />
+            <FilterChip
+              label="Soccer"
+              active={appliedFilters.sportName.toLowerCase() === 'soccer'}
+              onClick={() => handleSportQuickFilter('Soccer')}
+            />
+            <FilterChip
+              label="Volleyball"
+              active={appliedFilters.sportName.toLowerCase() === 'volleyball'}
+              onClick={() => handleSportQuickFilter('Volleyball')}
+            />
+            <FilterChip
+              label="Tennis"
+              active={appliedFilters.sportName.toLowerCase() === 'tennis'}
+              onClick={() => handleSportQuickFilter('Tennis')}
+            />
+            <FilterChip
+              label="Today"
+              active={todayOnly}
+              onClick={() => setTodayOnly((prev) => !prev)}
+            />
+            <FilterChip
+              label="Within 5km"
+              active={appliedFilters.distance === 'within 5km'}
+              onClick={handleDistanceQuickFilter}
+            />
+            <FilterChip
+              label="My Skill Level"
+              active={false}
+              onClick={() => setShowFilterModal(true)}
+            />
           </div>
         </div>
       </div>
 
       {/* Filter Modal */}
       {showFilterModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={() => setShowFilterModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60"
+          onClick={() => setShowFilterModal(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowFilterModal(false);
+            }
+          }}
+          tabIndex={0}
+          aria-label="Filter modal backdrop"
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl border border-gray-300 w-full max-w-2xl mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="filter-modal-title"
+          >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Filter Games</h2>
               <button
@@ -406,12 +396,16 @@ export function GameDiscovery() {
             <div className="space-y-6">
               {/* Sport Name Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sport Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sport Name
+                </label>
                 <input
                   type="text"
                   placeholder="Enter sport name (e.g., Basketball, Soccer)"
                   value={filters.sportName}
-                  onChange={(e) => setFilters({ ...filters, sportName: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, sportName: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
               </div>
@@ -419,10 +413,14 @@ export function GameDiscovery() {
               {/* Filter Dropdowns */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Distance</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Distance
+                  </label>
                   <select
                     value={filters.distance}
-                    onChange={(e) => setFilters({ ...filters, distance: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, distance: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="any distance">Any distance</option>
@@ -430,13 +428,23 @@ export function GameDiscovery() {
                     <option value="within 10km">Within 10 km</option>
                     <option value="within 20km">Within 20 km</option>
                   </select>
+                  {!userLocation && filters.distance !== 'any distance' && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      Location unavailable — distance filter won&apos;t apply.
+                      Please enable location access.
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Skill Level</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Skill Level
+                  </label>
                   <select
                     value={filters.skillLevel}
-                    onChange={(e) => setFilters({ ...filters, skillLevel: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, skillLevel: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="any">Any</option>
@@ -447,10 +455,14 @@ export function GameDiscovery() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location Type
+                  </label>
                   <select
                     value={filters.locationType}
-                    onChange={(e) => setFilters({ ...filters, locationType: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, locationType: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="any">Any</option>
@@ -460,10 +472,14 @@ export function GameDiscovery() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Intensity</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Intensity
+                  </label>
                   <select
                     value={filters.intensity}
-                    onChange={(e) => setFilters({ ...filters, intensity: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, intensity: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="any">Any</option>
@@ -474,18 +490,42 @@ export function GameDiscovery() {
                 </div>
               </div>
 
-              {/* Search Button */}
-              <div className="flex justify-end pt-4 border-t border-gray-200">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <button
                   onClick={() => {
-                    setAppliedFilters(filters);
-                    setShowFilterModal(false);
+                    const empty = {
+                      sportName: '',
+                      distance: 'any distance',
+                      skillLevel: 'any',
+                      locationType: 'any',
+                      intensity: 'any',
+                    };
+                    setFilters(empty);
                   }}
-                  className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium"
                 >
-                  <Search className="w-5 h-5" />
-                  <span>Search</span>
+                  <X className="w-4 h-4" />
+                  <span>Clear</span>
                 </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFilterModal(false)}
+                    className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAppliedFilters(filters);
+                      setShowFilterModal(false);
+                    }}
+                    className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                  >
+                    <Search className="w-5 h-5" />
+                    <span>Apply</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -504,7 +544,10 @@ export function GameDiscovery() {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <p className="text-gray-600">
-                  <span className="font-semibold text-gray-900">{displayGames.length} games</span> found near you
+                  <span className="font-semibold text-gray-900">
+                    {displayGames.length} games
+                  </span>{' '}
+                  found near you
                 </p>
               </div>
               <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
@@ -517,14 +560,18 @@ export function GameDiscovery() {
             {displayGames.length === 0 ? (
               <div className="text-center py-16">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl text-gray-900 mb-2">No games available</h3>
-                <p className="text-gray-600 mb-6">Be the first to create a game in your area!</p>
-                <a
+                <h3 className="text-xl text-gray-900 mb-2">
+                  No games available
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Be the first to create a game in your area!
+                </p>
+                <Link
                   href="/games/create"
                   className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Create a Game
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -534,15 +581,22 @@ export function GameDiscovery() {
               </div>
             )}
           </>
-
         ) : (
-          <div className="h-[600px] bg-gray-200 rounded-xl flex items-center justify-center">
-            <div className="text-center">
-              <MapIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Interactive map view would appear here</p>
-              <p className="text-sm text-gray-500">Showing game locations with clusters</p>
-            </div>
-          </div>
+          <MapView
+            games={displayGames.map((g) => ({
+              id: g.id,
+              title: g.title,
+              sport: g.sport,
+              locationArea: g.distance,
+              location: g.location,
+              date: g.date,
+              time: g.time,
+              players: g.players,
+              skillLevel: g.skillLevel,
+              lat: g.lat,
+              lng: g.lng,
+            }))}
+          />
         )}
       </div>
     </div>
@@ -567,6 +621,8 @@ interface GameDisplay {
   image: string;
   status: string;
   minReliabilityRequired?: number; // US-4.1: Reputation-gated games
+  lat?: number;
+  lng?: number;
 }
 
 function GameCard({ game }: { game: GameDisplay }) {
@@ -580,7 +636,7 @@ function GameCard({ game }: { game: GameDisplay }) {
   return (
     <Link
       href={`/games/${game.id}`}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-lg transition-all overflow-hidden"
+      className="group bg-white rounded-xl border border-gray-200 hover:border-emerald-400 hover:shadow-lg transition-all overflow-hidden"
     >
       <div className="relative h-48 overflow-hidden">
         <img
@@ -589,7 +645,9 @@ function GameCard({ game }: { game: GameDisplay }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 right-3">
-          <span className={`px-3 py-1 rounded-full text-sm ${statusColors[game.status] || statusColors.filling}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-sm ${statusColors[game.status] || statusColors.filling}`}
+          >
             {game.players.current}/{game.players.max} players
           </span>
         </div>
@@ -639,7 +697,9 @@ function GameCard({ game }: { game: GameDisplay }) {
             {game.intensity} Intensity
           </span>
           {game.indoor && (
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Indoor</span>
+            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
+              Indoor
+            </span>
           )}
           {game.minReliabilityRequired != null && (
             <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded font-semibold">
@@ -675,13 +735,23 @@ function GameCard({ game }: { game: GameDisplay }) {
   );
 }
 
-function FilterChip({ label, active = false }: { label: string; active?: boolean }) {
+function FilterChip({
+  label,
+  active = false,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
     <button
-      className={`px-4 py-2 rounded-full text-sm transition-colors ${active
-        ? 'bg-emerald-600 text-white'
-        : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-300'
-        }`}
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm transition-colors ${
+        active
+          ? 'bg-emerald-600 text-white'
+          : 'bg-white text-gray-700 border border-gray-300 hover:border-emerald-300'
+      }`}
     >
       {label}
     </button>

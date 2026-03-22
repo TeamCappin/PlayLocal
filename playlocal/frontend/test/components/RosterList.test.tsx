@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { RosterList } from '../../components/sub-components/RosterList';
 import { usersApi } from '@/lib/api';
 
@@ -8,7 +14,9 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-const mockGetProfile = usersApi.getProfile as jest.MockedFunction<typeof usersApi.getProfile>;
+const mockGetProfile = usersApi.getProfile as jest.MockedFunction<
+  typeof usersApi.getProfile
+>;
 
 describe('RosterList', () => {
   const onStatusChange = jest.fn();
@@ -46,7 +54,10 @@ describe('RosterList', () => {
   });
 
   it('calls onStatusChange with NO_SHOW when No show is clicked', async () => {
-    mockGetProfile.mockResolvedValue({ displayName: 'John', defaultIntensity: 'Casual' } as any);
+    mockGetProfile.mockResolvedValue({
+      displayName: 'John',
+      defaultIntensity: 'Casual',
+    } as any);
 
     render(
       <RosterList
@@ -102,7 +113,10 @@ describe('RosterList', () => {
   });
 
   it('applies ATTENDED styling when currentStatus is ATTENDED', async () => {
-    mockGetProfile.mockResolvedValue({ displayName: 'Bob', defaultIntensity: 'Casual' } as any);
+    mockGetProfile.mockResolvedValue({
+      displayName: 'Bob',
+      defaultIntensity: 'Casual',
+    } as any);
 
     render(
       <RosterList

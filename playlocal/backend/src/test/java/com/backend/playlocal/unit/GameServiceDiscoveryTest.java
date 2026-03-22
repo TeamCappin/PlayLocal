@@ -14,12 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,16 +95,11 @@ class GameServiceDiscoveryTest {
         }
 
     private void mockMapToGameResponseDependencies() {
-        when(participationRepository.countConfirmedParticipants(any())).thenReturn(1);
-        when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
-        // Mock tag assignment repository (used by getGameTags in mapToGameResponse)
-        when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
-        // lenient: when user is organizer we don't call findByGameAndUser
-        lenient().when(participationRepository.findByGameAndUser(any(), eq(userId)))
-                .thenReturn(Optional.of(GameParticipation.builder()
-                        .joinStatus(GameParticipation.JoinStatus.CONFIRMED)
-                        .user(organizer)
-                        .build()));
+        lenient().when(participationRepository.countParticipationSummaryByGameIds(any()))
+                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
+        lenient().when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+        lenient().when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
+                .thenReturn(List.of(game.getGameId()));
     }
 
         @Test
@@ -127,7 +123,7 @@ class GameServiceDiscoveryTest {
         @DisplayName("getUpcomingGames with filters normalizes and passes to repository")
         void getUpcomingGames_WithFilters_NormalizesAndCallsRepo() {
                 when(gameRepository.findUpcomingGamesWithFilters(
-                                any(Instant.class), eq("Basketball"), eq("intermediate"), eq("outdoor"),
+                                any(Instant.class), eq("basketball"), eq("intermediate"), eq("outdoor"),
                                 eq("competitive")))
                                 .thenReturn(List.of(game));
                 mockMapToGameResponseDependencies();
@@ -137,7 +133,7 @@ class GameServiceDiscoveryTest {
 
                 assertThat(result).hasSize(1);
                 verify(gameRepository).findUpcomingGamesWithFilters(
-                                any(Instant.class), eq("Basketball"), eq("intermediate"), eq("outdoor"),
+                                any(Instant.class), eq("basketball"), eq("intermediate"), eq("outdoor"),
                                 eq("competitive"));
         }
 
@@ -170,13 +166,94 @@ class GameServiceDiscoveryTest {
         }
 
         @Test
+        @DisplayName("getUpcomingGames uses batched metadata lookups for list mapping")
+        void getUpcomingGames_UsesBatchedMetadataLookups() {
+                when(gameRepository.findUpcomingGamesWithFilters(
+                                any(Instant.class), isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(game));
+                mockMapToGameResponseDependencies();
+
+                List<GameDto.GameResponse> result = gameService.getUpcomingGames(
+                                null, null, null, null, userId);
+
+                assertThat(result).hasSize(1);
+                verify(participationRepository).countParticipationSummaryByGameIds(List.of(game.getGameId()));
+                verify(tagAssignmentRepository).findAllByGame_GameIdIn(List.of(game.getGameId()));
+                verify(participationRepository).findConfirmedGameIdsForUser(userId, List.of(game.getGameId()));
+        }
+
+        @Test
+        @DisplayName("getUpcomingGames preserves repository order while applying batched summaries")
+        void getUpcomingGames_PreservesOrderWithBatchedSummaries() {
+                Game secondGame = Game.builder()
+                                .gameId(UUID.randomUUID())
+                                .title("Second Upcoming Game")
+                                .createdBy(organizer)
+                                .location(Location.builder().name("Second Field").city("Montreal").build())
+                                .sport(Sport.builder().name("Basketball").build())
+                                .indoorOutdoor("indoor")
+                                .intensityBand("casual")
+                                .skillBand("beginner")
+                                .minPlayers(2)
+                                .maxPlayers(12)
+                                .allowWaitlist(true)
+                                .status(Game.GameStatus.SCHEDULED)
+                                .startTime(Instant.now().plusSeconds(5400))
+                                .endTime(Instant.now().plusSeconds(9000))
+                                .build();
+
+                when(gameRepository.findUpcomingGamesWithFilters(
+                                any(Instant.class), isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(secondGame, game));
+                when(participationRepository.countParticipationSummaryByGameIds(any()))
+                                .thenReturn(List.of(
+                                                new Object[] { game.getGameId(), 1L, 0L },
+                                                new Object[] { secondGame.getGameId(), 3L, 2L }));
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
+                                .thenReturn(List.of(game.getGameId(), secondGame.getGameId()));
+
+                List<GameDto.GameResponse> result = gameService.getUpcomingGames(
+                                null, null, null, null, userId);
+
+                assertThat(result).extracting(GameDto.GameResponse::getGameId)
+                                .containsExactly(secondGame.getGameId().toString(), game.getGameId().toString());
+                assertThat(result).extracting(GameDto.GameResponse::getConfirmedCount)
+                                .containsExactly(3, 1);
+                assertThat(result).extracting(GameDto.GameResponse::getWaitlistCount)
+                                .containsExactly(2, 0);
+        }
+
+        @Test
+        @DisplayName("getUpcomingGames exposes exact location for confirmed requester from batched access lookup")
+        void getUpcomingGames_ConfirmedUserGetsExactLocationFromBatchedLookup() {
+                UUID confirmedUserId = UUID.randomUUID();
+                when(gameRepository.findUpcomingGamesWithFilters(
+                                any(Instant.class), isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(game));
+                when(participationRepository.countParticipationSummaryByGameIds(any()))
+                                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
+                                .thenReturn(List.of(game.getGameId()));
+
+                List<GameDto.GameResponse> result = gameService.getUpcomingGames(
+                                null, null, null, null, confirmedUserId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getHasExactLocationAccess()).isTrue();
+                assertThat(result.get(0).getLocation()).isNotNull();
+                assertThat(result.get(0).getLocation().getName()).isEqualTo("Test Field");
+        }
+
+        @Test
         @DisplayName("findNearbyGames with lat/lon calls repository and returns mapped games")
         void findNearbyGames_WithCoords_CallsRepoAndReturnsMapped() {
                 when(gameRepository.findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game.getGameId()));
-                when(gameRepository.findById(game.getGameId())).thenReturn(Optional.of(game));
+                when(gameRepository.findAllByGameIdIn(List.of(game.getGameId()))).thenReturn(List.of(game));
                 mockMapToGameResponseDependencies();
 
                 List<GameDto.GameResponse> result = gameService.findNearbyGames(
@@ -187,7 +264,79 @@ class GameServiceDiscoveryTest {
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), isNull());
-                verify(gameRepository).findById(game.getGameId());
+                verify(gameRepository).findAllByGameIdIn(List.of(game.getGameId()));
+                verify(participationRepository).countParticipationSummaryByGameIds(List.of(game.getGameId()));
+                verify(tagAssignmentRepository).findAllByGame_GameIdIn(List.of(game.getGameId()));
+                verify(participationRepository).findConfirmedGameIdsForUser(userId, List.of(game.getGameId()));
+        }
+
+        @Test
+        @DisplayName("findNearbyGames preserves repository ID order after batched fetch")
+        void findNearbyGames_PreservesNearbyOrderingAfterBatchFetch() {
+                Game secondGame = Game.builder()
+                                .gameId(UUID.randomUUID())
+                                .title("Second Game")
+                                .createdBy(organizer)
+                                .location(Location.builder().name("Second Field").city("Montreal").build())
+                                .sport(Sport.builder().name("Basketball").build())
+                                .indoorOutdoor("outdoor")
+                                .intensityBand("competitive")
+                                .skillBand("intermediate")
+                                .minPlayers(2)
+                                .maxPlayers(10)
+                                .allowWaitlist(true)
+                                .status(Game.GameStatus.SCHEDULED)
+                                .startTime(Instant.now().plusSeconds(5400))
+                                .endTime(Instant.now().plusSeconds(9000))
+                                .build();
+
+                when(gameRepository.findNearbyGameIdsWithFilters(
+                                any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
+                                isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(secondGame.getGameId(), game.getGameId()));
+                when(gameRepository.findAllByGameIdIn(List.of(secondGame.getGameId(), game.getGameId())))
+                                .thenReturn(List.of(game, secondGame));
+                when(participationRepository.countParticipationSummaryByGameIds(any()))
+                                .thenReturn(List.of(
+                                                new Object[] { game.getGameId(), 1L, 0L },
+                                                new Object[] { secondGame.getGameId(), 2L, 1L }));
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
+                                .thenReturn(List.of(game.getGameId(), secondGame.getGameId()));
+
+                List<GameDto.GameResponse> result = gameService.findNearbyGames(
+                                45.5f, -73.5f, 10.0, null, null, null, null, userId);
+
+                assertThat(result).extracting(GameDto.GameResponse::getGameId)
+                                .containsExactly(secondGame.getGameId().toString(), game.getGameId().toString());
+                assertThat(result).extracting(GameDto.GameResponse::getConfirmedCount)
+                                .containsExactly(2, 1);
+                assertThat(result).extracting(GameDto.GameResponse::getWaitlistCount)
+                                .containsExactly(1, 0);
+        }
+
+        @Test
+        @DisplayName("findNearbyGames exposes exact location for confirmed requester via batched access lookup")
+        void findNearbyGames_ConfirmedUserGetsExactLocationFromBatchedLookup() {
+                UUID confirmedUserId = UUID.randomUUID();
+                when(gameRepository.findNearbyGameIdsWithFilters(
+                                any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
+                                isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(game.getGameId()));
+                when(gameRepository.findAllByGameIdIn(List.of(game.getGameId()))).thenReturn(List.of(game));
+                when(participationRepository.countParticipationSummaryByGameIds(any()))
+                                .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
+                                .thenReturn(List.of(game.getGameId()));
+
+                List<GameDto.GameResponse> result = gameService.findNearbyGames(
+                                45.5f, -73.5f, 10.0, null, null, null, null, confirmedUserId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getHasExactLocationAccess()).isTrue();
+                assertThat(result.get(0).getLocation()).isNotNull();
+                assertThat(result.get(0).getLocation().getName()).isEqualTo("Test Field");
         }
 
         @Test
@@ -195,7 +344,7 @@ class GameServiceDiscoveryTest {
         void findNearbyGames_WithFilters_NormalizesAndCallsRepo() {
                 when(gameRepository.findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(5.0),
-                                eq("Soccer"), eq("beginner"), eq("indoor"), eq("casual")))
+                                eq("soccer"), eq("beginner"), eq("indoor"), eq("casual")))
                                 .thenReturn(List.of());
 
                 gameService.findNearbyGames(
@@ -204,7 +353,7 @@ class GameServiceDiscoveryTest {
 
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(5.0),
-                                eq("Soccer"), eq("beginner"), eq("indoor"), eq("casual"));
+                                eq("soccer"), eq("beginner"), eq("indoor"), eq("casual"));
         }
 
         @Test
@@ -220,6 +369,44 @@ class GameServiceDiscoveryTest {
                 verify(gameRepository).findNearbyGameIdsWithFilters(
                                 any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
                                 isNull(), isNull(), isNull(), eq("competitive"));
+        }
+
+        @Test
+        @DisplayName("findNearbyGames with no matches skips batched metadata lookups")
+        void findNearbyGames_NoMatches_SkipsBatchedMetadataLookups() {
+                when(gameRepository.findNearbyGameIdsWithFilters(
+                                any(Instant.class), eq(45.5f), eq(-73.5f), eq(10.0),
+                                isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of());
+
+                List<GameDto.GameResponse> result = gameService.findNearbyGames(
+                                45.5f, -73.5f, 10.0, null, null, null, null, userId);
+
+                assertThat(result).isEmpty();
+                verify(gameRepository, never()).findAllByGameIdIn(any());
+                verify(participationRepository, never()).countParticipationSummaryByGameIds(any());
+                verify(tagAssignmentRepository, never()).findAllByGame_GameIdIn(any());
+                verify(participationRepository, never()).findConfirmedGameIdsForUser(any(), any());
+        }
+
+        @Test
+        @DisplayName("getUpcomingGames defaults counts to zero when summary rows are missing")
+        void getUpcomingGames_MissingSummaryRows_DefaultsCountsToZero() {
+                UUID requesterId = UUID.randomUUID();
+                when(gameRepository.findUpcomingGamesWithFilters(
+                                any(Instant.class), isNull(), isNull(), isNull(), isNull()))
+                                .thenReturn(List.of(game));
+                when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(participationRepository.findConfirmedGameIdsForUser(eq(requesterId), any())).thenReturn(List.of());
+
+                List<GameDto.GameResponse> result = gameService.getUpcomingGames(
+                                null, null, null, null, requesterId);
+
+                assertThat(result).hasSize(1);
+                assertThat(result.get(0).getConfirmedCount()).isZero();
+                assertThat(result.get(0).getWaitlistCount()).isZero();
+                assertThat(result.get(0).getHasExactLocationAccess()).isFalse();
         }
 
         @Test
@@ -243,9 +430,8 @@ class GameServiceDiscoveryTest {
                 when(gameRepository.findUpcomingGamesWithFilters(
                                 any(Instant.class), isNull(), isNull(), isNull(), isNull()))
                                 .thenReturn(List.of(game));
-                when(participationRepository.countConfirmedParticipants(any())).thenReturn(0);
-                when(participationRepository.findWaitlistedByGame(any())).thenReturn(List.of());
-                when(tagAssignmentRepository.findAllByGame(any())).thenReturn(List.of());
+                when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(null, null, null, null, null);
 

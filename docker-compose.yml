@@ -97,7 +97,10 @@ services:
     build:
       context: ./playlocal/frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
     container_name: playlocal-frontend
+
     depends_on:
       backend:
         condition: service_healthy

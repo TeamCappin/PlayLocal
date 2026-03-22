@@ -49,9 +49,9 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
         LEFT JOIN FETCH g.location
         WHERE g.status = 'SCHEDULED' AND g.startTime > :now
         AND (:sportName IS NULL OR :sportName = '' OR LOWER(g.sport.name) LIKE CONCAT('%', :sportName, '%'))
-        AND (:skillLevel IS NULL OR g.skillBand = :skillLevel)
-        AND (:locationType IS NULL OR g.indoorOutdoor = :locationType)
-        AND (:intensity IS NULL OR g.intensityBand = :intensity)
+        AND (:skillLevel IS NULL OR LOWER(g.skillBand) = :skillLevel)
+        AND (:locationType IS NULL OR LOWER(g.indoorOutdoor) = :locationType)
+        AND (:intensity IS NULL OR LOWER(g.intensityBand) = :intensity)
         ORDER BY g.startTime ASC
         """)
             List<Game> findUpcomingGamesWithFilters(
@@ -76,9 +76,9 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             "AND g.start_time > :now " +
             "AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL " +
             "AND (:sportName IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :sportName, '%'))) " +
-            "AND (:skillLevel IS NULL OR g.skill_band = :skillLevel) " +
-            "AND (:locationType IS NULL OR g.indoor_outdoor = :locationType) " +
-            "AND (:intensity IS NULL OR g.intensity_band = :intensity) " +
+            "AND (:skillLevel IS NULL OR LOWER(g.skill_band) = :skillLevel) " +
+            "AND (:locationType IS NULL OR LOWER(g.indoor_outdoor) = :locationType) " +
+            "AND (:intensity IS NULL OR LOWER(g.intensity_band) = :intensity) " +
             "AND (:radiusKm IS NULL OR (6371 * acos(LEAST(1.0, cos(radians(:userLat)) * cos(radians(l.latitude)) * " +
             "cos(radians(l.longitude) - radians(:userLon)) + sin(radians(:userLat)) * sin(radians(l.latitude))))) <= :radiusKm) "
             +
@@ -95,6 +95,14 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
             String skillLevel,
             String locationType,
             String intensity);
+
+    @Query("SELECT g FROM Game g " +
+            "LEFT JOIN FETCH g.sport " +
+            "LEFT JOIN FETCH g.createdBy " +
+            "LEFT JOIN FETCH g.location " +
+            "WHERE g.gameId IN :gameIds")
+    List<Game> findAllByGameIdIn(@Param("gameIds") List<UUID> gameIds);
+
     @Query("SELECT g FROM Game g " +
             "LEFT JOIN FETCH g.sport " +
             "LEFT JOIN FETCH g.createdBy " +
