@@ -844,6 +844,11 @@ describe('GameRoom Component', () => {
       if (leaveButton) {
         fireEvent.click(leaveButton);
 
+        const dialog = await screen.findByRole('alertdialog');
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: 'Leave Game' })
+        );
+
         await waitFor(() => {
           expect(mockLeaveGame).toHaveBeenCalled();
         });
@@ -896,6 +901,11 @@ describe('GameRoom Component', () => {
       if (leaveButton) {
         fireEvent.click(leaveButton);
 
+        const dialog = await screen.findByRole('alertdialog');
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: 'Leave Game' })
+        );
+
         await waitFor(() => {
           const { toast } = require('../../lib/toast');
           expect(toast.error).toHaveBeenCalledWith(
@@ -943,6 +953,11 @@ describe('GameRoom Component', () => {
         .find((btn) => btn.textContent?.includes('Leave'));
       expect(leaveButton).toBeDefined();
       fireEvent.click(leaveButton!);
+
+      const dialog = await screen.findByRole('alertdialog');
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Leave Game' })
+      );
 
       await waitFor(() => {
         const { toast } = require('../../lib/toast');
