@@ -38,6 +38,7 @@ jest.mock('lucide-react', () => ({
   Loader2: () => <div data-testid="icon-loader" />,
   X: () => <div data-testid="icon-x" />,
   Search: () => <div data-testid="icon-search" />,
+  Bot: () => <div data-testid="icon-bot" />,
 }));
 
 // Prevent @vis.gl/react-google-maps from running in tests
