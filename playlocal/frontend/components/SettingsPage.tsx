@@ -245,7 +245,7 @@ function PrivacySettings({
         setIsSaving(false);
       }
     },
-    []
+    [onSettingsChange]
   );
 
   if (isLoading) {

@@ -50,54 +50,56 @@ export function ConfirmAccountActionDialog({
           <AlertDialogTitle className="text-xl">
             {isDeactivate ? 'Deactivate Account?' : 'Permanently Delete Account?'}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3 text-left">
-            {isDeactivate ? (
-              <>
-                <p className="text-gray-700">
-                  Deactivating your account will:
-                </p>
-                <ul className="list-disc list-inside space-y-1 text-gray-600 text-sm">
-                  <li>Hide your profile from other users</li>
-                  <li>Remove you from all upcoming games</li>
-                  <li>Prevent you from creating or joining games</li>
-                </ul>
-                <p className="text-emerald-700 font-medium text-sm">
-                  ✓ You can reactivate within 30 days by logging back in
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800 font-semibold">
-                    ⚠ This action is IRREVERSIBLE
+          <AlertDialogDescription asChild>
+            <div className="space-y-3 text-left">
+              {isDeactivate ? (
+                <>
+                  <p className="text-gray-700">
+                    Deactivating your account will:
                   </p>
-                </div>
-                <p className="text-gray-700">
-                  Deleting your account will permanently:
-                </p>
-                <ul className="list-disc list-inside space-y-1 text-gray-600 text-sm">
-                  <li>Delete all your personal information</li>
-                  <li>Remove you from all games</li>
-                  <li>Erase your game history and statistics</li>
-                  <li>Delete all your photos and content</li>
-                  <li>Cannot be recovered under any circumstances</li>
-                </ul>
-                <div className="pt-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type <span className="font-mono bg-gray-100 px-1 py-0.5 rounded">DELETE</span> to confirm:
-                  </label>
-                  <input
-                    type="text"
-                    value={confirmText}
-                    onChange={(e) => setConfirmText(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="DELETE"
-                    autoFocus
-                  />
-                </div>
-              </>
-            )}
+                  <ul className="list-disc list-inside space-y-1 text-gray-600 text-sm">
+                    <li>Hide your profile from other users</li>
+                    <li>Remove you from all upcoming games</li>
+                    <li>Prevent you from creating or joining games</li>
+                  </ul>
+                  <p className="text-emerald-700 font-medium text-sm">
+                    ✓ You can reactivate within 30 days by logging back in
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-red-800 font-semibold">
+                      ⚠ This action is IRREVERSIBLE
+                    </p>
+                  </div>
+                  <p className="text-gray-700">
+                    Deleting your account will permanently:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-gray-600 text-sm">
+                    <li>Delete all your personal information</li>
+                    <li>Remove you from all games</li>
+                    <li>Erase your game history and statistics</li>
+                    <li>Delete all your photos and content</li>
+                    <li>Cannot be recovered under any circumstances</li>
+                  </ul>
+                  <div className="pt-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Type <span className="rounded bg-gray-100 px-1 py-0.5 font-mono">DELETE</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmText}
+                      onChange={(e) => setConfirmText(e.target.value)}
+                      disabled={isLoading}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-red-500 focus:ring-2 focus:ring-red-500"
+                      placeholder="DELETE"
+                      autoFocus
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
