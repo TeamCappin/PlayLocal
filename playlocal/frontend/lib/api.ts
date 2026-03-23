@@ -1,6 +1,8 @@
 // PlayLocal API Client
 // Connects the React frontend to the Spring Boot backend
 
+import { ChangePasswordRequest, ForgotPasswordRequest, ResetPasswordRequest, VerifyResetCodeRequest } from "./constants";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -170,10 +172,42 @@ export const authApi = {
 
   getCurrentUser: () => apiFetch<UserDto>('/auth/me'),
 
+  changePassword: (data: ChangePasswordRequest) =>
+    apiFetch<void>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    apiFetch<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyResetCode: (data: VerifyResetCodeRequest) =>
+    apiFetch<void>('/auth/forgot-password/verify-code', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resendResetCode: (data: ForgotPasswordRequest) =>
+    apiFetch<void>('/auth/forgot-password/resend', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resetPassword: (data: ResetPasswordRequest) =>
+    apiFetch<void>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   logout: () => {
     setAuthToken(null);
     return Promise.resolve();
   },
+
+  
 };
 
 // ============================================

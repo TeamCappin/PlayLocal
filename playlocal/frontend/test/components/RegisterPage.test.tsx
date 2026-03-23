@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { RegisterPage } from '@/components/RegisterPage'; // <-- adjust path if needed
+import { RegisterPage } from '@/components/RegisterPage';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -26,11 +26,11 @@ jest.mock('@/context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
-// Mock constants (with simple icon components)
 jest.mock('@/lib/constants', () => {
   const Icon =
     (name: string) =>
-    (props: any): JSX.Element => <svg data-testid={name} {...props} />;
+    (props: any): JSX.Element =>
+      <svg data-testid={name} {...props} />;
 
   return {
     INTENSITY_OPTIONS: [
@@ -90,6 +90,9 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+const getPasswordInput = () =>
+  screen.getByLabelText(/^password$/i, { selector: 'input' });
+
 describe('RegisterPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -105,12 +108,11 @@ describe('RegisterPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/display name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(getPasswordInput()).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /continue/i })
     ).toBeInTheDocument();
 
-    // footer link
     expect(screen.getByRole('link', { name: /sign in/i })).toHaveAttribute(
       'href',
       '/login'
@@ -121,10 +123,8 @@ describe('RegisterPage', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
-    const passwordInput = screen.getByLabelText(/password/i);
-    fireEvent.focus(passwordInput);
+    fireEvent.focus(getPasswordInput());
 
-    // At least one rule from PASSWORD_RULES should be visible
     expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
   });
 
@@ -132,14 +132,14 @@ describe('RegisterPage', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = getPasswordInput();
     fireEvent.focus(passwordInput);
-    // Checklist is visible while focused
     expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
 
     fireEvent.blur(passwordInput);
-    // Checklist should be gone when field is empty and blurred
-    expect(screen.queryByText(/at least 8 characters/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/at least 8 characters/i)
+    ).not.toBeInTheDocument();
   });
 
   it('shows error when a weak password is submitted (e.g. all same chars)', () => {
@@ -152,7 +152,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: '11111111' },
     });
     fireEvent.click(
@@ -164,7 +164,6 @@ describe('RegisterPage', () => {
     expect(
       screen.getByText(/password does not meet requirements/i)
     ).toBeInTheDocument();
-    // Should NOT advance to step 2
     expect(
       screen.getByRole('heading', { name: /create account/i })
     ).toBeInTheDocument();
@@ -180,7 +179,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
 
@@ -201,11 +200,10 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
 
-    // check only age confirmed
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
@@ -229,7 +227,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
 
@@ -254,14 +252,13 @@ describe('RegisterPage', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -270,7 +267,6 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // submit without intensity
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(
@@ -282,14 +278,13 @@ describe('RegisterPage', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -298,10 +293,7 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // pick intensity only
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
-
-    // submit without availability
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(
@@ -318,14 +310,13 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />);
 
-    // Step 1 inputs
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'hudson@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -334,7 +325,6 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Step 2 selections
     fireEvent.click(screen.getByRole('button', { name: /competitive/i }));
     fireEvent.click(screen.getByRole('button', { name: /weekdays/i }));
 
@@ -360,14 +350,13 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'hudson@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -376,7 +365,6 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Step 2 selections
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
     fireEvent.click(screen.getByRole('button', { name: /weekends/i }));
 
@@ -395,14 +383,13 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'hudson@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -411,7 +398,6 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Step 2 selections
     fireEvent.click(screen.getByRole('button', { name: /mixed/i }));
     fireEvent.click(screen.getByRole('button', { name: /weekdays/i }));
 
@@ -429,14 +415,13 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'hudson@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -445,7 +430,6 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Step 2 selections
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
     fireEvent.click(screen.getByRole('button', { name: /weekends/i }));
 
@@ -454,12 +438,10 @@ describe('RegisterPage', () => {
 
     await waitFor(() => expect(register).toHaveBeenCalled());
 
-    // while pending
     expect(
       screen.getByRole('button', { name: /creating account/i })
     ).toBeDisabled();
 
-    // resolve promise to finish
     d.resolve();
     await waitFor(() =>
       expect(
@@ -472,14 +454,13 @@ describe('RegisterPage', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
-    // Step 1 -> Step 2
     fireEvent.change(screen.getByLabelText(/display name/i), {
       target: { value: 'Hudson' },
     });
     fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'h@x.com' },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
     fireEvent.click(
@@ -520,7 +501,6 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />);
 
-    // effect should not redirect because authLoading is true
     expect(pushMock).not.toHaveBeenCalledWith('/discover');
   });
 });
