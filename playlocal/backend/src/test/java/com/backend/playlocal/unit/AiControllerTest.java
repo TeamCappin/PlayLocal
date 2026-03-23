@@ -100,4 +100,24 @@ class AiControllerTest {
                 eq(null),
                 eq(Map.of()));
     }
+
+    @Test
+    @DisplayName("telemetry maps RESPONSE_ERROR to assistant_response_error")
+    void telemetry_ResponseError_MapsExpectedEventName() {
+        UUID userId = UUID.randomUUID();
+        when(authentication.getName()).thenReturn(userId.toString());
+
+        AiChatDto.TelemetryRequest body =
+                new AiChatDto.TelemetryRequest("RESPONSE_ERROR", "session-3", "game", null);
+
+        ResponseEntity<Void> response = controller.telemetry(authentication, body);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(assistantTelemetryService).recordEvent(
+                AssistantTelemetryService.ASSISTANT_RESPONSE_ERROR,
+                userId,
+                "session-3",
+                null,
+                Map.of("context", "game"));
+    }
 }

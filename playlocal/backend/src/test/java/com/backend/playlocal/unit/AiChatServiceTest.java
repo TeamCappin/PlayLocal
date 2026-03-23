@@ -81,6 +81,27 @@ class AiChatServiceTest {
     }
 
     @Test
+    @DisplayName("chat truncates very long reply snippets and handles null sessionId")
+    void chat_LongUserMessage_TruncatesAndUsesAnonymous() {
+        UUID userId = UUID.randomUUID();
+        String longMessage = "x".repeat(9000);
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                null,
+                List.of(new AiChatDto.ChatMessage("user", longMessage)));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).hasSizeLessThanOrEqualTo(8001);
+        assertThat(response.message().content()).contains("baseline reply");
+        verify(telemetryService).recordEvent(
+                AssistantTelemetryService.ASSISTANT_MESSAGE_SENT,
+                userId,
+                "anonymous",
+                null,
+                java.util.Map.of("messageCount", 1));
+    }
+
+    @Test
     @DisplayName("chat records response_error telemetry when an exception happens")
     void chat_WhenTelemetryThrows_RecordsErrorAndRethrows() {
         UUID userId = UUID.randomUUID();

@@ -1,21 +1,13 @@
 require('@testing-library/jest-dom');
 
-const React = require('react');
-
-// Components using useAssistant() must not require the real AssistantProvider in unit tests
-jest.mock('@/context/AssistantContext', () => ({
-  __esModule: true,
-  useAssistant: () => ({
-    openAssistant: jest.fn(),
-    closeAssistant: jest.fn(),
-  }),
-  AssistantProvider: ({ children }) =>
-    React.createElement(React.Fragment, null, children),
-}));
-
 // window.scrollTo is not implemented in jsdom (throws "Not implemented" when called)
 if (typeof window !== 'undefined') {
   window.scrollTo = jest.fn();
+}
+
+// Some components call element.scrollTo on refs; JSDOM doesn't implement it.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = jest.fn();
 }
 
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)

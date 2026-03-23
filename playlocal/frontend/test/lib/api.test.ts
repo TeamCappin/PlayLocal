@@ -711,4 +711,72 @@ describe('gamesApi lifecycle endpoints', () => {
       expect((options as any).body).toBeUndefined();
     });
   });
+
+  describe('aiApi endpoints', () => {
+    let aiApi: typeof import('../../lib/api').aiApi;
+
+    beforeEach(() => {
+      jest.resetModules();
+      jest.restoreAllMocks();
+
+      (globalThis as any).window = globalThis;
+      (globalThis as any).localStorage = {
+        getItem: jest.fn(() => null),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      };
+
+      const apiModule =
+        require('../../lib/api') as typeof import('../../lib/api');
+      aiApi = apiModule.aiApi;
+    });
+
+    it('chat posts messages to /ai/chat and returns assistant payload', async () => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(jsonResponse({ message: { role: 'assistant', content: 'ok' } }));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await aiApi.chat(
+        { sessionId: 'sess-1', messages: [{ role: 'user', content: 'hello' }] },
+        undefined
+      );
+
+      expect(res).toEqual({ message: { role: 'assistant', content: 'ok' } });
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/ai/chat'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId: 'sess-1',
+            messages: [{ role: 'user', content: 'hello' }],
+          }),
+        })
+      );
+    });
+
+    it('telemetry posts event payload to /ai/telemetry', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(noContentResponse());
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await aiApi.telemetry({
+        eventType: 'SESSION_STARTED',
+        sessionId: 'sess-1',
+        context: 'discover',
+      });
+
+      expect(res).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/ai/telemetry'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            eventType: 'SESSION_STARTED',
+            sessionId: 'sess-1',
+            context: 'discover',
+          }),
+        })
+      );
+    });
+  });
 });
