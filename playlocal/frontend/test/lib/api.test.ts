@@ -736,10 +736,11 @@ describe('gamesApi lifecycle endpoints', () => {
         .fn()
         .mockResolvedValue(jsonResponse({ message: { role: 'assistant', content: 'ok' } }));
       (globalThis as any).fetch = fetchMock;
+      const controller = new AbortController();
 
       const res = await aiApi.chat(
         { sessionId: 'sess-1', messages: [{ role: 'user', content: 'hello' }] },
-        undefined
+        controller.signal
       );
 
       expect(res).toEqual({ message: { role: 'assistant', content: 'ok' } });
@@ -751,6 +752,7 @@ describe('gamesApi lifecycle endpoints', () => {
             sessionId: 'sess-1',
             messages: [{ role: 'user', content: 'hello' }],
           }),
+          signal: controller.signal,
         })
       );
     });

@@ -81,6 +81,19 @@ class AiChatServiceTest {
     }
 
     @Test
+    @DisplayName("chat falls back when latest user message is blank spaces")
+    void chat_BlankUserMessage_UsesYourQuestionFallback() {
+        UUID userId = UUID.randomUUID();
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "session-blank",
+                List.of(new AiChatDto.ChatMessage("user", "   ")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).contains("your question");
+    }
+
+    @Test
     @DisplayName("chat truncates very long reply snippets and handles null sessionId")
     void chat_LongUserMessage_TruncatesAndUsesAnonymous() {
         UUID userId = UUID.randomUUID();

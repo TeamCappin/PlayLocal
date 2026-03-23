@@ -42,4 +42,15 @@ class AiChatDtoTest {
         assertThat(validator.validate(invalidRequest)).isNotEmpty();
         assertThat(validator.validate(invalidTelemetry)).isNotEmpty();
     }
+
+    @Test
+    @DisplayName("validation rejects empty chat messages and overlong telemetry context")
+    void dtoValidation_RejectsEmptyAndOversizedFields() {
+        AiChatDto.ChatRequest emptyMessages = new AiChatDto.ChatRequest("session", List.of());
+        AiChatDto.TelemetryRequest tooLongContext =
+                new AiChatDto.TelemetryRequest("SESSION_STARTED", "session", "x".repeat(40), "game");
+
+        assertThat(validator.validate(emptyMessages)).isNotEmpty();
+        assertThat(validator.validate(tooLongContext)).isNotEmpty();
+    }
 }
