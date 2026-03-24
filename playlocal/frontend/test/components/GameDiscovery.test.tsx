@@ -1719,6 +1719,219 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Filter Games')).toBeInTheDocument();
       });
     });
+
+    it('Volleyball and Tennis quick filters apply sportName to useGames', async () => {
+      render(<GameDiscovery />);
+      (useGames as jest.Mock).mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Volleyball' }));
+      });
+      await waitFor(() => {
+        const last = (useGames as jest.Mock).mock.calls.at(-1)?.[0];
+        expect(last).toMatchObject({ sportName: 'volleyball' });
+      });
+
+      (useGames as jest.Mock).mockClear();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Tennis' }));
+      });
+      await waitFor(() => {
+        const last = (useGames as jest.Mock).mock.calls.at(-1)?.[0];
+        expect(last).toMatchObject({ sportName: 'tennis' });
+      });
+    });
+  });
+
+  describe('Sort controls', () => {
+    const sortGame = (overrides: Record<string, unknown>) => ({
+      gameId: 'game-1',
+      title: 'Alpha',
+      sportName: 'Basketball',
+      startTime: new Date(Date.now() + 3600000).toISOString(),
+      endTime: new Date(Date.now() + 7200000).toISOString(),
+      location: { name: 'Park', city: 'Montreal' },
+      hasExactLocationAccess: true,
+      approximateLocation: 'Montreal, QC',
+      confirmedCount: 5,
+      maxPlayers: 10,
+      minPlayers: 4,
+      skillBand: 'Intermediate',
+      intensityBand: 'High',
+      indoorOutdoor: 'outdoor',
+      organizer: {
+        userId: 'user-1',
+        displayName: 'Host',
+        reliabilityScore: 95,
+      },
+      status: 'SCHEDULED',
+      description: 'Test',
+      tags: [],
+      waitlistCount: 0,
+      ...overrides,
+    });
+
+    it('Sort by Most Popular orders games by confirmedCount + waitlistCount', async () => {
+      const games = [
+        sortGame({
+          gameId: 'g-low',
+          title: 'Less Popular',
+          confirmedCount: 1,
+          waitlistCount: 0,
+        }),
+        sortGame({
+          gameId: 'g-high',
+          title: 'More Popular',
+          confirmedCount: 8,
+          waitlistCount: 4,
+        }),
+      ];
+      (useGames as jest.Mock).mockReturnValue({
+        games,
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      const sortSelect = screen.getByLabelText('Sort games by');
+      await act(async () => {
+        fireEvent.change(sortSelect, { target: { value: 'most_popular' } });
+      });
+
+      const titles = screen.getAllByRole('link').map((a) => a.textContent);
+      const moreIdx = titles.findIndex((t) => t?.includes('More Popular'));
+      const lessIdx = titles.findIndex((t) => t?.includes('Less Popular'));
+      expect(moreIdx).toBeGreaterThan(-1);
+      expect(lessIdx).toBeGreaterThan(-1);
+      expect(moreIdx).toBeLessThan(lessIdx);
+    });
+
+    it('Sort by Nearest shows location-off message when geolocation is unavailable', async () => {
+      Object.defineProperty(global.navigator, 'geolocation', {
+        value: {
+          getCurrentPosition: jest.fn((_s, err) =>
+            err({ code: 1, message: 'denied' })
+          ),
+        },
+        writable: true,
+      });
+      (useGames as jest.Mock).mockReturnValue({
+        games: [sortGame({})],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+
+      const sortSelect = screen.getByLabelText('Sort games by');
+      await act(async () => {
+        fireEvent.change(sortSelect, { target: { value: 'nearest' } });
+      });
+
+      expect(
+        screen.getByText(/Location is off\. Please enable location services/i)
+      ).toBeInTheDocument();
+    });
+
+    it('Sort by Nearest with location sends lat/lon without radiusKm when distance is any', async () => {
+      Object.defineProperty(global.navigator, 'geolocation', {
+        value: {
+          getCurrentPosition: jest.fn((success) =>
+            success({ coords: { latitude: 45.1, longitude: -73.2 } })
+          ),
+        },
+        writable: true,
+      });
+      (useGames as jest.Mock).mockReturnValue({
+        games: [sortGame({})],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+
+      render(<GameDiscovery />);
+      await waitFor(() =>
+        expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalled()
+      );
+
+      (useGames as jest.Mock).mockClear();
+
+      const sortSelect = screen.getByLabelText('Sort games by');
+      await act(async () => {
+        fireEvent.change(sortSelect, { target: { value: 'nearest' } });
+      });
+
+      await waitFor(() => {
+        const last = (useGames as jest.Mock).mock.calls.at(-1)?.[0];
+        expect(last).toMatchObject({ lat: 45.1, lon: -73.2 });
+        expect(last).not.toHaveProperty('radiusKm');
+      });
+    });
+  });
+
+  describe('Filter modal – Cancel and keyboard', () => {
+    beforeEach(() => {
+      (useGames as jest.Mock).mockReturnValue({
+        games: [],
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+    });
+
+    it('closes the modal when Cancel is clicked', async () => {
+      render(<GameDiscovery />);
+      await act(async () => {
+        fireEvent.click(screen.getByText('Filters'));
+      });
+      await waitFor(() =>
+        expect(screen.getByText('Filter Games')).toBeInTheDocument()
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      });
+      await waitFor(() =>
+        expect(screen.queryByText('Filter Games')).not.toBeInTheDocument()
+      );
+    });
+
+    it('closes the modal when Escape is pressed on the backdrop', async () => {
+      render(<GameDiscovery />);
+      await act(async () => {
+        fireEvent.click(screen.getByText('Filters'));
+      });
+      await waitFor(() =>
+        expect(screen.getByText('Filter Games')).toBeInTheDocument()
+      );
+
+      const backdrop = screen.getByLabelText('Filter modal backdrop');
+      await act(async () => {
+        fireEvent.keyDown(backdrop, { key: 'Escape' });
+      });
+      await waitFor(() =>
+        expect(screen.queryByText('Filter Games')).not.toBeInTheDocument()
+      );
+    });
+
+    it('dialog panel handles keydown without closing when focus is inside (stopPropagation)', async () => {
+      render(<GameDiscovery />);
+      await act(async () => {
+        fireEvent.click(screen.getByText('Filters'));
+      });
+      await waitFor(() =>
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      );
+
+      const dialog = screen.getByRole('dialog');
+      await act(async () => {
+        fireEvent.keyDown(dialog, { key: 'Tab' });
+      });
+      expect(screen.getByText('Filter Games')).toBeInTheDocument();
+    });
   });
 
   describe('Session Persistence – View Mode', () => {
