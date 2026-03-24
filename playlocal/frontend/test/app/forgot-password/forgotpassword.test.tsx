@@ -31,6 +31,10 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
+jest.mock('react-google-recaptcha-v3', () => ({
+  useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
+}));
+
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -80,6 +84,7 @@ describe('ForgotPasswordPage', () => {
     await waitFor(() => {
       expect(authApi.forgotPassword).toHaveBeenCalledWith({
         email: 'user@example.com',
+        captchaToken: 'mock-captcha-token',
       });
     });
   });
@@ -101,7 +106,9 @@ describe('ForgotPasswordPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
+    });
 
     resolvePromise();
     await waitFor(() => {

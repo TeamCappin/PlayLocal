@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsPage } from '@/components/SettingsPage';
-import { privacyApi } from '@/lib/api';
+import { privacyApi, authApi } from '@/lib/api';
 
 // Mock the auth context
 jest.mock('@/context/AuthContext', () => ({
@@ -13,11 +13,16 @@ jest.mock('@/context/AuthContext', () => ({
   }),
 }));
 
-// Mock the privacy API
+// Mock the APIs
 jest.mock('@/lib/api', () => ({
   privacyApi: {
     getSettings: jest.fn(),
     updateSettings: jest.fn(),
+  },
+  authApi: {
+    getMfaStatus: jest.fn(),
+    enableMfa: jest.fn(),
+    disableMfa: jest.fn(),
   },
 }));
 

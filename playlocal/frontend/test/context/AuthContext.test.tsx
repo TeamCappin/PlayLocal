@@ -177,6 +177,7 @@ describe('AuthContext / AuthProvider', () => {
     expect(mockedAuthApi.login).toHaveBeenCalledWith({
       email: 'a@b.com',
       password: 'pw',
+      captchaToken: undefined,
     });
     expect(mockedSetAuthToken).toHaveBeenCalledWith('new-token');
 
@@ -300,6 +301,7 @@ describe('AuthContext / AuthProvider', () => {
       displayName: 'Reg User',
       ageConfirmed: true,
       eulaAccepted: true,
+      captchaToken: undefined,
     });
     expect(mockedSetAuthToken).toHaveBeenCalledWith('reg-token');
 
