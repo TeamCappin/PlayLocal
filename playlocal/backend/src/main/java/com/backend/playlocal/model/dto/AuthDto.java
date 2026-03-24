@@ -29,6 +29,7 @@ public class AuthDto {
 
         private boolean ageConfirmed;
         private boolean eulaAccepted;
+        private String captchaToken;
     }
 
     @Data
@@ -42,6 +43,7 @@ public class AuthDto {
 
         @NotBlank(message = "Password is required")
         private String password;
+        private String captchaToken;
     }
 
     @Data
@@ -52,6 +54,7 @@ public class AuthDto {
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         private String email;
+        private String captchaToken;
     }
 
     @Data
