@@ -6,7 +6,6 @@ import { toast, getActionableErrorMessage } from '@/lib/toast';
 import { Trash2 } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -483,13 +482,14 @@ export function PhotosPanel({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <button
+              type="button"
               onClick={handleDeletePhoto}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isDeleting ? 'Deleting...' : 'Delete Photo'}
-            </AlertDialogAction>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
