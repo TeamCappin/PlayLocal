@@ -26,6 +26,10 @@ jest.mock('@/context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('react-google-recaptcha-v3', () => ({
+  useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
+}));
+
 jest.mock('@/lib/constants', () => {
   const Icon =
     (name: string) =>
@@ -336,7 +340,8 @@ describe('RegisterPage', () => {
         'Password1!',
         'Hudson',
         true,
-        true
+        true,
+        'mock-captcha-token'
       );
     });
 

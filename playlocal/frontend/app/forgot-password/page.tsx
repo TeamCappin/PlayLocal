@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 const ForgotPasswordPage: React.FC = () => {
   const router = useRouter();
@@ -11,13 +12,15 @@ const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await authApi.forgotPassword({ email });
+      const captchaToken = executeRecaptcha ? await executeRecaptcha('forgot_password') : undefined;
+      await authApi.forgotPassword({ email, captchaToken });
     } catch {
       // Generic response for security
     } finally {

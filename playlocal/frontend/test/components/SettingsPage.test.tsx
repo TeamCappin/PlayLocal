@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsPage } from '@/components/SettingsPage';
-import { privacyApi, usersApi } from '@/lib/api';
+import { privacyApi, usersApi, authApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const mockPerformLogoutRedirect = jest.fn();
@@ -12,13 +12,24 @@ jest.mock('@/context/AuthContext', () => ({
       displayName: 'Test User',
       email: 'test@example.com',
     },
+    logout: jest.fn(),
   }),
 }));
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
+
+// Mock the APIs
 jest.mock('@/lib/api', () => ({
   privacyApi: {
     getSettings: jest.fn(),
     updateSettings: jest.fn(),
+  },
+  authApi: {
+    getMfaStatus: jest.fn(),
+    enableMfa: jest.fn(),
+    disableMfa: jest.fn(),
   },
   usersApi: {
     deactivateAccount: jest.fn(),
@@ -42,6 +53,7 @@ jest.mock('@/lib/authRedirect', () => ({
   performLogoutRedirect: (...args: unknown[]) =>
     mockPerformLogoutRedirect(...args),
 }));
+
 
 const mockGetSettings = privacyApi.getSettings as jest.Mock;
 const mockUpdateSettings = privacyApi.updateSettings as jest.Mock;
@@ -167,73 +179,132 @@ describe('SettingsPage - Privacy Tab', () => {
   });
 });
 
-describe('SettingsPage - Security account actions', () => {
+const mockGetMfaStatus = authApi.getMfaStatus as jest.Mock;
+const mockEnableMfa = authApi.enableMfa as jest.Mock;
+const mockDisableMfa = authApi.disableMfa as jest.Mock;
+
+describe('SettingsPage - Security Tab (MFA)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetSettings.mockResolvedValue(defaultSettings);
-    mockUpdateSettings.mockResolvedValue(defaultSettings);
-    mockDeactivateAccount.mockResolvedValue(undefined);
-    mockDeleteAccount.mockResolvedValue(undefined);
   });
 
-  async function openSecurityTab() {
+  it('renders MFA section with "Enable MFA" button when MFA is disabled', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+
     render(<SettingsPage />);
     fireEvent.click(screen.getByText('Security & Safety'));
-    await waitFor(() =>
-      expect(screen.getByText('Account Actions')).toBeInTheDocument()
-    );
-  }
-
-  it('deactivates account, toasts, logs out, and redirects home', async () => {
-    await openSecurityTab();
-
-    fireEvent.click(screen.getByText('Deactivate Account'));
-    expect(await screen.findByText('Deactivate Account?')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Deactivate Account' }));
 
     await waitFor(() => {
-      expect(mockDeactivateAccount).toHaveBeenCalled();
+      expect(screen.getByText('Currently disabled')).toBeInTheDocument();
     });
-    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
-      message: 'Account deactivated',
-      type: 'success',
+
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+  });
+
+  it('renders "Disable MFA" button when MFA is enabled', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: true });
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Currently enabled')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+  });
+
+  it('enables MFA when "Enable MFA" button is clicked', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    mockEnableMfa.mockResolvedValue(undefined);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(mockEnableMfa).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/MFA has been enabled/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+  });
+
+  it('disables MFA when "Disable MFA" button is clicked', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: true });
+    mockDisableMfa.mockResolvedValue(undefined);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }));
+
+    await waitFor(() => {
+      expect(mockDisableMfa).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/MFA has been disabled/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+  });
+
+  it('shows error message when MFA toggle fails', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    mockEnableMfa.mockRejectedValue(new Error('Server error'));
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to update MFA setting/i)).toBeInTheDocument();
     });
   });
 
-  it('deletes account after typing DELETE, then logs out', async () => {
-    await openSecurityTab();
-
-    fireEvent.click(screen.getByText('Delete Account'));
-    expect(
-      await screen.findByText('Permanently Delete Account?')
-    ).toBeInTheDocument();
-
-    fireEvent.change(screen.getByPlaceholderText('DELETE'), {
-      target: { value: 'DELETE' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Forever' }));
-
-    await waitFor(() => {
-      expect(mockDeleteAccount).toHaveBeenCalled();
-    });
-    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
-      message: 'Account deleted',
-      type: 'success',
-    });
-  });
-
-  it('shows toast error when deactivate fails', async () => {
-    mockDeactivateAccount.mockRejectedValueOnce(new Error('server said no'));
-    await openSecurityTab();
-
-    fireEvent.click(screen.getByText('Deactivate Account'));
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Deactivate Account' })
+  it('shows "Updating..." while MFA toggle is in progress', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    let resolveEnable!: () => void;
+    mockEnableMfa.mockImplementation(
+      () => new Promise<void>((resolve) => { resolveEnable = resolve; })
     );
 
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Updating...' })).toBeInTheDocument();
+    });
+
+    resolveEnable();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
     });
   });
 });
