@@ -33,7 +33,6 @@ export function Navigation() {
 
   const isLanding = pathname === '/';
   const { user, isAuthenticated, isLoading } = useAuth();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { openAssistant } = useAssistant();
 
   // Get notification count (silently fail if backend unavailable)

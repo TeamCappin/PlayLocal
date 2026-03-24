@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
+import { AssistantProvider } from '@/context/AssistantContext';
 import { consumeRedirectToast } from '@/lib/authRedirect';
 import { toast } from '@/lib/toast';
 
@@ -17,14 +18,14 @@ function RedirectToastBootstrap() {
 
   return null;
 }
-import { AssistantProvider } from '@/context/AssistantContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <RedirectToastBootstrap />
-      {children}
-      <AssistantProvider>{children}</AssistantProvider>
+      <AssistantProvider>
+        <RedirectToastBootstrap />
+        {children}
+      </AssistantProvider>
     </AuthProvider>
   );
 }
