@@ -7,8 +7,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { authApi } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 const PASSWORD_RULES = [
   {
@@ -53,9 +52,6 @@ function validatePassword(password: string): string | null {
 }
 
 export function PasswordChangeCard() {
-  const router = useRouter();
-  const { logout } = useAuth();
-
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -124,9 +120,11 @@ export function PasswordChangeCard() {
       setSuccess(true);
       clearForm();
 
-      setTimeout(async () => {
-        await logout();
-        router.push('/login');
+      setTimeout(() => {
+        performLogoutRedirect('/login', {
+          message: 'Password changed. Sign in again.',
+          type: 'success',
+        });
       }, 1200);
     } catch (err: any) {
       setError(err.message || 'Failed to change password');

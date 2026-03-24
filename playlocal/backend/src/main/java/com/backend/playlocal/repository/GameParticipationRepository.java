@@ -118,4 +118,17 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     List<GameParticipation> findConfirmedByUserSince(
             @Param("userId") UUID userId,
             @Param("cutoff") Instant cutoff);
+
+    /**
+     * US-7.15: Find all future participations for a user (for account deletion).
+     * Used to remove user from all upcoming games when deactivating/deleting account.
+     */
+    @Query("SELECT gp FROM GameParticipation gp " +
+            "JOIN FETCH gp.game g " +
+            "WHERE gp.user.userId = :userId " +
+            "AND g.startTime >= :cutoff " +
+            "AND gp.leftAt IS NULL")
+    List<GameParticipation> findByUserIdAndGameStartTimeAfter(
+            @Param("userId") UUID userId,
+            @Param("cutoff") Instant cutoff);
 }

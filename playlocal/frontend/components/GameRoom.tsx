@@ -38,9 +38,12 @@ import {
 } from '@/lib/api';
 import { ReportModal } from './ReportModal';
 import { JoinConfirmationModal } from './JoinConfirmationModal';
+import { ConfirmLeaveGameDialog } from './ConfirmLeaveGameDialog';
 import { OrganizerQualityBadge } from './OrganizerQualityBadge';
 import { PhotosPanel } from './photos/PhotosPanel';
 import { getSportImage } from '@/constants/sportImages';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
+import { performRedirect } from '@/lib/authRedirect';
 
 // Mock data for fallback when backend unavailable
 const mockGame = {
@@ -140,8 +143,12 @@ export function GameRoom() {
   });
   const [showJoinConfirmationModal, setShowJoinConfirmationModal] =
     useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [redirectingTo, setRedirectingTo] = useState<null | 'leave' | 'cancel'>(
+    null
+  );
 
   // US-32: Batch-fetch connection signals for roster when logged in (no N+1)
   useEffect(() => {
@@ -386,7 +393,7 @@ export function GameRoom() {
       };
       await gamesApi.update(id, updateData);
       setActionError(null);
-      setActionSuccess('Changes saved.');
+      toast.success('Game updated');
       setShowEditModal(false);
       await refetch();
       if (typeof window !== 'undefined') {
@@ -395,10 +402,10 @@ export function GameRoom() {
         );
         window.dispatchEvent(new CustomEvent('playlocal-refresh-games'));
       }
-      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      setActionSuccess(null);
-      setActionError(err.message || 'Failed to update game settings');
+      const errorMessage = getActionableErrorMessage(err, 'update game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -437,15 +444,15 @@ export function GameRoom() {
     try {
       const result = await joinGame(confirmedTagIds);
       if (result.joinStatus === 'WAITLISTED') {
-        setActionSuccess(
-          `You're on the waitlist (#${result.waitlistPosition})`
-        );
+        toast.success(`Added to waitlist #${result.waitlistPosition}`);
       } else {
-        setActionSuccess('Successfully joined the game!');
+        toast.success('Joined game');
       }
       setShowJoinConfirmationModal(false);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to join game');
+      const errorMessage = getActionableErrorMessage(err, 'join game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsJoining(false);
     }
@@ -454,12 +461,27 @@ export function GameRoom() {
   const handleLeave = async () => {
     setActionError(null);
     setActionSuccess(null);
+    setShowLeaveConfirm(false);
+    setRedirectingTo('leave');
     setIsLeaving(true);
     try {
-      await leaveGame();
-      setActionSuccess('Successfully left the game');
+      await leaveGame({ refetchAfter: false });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('playlocal-refresh-games'));
+        window.dispatchEvent(
+          new CustomEvent('playlocal-refresh-notifications')
+        );
+      }
+      performRedirect(
+        '/discover',
+        { message: 'Left game', type: 'success' },
+        { replace: true }
+      );
     } catch (err: any) {
-      setActionError(err.message || 'Failed to leave game');
+      setRedirectingTo(null);
+      const errorMessage = getActionableErrorMessage(err, 'leave game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLeaving(false);
     }
@@ -468,19 +490,27 @@ export function GameRoom() {
   // US-4.3: Organizer delete (cancel) game
   const handleCancel = async () => {
     setActionError(null);
+    setShowCancelConfirm(false);
+    setRedirectingTo('cancel');
     setIsCancelling(true);
     try {
-      await cancelGame();
-      setActionSuccess('Game has been deleted.');
-      setShowCancelConfirm(false);
+      await cancelGame({ refetchAfter: false });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('playlocal-refresh-notifications')
         );
+        window.dispatchEvent(new CustomEvent('playlocal-refresh-games'));
       }
-      navigate.push('/discover');
+      performRedirect(
+        '/discover',
+        { message: 'Game deleted', type: 'success' },
+        { replace: true }
+      );
     } catch (err: any) {
-      setActionError(err.message || 'Failed to delete game');
+      setRedirectingTo(null);
+      const errorMessage = getActionableErrorMessage(err, 'delete game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCancelling(false);
     }
@@ -492,9 +522,11 @@ export function GameRoom() {
     setIsCompleting(true);
     try {
       await completeGame();
-      setActionSuccess('Game marked as completed.');
+      toast.success('Game marked as completed');
     } catch (err: any) {
-      setActionError(err.message || 'Failed to complete game');
+      const errorMessage = getActionableErrorMessage(err, 'complete game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsCompleting(false);
     }
@@ -506,24 +538,15 @@ export function GameRoom() {
     setIsArchiving(true);
     try {
       await archiveGame();
-      setActionSuccess('Game archived.');
+      toast.success('Game archived');
     } catch (err: any) {
-      setActionError(err.message || 'Failed to archive game');
+      const errorMessage = getActionableErrorMessage(err, 'archive game');
+      setActionError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsArchiving(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-          <span className="text-gray-600">Loading game...</span>
-        </div>
-      </div>
-    );
-  }
   // US-2.4: Share game link
   const handleShare = async () => {
     const shareUrl = window.location.href;
@@ -1184,8 +1207,8 @@ export function GameRoom() {
                   </div>
                   {!isOrganizer && isScheduled && (
                     <button
-                      onClick={handleLeave}
-                      disabled={isLeaving}
+                      onClick={() => setShowLeaveConfirm(true)}
+                      disabled={isLeaving || redirectingTo !== null}
                       className="w-full px-6 py-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {isLeaving ? (
@@ -1313,7 +1336,7 @@ export function GameRoom() {
                         </button>
                         <button
                           onClick={handleCancel}
-                          disabled={isCancelling}
+                          disabled={isCancelling || redirectingTo !== null}
                           className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                           style={{
                             backgroundColor: '#dc2626',
@@ -1450,99 +1473,103 @@ export function GameRoom() {
         reportType="game"
       />
 
-      {/* Edit Game Modal - US-4.3: custom modal so content is always visible (no Radix) */}
       {showEditModal && (
         <div
-          className="fixed inset-0 z-[9999]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-game-title"
+          className="fixed inset-0 z-[10000] overflow-y-auto px-3 py-4 sm:px-4 sm:py-8"
+          role="presentation"
         >
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => !isUpdating && setShowEditModal(false)}
-            aria-hidden="true"
+          <button
+            type="button"
+            aria-label="Close edit game dialog"
+            data-testid="edit-game-backdrop"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              if (!isUpdating) {
+                setShowEditModal(false);
+              }
+            }}
           />
-          {/* White panel - centered, always visible */}
-          <div className="absolute left-1/2 top-1/2 z-10 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border-2 border-gray-300 bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <h2
-                  id="edit-game-title"
-                  className="text-xl font-semibold text-gray-900"
-                >
-                  Edit Game
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Title and sport cannot be changed. If you raise min
-                  reliability, players below it may be removed.
-                </p>
-              </div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-game-title"
+            className="relative z-10 mx-auto flex h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:h-[min(56rem,calc(100dvh-4rem))]"
+          >
+            <div className="border-b border-gray-200 bg-white px-6 py-4 pr-12">
+              <h2 id="edit-game-title" className="text-xl text-gray-900">
+                Edit Game
+              </h2>
+              <p className="text-sm text-gray-600">
+                Title and sport cannot be changed. If you raise min reliability,
+                players below it may be removed.
+              </p>
               <button
                 type="button"
-                onClick={() => !isUpdating && setShowEditModal(false)}
-                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                onClick={() => setShowEditModal(false)}
+                disabled={isUpdating}
+                className="absolute right-4 top-4 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                 aria-label="Close"
               >
-                <XCircle className="w-6 h-6" />
+                Close
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="rounded-lg bg-gray-100 p-3 border border-gray-200">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Title (read-only)
-                </p>
-                <p className="text-gray-900 font-medium">{game.title}</p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Sport: {game.sportName}
-                </p>
-              </div>
 
-              <div>
-                <label
-                  htmlFor="edit-location"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Location
-                </label>
-                <input
-                  id="edit-location"
-                  type="text"
-                  value={editFormData.locationName}
-                  onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      locationName: e.target.value,
-                    })
-                  }
-                  placeholder="Venue or address"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-gray-900"
-                />
-                <input
-                  type="text"
-                  value={editFormData.addressLine}
-                  onChange={(e) =>
-                    setEditFormData({
-                      ...editFormData,
-                      addressLine: e.target.value,
-                    })
-                  }
-                  placeholder="Street address (optional)"
-                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
-                />
-                <input
-                  type="text"
-                  value={editFormData.city}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, city: e.target.value })
-                  }
-                  placeholder="City (optional)"
-                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900"
-                />
-              </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+              <div className="mx-auto w-full max-w-2xl space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-100 p-3">
+                  <p className="mb-1 text-xs uppercase tracking-wide text-gray-500">
+                    Title (read-only)
+                  </p>
+                  <p className="font-medium text-gray-900">{game.title}</p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Sport: {game.sportName}
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label
+                    htmlFor="edit-location"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Location
+                  </label>
+                  <input
+                    id="edit-location"
+                    type="text"
+                    value={editFormData.locationName}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        locationName: e.target.value,
+                      })
+                    }
+                    placeholder="Venue or address"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    value={editFormData.addressLine}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        addressLine: e.target.value,
+                      })
+                    }
+                    placeholder="Street address (optional)"
+                    className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <input
+                    type="text"
+                    value={editFormData.city}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, city: e.target.value })
+                    }
+                    placeholder="City (optional)"
+                    className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <label
                     htmlFor="edit-date"
@@ -1624,7 +1651,7 @@ export function GameRoom() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="edit-indoor"
@@ -1700,7 +1727,7 @@ export function GameRoom() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="edit-min-players"
@@ -1835,7 +1862,7 @@ export function GameRoom() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="edit-min-age"
@@ -1932,32 +1959,33 @@ export function GameRoom() {
                   </p>
                 )}
               </div>
-            </div>
-            <div className="mt-6 flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={isUpdating}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleUpdateGame}
-                disabled={isUpdating}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating...</span>
-                  </>
-                ) : (
-                  <span>Save Changes</span>
-                )}
-              </button>
-            </div>
+              </div>
+          </div>
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4">
+            <button
+              type="button"
+              onClick={() => setShowEditModal(false)}
+              className="h-11 rounded-lg border border-gray-300 px-5 text-gray-700 transition-colors hover:bg-gray-50"
+              disabled={isUpdating}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleUpdateGame}
+              disabled={isUpdating}
+              className="flex h-11 min-w-[9.5rem] items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <span>Save Changes</span>
+              )}
+            </button>
+          </div>
           </div>
         </div>
       )}
@@ -1971,6 +1999,26 @@ export function GameRoom() {
         maxAge={game.maxAge}
         isJoining={isJoining}
       />
+      {/* Leave Game Confirmation Modal */}
+      <ConfirmLeaveGameDialog
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={handleLeave}
+        gameTitle={game.title}
+        isLoading={isLeaving}
+      />
+      {redirectingTo && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingTo === 'leave'
+                ? 'Leaving game...'
+                : 'Deleting game...'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

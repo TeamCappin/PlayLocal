@@ -281,6 +281,17 @@ export const usersApi = {
       method: 'POST',
       body: JSON.stringify({ userIds }),
     }),
+
+  // Account actions
+  deactivateAccount: () =>
+    apiFetch<void>('/users/deactivate', {
+      method: 'POST',
+    }),
+
+  deleteAccount: () =>
+    apiFetch<void>('/users/me', {
+      method: 'DELETE',
+    }),
 };
 
 export interface ConnectionSignals {
@@ -988,6 +999,12 @@ export const photosApi = {
   finalizeUpload: (gameId: string, mediaId: string) =>
     apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
       method: 'POST',
+    }),
+
+  // Delete a photo
+  delete: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}`, {
+      method: 'DELETE',
     }),
 };
 

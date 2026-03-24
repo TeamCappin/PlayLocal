@@ -3,6 +3,7 @@ import './globals.css';
 
 import { Providers } from './providers';
 import { Navigation } from '@/components/Navigation';
+import { Toaster } from '@/components/ui/sonner';
 
 // Use system font stack so Docker build does not require network (Google Fonts fetch)
 const fontClass =
@@ -25,6 +26,7 @@ export default function RootLayout({
         <Providers>
           <Navigation />
           {children}
+          <Toaster richColors position="top-right" />
         </Providers>
       </body>
     </html>
