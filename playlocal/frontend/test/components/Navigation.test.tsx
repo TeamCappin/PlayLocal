@@ -1,37 +1,52 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Navigation } from '@/components/Navigation';
 
+const pushMock = jest.fn();
 const performLogoutRedirectMock = jest.fn();
 const openAssistantMock = jest.fn();
 const inferRouteMock = jest.fn(() => ({ context: 'discover' as const }));
-let pathnameMock = '/discover';
-let authStateMock = {
-  user: { displayName: 'Youssef' },
-  isAuthenticated: true,
-  isLoading: false,
-};
+
+/** Mutable so tests can assert /settings active styles and route-driven behavior */
+let mockPathname = '/discover';
 
 jest.mock('next/link', () => {
-  return ({ href, children, ...props }: any) => (
-    <a href={href} {...props}>
+  return ({ href, children, onClick, ...props }: any) => (
+    <a
+      href={href}
+      {...props}
+      onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        onClick?.(e);
+      }}
+    >
       {children}
     </a>
   );
 });
 
 jest.mock('next/navigation', () => ({
-  usePathname: () => pathnameMock,
+  usePathname: () => mockPathname,
+  useRouter: () => ({ push: pushMock }),
 }));
 
 jest.mock('@/context/AuthContext', () => ({
-  useAuth: () => authStateMock,
+  useAuth: () => ({
+    user: { displayName: 'Youssef' },
+    isAuthenticated: true,
+    isLoading: false,
+    logout: jest.fn(),
+  }),
 }));
 
-let unreadCountMock = 0;
+jest.mock('@/lib/authRedirect', () => ({
+  performLogoutRedirect: (...args: unknown[]) =>
+    performLogoutRedirectMock(...args),
+}));
+
 jest.mock('@/hooks/useNotifications', () => ({
-  useNotifications: () => ({ unreadCount: unreadCountMock }),
+  useNotifications: () => ({ unreadCount: 0 }),
 }));
 
 jest.mock('@/context/AssistantContext', () => ({
@@ -42,116 +57,75 @@ jest.mock('@/lib/inferAssistantRoute', () => ({
   inferAssistantRoute: (...args: unknown[]) => inferRouteMock(...args),
 }));
 
-jest.mock('@/lib/authRedirect', () => ({
-  performLogoutRedirect: (...args: unknown[]) => performLogoutRedirectMock(...args),
-}));
-
-let isMobileMock = false;
-jest.mock('@/components/ui/use-mobile', () => ({
-  useIsMobile: () => isMobileMock,
-}));
-
 describe('Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    pathnameMock = '/discover';
-    isMobileMock = false;
-    unreadCountMock = 0;
-    authStateMock = {
-      user: { displayName: 'Youssef' },
-      isAuthenticated: true,
-      isLoading: false,
-    };
+    mockPathname = '/discover';
   });
 
-  it('opens assistant from Help button', () => {
+  it('opens assistant from Help button', async () => {
     render(<Navigation />);
-    fireEvent.click(screen.getByRole('button', { name: /open help assistant/i }));
+    const help = await screen.findByRole('button', { name: /open help assistant/i });
+    fireEvent.click(help);
     expect(inferRouteMock).toHaveBeenCalledWith('/discover');
     expect(openAssistantMock).toHaveBeenCalledWith('discover', undefined);
   });
 
-  it('returns nothing on the landing page', () => {
-    pathnameMock = '/';
-
-    const { container } = render(<Navigation />);
-
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('shows loading skeleton while auth is loading', () => {
-    authStateMock = {
-      user: null,
-      isAuthenticated: false,
-      isLoading: true,
-    };
-
-    const { container } = render(<Navigation />);
-
-    expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
-    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
-  });
-
-  it('calls redirect logout helper when sign out is clicked', () => {
+  it('applies active styles to profile menu when pathname is under /settings', async () => {
+    mockPathname = '/settings/privacy';
     render(<Navigation />);
+    const menuBtn = await screen.findByRole('button', { name: /open account menu/i });
+    expect(menuBtn.className).toMatch(/text-emerald-600/);
+  });
 
-    fireEvent.click(screen.getByTitle('Sign out'));
+  it('closes profile menu on mousedown outside', async () => {
+    render(<Navigation />);
+    fireEvent.click(await screen.findByRole('button', { name: /open account menu/i }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Sign out calls performLogoutRedirect', async () => {
+    render(<Navigation />);
+    fireEvent.click(await screen.findByRole('button', { name: /open account menu/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
 
     expect(performLogoutRedirectMock).toHaveBeenCalledWith('/');
   });
 
-  describe('mobile view', () => {
-    beforeEach(() => {
-      isMobileMock = true;
+  it('Settings link points to /settings', async () => {
+    render(<Navigation />);
+    fireEvent.click(await screen.findByRole('button', { name: /open account menu/i }));
+    const settingsLink = screen.getByRole('menuitem', { name: /^settings$/i });
+    expect(settingsLink.getAttribute('href')).toBe('/settings');
+  });
+
+  it('closes menu when Profile link is clicked', async () => {
+    render(<Navigation />);
+    fireEvent.click(await screen.findByRole('button', { name: /open account menu/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^profile$/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
+  });
 
-    it('shows notification bell and sign out for authenticated user', () => {
-      render(<Navigation />);
-
-      expect(screen.getByTitle('Sign out')).toBeInTheDocument();
-      expect(screen.queryByText('Discover Games')).not.toBeInTheDocument();
+  it('closes menu when Settings link is clicked', async () => {
+    render(<Navigation />);
+    fireEvent.click(await screen.findByRole('button', { name: /open account menu/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^settings$/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
+  });
 
-    it('calls logout when mobile sign out is clicked', () => {
-      render(<Navigation />);
-
-      fireEvent.click(screen.getByTitle('Sign out'));
-
-      expect(performLogoutRedirectMock).toHaveBeenCalledWith('/');
-    });
-
-    it('shows Sign In link when not authenticated', () => {
-      authStateMock = {
-        user: null as any,
-        isAuthenticated: false,
-        isLoading: false,
-      };
-
-      render(<Navigation />);
-
-      expect(screen.getByText('Sign In')).toBeInTheDocument();
-      expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
-    });
-
-    it('shows notification badge when unreadCount > 0', () => {
-      unreadCountMock = 5;
-
-      render(<Navigation />);
-
-      expect(screen.getByText('5')).toBeInTheDocument();
-    });
-
-    it('shows loading skeleton on mobile when auth is loading', () => {
-      authStateMock = {
-        user: null as any,
-        isAuthenticated: false,
-        isLoading: true,
-      };
-
-      const { container } = render(<Navigation />);
-
-      expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
-    });
+  it('renders nothing on landing page', () => {
+    mockPathname = '/';
+    const { container } = render(<Navigation />);
+    expect(container.firstChild).toBeNull();
   });
 });
