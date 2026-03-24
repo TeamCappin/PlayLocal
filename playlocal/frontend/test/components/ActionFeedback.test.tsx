@@ -6,6 +6,9 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { toast } from '@/lib/toast';
 
+const mockListByGame = jest.fn();
+const mockDeletePhoto = jest.fn();
+
 // Mock sonner toast
 jest.mock('sonner', () => ({
   toast: {
@@ -15,6 +18,18 @@ jest.mock('sonner', () => ({
     dismiss: jest.fn(),
     info: jest.fn(),
     warning: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/api', () => ({
+  __esModule: true,
+  default: {
+    photos: {
+      listByGame: (...args: unknown[]) => mockListByGame(...args),
+      requestUploadSlot: jest.fn(),
+      finalizeUpload: jest.fn(),
+      delete: (...args: unknown[]) => mockDeletePhoto(...args),
+    },
   },
 }));
 
@@ -126,9 +141,32 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
 
     describe('Delete Photo Confirmation', () => {
       it('should warn that delete is irreversible', async () => {
-        // Photo delete confirmation should clearly state it's irreversible
-        // This test would be implemented when PhotosPanel is testable
-        expect(true).toBe(true); // Placeholder
+        const { PhotosPanel } = await import('@/components/photos/PhotosPanel');
+
+        mockListByGame.mockResolvedValueOnce([
+          {
+            mediaId: 'photo-1',
+            url: 'https://cdn.test/photo-1.jpg',
+            createdAt: '2026-03-22T12:00:00Z',
+            uploaderUserId: 'user-1',
+          },
+        ]);
+
+        render(<PhotosPanel gameId="game-123" canUpload={true} />);
+
+        await waitFor(() => {
+          expect(screen.getByAltText('Game photo')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTitle('Delete this photo'));
+
+        expect(screen.getByText('Delete Photo?')).toBeInTheDocument();
+        expect(
+          screen.getByText(/This photo will be permanently deleted/i)
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(/This action cannot be undone/i)
+        ).toBeInTheDocument();
       });
     });
 
@@ -212,15 +250,41 @@ describe('US 7.15: Action Feedback & Confirmation Messages', () => {
   });
 
   describe('Loading States', () => {
-    it('should prevent double submission during loading', () => {
-      // All major action buttons should be disabled during loading
-      // This ensures user cannot spam-click
-      expect(true).toBe(true); // Placeholder - would test actual components
+    it('should prevent double submission during loading', async () => {
+      const { ConfirmLeaveGameDialog } = await import(
+        '@/components/ConfirmLeaveGameDialog'
+      );
+
+      render(
+        <ConfirmLeaveGameDialog
+          isOpen={true}
+          onClose={jest.fn()}
+          onConfirm={jest.fn()}
+          gameTitle="Test Game"
+          isLoading={true}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Stay in Game' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Leaving...' })).toBeDisabled();
     });
 
-    it('should show loading spinner during actions', () => {
-      // Buttons should show spinner instead of icon during loading
-      expect(true).toBe(true); // Placeholder
+    it('should show loading text during destructive actions', async () => {
+      const { ConfirmAccountActionDialog } = await import(
+        '@/components/ConfirmAccountActionDialog'
+      );
+
+      render(
+        <ConfirmAccountActionDialog
+          isOpen={true}
+          onClose={jest.fn()}
+          onConfirm={jest.fn()}
+          action="delete"
+          isLoading={true}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDisabled();
     });
   });
 
