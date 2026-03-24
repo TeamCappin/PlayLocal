@@ -3,7 +3,14 @@ package com.backend.playlocal.unit;
 import com.backend.playlocal.model.dto.MediaListItem;
 import com.backend.playlocal.model.dto.RequestUploadSlotRequest;
 import com.backend.playlocal.model.dto.RequestUploadSlotResponse;
+import com.backend.playlocal.model.entity.ContentVisibility;
+import com.backend.playlocal.model.entity.Game;
+import com.backend.playlocal.model.entity.GameParticipation;
 import com.backend.playlocal.model.entity.MediaAsset;
+import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.repository.ContentVisibilityRepository;
+import com.backend.playlocal.repository.GameParticipationRepository;
+import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.MediaAssetRepository;
 import com.backend.playlocal.service.MediaService;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +54,15 @@ class MediaServiceTest {
     private MediaAssetRepository mediaRepo;
 
     @Mock
+    private GameRepository gameRepo;
+
+    @Mock
+    private GameParticipationRepository gameParticipationRepo;
+
+    @Mock
+    private ContentVisibilityRepository contentVisibilityRepo;
+
+    @Mock
     private S3Client s3;
 
     @Mock
@@ -65,6 +81,35 @@ class MediaServiceTest {
         }
     }
 
+    private static Game organizerGame(UUID gameId, UUID organizerId) {
+        User organizer = new User();
+        organizer.setUserId(organizerId);
+
+        Game game = new Game();
+        game.setGameId(gameId);
+        game.setCreatedBy(organizer);
+        return game;
+    }
+
+    private static ContentVisibility contentVisibility(UUID id, String code) {
+        ContentVisibility visibility = new ContentVisibility();
+        visibility.setContentVisibilityId(id);
+        visibility.setCode(code);
+        return visibility;
+    }
+
+    private static GameParticipation participation(Game game, UUID userId, GameParticipation.JoinStatus status, Instant leftAt) {
+        User user = new User();
+        user.setUserId(userId);
+
+        GameParticipation participation = new GameParticipation();
+        participation.setGame(game);
+        participation.setUser(user);
+        participation.setJoinStatus(status);
+        participation.setLeftAt(leftAt);
+        return participation;
+    }
+
     @Nested
     class RequestUploadSlotTests {
 
@@ -74,6 +119,12 @@ class MediaServiceTest {
             // Arrange
             UUID gameId = UUID.randomUUID();
             UUID uploaderUserId = UUID.randomUUID();
+            UUID visibilityId = UUID.randomUUID();
+            Game game = organizerGame(gameId, uploaderUserId);
+
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(contentVisibilityRepo.findByCode("public"))
+                    .thenReturn(Optional.of(contentVisibility(visibilityId, "public")));
 
             when(mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(eq(gameId), eq(MediaAsset.MediaType.PHOTO)))
                     .thenReturn(5L);
@@ -100,10 +151,15 @@ class MediaServiceTest {
             UUID gameId = UUID.randomUUID();
             UUID uploaderUserId = UUID.randomUUID();
             UUID generatedMediaId = UUID.randomUUID();
+            UUID visibilityId = UUID.randomUUID();
+            Game game = organizerGame(gameId, uploaderUserId);
 
             setPrivateField(mediaService, "bucketName", "uploads");
             setPrivateField(mediaService, "presignExpirySeconds", 900L);
 
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(contentVisibilityRepo.findByCode("public"))
+                    .thenReturn(Optional.of(contentVisibility(visibilityId, "public")));
             when(mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(eq(gameId), eq(MediaAsset.MediaType.PHOTO)))
                     .thenReturn(0L);
 
@@ -143,6 +199,7 @@ class MediaServiceTest {
             assertThat(savedAssets.get(0).getUploaderUserId()).isEqualTo(uploaderUserId);
             assertThat(savedAssets.get(0).getGameId()).isEqualTo(gameId);
             assertThat(savedAssets.get(0).getMediaType()).isEqualTo(MediaAsset.MediaType.PHOTO);
+            assertThat(savedAssets.get(0).getVisibilityId()).isEqualTo(visibilityId);
 
             assertThat(savedAssets.get(1).getStorageUrl()).isEqualTo(expectedKey);
 
@@ -158,10 +215,14 @@ class MediaServiceTest {
             UUID gameId = UUID.randomUUID();
             UUID uploaderUserId = UUID.randomUUID();
             UUID generatedMediaId = UUID.randomUUID();
+            Game game = organizerGame(gameId, uploaderUserId);
 
             setPrivateField(mediaService, "bucketName", "uploads");
             setPrivateField(mediaService, "presignExpirySeconds", 900L);
 
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(contentVisibilityRepo.findByCode("public"))
+                    .thenReturn(Optional.of(contentVisibility(UUID.randomUUID(), "public")));
             when(mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(eq(gameId), eq(MediaAsset.MediaType.PHOTO)))
                     .thenReturn(0L);
 
@@ -192,7 +253,11 @@ class MediaServiceTest {
             // Arrange
             UUID gameId = UUID.randomUUID();
             UUID uploaderUserId = UUID.randomUUID();
+            Game game = organizerGame(gameId, uploaderUserId);
 
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(contentVisibilityRepo.findByCode("public"))
+                    .thenReturn(Optional.of(contentVisibility(UUID.randomUUID(), "public")));
             when(mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(eq(gameId), eq(MediaAsset.MediaType.PHOTO)))
                     .thenReturn(0L);
 
@@ -204,6 +269,102 @@ class MediaServiceTest {
             ))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("DB did not generate media_id");
+        }
+
+        @Test
+        @DisplayName("requestPhotoUploadSlot should return 404 when the game does not exist")
+        void requestPhotoUploadSlot_ThrowsWhenGameMissing() {
+            UUID gameId = UUID.randomUUID();
+
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> mediaService.requestPhotoUploadSlot(
+                    gameId,
+                    UUID.randomUUID(),
+                    new RequestUploadSlotRequest("image/jpeg", "a.jpg")
+            ))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .satisfies(ex -> {
+                        ResponseStatusException rse = (ResponseStatusException) ex;
+                        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+                        assertThat(rse.getReason()).contains("Game not found");
+                    });
+
+            verifyNoInteractions(mediaRepo, contentVisibilityRepo, gameParticipationRepo);
+        }
+
+        @Test
+        @DisplayName("requestPhotoUploadSlot should reject when the user has not joined the game")
+        void requestPhotoUploadSlot_RejectsUnauthorizedUser() {
+            UUID gameId = UUID.randomUUID();
+            UUID organizerId = UUID.randomUUID();
+            UUID uploaderUserId = UUID.randomUUID();
+            Game game = organizerGame(gameId, organizerId);
+
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(gameParticipationRepo.findByGameAndUser(gameId, uploaderUserId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> mediaService.requestPhotoUploadSlot(
+                    gameId,
+                    uploaderUserId,
+                    new RequestUploadSlotRequest("image/jpeg", "a.jpg")
+            ))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .satisfies(ex -> {
+                        ResponseStatusException rse = (ResponseStatusException) ex;
+                        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                        assertThat(rse.getReason()).contains("Join the game to upload photos");
+                    });
+
+            verifyNoInteractions(contentVisibilityRepo);
+            verifyNoInteractions(mediaRepo);
+        }
+
+        @Test
+        @DisplayName("requestPhotoUploadSlot should allow an active participant")
+        void requestPhotoUploadSlot_AllowsActiveParticipant() throws Exception {
+            UUID gameId = UUID.randomUUID();
+            UUID organizerId = UUID.randomUUID();
+            UUID uploaderUserId = UUID.randomUUID();
+            UUID generatedMediaId = UUID.randomUUID();
+            UUID visibilityId = UUID.randomUUID();
+            Game game = organizerGame(gameId, organizerId);
+
+            setPrivateField(mediaService, "bucketName", "uploads");
+            setPrivateField(mediaService, "presignExpirySeconds", 900L);
+
+            when(gameRepo.findById(eq(gameId))).thenReturn(Optional.of(game));
+            when(gameParticipationRepo.findByGameAndUser(gameId, uploaderUserId))
+                    .thenReturn(Optional.of(participation(
+                            game,
+                            uploaderUserId,
+                            GameParticipation.JoinStatus.CONFIRMED,
+                            null
+                    )));
+            when(contentVisibilityRepo.findByCode("public"))
+                    .thenReturn(Optional.of(contentVisibility(visibilityId, "public")));
+            when(mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(eq(gameId), eq(MediaAsset.MediaType.PHOTO)))
+                    .thenReturn(0L);
+            when(mediaRepo.save(any(MediaAsset.class))).thenAnswer(inv -> {
+                MediaAsset a = inv.getArgument(0);
+                if (a.getMediaId() == null) {
+                    a.setMediaId(generatedMediaId);
+                }
+                return a;
+            });
+
+            PresignedPutObjectRequest presignedPut = mock(PresignedPutObjectRequest.class);
+            when(presignedPut.url()).thenReturn(new URL("http://example.com/put"));
+            when(presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+
+            RequestUploadSlotResponse response = mediaService.requestPhotoUploadSlot(
+                    gameId,
+                    uploaderUserId,
+                    new RequestUploadSlotRequest("image/jpeg", "photo.jpg")
+            );
+
+            assertThat(response.getMediaId()).isEqualTo(generatedMediaId);
+            verify(gameParticipationRepo).findByGameAndUser(gameId, uploaderUserId);
         }
     }
 
