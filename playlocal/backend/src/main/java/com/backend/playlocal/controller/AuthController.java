@@ -70,6 +70,42 @@ public class AuthController {
     }
 
     /**
+     * US-7.10: Verify MFA code during login.
+     */
+    @PostMapping("/verify-mfa")
+    public ResponseEntity<AuthDto.AuthResponse> verifyMfa(@Valid @RequestBody AuthDto.MfaVerifyRequest request) {
+        AuthDto.AuthResponse response = authService.verifyMfa(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * US-7.10: Enable MFA for the authenticated user.
+     */
+    @PostMapping("/mfa/enable")
+    public ResponseEntity<Void> enableMfa(Authentication authentication) {
+        authService.enableMfa(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * US-7.10: Disable MFA for the authenticated user.
+     */
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<Void> disableMfa(Authentication authentication) {
+        authService.disableMfa(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * US-7.10: Get MFA status for the authenticated user.
+     */
+    @GetMapping("/mfa/status")
+    public ResponseEntity<java.util.Map<String, Boolean>> getMfaStatus(Authentication authentication) {
+        boolean enabled = authService.isMfaEnabled(authentication.getName());
+        return ResponseEntity.ok(java.util.Map.of("mfaEnabled", enabled));
+    }
+
+    /**
      * US-7.9: Forgot Password - request reset code.
      * Always returns 204 so we do not reveal whether the email exists.
      */

@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
 
     private static final long RESET_CODE_TTL_SECONDS = (long) 10 * 60; // 10 minutes
+    private static final long MFA_CODE_TTL_SECONDS = (long) 5 * 60; // 5 minutes
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
@@ -39,6 +40,9 @@ public class AuthService {
      * Replace with DB table later.
      */
     private final Map<String, ResetCodeEntry> resetCodeStore = new ConcurrentHashMap<>();
+
+    /** In-memory MFA code store keyed by email. */
+    private final Map<String, MfaCodeEntry> mfaCodeStore = new ConcurrentHashMap<>();
 
     public AuthService(UserRepository userRepository,
                        UserRoleRepository userRoleRepository,
@@ -100,6 +104,7 @@ public class AuthService {
 
     /**
      * Login an existing user.
+     * If MFA is enabled, sends a code and returns mfaRequired=true without a token.
      */
     public AuthDto.AuthResponse login(AuthDto.LoginRequest request) {
         User user = userRepository.findByEmailIgnoreCase(request.getEmail())
@@ -111,6 +116,19 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
+        }
+
+        // MFA check
+        if (Boolean.TRUE.equals(user.getMfaEnabled())) {
+            String code = generateSixDigitCode();
+            String normalizedEmail = normalizeEmail(user.getEmail());
+            mfaCodeStore.put(normalizedEmail,
+                    new MfaCodeEntry(code, Instant.now().plusSeconds(MFA_CODE_TTL_SECONDS)));
+            emailService.sendMfaCodeEmail(normalizedEmail, code);
+
+            return AuthDto.AuthResponse.builder()
+                    .mfaRequired(true)
+                    .build();
         }
 
         user.setLastLoginAt(Instant.now());
@@ -125,6 +143,67 @@ public class AuthService {
                 .expiresIn(jwtService.getExpirationMs() / 1000)
                 .user(mapToUserDto(user))
                 .build();
+    }
+
+    /**
+     * Verify MFA code and return JWT on success.
+     */
+    public AuthDto.AuthResponse verifyMfa(AuthDto.MfaVerifyRequest request) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        MfaCodeEntry entry = mfaCodeStore.get(normalizedEmail);
+
+        if (entry == null || entry.isExpired() || !entry.code().equals(request.getCode())) {
+            throw new BadCredentialsException("Invalid or expired MFA code");
+        }
+
+        mfaCodeStore.remove(normalizedEmail);
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+
+        List<String> roles = userRoleRepository.findRoleNamesByUserId(user.getUserId());
+        String token = jwtService.generateToken(user.getUserId(), user.getEmail(), roles);
+
+        return AuthDto.AuthResponse.builder()
+                .token(token)
+                .tokenType("Bearer")
+                .expiresIn(jwtService.getExpirationMs() / 1000)
+                .user(mapToUserDto(user))
+                .build();
+    }
+
+    /**
+     * Enable MFA for the authenticated user.
+     */
+    @Transactional
+    public void enableMfa(String userId) {
+        User user = userRepository.findActiveById(UUID.fromString(userId))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setMfaEnabled(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * Disable MFA for the authenticated user.
+     */
+    @Transactional
+    public void disableMfa(String userId) {
+        User user = userRepository.findActiveById(UUID.fromString(userId))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setMfaEnabled(false);
+        userRepository.save(user);
+    }
+
+    /**
+     * Get MFA status for the authenticated user.
+     */
+    public boolean isMfaEnabled(String userId) {
+        User user = userRepository.findActiveById(UUID.fromString(userId))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return Boolean.TRUE.equals(user.getMfaEnabled());
     }
 
     /**
@@ -261,6 +340,7 @@ public class AuthService {
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .mfaEnabled(user.getMfaEnabled())
                 .build();
     }
 
@@ -268,6 +348,15 @@ public class AuthService {
             String code,
             Instant expiresAt,
             boolean verified
+    ) {
+        private boolean isExpired() {
+            return Instant.now().isAfter(expiresAt);
+        }
+    }
+
+    private record MfaCodeEntry(
+            String code,
+            Instant expiresAt
     ) {
         private boolean isExpired() {
             return Instant.now().isAfter(expiresAt);

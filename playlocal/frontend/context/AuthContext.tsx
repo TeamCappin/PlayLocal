@@ -17,7 +17,8 @@ interface AuthContextType {
   user: UserDto | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ mfaRequired?: boolean }>;
+  verifyMfa: (email: string, code: string) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -67,18 +68,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ mfaRequired?: boolean }> => {
     setError(null);
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
+      if (response.mfaRequired) {
+        return { mfaRequired: true };
+      }
+      setAuthToken(response.token);
+      setUser(response.user);
+      return {};
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError('Login failed. Please try again.');
+      }
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyMfa = async (email: string, code: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await authApi.verifyMfa({ email, code });
       setAuthToken(response.token);
       setUser(response.user);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Login failed. Please try again.');
+        setError('MFA verification failed. Please try again.');
       }
       throw err;
     } finally {
@@ -143,6 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!user,
         isLoading,
         login,
+        verifyMfa,
         register,
         logout,
         refreshUser,

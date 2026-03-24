@@ -10,9 +10,11 @@ import {
   Download,
   Loader2,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
+  authApi,
   privacyApi,
   PrivacySettingsResponse,
   UpdatePrivacySettingsRequest,
@@ -425,9 +427,81 @@ function NotificationSettings() {
 }
 
 function SecuritySettings() {
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [mfaToggling, setMfaToggling] = useState(false);
+  const [mfaMessage, setMfaMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    authApi.getMfaStatus()
+      .then((data) => setMfaEnabled(data.mfaEnabled))
+      .catch(() => {})
+      .finally(() => setMfaLoading(false));
+  }, []);
+
+  const handleMfaToggle = async () => {
+    setMfaToggling(true);
+    setMfaMessage(null);
+    try {
+      if (mfaEnabled) {
+        await authApi.disableMfa();
+        setMfaEnabled(false);
+        setMfaMessage('MFA has been disabled.');
+      } else {
+        await authApi.enableMfa();
+        setMfaEnabled(true);
+        setMfaMessage('MFA has been enabled. You will need to verify a code on your next login.');
+      }
+      setTimeout(() => setMfaMessage(null), 4000);
+    } catch {
+      setMfaMessage('Failed to update MFA setting.');
+    } finally {
+      setMfaToggling(false);
+    }
+  };
+
   return (
     <>
       <PasswordChangeCard />
+
+      {/* MFA Card */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-xl text-gray-900">Two-Factor Authentication</h2>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Add an extra layer of security. When enabled, you&apos;ll receive a 6-digit verification code via email each time you log in.
+        </p>
+        {mfaMessage && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            mfaMessage.includes('Failed') ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+          }`}>
+            {mfaMessage}
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-gray-900 mb-1">Email-based MFA</div>
+            <div className="text-sm text-gray-600">
+              {mfaLoading ? 'Loading...' : mfaEnabled ? 'Currently enabled' : 'Currently disabled'}
+            </div>
+          </div>
+          <button
+            onClick={handleMfaToggle}
+            disabled={mfaLoading || mfaToggling}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 disabled:opacity-50 ${
+              mfaEnabled ? 'bg-emerald-600' : 'bg-gray-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                mfaEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Safety & Moderation</h2>

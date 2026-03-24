@@ -145,6 +145,7 @@ export interface AuthResponse {
   tokenType: string;
   expiresIn: number;
   user: UserDto;
+  mfaRequired?: boolean;
 }
 
 export interface UserDto {
@@ -162,6 +163,7 @@ export interface UserDto {
   endorsementsCount?: number; // New field for endorsements count [US-3.3]
   createdAt?: string;
   profileRestricted?: boolean; // US-7.12: true when viewer cannot see full profile
+  mfaEnabled?: boolean;
 }
 
 export const authApi = {
@@ -214,7 +216,21 @@ export const authApi = {
     return Promise.resolve();
   },
 
-  
+  // US-7.10: MFA
+  verifyMfa: (data: { email: string; code: string }) =>
+    apiFetch<AuthResponse>('/auth/verify-mfa', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  enableMfa: () =>
+    apiFetch<void>('/auth/mfa/enable', { method: 'POST' }),
+
+  disableMfa: () =>
+    apiFetch<void>('/auth/mfa/disable', { method: 'POST' }),
+
+  getMfaStatus: () =>
+    apiFetch<{ mfaEnabled: boolean }>('/auth/mfa/status'),
 };
 
 // ============================================
