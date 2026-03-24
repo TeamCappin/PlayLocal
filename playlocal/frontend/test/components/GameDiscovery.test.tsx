@@ -38,6 +38,7 @@ jest.mock('lucide-react', () => ({
   Loader2: () => <div data-testid="icon-loader" />,
   X: () => <div data-testid="icon-x" />,
   Search: () => <div data-testid="icon-search" />,
+  Bot: () => <div data-testid="icon-bot" />,
 }));
 
 // Prevent @vis.gl/react-google-maps from running in tests
@@ -47,10 +48,15 @@ jest.mock('../../components/MapView', () => ({
 }));
 
 import { useGames } from '../../hooks/useGames';
+const openAssistantMock = jest.fn();
+jest.mock('@/context/AssistantContext', () => ({
+  useAssistant: () => ({ openAssistant: openAssistantMock }),
+}));
 
 describe('GameDiscovery Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    openAssistantMock.mockClear();
     sessionStorage.clear();
     mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? null : null));
     Object.defineProperty(global.navigator, "geolocation", {
@@ -62,6 +68,20 @@ describe('GameDiscovery Component', () => {
       writable: true,
       configurable: true,
     });
+  });
+
+  it('opens assistant when Help button is clicked', () => {
+    (useGames as jest.Mock).mockReturnValue({
+      games: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<GameDiscovery />);
+    fireEvent.click(screen.getByRole('button', { name: /open help assistant/i }));
+
+    expect(openAssistantMock).toHaveBeenCalledWith('discover');
   });
 
   describe('Loading State', () => {
