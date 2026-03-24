@@ -140,9 +140,12 @@ describe('AuthContext / AuthProvider', () => {
     expect(mockedSetAuthToken).not.toHaveBeenCalled();
   });
 
-  it('on mount: token exists but getCurrentUser fails => clears token and remains unauthenticated', async () => {
+  it('on mount: token exists but getCurrentUser fails with 401 => clears token and remains unauthenticated', async () => {
     mockedGetAuthToken.mockReturnValueOnce('token-123');
-    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(new ApiError('Unauthorized', 401));
+    // Must be ApiError with status 401 — plain Error is treated as retryable (AC6)
+    mockedAuthApi.getCurrentUser.mockRejectedValueOnce(
+      new ApiError('Unauthorized', 401)
+    );
 
     renderWithProvider(<TestConsumer />);
 
