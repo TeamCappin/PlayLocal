@@ -145,4 +145,17 @@ describe('ConfirmAccountActionDialog', () => {
     );
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('renders nothing when closed', () => {
+    const { container } = render(
+      <ConfirmAccountActionDialog
+        isOpen={false}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+        action="deactivate"
+      />
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
 });
