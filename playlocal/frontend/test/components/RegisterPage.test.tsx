@@ -372,7 +372,9 @@ describe('RegisterPage', () => {
 
     await waitFor(() => expect(register).toHaveBeenCalled());
 
-    expect(screen.getByText(/registration failed/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/registration failed/i)).toBeInTheDocument();
+    });
     expect(pushMock).not.toHaveBeenCalledWith('/discover');
   });
 

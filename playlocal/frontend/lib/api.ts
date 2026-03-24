@@ -45,6 +45,13 @@ async function apiFetch<T>(
       headers,
     });
   } catch (networkError: any) {
+    if (networkError?.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "Request timed out. Please try again.",
+        { aborted: true },
+      );
+    }
     // Handle network errors (no connection, CORS, etc.)
     const base = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
     throw new ApiError(
@@ -718,6 +725,46 @@ export const endorsementsApi = {
 };
 
 // ============================================
+// AI ASSISTANT (US 8.1)
+// ============================================
+
+export interface AiChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface AiChatRequest {
+  sessionId?: string;
+  messages: AiChatMessage[];
+}
+
+export interface AiChatResponse {
+  message: { role: string; content: string };
+}
+
+export interface AiTelemetryRequest {
+  eventType: string;
+  sessionId: string;
+  context?: string;
+  gameId?: string;
+}
+
+export const aiApi = {
+  chat: (data: AiChatRequest, signal?: AbortSignal) =>
+    apiFetch<AiChatResponse>("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+      signal,
+    }),
+
+  telemetry: (data: AiTelemetryRequest) =>
+    apiFetch<void>("/ai/telemetry", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 
@@ -996,6 +1043,7 @@ export default {
   notifications: notificationsApi,
   endorsements: endorsementsApi,
   health: healthApi,
+  ai: aiApi,
   scoreHistory: scoreHistoryApi,
   organizerQuality: organizerQualityApi,
   stats: statsApi,

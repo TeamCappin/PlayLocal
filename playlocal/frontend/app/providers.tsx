@@ -17,12 +17,14 @@ function RedirectToastBootstrap() {
 
   return null;
 }
+import { AssistantProvider } from '@/context/AssistantContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <RedirectToastBootstrap />
       {children}
+      <AssistantProvider>{children}</AssistantProvider>
     </AuthProvider>
   );
 }
