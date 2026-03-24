@@ -3,16 +3,7 @@ import { SettingsPage } from '@/components/SettingsPage';
 import { privacyApi, usersApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
-const mockPush = jest.fn();
-const mockLogout = jest.fn().mockResolvedValue(undefined);
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    get push() {
-      return mockPush;
-    },
-  }),
-}));
+const mockPerformLogoutRedirect = jest.fn();
 
 jest.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
@@ -20,9 +11,6 @@ jest.mock('@/context/AuthContext', () => ({
       userId: 'user-1',
       displayName: 'Test User',
       email: 'test@example.com',
-    },
-    get logout() {
-      return mockLogout;
     },
   }),
 }));
@@ -49,6 +37,11 @@ jest.mock('@/lib/toast', () => {
     },
   };
 });
+
+jest.mock('@/lib/authRedirect', () => ({
+  performLogoutRedirect: (...args: unknown[]) =>
+    mockPerformLogoutRedirect(...args),
+}));
 
 const mockGetSettings = privacyApi.getSettings as jest.Mock;
 const mockUpdateSettings = privacyApi.updateSettings as jest.Mock;
@@ -202,12 +195,10 @@ describe('SettingsPage - Security account actions', () => {
     await waitFor(() => {
       expect(mockDeactivateAccount).toHaveBeenCalled();
     });
-
-    expect(toast.success).toHaveBeenCalledWith('Account deactivated');
-    await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
+      message: 'Account deactivated',
+      type: 'success',
     });
-    expect(mockPush).toHaveBeenCalledWith('/');
   });
 
   it('deletes account after typing DELETE, then logs out', async () => {
@@ -226,12 +217,10 @@ describe('SettingsPage - Security account actions', () => {
     await waitFor(() => {
       expect(mockDeleteAccount).toHaveBeenCalled();
     });
-
-    expect(toast.success).toHaveBeenCalledWith('Account deleted');
-    await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
+      message: 'Account deleted',
+      type: 'success',
     });
-    expect(mockPush).toHaveBeenCalledWith('/');
   });
 
   it('shows toast error when deactivate fails', async () => {
