@@ -24,6 +24,11 @@ jest.mock('../../hooks/useGames', () => ({
   useGame: jest.fn(),
 }));
 
+const mockPerformRedirect = jest.fn();
+jest.mock('../../lib/authRedirect', () => ({
+  performRedirect: (...args: unknown[]) => mockPerformRedirect(...args),
+}));
+
 // Mock toast library for US-7.15
 jest.mock('../../lib/toast', () => ({
   toast: {
@@ -188,8 +193,19 @@ jest.mock('../../components/photos/PhotosPanel', () => ({
 }));
 
 jest.mock('../../components/ui/dialog', () => ({
-  Dialog: ({ children, open }: any) =>
-    open ? <div data-testid="dialog">{children}</div> : null,
+  Dialog: ({ children, open, onOpenChange }: any) =>
+    open ? (
+      <>
+        <div
+          aria-hidden="true"
+          data-testid="dialog-backdrop"
+          onClick={() => onOpenChange?.(false)}
+        />
+        <div data-testid="dialog" role="dialog" aria-modal="true">
+          {children}
+        </div>
+      </>
+    ) : null,
   DialogContent: ({ children }: any) => (
     <div data-testid="dialog-content">{children}</div>
   ),
@@ -283,7 +299,9 @@ describe('GameRoom Component', () => {
     });
     (gamesApi.getTags as jest.Mock).mockResolvedValue([]);
     (useParams as jest.Mock).mockReturnValue({ id: 'game-123' });
-    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
+    });
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isAuthenticated: true,
@@ -804,6 +822,7 @@ describe('GameRoom Component', () => {
 
   describe('Leave Game Flow', () => {
     it('leaves game successfully', async () => {
+      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
       const participantRoster = {
         confirmed: [
           ...mockRoster.confirmed,
@@ -850,13 +869,22 @@ describe('GameRoom Component', () => {
         );
 
         await waitFor(() => {
-          expect(mockLeaveGame).toHaveBeenCalled();
+          expect(mockLeaveGame).toHaveBeenCalledWith({ refetchAfter: false });
         });
 
-        await waitFor(() => {
-          const { toast } = require('../../lib/toast');
-          expect(toast.success).toHaveBeenCalledWith('Left game');
+        expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+          message: 'Left game',
+          type: 'success',
+        }, {
+          replace: true,
         });
+        expect(dispatchEventSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'playlocal-refresh-games' })
+        );
+        expect(dispatchEventSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'playlocal-refresh-notifications' })
+        );
+        dispatchEventSpy.mockRestore();
       }
     });
 
@@ -1100,10 +1128,14 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Yes, Delete/i }));
       await waitFor(() => {
         expect(mockCancelGame).toHaveBeenCalled();
-        const { toast } = require('../../lib/toast');
-        expect(toast.success).toHaveBeenCalledWith('Game deleted');
       });
-      expect(mockPush).toHaveBeenCalledWith('/discover');
+      expect(mockCancelGame).toHaveBeenCalledWith({ refetchAfter: false });
+      expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+        message: 'Game deleted',
+        type: 'success',
+      }, {
+        replace: true,
+      });
     });
 
     it('organizer save edit modal calls update and shows success', async () => {
@@ -2386,10 +2418,14 @@ describe('GameRoom Component', () => {
 
       await waitFor(() => {
         expect(mockCancelGame).toHaveBeenCalled();
-        const { toast } = require('../../lib/toast');
-        expect(toast.success).toHaveBeenCalledWith('Game deleted');
       });
-      expect(mockPush).toHaveBeenCalledWith('/discover');
+      expect(mockCancelGame).toHaveBeenCalledWith({ refetchAfter: false });
+      expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+        message: 'Game deleted',
+        type: 'success',
+      }, {
+        replace: true,
+      });
     });
 
     it('should show error when cancel fails', async () => {
