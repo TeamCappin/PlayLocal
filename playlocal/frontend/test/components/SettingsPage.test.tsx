@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsPage } from '@/components/SettingsPage';
-import { privacyApi, usersApi } from '@/lib/api';
+import { privacyApi, usersApi, authApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const mockPerformLogoutRedirect = jest.fn();
