@@ -54,4 +54,19 @@ public class MediaController {
         UUID userId = getUserId(principal);
         return mediaService.listReadyPhotos(gameId, userId);
     }
+
+    /**
+     * US-7.15: Delete a photo from a game.
+     * DELETE /api/v1/games/{gameId}/media/photos/{mediaId}
+     * Only the uploader or game organizer can delete.
+     */
+    @DeleteMapping("/photos/{mediaId}")
+    public void deletePhoto(
+            @PathVariable UUID gameId,
+            @PathVariable UUID mediaId,
+            Principal principal
+    ) {
+        UUID userId = getUserId(principal);
+        mediaService.deletePhoto(gameId, mediaId, userId);
+    }
 }

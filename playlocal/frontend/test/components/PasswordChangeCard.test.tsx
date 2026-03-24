@@ -3,25 +3,19 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 import { authApi } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 
 // Mocks
-const pushMock = jest.fn();
-const logoutMock = jest.fn();
-
-jest.mock('next/navigation', () => ({
-  useRouter: jest.fn(),
-}));
-
-jest.mock('@/context/AuthContext', () => ({
-  useAuth: jest.fn(),
-}));
+const mockPerformLogoutRedirect = jest.fn();
 
 jest.mock('@/lib/api', () => ({
   authApi: {
     changePassword: jest.fn(),
   },
+}));
+
+jest.mock('@/lib/authRedirect', () => ({
+  performLogoutRedirect: (...args: unknown[]) =>
+    mockPerformLogoutRedirect(...args),
 }));
 
 const mockChangePassword = authApi.changePassword as jest.Mock;
@@ -57,14 +51,6 @@ describe('PasswordChangeCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-
-    (useRouter as unknown as jest.Mock).mockReturnValue({
-      push: pushMock,
-    });
-
-    (useAuth as unknown as jest.Mock).mockReturnValue({
-      logout: logoutMock.mockResolvedValue(undefined),
-    });
 
     mockChangePassword.mockResolvedValue(undefined);
   });
@@ -409,7 +395,7 @@ describe('PasswordChangeCard', () => {
     });
   });
 
-  it('calls logout and redirects to /login after 1200ms on success', async () => {
+  it('queues a logout redirect to /login after 1200ms on success', async () => {
     const { currentPasswordInput, newPasswordInput, confirmNewPasswordInput, submitButton } = setup();
 
     fireEvent.change(currentPasswordInput, { target: { value: 'OldPassword1!' } });
@@ -422,25 +408,24 @@ describe('PasswordChangeCard', () => {
       expect(mockChangePassword).toHaveBeenCalled();
     });
 
-    expect(logoutMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).not.toHaveBeenCalled();
 
     await act(async () => {
       jest.advanceTimersByTime(1199);
     });
 
-    expect(logoutMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).not.toHaveBeenCalled();
 
     await act(async () => {
       jest.advanceTimersByTime(1);
     });
 
     await waitFor(() => {
-      expect(logoutMock).toHaveBeenCalledTimes(1);
+      expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/login', {
+        message: 'Password changed. Sign in again.',
+        type: 'success',
+      });
     });
-
-    expect(pushMock).toHaveBeenCalledWith('/login');
   });
 
   it('does not logout or redirect when validation fails', () => {
@@ -449,8 +434,7 @@ describe('PasswordChangeCard', () => {
     fireEvent.click(submitButton);
 
     expect(mockChangePassword).not.toHaveBeenCalled();
-    expect(logoutMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).not.toHaveBeenCalled();
   });
 
   it('does not logout or redirect when API call fails', async () => {
@@ -472,8 +456,7 @@ describe('PasswordChangeCard', () => {
       jest.advanceTimersByTime(1200);
     });
 
-    expect(logoutMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(mockPerformLogoutRedirect).not.toHaveBeenCalled();
   });
 
   it('re-enables submit button after a failed request', async () => {

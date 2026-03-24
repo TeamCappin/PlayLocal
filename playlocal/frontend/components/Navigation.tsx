@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   MapPin,
   Search,
@@ -19,11 +19,11 @@ import { useAssistant } from '@/context/AssistantContext';
 import { inferAssistantRoute } from '@/lib/inferAssistantRoute';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 export function Navigation() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const navigate = useRouter();
 
   // Ensure hydration is complete before rendering
   useEffect(() => {
@@ -32,7 +32,7 @@ export function Navigation() {
   }, []);
 
   const isLanding = pathname === '/';
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { openAssistant } = useAssistant();
 
   // Get notification count (silently fail if backend unavailable)
@@ -64,8 +64,7 @@ export function Navigation() {
   }
 
   const handleLogout = () => {
-    logout();
-    navigate.push('/');
+    performLogoutRedirect('/');
   };
 
   return (

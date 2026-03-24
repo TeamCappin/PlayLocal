@@ -5,10 +5,12 @@ import { ArrowLeft, Eye, CheckCircle, Info, Save } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usersApi } from '@/lib/api';
 import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
 
 export function EditProfile() {
   const navigate = useRouter();
   const { user, isAuthenticated, refreshUser } = useAuth();
+  const profileSlug = user?.slug || user?.displayName?.toLowerCase().replace(/\s+/g, '-') || 'me';
 
   const [displayName, setDisplayName] = useState('');
   const [intensity, setIntensity] = useState('');
@@ -41,7 +43,7 @@ export function EditProfile() {
     setIsSaving(true);
 
     try {
-      await usersApi.updateProfile({
+      const updatedUser = await usersApi.updateProfile({
         displayName,
         defaultIntensity: intensity,
         availability: availability.join(','),
@@ -54,11 +56,12 @@ export function EditProfile() {
         await refreshUser();
       }
 
-      navigate.push(
-        `/profile/${displayName?.toLowerCase().replace(/\s+/g, '-') || 'me'}`
-      );
+      toast.success('Profile updated');
+      navigate.replace(`/profile/${updatedUser.slug || 'me'}`);
     } catch (err: any) {
-      setSaveError(err.message || 'Failed to save changes');
+      const errorMessage = getActionableErrorMessage(err, 'update profile');
+      setSaveError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -73,7 +76,7 @@ export function EditProfile() {
       <div className="max-w-2xl mx-auto px-4">
         {/* Back button */}
         <Link
-          href={`/profile/${user?.displayName?.toLowerCase().replace(/\s+/g, '-') || 'me'}`}
+          href={`/profile/${profileSlug}`}
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -219,11 +222,7 @@ export function EditProfile() {
             <div className="border border-gray-200 rounded-xl">
               <button
                 type="button"
-                onClick={() =>
-                  navigate.push(
-                    `/profile/${user?.displayName?.toLowerCase().replace(/\s+/g, '-') || 'me'}`
-                  )
-                }
+                onClick={() => navigate.push(`/profile/${profileSlug}`)}
                 className="w-full p-4 flex items-center justify-center gap-2 text-gray-700 hover:bg-gray-50 transition-colors rounded-xl"
               >
                 <Eye className="w-5 h-5" />

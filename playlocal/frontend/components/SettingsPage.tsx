@@ -16,8 +16,12 @@ import {
   privacyApi,
   PrivacySettingsResponse,
   UpdatePrivacySettingsRequest,
+  usersApi,
 } from '@/lib/api';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
+import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -241,7 +245,7 @@ function PrivacySettings({
         setIsSaving(false);
       }
     },
-    []
+    [onSettingsChange]
   );
 
   if (isLoading) {
@@ -425,6 +429,47 @@ function NotificationSettings() {
 }
 
 function SecuritySettings() {
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectingAction, setRedirectingAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+
+  const handleAccountAction = async () => {
+    if (!accountAction) return;
+
+    const pendingAction = accountAction;
+    setShowAccountDialog(false);
+    setRedirectingAction(pendingAction);
+    setIsProcessing(true);
+    try {
+      if (pendingAction === 'deactivate') {
+        await usersApi.deactivateAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deactivated',
+          type: 'success',
+        });
+      } else {
+        await usersApi.deleteAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deleted',
+          type: 'success',
+        });
+      }
+    } catch (err: any) {
+      setRedirectingAction(null);
+      const errorMessage = getActionableErrorMessage(
+        err,
+        `${pendingAction} account`
+      );
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setAccountAction(null);
+    }
+  };
+
   return (
     <>
       <PasswordChangeCard />
@@ -453,7 +498,13 @@ function SecuritySettings() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
         <div className="space-y-3">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('deactivate');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <Lock className="w-5 h-5 text-gray-400" />
             <div>
               <div>Deactivate Account</div>
@@ -462,7 +513,13 @@ function SecuritySettings() {
               </div>
             </div>
           </button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('delete');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
             <Trash2 className="w-5 h-5" />
             <div>
               <div>Delete Account</div>
@@ -473,6 +530,33 @@ function SecuritySettings() {
           </button>
         </div>
       </div>
+
+      {/* Account Action Confirmation Dialog */}
+      {accountAction && (
+        <ConfirmAccountActionDialog
+          isOpen={showAccountDialog}
+          onClose={() => {
+            setShowAccountDialog(false);
+            setAccountAction(null);
+          }}
+          onConfirm={handleAccountAction}
+          action={accountAction}
+          isLoading={isProcessing}
+        />
+      )}
+
+      {redirectingAction && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingAction === 'deactivate'
+                ? 'Deactivating account...'
+                : 'Deleting account...'}
+            </span>
+          </div>
+        </div>
+      )}
     </>
   );
 }

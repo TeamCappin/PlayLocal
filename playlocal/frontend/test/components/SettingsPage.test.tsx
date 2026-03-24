@@ -1,8 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsPage } from '@/components/SettingsPage';
-import { privacyApi } from '@/lib/api';
+import { privacyApi, usersApi } from '@/lib/api';
+import { toast } from '@/lib/toast';
 
-// Mock the auth context
+const mockPerformLogoutRedirect = jest.fn();
+
 jest.mock('@/context/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -13,16 +15,38 @@ jest.mock('@/context/AuthContext', () => ({
   }),
 }));
 
-// Mock the privacy API
 jest.mock('@/lib/api', () => ({
   privacyApi: {
     getSettings: jest.fn(),
     updateSettings: jest.fn(),
   },
+  usersApi: {
+    deactivateAccount: jest.fn(),
+    deleteAccount: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/toast', () => {
+  const actual = jest.requireActual('@/lib/toast');
+  return {
+    ...actual,
+    toast: {
+      ...actual.toast,
+      success: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
+jest.mock('@/lib/authRedirect', () => ({
+  performLogoutRedirect: (...args: unknown[]) =>
+    mockPerformLogoutRedirect(...args),
 }));
 
 const mockGetSettings = privacyApi.getSettings as jest.Mock;
 const mockUpdateSettings = privacyApi.updateSettings as jest.Mock;
+const mockDeactivateAccount = usersApi.deactivateAccount as jest.Mock;
+const mockDeleteAccount = usersApi.deleteAccount as jest.Mock;
 
 const defaultSettings = {
   profileVisibility: 'public',
@@ -70,7 +94,6 @@ describe('SettingsPage - Privacy Tab', () => {
       expect(screen.getByText('Allow Profile Search')).toBeInTheDocument();
     });
 
-    // Should have 1 select element (profile visibility)
     const selects = screen.getAllByRole('combobox');
     expect(selects.length).toBe(1);
   });
@@ -86,7 +109,6 @@ describe('SettingsPage - Privacy Tab', () => {
       expect(screen.getByText('Allow Profile Search')).toBeInTheDocument();
     });
 
-    // First select is Profile Visibility
     const selects = screen.getAllByRole('combobox');
     fireEvent.change(selects[0], { target: { value: 'Private' } });
 
@@ -102,12 +124,10 @@ describe('SettingsPage - Privacy Tab', () => {
 
     render(<SettingsPage />);
 
-    // Wait for the error to be captured by the parent component
     await waitFor(() => {
       expect(mockGetSettings).toHaveBeenCalled();
     });
 
-    // Click Privacy tab to see the error
     fireEvent.click(screen.getByText('Privacy'));
 
     await waitFor(() => {
@@ -126,7 +146,6 @@ describe('SettingsPage - Privacy Tab', () => {
       expect(screen.getByText('Allow Profile Search')).toBeInTheDocument();
     });
 
-    // Find the toggle button for "Allow Profile Search"
     const allButtons = screen.getAllByRole('button');
     const toggleButton = allButtons.find((btn) => {
       const parent = btn.closest('.flex.items-start');
@@ -144,6 +163,77 @@ describe('SettingsPage - Privacy Tab', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Privacy settings saved')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('SettingsPage - Security account actions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetSettings.mockResolvedValue(defaultSettings);
+    mockUpdateSettings.mockResolvedValue(defaultSettings);
+    mockDeactivateAccount.mockResolvedValue(undefined);
+    mockDeleteAccount.mockResolvedValue(undefined);
+  });
+
+  async function openSecurityTab() {
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+    await waitFor(() =>
+      expect(screen.getByText('Account Actions')).toBeInTheDocument()
+    );
+  }
+
+  it('deactivates account, toasts, logs out, and redirects home', async () => {
+    await openSecurityTab();
+
+    fireEvent.click(screen.getByText('Deactivate Account'));
+    expect(await screen.findByText('Deactivate Account?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deactivate Account' }));
+
+    await waitFor(() => {
+      expect(mockDeactivateAccount).toHaveBeenCalled();
+    });
+    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
+      message: 'Account deactivated',
+      type: 'success',
+    });
+  });
+
+  it('deletes account after typing DELETE, then logs out', async () => {
+    await openSecurityTab();
+
+    fireEvent.click(screen.getByText('Delete Account'));
+    expect(
+      await screen.findByText('Permanently Delete Account?')
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('DELETE'), {
+      target: { value: 'DELETE' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Forever' }));
+
+    await waitFor(() => {
+      expect(mockDeleteAccount).toHaveBeenCalled();
+    });
+    expect(mockPerformLogoutRedirect).toHaveBeenCalledWith('/', {
+      message: 'Account deleted',
+      type: 'success',
+    });
+  });
+
+  it('shows toast error when deactivate fails', async () => {
+    mockDeactivateAccount.mockRejectedValueOnce(new Error('server said no'));
+    await openSecurityTab();
+
+    fireEvent.click(screen.getByText('Deactivate Account'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Deactivate Account' })
+    );
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
     });
   });
 });
