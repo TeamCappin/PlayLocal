@@ -1475,7 +1475,7 @@ export function GameRoom() {
 
       {showEditModal && (
         <div
-          className="fixed inset-0 z-[10000] overflow-y-auto px-3 py-20 sm:px-4 sm:py-8"
+          className="fixed inset-0 z-[10000] overflow-y-auto px-3 py-4 sm:px-4 sm:py-8"
           role="presentation"
         >
           <button
@@ -1493,7 +1493,7 @@ export function GameRoom() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-game-title"
-            className="relative z-10 mx-auto grid max-h-[calc(100dvh-10rem)] w-full max-w-4xl grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:max-h-[calc(100dvh-4rem)]"
+            className="relative z-10 mx-auto flex h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:h-[min(56rem,calc(100dvh-4rem))]"
           >
             <div className="border-b border-gray-200 bg-white px-6 py-4 pr-12">
               <h2 id="edit-game-title" className="text-xl text-gray-900">
@@ -1514,7 +1514,7 @@ export function GameRoom() {
               </button>
             </div>
 
-            <div className="min-h-0 overflow-y-auto px-6 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
               <div className="mx-auto w-full max-w-2xl space-y-4">
                 <div className="rounded-lg border border-gray-200 bg-gray-100 p-3">
                   <p className="mb-1 text-xs uppercase tracking-wide text-gray-500">
