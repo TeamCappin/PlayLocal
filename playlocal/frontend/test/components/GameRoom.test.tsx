@@ -1391,9 +1391,8 @@ describe('GameRoom Component', () => {
       await waitFor(() =>
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
-      const backdrop = document.querySelector('[aria-hidden="true"]');
-      expect(backdrop).toBeTruthy();
-      fireEvent.click(backdrop!);
+      const backdrop = screen.getByTestId('edit-game-backdrop');
+      fireEvent.click(backdrop);
       await waitFor(() =>
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       );
