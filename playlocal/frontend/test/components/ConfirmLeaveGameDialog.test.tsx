@@ -34,6 +34,19 @@ describe('ConfirmLeaveGameDialog', () => {
     expect(screen.getByRole('button', { name: 'Leave Game' })).toBeInTheDocument();
   });
 
+  it('renders nothing when closed', () => {
+    const { container } = render(
+      <ConfirmLeaveGameDialog
+        isOpen={false}
+        onClose={jest.fn()}
+        onConfirm={jest.fn()}
+        gameTitle="Pickup"
+      />
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
+
   it('closes when backdrop is clicked', () => {
     const onClose = jest.fn();
 
