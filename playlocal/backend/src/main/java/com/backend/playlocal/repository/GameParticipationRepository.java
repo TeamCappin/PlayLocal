@@ -31,6 +31,14 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     @Query("SELECT COUNT(gp) FROM GameParticipation gp WHERE gp.game.gameId = :gameId AND gp.joinStatus = 'CONFIRMED'")
     int countConfirmedParticipants(UUID gameId);
 
+    @Query("SELECT gp.game.gameId, " +
+            "SUM(CASE WHEN gp.joinStatus = 'CONFIRMED' THEN 1 ELSE 0 END), " +
+            "SUM(CASE WHEN gp.joinStatus = 'WAITLISTED' THEN 1 ELSE 0 END) " +
+            "FROM GameParticipation gp " +
+            "WHERE gp.game.gameId IN :gameIds " +
+            "GROUP BY gp.game.gameId")
+    List<Object[]> countParticipationSummaryByGameIds(@Param("gameIds") List<UUID> gameIds);
+
     /**
      * Get all confirmed participants for a game.
      */
@@ -75,6 +83,12 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.user.userId = :userId ORDER BY gp.joinedAt DESC")
     List<GameParticipation> findByUser(UUID userId);
 
+    @Query("SELECT gp.game.gameId FROM GameParticipation gp " +
+            "WHERE gp.user.userId = :userId " +
+            "AND gp.game.gameId IN :gameIds " +
+            "AND gp.joinStatus = 'CONFIRMED'")
+    List<UUID> findConfirmedGameIdsForUser(@Param("userId") UUID userId, @Param("gameIds") List<UUID> gameIds);
+
     /**
      * Find all participations for a specific game.
      * Used for OQS repeat player calculation (US-6.1).
@@ -102,6 +116,19 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
             "AND g.startTime >= :cutoff " +
             "ORDER BY g.startTime ASC")
     List<GameParticipation> findConfirmedByUserSince(
+            @Param("userId") UUID userId,
+            @Param("cutoff") Instant cutoff);
+
+    /**
+     * US-7.15: Find all future participations for a user (for account deletion).
+     * Used to remove user from all upcoming games when deactivating/deleting account.
+     */
+    @Query("SELECT gp FROM GameParticipation gp " +
+            "JOIN FETCH gp.game g " +
+            "WHERE gp.user.userId = :userId " +
+            "AND g.startTime >= :cutoff " +
+            "AND gp.leftAt IS NULL")
+    List<GameParticipation> findByUserIdAndGameStartTimeAfter(
             @Param("userId") UUID userId,
             @Param("cutoff") Instant cutoff);
 }

@@ -15,11 +15,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -159,9 +163,7 @@ public class GameService {
                 List<Game> games = gameRepository.findUpcomingGamesWithFilters(
                                 Instant.now(), params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -176,14 +178,18 @@ public class GameService {
                                 Instant.now(), userLat, userLon, radiusKm,
                                 params.sportName(), params.skillLevel(),
                                 params.locationType(), params.intensity());
+                if (gameIds.isEmpty()) {
+                        return List.of();
+                }
+
+                Map<UUID, Game> gamesById = gameRepository.findAllByGameIdIn(gameIds).stream()
+                                .collect(Collectors.toMap(Game::getGameId, Function.identity()));
+
                 List<Game> games = gameIds.stream()
-                                .map(gameId -> gameRepository.findById(gameId))
-                                .filter(Optional::isPresent)
-                                .map(Optional::get)
+                                .map(gamesById::get)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                return games.stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -212,6 +218,62 @@ public class GameService {
         }
 
         private record GameFilterParams(String sportName, String skillLevel, String locationType, String intensity) {
+        }
+
+        private List<GameDto.GameResponse> mapGamesToResponses(List<Game> games, UUID requestingUserId) {
+                if (games.isEmpty()) {
+                        return List.of();
+                }
+
+                List<UUID> gameIds = games.stream()
+                                .map(Game::getGameId)
+                                .toList();
+                Map<UUID, ParticipationSummary> participationSummaryByGameId = loadParticipationSummary(gameIds);
+                Map<UUID, List<GameDto.TagDto>> tagsByGameId = loadTagsByGameId(gameIds);
+                Set<UUID> confirmedGameIdsForUser = loadConfirmedGameIdsForUser(gameIds, requestingUserId);
+
+                return games.stream()
+                                .map(game -> mapToGameResponse(
+                                                game,
+                                                requestingUserId,
+                                                participationSummaryByGameId.getOrDefault(
+                                                                game.getGameId(),
+                                                                ParticipationSummary.EMPTY),
+                                                tagsByGameId.getOrDefault(game.getGameId(), List.of()),
+                                                confirmedGameIdsForUser))
+                                .collect(Collectors.toList());
+        }
+
+        private Map<UUID, ParticipationSummary> loadParticipationSummary(List<UUID> gameIds) {
+                Map<UUID, ParticipationSummary> summaryByGameId = new HashMap<>();
+                for (Object[] row : participationRepository.countParticipationSummaryByGameIds(gameIds)) {
+                        UUID gameId = (UUID) row[0];
+                        int confirmedCount = ((Number) row[1]).intValue();
+                        int waitlistCount = ((Number) row[2]).intValue();
+                        summaryByGameId.put(gameId, new ParticipationSummary(confirmedCount, waitlistCount));
+                }
+                return summaryByGameId;
+        }
+
+        private Map<UUID, List<GameDto.TagDto>> loadTagsByGameId(List<UUID> gameIds) {
+                return tagAssignmentRepository.findAllByGame_GameIdIn(gameIds).stream()
+                                .collect(Collectors.groupingBy(
+                                                assignment -> assignment.getGame().getGameId(),
+                                                Collectors.mapping(
+                                                                assignment -> mapToTagDto(assignment.getTag()),
+                                                                Collectors.toList())));
+        }
+
+        private Set<UUID> loadConfirmedGameIdsForUser(List<UUID> gameIds, UUID requestingUserId) {
+                if (requestingUserId == null) {
+                        return Set.of();
+                }
+
+                return new HashSet<>(participationRepository.findConfirmedGameIdsForUser(requestingUserId, gameIds));
+        }
+
+        private record ParticipationSummary(int confirmedCount, int waitlistCount) {
+                private static final ParticipationSummary EMPTY = new ParticipationSummary(0, 0);
         }
 
         /**
@@ -876,6 +938,65 @@ public class GameService {
                                 .waitlistCount(waitlisted.size())
                                 .createdAt(game.getCreatedAt())
                                 .tags(getGameTags(game))
+                                .build();
+        }
+
+        private GameDto.GameResponse mapToGameResponse(
+                        Game game,
+                        UUID requestingUserId,
+                        ParticipationSummary participationSummary,
+                        List<GameDto.TagDto> tags,
+                        Set<UUID> confirmedGameIdsForUser) {
+                boolean showExactLocation = false;
+                if (requestingUserId != null) {
+                        if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
+                                showExactLocation = true;
+                        } else {
+                                showExactLocation = confirmedGameIdsForUser.contains(game.getGameId());
+                        }
+                }
+
+                Location loc = game.getLocation();
+                GameDto.LocationDto exactLocation = null;
+                String approximateLocation = (loc != null)
+                                ? "Near " + loc.getCity()
+                                : "Location unavailable";
+
+                if (showExactLocation && loc != null) {
+                        exactLocation = GameDto.LocationDto.builder()
+                                        .name(loc.getName())
+                                        .addressLine(loc.getAddressLine())
+                                        .city(loc.getCity())
+                                        .latitude(loc.getLatitude())
+                                        .longitude(loc.getLongitude())
+                                        .build();
+                }
+
+                return GameDto.GameResponse.builder()
+                                .gameId(game.getGameId().toString())
+                                .title(game.getTitle())
+                                .description(game.getDescription())
+                                .sportName(game.getSport().getName())
+                                .location(exactLocation)
+                                .approximateLocation(approximateLocation)
+                                .hasExactLocationAccess(showExactLocation)
+                                .indoorOutdoor(game.getIndoorOutdoor())
+                                .intensityBand(game.getIntensityBand())
+                                .skillBand(game.getSkillBand())
+                                .minPlayers(game.getMinPlayers())
+                                .maxPlayers(game.getMaxPlayers())
+                                .allowWaitlist(Boolean.TRUE.equals(game.getAllowWaitlist()))
+                                .minReliabilityRequired(game.getMinReliabilityRequired())
+                                .minAge(game.getMinAge())
+                                .maxAge(game.getMaxAge())
+                                .startTime(game.getStartTime())
+                                .endTime(game.getEndTime())
+                                .status(game.getStatus().name())
+                                .organizer(buildOrganizerDto(game.getCreatedBy()))
+                                .confirmedCount(participationSummary.confirmedCount())
+                                .waitlistCount(participationSummary.waitlistCount())
+                                .createdAt(game.getCreatedAt())
+                                .tags(tags)
                                 .build();
         }
 

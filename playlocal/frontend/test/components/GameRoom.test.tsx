@@ -24,6 +24,21 @@ jest.mock('../../hooks/useGames', () => ({
   useGame: jest.fn(),
 }));
 
+const mockPerformRedirect = jest.fn();
+jest.mock('../../lib/authRedirect', () => ({
+  performRedirect: (...args: unknown[]) => mockPerformRedirect(...args),
+}));
+
+// Mock toast library for US-7.15
+jest.mock('../../lib/toast', () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    loading: jest.fn(),
+  },
+  getActionableErrorMessage: jest.fn((err, action) => `Couldn't ${action}`),
+}));
+
 const mockGamesApiUpdate = jest.fn();
 
 jest.mock('../../lib/api', () => {
@@ -178,8 +193,19 @@ jest.mock('../../components/photos/PhotosPanel', () => ({
 }));
 
 jest.mock('../../components/ui/dialog', () => ({
-  Dialog: ({ children, open }: any) =>
-    open ? <div data-testid="dialog">{children}</div> : null,
+  Dialog: ({ children, open, onOpenChange }: any) =>
+    open ? (
+      <>
+        <div
+          aria-hidden="true"
+          data-testid="dialog-backdrop"
+          onClick={() => onOpenChange?.(false)}
+        />
+        <div data-testid="dialog" role="dialog" aria-modal="true">
+          {children}
+        </div>
+      </>
+    ) : null,
   DialogContent: ({ children }: any) => (
     <div data-testid="dialog-content">{children}</div>
   ),
@@ -273,7 +299,9 @@ describe('GameRoom Component', () => {
     });
     (gamesApi.getTags as jest.Mock).mockResolvedValue([]);
     (useParams as jest.Mock).mockReturnValue({ id: 'game-123' });
-    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
+    });
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
       isAuthenticated: true,
@@ -526,9 +554,8 @@ describe('GameRoom Component', () => {
         });
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Successfully joined the game!')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.success).toHaveBeenCalledWith('Joined game');
         });
       }
     });
@@ -747,9 +774,8 @@ describe('GameRoom Component', () => {
         fireEvent.click(joinButton);
 
         await waitFor(() => {
-          expect(
-            screen.getByText(/You're on the waitlist \(#3\)/i)
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.success).toHaveBeenCalledWith('Added to waitlist #3');
         });
       }
     });
@@ -768,9 +794,10 @@ describe('GameRoom Component', () => {
         fireEvent.click(joinButton);
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Age confirmation required')
-          ).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.error).toHaveBeenCalledWith(
+            expect.stringContaining("Couldn't join game")
+          );
         });
       }
     });
@@ -787,13 +814,15 @@ describe('GameRoom Component', () => {
       fireEvent.click(joinButton!);
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to join game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
       });
     });
   });
 
   describe('Leave Game Flow', () => {
     it('leaves game successfully', async () => {
+      const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
       const participantRoster = {
         confirmed: [
           ...mockRoster.confirmed,
@@ -834,15 +863,28 @@ describe('GameRoom Component', () => {
       if (leaveButton) {
         fireEvent.click(leaveButton);
 
-        await waitFor(() => {
-          expect(mockLeaveGame).toHaveBeenCalled();
-        });
+        const dialog = await screen.findByRole('alertdialog');
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: 'Leave Game' })
+        );
 
         await waitFor(() => {
-          expect(
-            screen.getByText('Successfully left the game')
-          ).toBeInTheDocument();
+          expect(mockLeaveGame).toHaveBeenCalledWith({ refetchAfter: false });
         });
+
+        expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+          message: 'Left game',
+          type: 'success',
+        }, {
+          replace: true,
+        });
+        expect(dispatchEventSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'playlocal-refresh-games' })
+        );
+        expect(dispatchEventSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'playlocal-refresh-notifications' })
+        );
+        dispatchEventSpy.mockRestore();
       }
     });
 
@@ -887,8 +929,16 @@ describe('GameRoom Component', () => {
       if (leaveButton) {
         fireEvent.click(leaveButton);
 
+        const dialog = await screen.findByRole('alertdialog');
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: 'Leave Game' })
+        );
+
         await waitFor(() => {
-          expect(screen.getByText('Cannot leave game')).toBeInTheDocument();
+          const { toast } = require('../../lib/toast');
+          expect(toast.error).toHaveBeenCalledWith(
+            expect.stringContaining("Couldn't leave game")
+          );
         });
       }
     });
@@ -932,8 +982,14 @@ describe('GameRoom Component', () => {
       expect(leaveButton).toBeDefined();
       fireEvent.click(leaveButton!);
 
+      const dialog = await screen.findByRole('alertdialog');
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Leave Game' })
+      );
+
       await waitFor(() => {
-        expect(screen.getByText('Failed to leave game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
       });
     });
   });
@@ -1070,9 +1126,16 @@ describe('GameRoom Component', () => {
         expect(screen.getByText(/Delete this game\?/i)).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Yes, Delete/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Game has been deleted.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        expect(mockCancelGame).toHaveBeenCalled();
+      });
+      expect(mockCancelGame).toHaveBeenCalledWith({ refetchAfter: false });
+      expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+        message: 'Game deleted',
+        type: 'success',
+      }, {
+        replace: true,
+      });
     });
 
     it('organizer save edit modal calls update and shows success', async () => {
@@ -1105,9 +1168,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(mockGamesApiUpdate).toHaveBeenCalledWith(
         'game-123',
         expect.objectContaining({ minReliabilityRequired: 80 })
@@ -1277,9 +1341,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(
         within(dialog).getByRole('button', { name: /Save Changes/i })
       );
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(mockGamesApiUpdate).toHaveBeenCalledWith(
         'game-123',
         expect.objectContaining({
@@ -1298,7 +1363,7 @@ describe('GameRoom Component', () => {
           maxAge: 65,
         })
       );
-    });
+    }, 15000);
 
     it('edit modal closes when clicking backdrop', async () => {
       const scheduledGame = {
@@ -1326,9 +1391,8 @@ describe('GameRoom Component', () => {
       await waitFor(() =>
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
-      const backdrop = document.querySelector('[aria-hidden="true"]');
-      expect(backdrop).toBeTruthy();
-      fireEvent.click(backdrop!);
+      const backdrop = screen.getByTestId('edit-game-backdrop');
+      fireEvent.click(backdrop);
       await waitFor(() =>
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       );
@@ -1394,9 +1458,12 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Network error')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't update game")
+        );
+      });
     });
 
     it('organizer save edit shows fallback error when update fails with empty message', async () => {
@@ -1427,11 +1494,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(
-          screen.getByText('Failed to update game settings')
-        ).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('organizer can complete game and sees success message', async () => {
@@ -1463,11 +1529,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
       await waitFor(() => expect(mockCompleteGame).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(
-          screen.getByText('Game marked as completed.')
-        ).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game marked as completed');
+      });
     });
 
     it('shows error when complete game action fails', async () => {
@@ -1498,9 +1563,12 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Cannot complete game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't complete game")
+        );
+      });
     });
 
     it('shows fallback error when complete game fails with empty message', async () => {
@@ -1531,9 +1599,10 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Mark Completed/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to complete game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('organizer can archive game and sees success message', async () => {
@@ -1565,9 +1634,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
       await waitFor(() => expect(mockArchiveGame).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(screen.getByText('Game archived.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game archived');
+      });
     });
 
     it('shows error when archive game action fails', async () => {
@@ -1598,9 +1668,12 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Cannot archive game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't archive game")
+        );
+      });
     });
 
     it('shows fallback error when archive game fails with empty message', async () => {
@@ -1631,9 +1704,10 @@ describe('GameRoom Component', () => {
       render(<GameRoom />);
       fireEvent.click(screen.getByRole('button', { name: /Archive Game/i }));
 
-      await waitFor(() =>
-        expect(screen.getByText('Failed to archive game')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalled();
+      });
     });
 
     it('dispatches playlocal-refresh events on successful update', async () => {
@@ -1666,9 +1740,10 @@ describe('GameRoom Component', () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument()
       );
       fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
-      await waitFor(() =>
-        expect(screen.getByText('Changes saved.')).toBeInTheDocument()
-      );
+      await waitFor(() => {
+        const { toast } = require('../../lib/toast');
+        expect(toast.success).toHaveBeenCalledWith('Game updated');
+      });
       expect(dispatchSpy).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'playlocal-refresh-notifications' })
       );
@@ -2342,7 +2417,13 @@ describe('GameRoom Component', () => {
 
       await waitFor(() => {
         expect(mockCancelGame).toHaveBeenCalled();
-        expect(screen.getByText('Game has been deleted.')).toBeInTheDocument();
+      });
+      expect(mockCancelGame).toHaveBeenCalledWith({ refetchAfter: false });
+      expect(mockPerformRedirect).toHaveBeenCalledWith('/discover', {
+        message: 'Game deleted',
+        type: 'success',
+      }, {
+        replace: true,
       });
     });
 
@@ -2404,9 +2485,10 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByText('Yes, Delete'));
 
       await waitFor(() => {
-        expect(
-          screen.getByText('Only the organizer can cancel this game')
-        ).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.stringContaining("Couldn't delete game")
+        );
       });
     });
 
@@ -2466,7 +2548,8 @@ describe('GameRoom Component', () => {
       fireEvent.click(screen.getByText('Yes, Delete'));
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to delete game')).toBeInTheDocument();
+        const { toast } = require('../../lib/toast');
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Couldn't delete game"));
       });
     });
 

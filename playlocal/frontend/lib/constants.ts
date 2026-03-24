@@ -48,3 +48,26 @@ export const AVAILABILITY_OPTIONS: AvailabilityOption[] = [
   { id: 'evenings', label: 'Evenings', icon: Sunset },
   { id: 'afternoons', label: 'Afternoons', icon: Sun },
 ];
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+
+export interface ForgotPasswordRequest {
+  email: string;
+  captchaToken?: string;
+}
+
+export interface VerifyResetCodeRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}

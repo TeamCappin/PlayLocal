@@ -216,6 +216,25 @@ describe('useGame', () => {
     expect(mockGetById).toHaveBeenCalledTimes(2);
   });
 
+  it('leaveGame skips refetch when refetchAfter is false', async () => {
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockLeave.mockResolvedValue(undefined as any);
+
+    const { result } = renderHook(() => useGame('game-123'));
+
+    await waitFor(() => {
+      expect(result.current.game).toEqual(mockGame);
+    });
+
+    await act(async () => {
+      await result.current.leaveGame({ refetchAfter: false });
+    });
+
+    expect(mockLeave).toHaveBeenCalledWith('game-123');
+    expect(mockGetById).toHaveBeenCalledTimes(1);
+  });
+
   it('leaveGame throws when gameId is undefined', async () => {
     const { result } = renderHook(() => useGame(undefined));
 
@@ -568,6 +587,32 @@ describe('useGame - cancelGame', () => {
     expect(mockCancel).toHaveBeenCalledWith(gameId);
     // Verify game was refreshed (called twice: initial + after cancel)
     expect(mockGetById).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a game without refetch when refetchAfter is false', async () => {
+    const gameId = 'game-123';
+    const cancelledGame = {
+      ...mockGame,
+      gameId,
+      status: 'CANCELLED',
+    } as any;
+
+    mockGetById.mockResolvedValueOnce(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+    mockCancel.mockResolvedValue(cancelledGame);
+
+    const { result } = renderHook(() => useGame(gameId));
+
+    await waitFor(() => {
+      expect(result.current.game).toBeDefined();
+    });
+
+    await act(async () => {
+      await result.current.cancelGame({ refetchAfter: false });
+    });
+
+    expect(mockCancel).toHaveBeenCalledWith(gameId);
+    expect(mockGetById).toHaveBeenCalledTimes(1);
   });
 
   it('throws error when gameId is missing', async () => {

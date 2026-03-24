@@ -10,13 +10,20 @@ import {
   Download,
   Loader2,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
+  authApi,
   privacyApi,
   PrivacySettingsResponse,
   UpdatePrivacySettingsRequest,
+  usersApi,
 } from '@/lib/api';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
+import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
+import { PasswordChangeCard } from '@/components/PasswordChangeCard';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -120,35 +127,50 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Account Information</h2>
         <div className="space-y-6">
           <div>
-            <label className="block text-gray-700 mb-2">Display Name</label>
+            <label htmlFor="displayName" className="block text-gray-700 mb-2">
+              Display Name
+            </label>
             <input
+              id="displayName"
               type="text"
               defaultValue={user?.displayName || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Email</label>
+            <label htmlFor="email" className="block text-gray-700 mb-2">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               defaultValue={user?.email || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Phone Number</label>
+            <label htmlFor="phone" className="block text-gray-700 mb-2">
+              Phone Number
+            </label>
             <input
+              id="phone"
               type="tel"
               defaultValue={user?.phone || ''}
               placeholder="Enter your phone number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Location</label>
+            <label htmlFor="location" className="block text-gray-700 mb-2">
+              Location
+            </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
+                id="location"
                 type="text"
                 defaultValue={user?.location || ''}
                 placeholder="Enter your location"
@@ -156,16 +178,21 @@ function AccountSettings({ user }: { user: any }) {
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Bio</label>
+            <label htmlFor="bio" className="block text-gray-700 mb-2">
+              Bio
+            </label>
             <textarea
+              id="bio"
               rows={4}
               defaultValue={user?.bio || ''}
               placeholder="Tell others about yourself..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            ></textarea>
+            />
           </div>
         </div>
+
         <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-3">
           <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
             Cancel
@@ -180,10 +207,13 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Default Preferences</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">
+            <label htmlFor="defaultIntensity" className="block text-gray-700 mb-2">
               Default Intensity
             </label>
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            <select
+              id="defaultIntensity"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
               <option>Low - Casual & Social</option>
               <option>Medium - Competitive</option>
               <option>High - Very Competitive</option>
@@ -240,7 +270,7 @@ function PrivacySettings({
         setIsSaving(false);
       }
     },
-    []
+    [onSettingsChange]
   );
 
   if (isLoading) {
@@ -424,38 +454,118 @@ function NotificationSettings() {
 }
 
 function SecuritySettings() {
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [mfaToggling, setMfaToggling] = useState(false);
+  const [mfaMessage, setMfaMessage] = useState<string | null>(null);
+
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectingAction, setRedirectingAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+
+  useEffect(() => {
+    authApi.getMfaStatus()
+      .then((data) => setMfaEnabled(data.mfaEnabled))
+      .catch(() => {})
+      .finally(() => setMfaLoading(false));
+  }, []);
+
+  const handleMfaToggle = async () => {
+    setMfaToggling(true);
+    setMfaMessage(null);
+    try {
+      if (mfaEnabled) {
+        await authApi.disableMfa();
+        setMfaEnabled(false);
+        setMfaMessage('MFA has been disabled.');
+      } else {
+        await authApi.enableMfa();
+        setMfaEnabled(true);
+        setMfaMessage('MFA has been enabled. You will need to verify a code on your next login.');
+      }
+      setTimeout(() => setMfaMessage(null), 4000);
+    } catch {
+      setMfaMessage('Failed to update MFA setting.');
+    } finally {
+      setMfaToggling(false);
+    }
+  };
+
+  const handleAccountAction = async () => {
+    if (!accountAction) return;
+
+    const pendingAction = accountAction;
+    setShowAccountDialog(false);
+    setRedirectingAction(pendingAction);
+    setIsProcessing(true);
+    try {
+      if (pendingAction === 'deactivate') {
+        await usersApi.deactivateAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deactivated',
+          type: 'success',
+        });
+      } else {
+        await usersApi.deleteAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deleted',
+          type: 'success',
+        });
+      }
+    } catch (err: any) {
+      setRedirectingAction(null);
+      const errorMessage = getActionableErrorMessage(
+        err,
+        `${pendingAction} account`
+      );
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setAccountAction(null);
+    }
+  };
+
+
   return (
     <>
+      <PasswordChangeCard />
+
+      {/* MFA Card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Password & Security</h2>
-        <div className="space-y-6">
-          <div>
-            <label className="block text-gray-700 mb-2">Current Password</label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2">New Password</label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2">
-              Confirm New Password
-            </label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
+        <div className="flex items-center gap-3 mb-4">
+          <ShieldCheck className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-xl text-gray-900">Two-Factor Authentication</h2>
         </div>
-        <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-          <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-            Update Password
+        <p className="text-sm text-gray-600 mb-4">
+          Add an extra layer of security. When enabled, you&apos;ll receive a 6-digit verification code via email each time you log in.
+        </p>
+        {mfaMessage && (
+          <div className={`mb-4 p-3 rounded-lg text-sm ${
+            mfaMessage.includes('Failed') ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+          }`}>
+            {mfaMessage}
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-gray-900 mb-1">Email-based MFA</div>
+            <div className="text-sm text-gray-600">
+              {mfaLoading ? 'Loading...' : mfaEnabled ? 'Currently enabled' : 'Currently disabled'}
+            </div>
+          </div>
+          <button
+            onClick={handleMfaToggle}
+            disabled={mfaLoading || mfaToggling}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+              mfaEnabled
+                ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
+                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
+            }`}
+          >
+            {mfaToggling ? 'Updating...' : mfaEnabled ? 'Disable MFA' : 'Enable MFA'}
           </button>
         </div>
       </div>
@@ -484,7 +594,13 @@ function SecuritySettings() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
         <div className="space-y-3">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('deactivate');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <Lock className="w-5 h-5 text-gray-400" />
             <div>
               <div>Deactivate Account</div>
@@ -493,7 +609,13 @@ function SecuritySettings() {
               </div>
             </div>
           </button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              setAccountAction('delete');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
             <Trash2 className="w-5 h-5" />
             <div>
               <div>Delete Account</div>
@@ -504,6 +626,33 @@ function SecuritySettings() {
           </button>
         </div>
       </div>
+
+      {/* Account Action Confirmation Dialog */}
+      {accountAction && (
+        <ConfirmAccountActionDialog
+          isOpen={showAccountDialog}
+          onClose={() => {
+            setShowAccountDialog(false);
+            setAccountAction(null);
+          }}
+          onConfirm={handleAccountAction}
+          action={accountAction}
+          isLoading={isProcessing}
+        />
+      )}
+
+      {redirectingAction && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingAction === 'deactivate'
+                ? 'Deactivating account...'
+                : 'Deleting account...'}
+            </span>
+          </div>
+        </div>
+      )}
     </>
   );
 }

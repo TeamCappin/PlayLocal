@@ -44,6 +44,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        // Reset password
+                        .requestMatchers("/api/v1/auth/forgot-password").permitAll()
+                        .requestMatchers("/api/v1/auth/forgot-password/verify-code").permitAll()
+                        .requestMatchers("/api/v1/auth/forgot-password/resend").permitAll()
+                        .requestMatchers("/api/v1/auth/reset-password").permitAll()
+                        // MFA verification (unauthenticated - user hasn't got token yet)
+                        .requestMatchers("/api/v1/auth/verify-mfa").permitAll()
+                        // Email test endpoints (authenticated)
+                        .requestMatchers("/api/v1/email/**").authenticated()
                         // Stats & Analytics require authentication [US-7.6]
                         .requestMatchers("/api/v1/stats/**").authenticated()
                         // Endorsements require authentication

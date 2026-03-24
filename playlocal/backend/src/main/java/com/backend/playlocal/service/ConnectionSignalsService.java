@@ -1,15 +1,23 @@
 package com.backend.playlocal.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.GameParticipationRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
+import lombok.RequiredArgsConstructor;
 
 /**
  * US-32: Mutual connections and recent co-play signals.
@@ -52,9 +60,7 @@ public class ConnectionSignalsService {
         for (UUID t : targetIds) {
             if (t.equals(viewerId)) {
                 result.put(t.toString(), UserDto.ConnectionSignals.builder().mutualFriendCount(0).coPlayCount(0).build());
-            } else {
-                result.put(t.toString(), UserDto.ConnectionSignals.builder().mutualFriendCount(0).coPlayCount(0).build());
-            }
+            } 
         }
 
         if (targetSet.isEmpty()) {

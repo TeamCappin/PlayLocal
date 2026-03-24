@@ -68,11 +68,32 @@ class UserTest {
     @DisplayName("US-1.1: User all args constructor should work")
     void allArgsConstructor_Works() {
         UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
+    
         User user = new User(
-                userId, "email", "hash", "name", "user-slug", "url", "phone",
-                User.UserStatus.ACTIVE, null, "high", "all", "bio", "loc",
-                100.0f, 0, 0, 0,
-                Instant.now(), Instant.now(), null, null);
+                userId,
+                "email",
+                "hash",
+                "name",
+                "user-slug",
+                "url",
+                "phone",
+                User.UserStatus.ACTIVE,
+                null,           // deletedAt
+                "high",         // defaultIntensity
+                "all",          // availability
+                "bio",
+                "loc",
+                100.0f,
+                0,
+                0,
+                0,
+                now,
+                now,
+                null,           // lastLoginAt
+                false,
+                null            // ageConfirmedAt
+        );
 
         assertThat(user.getUserId()).isEqualTo(userId);
         assertThat(user.getSlug()).isEqualTo("user-slug");

@@ -1,6 +1,8 @@
 // PlayLocal API Client
 // Connects the React frontend to the Spring Boot backend
 
+import { ChangePasswordRequest, ForgotPasswordRequest, ResetPasswordRequest, VerifyResetCodeRequest } from "./constants";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -43,6 +45,13 @@ async function apiFetch<T>(
       headers,
     });
   } catch (networkError: any) {
+    if (networkError?.name === "AbortError") {
+      throw new ApiError(
+        408,
+        "Request timed out. Please try again.",
+        { aborted: true },
+      );
+    }
     // Handle network errors (no connection, CORS, etc.)
     const base = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
     throw new ApiError(
@@ -124,11 +133,13 @@ export interface RegisterRequest {
   displayName?: string;
   ageConfirmed: boolean;
   eulaAccepted: boolean;
+  captchaToken?: string;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
+  captchaToken?: string;
 }
 
 export interface AuthResponse {
@@ -136,6 +147,7 @@ export interface AuthResponse {
   tokenType: string;
   expiresIn: number;
   user: UserDto;
+  mfaRequired?: boolean;
 }
 
 export interface UserDto {
@@ -153,6 +165,7 @@ export interface UserDto {
   endorsementsCount?: number; // New field for endorsements count [US-3.3]
   createdAt?: string;
   profileRestricted?: boolean; // US-7.12: true when viewer cannot see full profile
+  mfaEnabled?: boolean;
 }
 
 export const authApi = {
@@ -170,10 +183,56 @@ export const authApi = {
 
   getCurrentUser: () => apiFetch<UserDto>('/auth/me'),
 
+  changePassword: (data: ChangePasswordRequest) =>
+    apiFetch<void>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    apiFetch<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyResetCode: (data: VerifyResetCodeRequest) =>
+    apiFetch<void>('/auth/forgot-password/verify-code', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resendResetCode: (data: ForgotPasswordRequest) =>
+    apiFetch<void>('/auth/forgot-password/resend', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resetPassword: (data: ResetPasswordRequest) =>
+    apiFetch<void>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   logout: () => {
     setAuthToken(null);
     return Promise.resolve();
   },
+
+  // US-7.10: MFA
+  verifyMfa: (data: { email: string; code: string }) =>
+    apiFetch<AuthResponse>('/auth/verify-mfa', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  enableMfa: () =>
+    apiFetch<void>('/auth/mfa/enable', { method: 'POST' }),
+
+  disableMfa: () =>
+    apiFetch<void>('/auth/mfa/disable', { method: 'POST' }),
+
+  getMfaStatus: () =>
+    apiFetch<{ mfaEnabled: boolean }>('/auth/mfa/status'),
 };
 
 // ============================================
@@ -221,6 +280,17 @@ export const usersApi = {
     apiFetch<ConnectionSignalsBatchResponse>('/users/connection-signals', {
       method: 'POST',
       body: JSON.stringify({ userIds }),
+    }),
+
+  // Account actions
+  deactivateAccount: () =>
+    apiFetch<void>('/users/deactivate', {
+      method: 'POST',
+    }),
+
+  deleteAccount: () =>
+    apiFetch<void>('/users/me', {
+      method: 'DELETE',
     }),
 };
 
@@ -673,6 +743,46 @@ export const endorsementsApi = {
 };
 
 // ============================================
+// AI ASSISTANT (US 8.1)
+// ============================================
+
+export interface AiChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface AiChatRequest {
+  sessionId?: string;
+  messages: AiChatMessage[];
+}
+
+export interface AiChatResponse {
+  message: { role: string; content: string };
+}
+
+export interface AiTelemetryRequest {
+  eventType: string;
+  sessionId: string;
+  context?: string;
+  gameId?: string;
+}
+
+export const aiApi = {
+  chat: (data: AiChatRequest, signal?: AbortSignal) =>
+    apiFetch<AiChatResponse>("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+      signal,
+    }),
+
+  telemetry: (data: AiTelemetryRequest) =>
+    apiFetch<void>("/ai/telemetry", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 
@@ -890,6 +1000,12 @@ export const photosApi = {
     apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
       method: 'POST',
     }),
+
+  // Delete a photo
+  delete: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}`, {
+      method: 'DELETE',
+    }),
 };
 
 
@@ -945,6 +1061,7 @@ export default {
   notifications: notificationsApi,
   endorsements: endorsementsApi,
   health: healthApi,
+  ai: aiApi,
   scoreHistory: scoreHistoryApi,
   organizerQuality: organizerQualityApi,
   stats: statsApi,

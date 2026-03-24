@@ -353,7 +353,7 @@ export function UserProfile() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {isOwnProfile ? (
                 <>
                   <Link
@@ -893,6 +893,7 @@ export function UserProfile() {
         targetName="Endorsement"
         reportType="endorsement"
       />
+
     </div>
   );
 }
