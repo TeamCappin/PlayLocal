@@ -38,14 +38,15 @@ export function ConfirmAccountActionDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4"
-      onClick={() => !isLoading && handleClose()}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close account action dialog"
+        className="absolute inset-0 bg-black/50"
+        onClick={() => !isLoading && handleClose()}
+      />
       <div
-        className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
-        onClick={(event) => event.stopPropagation()}
+        className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-xl"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="account-action-title"
