@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ export const LoginPage: React.FC = () => {
 
   const { login, verifyMfa, user, isLoading: authLoading } = useAuth();
   const navigate = useRouter();
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -32,7 +34,8 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
+      const captchaToken = executeRecaptcha ? await executeRecaptcha('login') : undefined;
+      const result = await login(email, password, captchaToken);
       if (result.mfaRequired) {
         setMfaStep(true);
       } else {

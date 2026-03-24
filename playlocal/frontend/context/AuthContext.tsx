@@ -17,14 +17,15 @@ interface AuthContextType {
   user: UserDto | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ mfaRequired?: boolean }>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<{ mfaRequired?: boolean }>;
   verifyMfa: (email: string, code: string) => Promise<void>;
   register: (
     email: string,
     password: string,
     displayName: string,
     ageConfirmed: boolean,
-    eulaAccepted: boolean
+    eulaAccepted: boolean,
+    captchaToken?: string
   ) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -68,11 +69,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ mfaRequired?: boolean }> => {
+  const login = async (email: string, password: string, captchaToken?: string): Promise<{ mfaRequired?: boolean }> => {
     setError(null);
     setIsLoading(true);
     try {
-      const response = await authApi.login({ email, password });
+      const response = await authApi.login({ email, password, captchaToken });
       if (response.mfaRequired) {
         return { mfaRequired: true };
       }
@@ -115,7 +116,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     displayName: string,
     ageConfirmed: boolean,
-    eulaAccepted: boolean
+    eulaAccepted: boolean,
+    captchaToken?: string
   ) => {
     setError(null);
     setIsLoading(true);
@@ -126,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         displayName,
         ageConfirmed,
         eulaAccepted,
+        captchaToken,
       });
       setAuthToken(response.token);
       setUser(response.user);

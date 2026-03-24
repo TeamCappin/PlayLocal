@@ -133,11 +133,13 @@ export interface RegisterRequest {
   displayName?: string;
   ageConfirmed: boolean;
   eulaAccepted: boolean;
+  captchaToken?: string;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
+  captchaToken?: string;
 }
 
 export interface AuthResponse {
