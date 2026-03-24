@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AuthService {
@@ -76,10 +77,17 @@ public class AuthService {
             throw new IllegalArgumentException("You must accept the EULA and Terms of Service");
         }
 
+        String baseSlug = User.generateSlug(request.getDisplayName());
+        String slug = baseSlug;
+        while (userRepository.existsBySlug(slug)) {
+            slug = baseSlug + "-" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        }
+
         User user = User.builder()
                 .email(request.getEmail().toLowerCase())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .displayName(request.getDisplayName())
+                .slug(slug)
                 .ageConfirmedAt(Instant.now())
                 .build();
 
