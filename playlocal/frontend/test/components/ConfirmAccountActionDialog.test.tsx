@@ -107,4 +107,42 @@ describe('ConfirmAccountActionDialog', () => {
     expect(onClose).toHaveBeenCalled();
     expect(screen.getByPlaceholderText('DELETE')).toHaveValue('');
   });
+
+  it('closes when backdrop is clicked', () => {
+    const onClose = jest.fn();
+
+    render(
+      <ConfirmAccountActionDialog
+        isOpen
+        onClose={onClose}
+        onConfirm={jest.fn()}
+        action="deactivate"
+        isLoading={false}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close account action dialog' })
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not close from backdrop click while loading', () => {
+    const onClose = jest.fn();
+
+    render(
+      <ConfirmAccountActionDialog
+        isOpen
+        onClose={onClose}
+        onConfirm={jest.fn()}
+        action="deactivate"
+        isLoading
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close account action dialog' })
+    );
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
