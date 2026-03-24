@@ -97,10 +97,11 @@ export function EditProfile() {
           <form onSubmit={handleSave} className="space-y-8">
             {/* Display Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
                 Display Name <span className="text-red-500">*</span>
               </label>
               <input
+                id="displayName"
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -115,9 +116,9 @@ export function EditProfile() {
 
             {/* Intensity Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <h3 className="block text-sm font-medium text-gray-700 mb-3">
                 Self-Rated Intensity <span className="text-red-500">*</span>
-              </label>
+              </h3>
               <div className="grid grid-cols-3 gap-4">
                 {INTENSITY_OPTIONS.map((option) => {
                   const Icon = option.icon;
@@ -155,9 +156,9 @@ export function EditProfile() {
 
             {/* Availability Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <h3 className="block text-sm font-medium text-gray-700 mb-3">
                 Availability <span className="text-red-500">*</span>
-              </label>
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 {AVAILABILITY_OPTIONS.map((option) => {
                   const Icon = option.icon;
@@ -191,9 +192,9 @@ export function EditProfile() {
 
             {/* Reliability Score (Read-only) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <h3 className="block text-sm font-medium text-gray-700 mb-3">
                 Reliability Score
-              </label>
+              </h3>
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
