@@ -56,7 +56,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         resolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
 
         MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-        converter.setObjectMapper(objectMapper); // ✅ DO NOT new ObjectMapper()
+        converter.setObjectMapper(objectMapper);
         converter.setContentTypeResolver(resolver);
 
         messageConverters.add(converter);
