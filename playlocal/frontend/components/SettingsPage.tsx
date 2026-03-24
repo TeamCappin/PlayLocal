@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   User,
   Lock,
@@ -22,6 +21,7 @@ import {
 import { toast, getActionableErrorMessage } from '@/lib/toast';
 import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -429,37 +429,43 @@ function NotificationSettings() {
 }
 
 function SecuritySettings() {
-  const navigate = useRouter();
-  const { logout } = useAuth();
   const [showAccountDialog, setShowAccountDialog] = useState(false);
   const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectingAction, setRedirectingAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
 
   const handleAccountAction = async () => {
     if (!accountAction) return;
 
+    const pendingAction = accountAction;
+    setShowAccountDialog(false);
+    setRedirectingAction(pendingAction);
     setIsProcessing(true);
     try {
-      if (accountAction === 'deactivate') {
+      if (pendingAction === 'deactivate') {
         await usersApi.deactivateAccount();
-        toast.success('Account deactivated');
+        performLogoutRedirect('/', {
+          message: 'Account deactivated',
+          type: 'success',
+        });
       } else {
         await usersApi.deleteAccount();
-        toast.success('Account deleted');
+        performLogoutRedirect('/', {
+          message: 'Account deleted',
+          type: 'success',
+        });
       }
-
-      // Log out and redirect
-      await logout();
-      navigate.push('/');
     } catch (err: any) {
+      setRedirectingAction(null);
       const errorMessage = getActionableErrorMessage(
         err,
-        `${accountAction} account`
+        `${pendingAction} account`
       );
       toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
-      setShowAccountDialog(false);
       setAccountAction(null);
     }
   };
@@ -537,6 +543,19 @@ function SecuritySettings() {
           action={accountAction}
           isLoading={isProcessing}
         />
+      )}
+
+      {redirectingAction && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingAction === 'deactivate'
+                ? 'Deactivating account...'
+                : 'Deleting account...'}
+            </span>
+          </div>
+        </div>
       )}
     </>
   );
