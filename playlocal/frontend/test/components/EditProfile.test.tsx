@@ -13,11 +13,13 @@ import { useAuth } from '@/context/AuthContext';
 import { usersApi } from '@/lib/api';
 
 const pushMock = jest.fn();
+const replaceMock = jest.fn();
 const backMock = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: pushMock,
+    replace: replaceMock,
     back: backMock,
   }),
 }));
@@ -89,6 +91,9 @@ function setAuthState({
 describe('EditProfile', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedUsersApi.updateProfile.mockResolvedValue({
+      slug: 'john-doe',
+    });
   });
 
   it('returns null when not authenticated', () => {
@@ -149,7 +154,7 @@ describe('EditProfile', () => {
     fireEvent.click(screen.getByRole('button', { name: /mornings/i }));
 
     // No direct UI state text, but we can ensure save payload reflects final state.
-    mockedUsersApi.updateProfile.mockResolvedValueOnce(undefined);
+    mockedUsersApi.updateProfile.mockResolvedValueOnce({ slug: 'john-doe' });
 
     // Required fields: displayName required; set it and intensity at least one
     fireEvent.click(screen.getByRole('button', { name: /casual/i })); // intensity
@@ -224,6 +229,7 @@ describe('EditProfile', () => {
     });
 
     expect(mockedUsersApi.updateProfile).toHaveBeenCalledTimes(1);
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 
   it("save shows 'Saving...' while request is in flight and disables submit button", async () => {
@@ -267,6 +273,42 @@ describe('EditProfile', () => {
       expect(
         screen.getByRole('button', { name: /save changes/i })
       ).toBeEnabled();
+    });
+  });
+
+  it('uses the backend slug after saving instead of deriving one locally', async () => {
+    const refreshUser = jest.fn().mockResolvedValue(undefined);
+    setAuthState({
+      isAuthenticated: true,
+      user: {
+        displayName: 'John Doe',
+        defaultIntensity: 'CASUAL',
+        availability: '',
+        bio: '',
+        location: '',
+        reliabilityScore: 95,
+        slug: 'john-doe',
+      },
+      refreshUser,
+    });
+
+    mockedUsersApi.updateProfile.mockResolvedValueOnce({
+      slug: 'john-doe-2',
+    });
+
+    render(<EditProfile />);
+
+    fireEvent.change(screen.getByPlaceholderText(/your display name/i), {
+      target: { value: 'John Doe' },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    });
+
+    await waitFor(() => {
+      expect(refreshUser).toHaveBeenCalled();
+      expect(replaceMock).toHaveBeenCalledWith('/profile/john-doe-2');
     });
   });
 });
