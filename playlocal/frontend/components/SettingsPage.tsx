@@ -17,6 +17,7 @@ import {
   PrivacySettingsResponse,
   UpdatePrivacySettingsRequest,
 } from '@/lib/api';
+import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -426,39 +427,7 @@ function NotificationSettings() {
 function SecuritySettings() {
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Password & Security</h2>
-        <div className="space-y-6">
-          <div>
-            <label className="block text-gray-700 mb-2">Current Password</label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2">New Password</label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-2">
-              Confirm New Password
-            </label>
-            <input
-              type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-        </div>
-        <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-          <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-            Update Password
-          </button>
-        </div>
-      </div>
+      <PasswordChangeCard />
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Safety & Moderation</h2>

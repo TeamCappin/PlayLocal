@@ -1,21 +1,27 @@
+'use client';
+
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   MapPin,
   Clock,
+  Users,
   TrendingUp,
   Filter,
   Calendar,
   LayoutGrid,
   MapIcon,
+  Cloud,
   Sun,
   Loader2,
   X,
   Search,
   SlidersHorizontal,
   ChevronDown,
+  Bot,
 } from 'lucide-react';
+import { useAssistant } from '@/context/AssistantContext';
 import { useGames } from '@/hooks/useGames';
 import { GameResponse } from '@/lib/api';
 import { getSportImage } from '@/constants/sportImages';
@@ -84,6 +90,7 @@ interface FilterState {
 }
 
 export function GameDiscovery() {
+  const { openAssistant } = useAssistant();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
@@ -313,6 +320,17 @@ export function GameDiscovery() {
                 </button>
               )}
             </div>
+
+            {/* Help assistant button */}
+            <button
+              type="button"
+              onClick={() => openAssistant('discover')}
+              className="flex items-center gap-2 px-4 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
+              aria-label="Open help assistant"
+            >
+              <Bot className="w-5 h-5 shrink-0" aria-hidden />
+              <span>Help</span>
+            </button>
 
             {/* View toggle */}
             <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '10px', padding: '4px', flexShrink: 0 }}>

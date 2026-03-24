@@ -12,5 +12,6 @@ import java.util.UUID;
 public interface GameTagAssignmentRepository extends JpaRepository<GameTagAssignment, UUID> {
     List<GameTagAssignment> findAllByGame(Game game);
     List<GameTagAssignment> findAllByGame_GameId(UUID gameId);
+    List<GameTagAssignment> findAllByGame_GameIdIn(List<UUID> gameIds);
     void deleteAllByGame(Game game);
 }

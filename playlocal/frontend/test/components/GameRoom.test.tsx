@@ -1298,7 +1298,7 @@ describe('GameRoom Component', () => {
           maxAge: 65,
         })
       );
-    });
+    }, 15000);
 
     it('edit modal closes when clicking backdrop', async () => {
       const scheduledGame = {

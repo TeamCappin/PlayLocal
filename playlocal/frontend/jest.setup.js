@@ -19,6 +19,11 @@ if (typeof window !== 'undefined') {
   };
 }
 
+// Some components call element.scrollTo on refs; JSDOM doesn't implement it.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = jest.fn();
+}
+
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {

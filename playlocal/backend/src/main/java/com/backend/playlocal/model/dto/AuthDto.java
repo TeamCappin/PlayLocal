@@ -2,6 +2,7 @@ package com.backend.playlocal.model.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,6 +48,49 @@ public class AuthDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VerifyResetCodeRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+
+        @NotBlank(message = "Reset code is required")
+        @Pattern(regexp = "^\\d{6}$", message = "Reset code must be exactly 6 digits")
+        private String code;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ResetPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+
+        @NotBlank(message = "Reset code is required")
+        @Pattern(regexp = "^\\d{6}$", message = "Reset code must be exactly 6 digits")
+        private String code;
+
+        @NotBlank(message = "New password is required")
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        private String newPassword;
+
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AuthResponse {
         private String token;
         private String tokenType;
@@ -62,7 +106,7 @@ public class AuthDto {
         private String userId;
         private String email;
         private String displayName;
-        private String slug; // URL-friendly identifier (e.g., "john-doe")
+        private String slug;
         private String avatarUrl;
         private String defaultIntensity;
         private String availability;
@@ -70,8 +114,8 @@ public class AuthDto {
         private String location;
         private Float reliabilityScore;
         private Integer gamesCount;
-        private Integer endorsementsCount; // New field for endorsements count [US-3.3]
+        private Integer endorsementsCount;
         private String createdAt;
-        private Boolean profileRestricted; // US-7.12: true when viewer cannot see full profile
+        private Boolean profileRestricted;
     }
 }
