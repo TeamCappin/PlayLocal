@@ -3,8 +3,12 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.model.dto.MediaListItem;
 import com.backend.playlocal.model.dto.RequestUploadSlotRequest;
 import com.backend.playlocal.model.dto.RequestUploadSlotResponse;
+import com.backend.playlocal.model.entity.ContentVisibility;
 import com.backend.playlocal.model.entity.Game;
+import com.backend.playlocal.model.entity.GameParticipation;
 import com.backend.playlocal.model.entity.MediaAsset;
+import com.backend.playlocal.repository.ContentVisibilityRepository;
+import com.backend.playlocal.repository.GameParticipationRepository;
 import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.MediaAssetRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,10 +34,12 @@ public class MediaService {
 
     private final MediaAssetRepository mediaRepo;
     private final GameRepository gameRepo;
+    private final GameParticipationRepository gameParticipationRepo;
+    private final ContentVisibilityRepository contentVisibilityRepo;
     private final S3Client s3;
     private final S3Presigner presigner;
     private static final int MAX_PHOTOS_PER_GAME = 5;
-    private static final UUID DEFAULT_VISIBILITY_ID = UUID.fromString("77830009-26af-4661-9b9b-e778899cd9ae");
+    private static final String DEFAULT_VISIBILITY_CODE = "public";
 
     @Value("${s3.bucket:uploads}")
     private String bucketName;
@@ -41,14 +47,41 @@ public class MediaService {
     @Value("${s3.presignExpirySeconds:900}")
     private long presignExpirySeconds;
 
-    public MediaService(MediaAssetRepository mediaRepo, GameRepository gameRepo, S3Client s3, S3Presigner presigner) {
+    public MediaService(
+            MediaAssetRepository mediaRepo,
+            GameRepository gameRepo,
+            GameParticipationRepository gameParticipationRepo,
+            ContentVisibilityRepository contentVisibilityRepo,
+            S3Client s3,
+            S3Presigner presigner
+    ) {
         this.mediaRepo = mediaRepo;
         this.gameRepo = gameRepo;
+        this.gameParticipationRepo = gameParticipationRepo;
+        this.contentVisibilityRepo = contentVisibilityRepo;
         this.s3 = s3;
         this.presigner = presigner;
     }
 
     public RequestUploadSlotResponse requestPhotoUploadSlot(UUID gameId, UUID uploaderUserId, RequestUploadSlotRequest req) {
+        Game game = gameRepo.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Game not found"
+                ));
+
+        if (!canUploadPhotos(game, uploaderUserId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Join the game to upload photos"
+            );
+        }
+
+        ContentVisibility defaultVisibility = contentVisibilityRepo.findByCode(DEFAULT_VISIBILITY_CODE)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Default photo visibility is not configured"
+                ));
 
         long existing = mediaRepo.countByGameIdAndMediaTypeAndDeletedAtIsNull(gameId, MediaAsset.MediaType.PHOTO);
         if (existing >= MAX_PHOTOS_PER_GAME) {
@@ -66,7 +99,7 @@ public class MediaService {
 
         asset.setStorageUrl(null);   // will set after ID exists
         asset.setThumbnailUrl(null);
-        asset.setVisibilityId(DEFAULT_VISIBILITY_ID);
+        asset.setVisibilityId(defaultVisibility.getContentVisibilityId());
         asset.setCreatedAt(Instant.now());
         asset.setDeleteAfter(null);
         asset.setDeletedAt(null);
@@ -87,6 +120,21 @@ public class MediaService {
         String uploadUrl = presignPut(bucketName, objectKey, req != null ? req.getContentType() : null);
 
         return new RequestUploadSlotResponse(mediaId, uploadUrl, objectKey);
+    }
+
+    private boolean canUploadPhotos(Game game, UUID userId) {
+        if (game.getCreatedBy() != null && game.getCreatedBy().getUserId().equals(userId)) {
+            return true;
+        }
+
+        return gameParticipationRepo.findByGameAndUser(game.getGameId(), userId)
+                .filter(participation -> participation.getLeftAt() == null)
+                .map(GameParticipation::getJoinStatus)
+                .filter(status ->
+                        status == GameParticipation.JoinStatus.CONFIRMED ||
+                        status == GameParticipation.JoinStatus.WAITLISTED
+                )
+                .isPresent();
     }
 
 
