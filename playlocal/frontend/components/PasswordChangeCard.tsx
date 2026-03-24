@@ -7,8 +7,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { authApi } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { performLogoutRedirect } from '@/lib/authRedirect';
 
 const PASSWORD_RULES = [
   {
@@ -53,9 +52,6 @@ function validatePassword(password: string): string | null {
 }
 
 export function PasswordChangeCard() {
-  const router = useRouter();
-  const { logout } = useAuth();
-
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -124,9 +120,11 @@ export function PasswordChangeCard() {
       setSuccess(true);
       clearForm();
 
-      setTimeout(async () => {
-        await logout();
-        router.push('/login');
+      setTimeout(() => {
+        performLogoutRedirect('/login', {
+          message: 'Password changed. Sign in again.',
+          type: 'success',
+        });
       }, 1200);
     } catch (err: any) {
       setError(err.message || 'Failed to change password');
@@ -154,9 +152,10 @@ export function PasswordChangeCard() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-        <label className="block text-gray-700 mb-2">Current Password</label>
+        <label htmlFor="currentpassword" className="block text-gray-700 mb-2">Current Password</label>
         <div className="relative w-full">
             <input
+            id = "currentpassword"
             type={showCurrentPassword ? 'text' : 'password'}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -179,9 +178,10 @@ export function PasswordChangeCard() {
         </div>
 
         <div>
-          <label className="block text-gray-700 mb-2">New Password</label>
+          <label htmlFor="newpassword" className="block text-gray-700 mb-2">New Password</label>
           <div className="relative">
-            <input
+            <input 
+              id= "newpassword"
               type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -229,9 +229,10 @@ export function PasswordChangeCard() {
         </div>
 
         <div>
-          <label className="block text-gray-700 mb-2">Confirm New Password</label>
+          <label htmlFor="confirm" className="block text-gray-700 mb-2">Confirm New Password</label>
           <div className="relative">
             <input
+              id = "confirm"
               type={showConfirmNewPassword ? 'text' : 'password'}
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}

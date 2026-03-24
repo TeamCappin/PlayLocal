@@ -1,10 +1,11 @@
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 const PASSWORD_RULES = [
     { id: 'length',    label: 'At least 8 characters',         test: (p: string) => p.length >= 8 },
@@ -40,6 +41,7 @@ export const RegisterPage: React.FC = () => {
 
   const { register, user, isLoading: authLoading } = useAuth();
   const navigate = useRouter();
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Redirect authenticated users to discover page
   useEffect(() => {
@@ -94,7 +96,8 @@ export const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await register(email, password, displayName, ageConfirmed, eulaAccepted);
+      const captchaToken = executeRecaptcha ? await executeRecaptcha('register') : undefined;
+      await register(email, password, displayName, ageConfirmed, eulaAccepted, captchaToken);
       // TODO: Save intensity and availability to profile via API
       navigate.push('/discover');
     } catch (err: any) {
@@ -238,8 +241,9 @@ export const RegisterPage: React.FC = () => {
             </div>
 
                 <div className="space-y-4 pt-4">
-                  <label className="flex items-start gap-3 cursor-pointer">
+                  <label htmlFor="age" className="flex items-start gap-3 cursor-pointer">
                     <input
+                      id = "age"
                       type="checkbox"
                       checked={ageConfirmed}
                       onChange={(e) => setAgeConfirmed(e.target.checked)}
@@ -250,8 +254,9 @@ export const RegisterPage: React.FC = () => {
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 cursor-pointer">
+                  <label htmlFor="terms" className="flex items-start gap-3 cursor-pointer">
                     <input
+                      id = "terms"
                       type="checkbox"
                       checked={eulaAccepted}
                       onChange={(e) => setEulaAccepted(e.target.checked)}

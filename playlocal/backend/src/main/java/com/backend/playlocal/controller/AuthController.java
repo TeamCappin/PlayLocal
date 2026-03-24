@@ -3,6 +3,7 @@ package com.backend.playlocal.controller;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.CaptchaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final CaptchaService captchaService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, CaptchaService captchaService) {
         this.authService = authService;
+        this.captchaService = captchaService;
     }
 
     /**
@@ -27,6 +30,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<AuthDto.AuthResponse> register(@Valid @RequestBody AuthDto.RegisterRequest request) {
+        captchaService.validate(request.getCaptchaToken());
         AuthDto.AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -37,6 +41,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<AuthDto.AuthResponse> login(@Valid @RequestBody AuthDto.LoginRequest request) {
+        captchaService.validate(request.getCaptchaToken());
         AuthDto.AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
@@ -70,11 +75,48 @@ public class AuthController {
     }
 
     /**
+     * US-7.10: Verify MFA code during login.
+     */
+    @PostMapping("/verify-mfa")
+    public ResponseEntity<AuthDto.AuthResponse> verifyMfa(@Valid @RequestBody AuthDto.MfaVerifyRequest request) {
+        AuthDto.AuthResponse response = authService.verifyMfa(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * US-7.10: Enable MFA for the authenticated user.
+     */
+    @PostMapping("/mfa/enable")
+    public ResponseEntity<Void> enableMfa(Authentication authentication) {
+        authService.enableMfa(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * US-7.10: Disable MFA for the authenticated user.
+     */
+    @PostMapping("/mfa/disable")
+    public ResponseEntity<Void> disableMfa(Authentication authentication) {
+        authService.disableMfa(authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * US-7.10: Get MFA status for the authenticated user.
+     */
+    @GetMapping("/mfa/status")
+    public ResponseEntity<java.util.Map<String, Boolean>> getMfaStatus(Authentication authentication) {
+        boolean enabled = authService.isMfaEnabled(authentication.getName());
+        return ResponseEntity.ok(java.util.Map.of("mfaEnabled", enabled));
+    }
+
+    /**
      * US-7.9: Forgot Password - request reset code.
      * Always returns 204 so we do not reveal whether the email exists.
      */
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody AuthDto.ForgotPasswordRequest request) {
+        captchaService.validate(request.getCaptchaToken());
         authService.forgotPassword(request);
         return ResponseEntity.noContent().build();
     }

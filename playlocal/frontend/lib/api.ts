@@ -133,11 +133,13 @@ export interface RegisterRequest {
   displayName?: string;
   ageConfirmed: boolean;
   eulaAccepted: boolean;
+  captchaToken?: string;
 }
 
 export interface LoginRequest {
   email: string;
   password: string;
+  captchaToken?: string;
 }
 
 export interface AuthResponse {
@@ -145,6 +147,7 @@ export interface AuthResponse {
   tokenType: string;
   expiresIn: number;
   user: UserDto;
+  mfaRequired?: boolean;
 }
 
 export interface UserDto {
@@ -162,6 +165,7 @@ export interface UserDto {
   endorsementsCount?: number; // New field for endorsements count [US-3.3]
   createdAt?: string;
   profileRestricted?: boolean; // US-7.12: true when viewer cannot see full profile
+  mfaEnabled?: boolean;
 }
 
 export const authApi = {
@@ -214,7 +218,21 @@ export const authApi = {
     return Promise.resolve();
   },
 
-  
+  // US-7.10: MFA
+  verifyMfa: (data: { email: string; code: string }) =>
+    apiFetch<AuthResponse>('/auth/verify-mfa', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  enableMfa: () =>
+    apiFetch<void>('/auth/mfa/enable', { method: 'POST' }),
+
+  disableMfa: () =>
+    apiFetch<void>('/auth/mfa/disable', { method: 'POST' }),
+
+  getMfaStatus: () =>
+    apiFetch<{ mfaEnabled: boolean }>('/auth/mfa/status'),
 };
 
 // ============================================
@@ -262,6 +280,17 @@ export const usersApi = {
     apiFetch<ConnectionSignalsBatchResponse>('/users/connection-signals', {
       method: 'POST',
       body: JSON.stringify({ userIds }),
+    }),
+
+  // Account actions
+  deactivateAccount: () =>
+    apiFetch<void>('/users/deactivate', {
+      method: 'POST',
+    }),
+
+  deleteAccount: () =>
+    apiFetch<void>('/users/me', {
+      method: 'DELETE',
     }),
 };
 
@@ -970,6 +999,12 @@ export const photosApi = {
   finalizeUpload: (gameId: string, mediaId: string) =>
     apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}/finalize`, {
       method: 'POST',
+    }),
+
+  // Delete a photo
+  delete: (gameId: string, mediaId: string) =>
+    apiFetch<void>(`/games/${gameId}/media/photos/${mediaId}`, {
+      method: 'DELETE',
     }),
 };
 

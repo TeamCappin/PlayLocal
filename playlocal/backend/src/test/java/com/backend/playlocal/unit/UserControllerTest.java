@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -289,5 +290,29 @@ class UserControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.signalsByUserId." + targetIdStr + ".coPlayCount").value(3))
                                 .andExpect(jsonPath("$.signalsByUserId." + targetIdStr + ".mutualFriendCount").value(0));
+        }
+
+        @Test
+        @DisplayName("US-7.15: POST /deactivate deactivates account")
+        void deactivateAccount_ReturnsNoContent() throws Exception {
+                UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+
+                mockMvc.perform(post("/api/v1/users/deactivate")
+                                .principal(new UsernamePasswordAuthenticationToken(userId.toString(), "pw")))
+                                .andExpect(status().isNoContent());
+
+                verify(userService).deactivateAccount(eq(userId));
+        }
+
+        @Test
+        @DisplayName("US-7.15: DELETE /me permanently deletes account")
+        void deleteAccount_ReturnsNoContent() throws Exception {
+                UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+
+                mockMvc.perform(delete("/api/v1/users/me")
+                                .principal(new UsernamePasswordAuthenticationToken(userId.toString(), "pw")))
+                                .andExpect(status().isNoContent());
+
+                verify(userService).deleteAccount(eq(userId));
         }
 }

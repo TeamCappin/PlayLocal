@@ -7,6 +7,7 @@ import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.UserRoleRepository;
 import com.backend.playlocal.security.JwtService;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.EmailService;
 import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.ChangePasswordRequest;
@@ -56,6 +57,9 @@ class AuthServiceTest {
 
     @Mock
     private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthService authService;
@@ -136,6 +140,7 @@ class AuthServiceTest {
     @DisplayName("US-1.1: Register should succeed with valid data")
     void register_Success() {
         when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        when(userRepository.existsBySlug(any())).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
@@ -147,6 +152,7 @@ class AuthServiceTest {
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
         verify(userRepository).save(any(User.class));
+        verify(emailService).sendWelcomeEmail(eq("test@example.com"), eq("Test User"));
     }
 
     @Test
@@ -179,6 +185,25 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(registerRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must accept the EULA");
+    }
+
+    @Test
+    @DisplayName("Register should generate unique slug when collision exists")
+    void register_SlugCollision_GeneratesUniqueSlug() {
+        when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        // First slug check returns true (collision), second returns false
+        when(userRepository.existsBySlug(any())).thenReturn(true, false);
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
+        when(jwtService.generateToken(any(), any(), any())).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.AuthResponse response = authService.register(registerRequest);
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        // existsBySlug called at least twice due to collision
+        verify(userRepository, atLeast(2)).existsBySlug(any());
     }
 
     // ==========================================
@@ -471,8 +496,174 @@ class AuthServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    // ==========================================
+    // MFA TESTS
+    // ==========================================
 
+    @Test
+    @DisplayName("US-7.10: Login with MFA enabled should return mfaRequired and send code email")
+    void login_MfaEnabled_ReturnsMfaRequired() {
+        user.setMfaEnabled(true);
+        when(userRepository.findByEmailIgnoreCase(loginRequest.getEmail())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())).thenReturn(true);
 
+        AuthDto.AuthResponse response = authService.login(loginRequest);
 
+        assertThat(response.isMfaRequired()).isTrue();
+        assertThat(response.getToken()).isNull();
+        verify(emailService).sendMfaCodeEmail(eq("test@example.com"), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-7.10: verifyMfa should succeed with valid code")
+    void verifyMfa_ValidCode_Succeeds() {
+        user.setMfaEnabled(true);
+        when(userRepository.findByEmailIgnoreCase(loginRequest.getEmail())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())).thenReturn(true);
+
+        // Trigger MFA flow to store a code
+        authService.login(loginRequest);
+
+        // Extract the code that was sent
+        var codeCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendMfaCodeEmail(any(), codeCaptor.capture());
+        String mfaCode = codeCaptor.getValue();
+
+        // Now verify MFA
+        when(userRepository.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.of(user));
+        when(userRoleRepository.findRoleNamesByUserId(user.getUserId())).thenReturn(List.of("user"));
+        when(jwtService.generateToken(any(), any(), any())).thenReturn("mfa-jwt");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.MfaVerifyRequest mfaRequest = AuthDto.MfaVerifyRequest.builder()
+                .email("test@example.com")
+                .code(mfaCode)
+                .build();
+
+        AuthDto.AuthResponse response = authService.verifyMfa(mfaRequest);
+
+        assertThat(response.getToken()).isEqualTo("mfa-jwt");
+        assertThat(response.isMfaRequired()).isFalse();
+    }
+
+    @Test
+    @DisplayName("US-7.10: verifyMfa should throw with invalid code")
+    void verifyMfa_InvalidCode_Throws() {
+        AuthDto.MfaVerifyRequest mfaRequest = AuthDto.MfaVerifyRequest.builder()
+                .email("test@example.com")
+                .code("000000")
+                .build();
+
+        assertThatThrownBy(() -> authService.verifyMfa(mfaRequest))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Invalid or expired MFA code");
+    }
+
+    @Test
+    @DisplayName("US-7.10: enableMfa should set mfaEnabled to true")
+    void enableMfa_Success() {
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        authService.enableMfa(user.getUserId().toString());
+
+        assertThat(user.getMfaEnabled()).isTrue();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("US-7.10: enableMfa should throw when user not found")
+    void enableMfa_UserNotFound_Throws() {
+        UUID missingId = UUID.randomUUID();
+        when(userRepository.findActiveById(missingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.enableMfa(missingId.toString()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("US-7.10: disableMfa should set mfaEnabled to false")
+    void disableMfa_Success() {
+        user.setMfaEnabled(true);
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        authService.disableMfa(user.getUserId().toString());
+
+        assertThat(user.getMfaEnabled()).isFalse();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("US-7.10: disableMfa should throw when user not found")
+    void disableMfa_UserNotFound_Throws() {
+        UUID missingId = UUID.randomUUID();
+        when(userRepository.findActiveById(missingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.disableMfa(missingId.toString()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("US-7.10: isMfaEnabled should return true when enabled")
+    void isMfaEnabled_True() {
+        user.setMfaEnabled(true);
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        assertThat(authService.isMfaEnabled(user.getUserId().toString())).isTrue();
+    }
+
+    @Test
+    @DisplayName("US-7.10: isMfaEnabled should return false when disabled")
+    void isMfaEnabled_False() {
+        user.setMfaEnabled(false);
+        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+
+        assertThat(authService.isMfaEnabled(user.getUserId().toString())).isFalse();
+    }
+
+    @Test
+    @DisplayName("US-7.10: isMfaEnabled should throw when user not found")
+    void isMfaEnabled_UserNotFound_Throws() {
+        UUID missingId = UUID.randomUUID();
+        when(userRepository.findActiveById(missingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.isMfaEnabled(missingId.toString()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ==========================================
+    // REGISTER - EMPTY ROLES FALLBACK
+    // ==========================================
+
+    @Test
+    @DisplayName("Register should default to 'user' role when no roles found")
+    void register_EmptyRoles_DefaultsToUser() {
+        when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        when(userRepository.existsBySlug(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of());
+        when(jwtService.generateToken(any(), any(), eq(List.of("user")))).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.AuthResponse response = authService.register(registerRequest);
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        verify(jwtService).generateToken(any(), any(), eq(List.of("user")));
+    }
+
+    // ==========================================
+    // GET CURRENT USER - NOT FOUND
+    // ==========================================
+
+    @Test
+    @DisplayName("getCurrentUser should throw when user not found")
+    void getCurrentUser_NotFound_Throws() {
+        UUID missingId = UUID.randomUUID();
+        when(userRepository.findActiveById(missingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.getCurrentUser(missingId.toString()))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
 
 }

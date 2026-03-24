@@ -29,6 +29,7 @@ public class AuthDto {
 
         private boolean ageConfirmed;
         private boolean eulaAccepted;
+        private String captchaToken;
     }
 
     @Data
@@ -42,6 +43,7 @@ public class AuthDto {
 
         @NotBlank(message = "Password is required")
         private String password;
+        private String captchaToken;
     }
 
     @Data
@@ -52,6 +54,7 @@ public class AuthDto {
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         private String email;
+        private String captchaToken;
     }
 
     @Data
@@ -96,6 +99,21 @@ public class AuthDto {
         private String tokenType;
         private long expiresIn;
         private UserDto user;
+        private boolean mfaRequired;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MfaVerifyRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+
+        @NotBlank(message = "MFA code is required")
+        @Pattern(regexp = "^\\d{6}$", message = "MFA code must be exactly 6 digits")
+        private String code;
     }
 
     @Data
@@ -117,5 +135,6 @@ public class AuthDto {
         private Integer endorsementsCount;
         private String createdAt;
         private Boolean profileRestricted;
+        private Boolean mfaEnabled;
     }
 }

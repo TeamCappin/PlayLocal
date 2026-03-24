@@ -143,8 +143,9 @@ export function GameDiscovery() {
 
   const [todayOnly, setTodayOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('nearest');
+  const [sortBy, setSortBy] = useState('soonest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const showLocationOffMessage = sortBy === 'nearest' && !userLocation;
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -229,23 +230,27 @@ export function GameDiscovery() {
     }
 
     // Distance filter - convert to radiusKm
-    if (appliedFilters.distance !== 'any distance' && userLocation) {
+    // Sort by filter - if 'nearest', backend needs lat/lon to sort by distance 
+    if (userLocation &&
+      (sortBy === 'nearest' || appliedFilters.distance !== 'any distance')
+    ) {
       apiFilter.lat = userLocation.lat;
       apiFilter.lon = userLocation.lon;
-
-      const distanceMap: Record<string, number> = {
-        'within 5km': 5,
-        'within 10km': 10,
-        'within 20km': 20,
-      };
-      const radius = distanceMap[appliedFilters.distance.toLowerCase()];
-      if (radius) {
-        apiFilter.radiusKm = radius;
+      if (appliedFilters.distance !== 'any distance') {
+        const distanceMap: Record<string, number> = {
+          'within 5km': 5,
+          'within 10km': 10,
+          'within 20km': 20,
+        };
+        const radius = distanceMap[appliedFilters.distance.toLowerCase()];
+        if (radius) {
+          apiFilter.radiusKm = radius;
+        }
       }
     }
 
     return Object.keys(apiFilter).length > 0 ? apiFilter : undefined;
-  }, [appliedFilters, userLocation]);
+  }, [appliedFilters, userLocation, sortBy]);
 
   const { games: apiGames, isLoading, refetch } = useGames(apiFilters);
 
@@ -256,9 +261,10 @@ export function GameDiscovery() {
     return () => window.removeEventListener('playlocal-refresh-games', handler);
   }, [refetch]);
 
-  // Transform games - apply optional client-side filters (e.g. Today, search)
+  // Transform games - apply optional client-side filters (e.g. Today, search) and sorting.
+  // Nearest: backend returns distance-ordered list when we send lat/lon (GameRepository Haversine); when no userLocation, list is by startTime.
   const displayGames = useMemo(() => {
-    let games = apiGames;
+    let games = [...apiGames];
     if (todayOnly) {
       // Compare dates in a consistent timezone (UTC) to avoid local timezone discrepancies
       const todayUtcDateStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -268,6 +274,19 @@ export function GameDiscovery() {
           new Date(g.startTime).toISOString().slice(0, 10) === todayUtcDateStr
       );
     }
+    if (sortBy === 'soonest') {
+      games.sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+    } else if (sortBy === 'most_popular') {
+      games.sort(
+        (a, b) =>
+          (b.confirmedCount ?? 0) + (b.waitlistCount ?? 0) -
+          ((a.confirmedCount ?? 0) + (a.waitlistCount ?? 0))
+      );
+    }
+    // sortBy === 'nearest': order comes from backend when userLocation was sent; otherwise already by startTime
     let transformed = games.map(transformApiGame);
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -279,7 +298,7 @@ export function GameDiscovery() {
       );
     }
     return transformed;
-  }, [apiGames, todayOnly, searchQuery]);
+  }, [apiGames, todayOnly, sortBy, searchQuery]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -588,7 +607,7 @@ export function GameDiscovery() {
                   }}
                 >
                   <SlidersHorizontal style={{ width: '15px', height: '15px', color: '#6b7280' }} />
-                  <span>{{ nearest: 'Nearest', soonest: 'Soonest', popular: 'Most Popular' }[sortBy]}</span>
+                  <span>{{ nearest: 'Nearest', soonest: 'Soonest', most_popular: 'Most Popular' }[sortBy] ?? 'Soonest'}</span>
                   <ChevronDown style={{ width: '14px', height: '14px', color: '#6b7280', transform: showSortMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                 </button>
                 {showSortMenu && (
@@ -604,7 +623,7 @@ export function GameDiscovery() {
                     minWidth: '150px',
                     overflow: 'hidden',
                   }}>
-                    {([['nearest', 'Nearest'], ['soonest', 'Soonest'], ['popular', 'Most Popular']] as const).map(([value, label]) => (
+                    {([['nearest', 'Nearest'], ['soonest', 'Soonest'], ['most_popular', 'Most Popular']] as const).map(([value, label]) => (
                       <button
                         key={value}
                         onClick={() => { setSortBy(value); setShowSortMenu(false); }}
@@ -628,6 +647,19 @@ export function GameDiscovery() {
                 )}
               </div>
             </div>
+
+            {showLocationOffMessage && (
+              <div
+                className="mb-6 flex bg-amber-50 rounded-xl border border-gray-200 px-6 py-3 gap-4 items-center"
+              >
+                <div>
+                  <MapPin className="text-red-600" />
+                </div>
+                <div className="text-gray-700">
+                  Location is off. Please enable location services to sort games by distance.
+                </div>
+              </div>
+            )}
 
             {displayGames.length === 0 ? (
               <div className="text-center py-16">

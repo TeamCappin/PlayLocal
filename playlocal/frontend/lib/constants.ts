@@ -58,6 +58,7 @@ export interface ChangePasswordRequest {
 
 export interface ForgotPasswordRequest {
   email: string;
+  captchaToken?: string;
 }
 
 export interface VerifyResetCodeRequest {

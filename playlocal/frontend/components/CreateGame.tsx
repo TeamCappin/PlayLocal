@@ -17,6 +17,7 @@ import { useCreateGame } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
 import { gamesApi, TagDto } from '@/lib/api';
 import { getSportImage } from '@/constants/sportImages';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
 
 function getVisibilityLabel(visibility: string): string {
   if (visibility === 'public') return 'Public';
@@ -317,12 +318,12 @@ export function CreateGame() {
           : undefined,
       });
 
+      toast.success('Game created');
       navigate.push(`/games/${game.gameId}`);
     } catch (err: any) {
-      setError(
-        err.message ||
-          'Failed to create game. Make sure the backend is running.'
-      );
+      const errorMessage = getActionableErrorMessage(err, 'create game');
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -410,10 +411,11 @@ export function CreateGame() {
                 </h2>
 
                 <div>
-                  <label className="block text-gray-700 mb-2">
+                  <label htmlFor="title" className="block text-gray-700 mb-2">
                     Game Title *
                   </label>
                   <input
+                    id = "title"
                     type="text"
                     value={formData.title}
                     onChange={(e) =>
@@ -426,8 +428,9 @@ export function CreateGame() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-2">Sport *</label>
+                  <label htmlFor="sport" className="block text-gray-700 mb-2">Sport *</label>
                   <select
+                    id = "sport"
                     value={formData.sport}
                     onChange={(e) =>
                       setFormData({ ...formData, sport: e.target.value })
@@ -445,10 +448,11 @@ export function CreateGame() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 mb-2">Location *</label>
+                  <label htmlFor="location" className="block text-gray-700 mb-2">Location *</label>
                   <div className="relative mb-2">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
+                      id = "location"
                       type="text"
                       value={formData.location}
                       onChange={(e) => {
@@ -520,10 +524,11 @@ export function CreateGame() {
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-gray-700 mb-2">Date *</label>
+                    <label htmlFor="date" className="block text-gray-700 mb-2">Date *</label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <input
+                        id="date"
                         type="date"
                         value={formData.date}
                         onChange={(e) =>
@@ -536,10 +541,11 @@ export function CreateGame() {
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 mb-2">
+                    <label htmlFor="locationtype" className="block text-gray-700 mb-2">
                       Location Type *
                     </label>
                     <select
+                      id="locationtype"
                       value={formData.indoor}
                       onChange={(e) =>
                         setFormData({ ...formData, indoor: e.target.value })
@@ -857,8 +863,9 @@ export function CreateGame() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="flex items-start gap-3 cursor-pointer">
+                  <label htmlFor="Waitlist" className="flex items-start gap-3 cursor-pointer">
                     <input
+                      id = "Waitlist"
                       type="checkbox"
                       checked={formData.allowWaitlist}
                       onChange={(e) =>
@@ -877,8 +884,9 @@ export function CreateGame() {
                     </div>
                   </label>
 
-                  <label className="flex items-start gap-3 cursor-pointer">
+                  <label htmlFor="Check-In" className="flex items-start gap-3 cursor-pointer">
                     <input
+                      id = "Check-In"
                       type="checkbox"
                       checked={formData.requireCheckin}
                       onChange={(e) =>

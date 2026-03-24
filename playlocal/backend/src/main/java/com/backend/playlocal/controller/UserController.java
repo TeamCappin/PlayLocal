@@ -141,4 +141,28 @@ public class UserController {
         var signalsByUserId = connectionSignalsService.getSignalsBatch(viewerId, targetIds);
         return ResponseEntity.ok(new UserDto.ConnectionSignalsBatchResponse(signalsByUserId));
     }
+
+    /**
+     * US-7.15: Deactivate the authenticated user's account.
+     * POST /api/v1/users/deactivate
+     * Account can be reactivated by logging in within 30 days.
+     */
+    @PostMapping("/deactivate")
+    public ResponseEntity<Void> deactivateAccount(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        userService.deactivateAccount(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * US-7.15: Permanently delete the authenticated user's account.
+     * DELETE /api/v1/users/me
+     * This action is irreversible. Deletes all user data.
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        userService.deleteAccount(userId);
+        return ResponseEntity.noContent().build();
+    }
 }
