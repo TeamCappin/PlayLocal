@@ -490,15 +490,13 @@ function SecuritySettings() {
           <button
             onClick={handleMfaToggle}
             disabled={mfaLoading || mfaToggling}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 disabled:opacity-50 ${
-              mfaEnabled ? 'bg-emerald-600' : 'bg-gray-200'
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+              mfaEnabled
+                ? 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
+                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
             }`}
           >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                mfaEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            {mfaToggling ? 'Updating...' : mfaEnabled ? 'Disable MFA' : 'Enable MFA'}
           </button>
         </div>
       </div>

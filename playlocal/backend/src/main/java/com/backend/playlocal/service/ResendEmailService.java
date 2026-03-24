@@ -129,6 +129,25 @@ public class ResendEmailService implements EmailService {
     return sendTypedEmail(to, subject, content, footer, "MFA_CODE");
   }
 
+  @Override
+  public boolean sendWelcomeEmail(String to, String displayName) {
+    String name = (displayName != null && !displayName.isBlank())
+        ? displayName : "there";
+    String subject = "Welcome to PlayLocal!";
+    String content = "<h2>Hey " + name + ", welcome to PlayLocal! \uD83C\uDFC0</h2>"
+        + "<p>Your account is all set. Here\u2019s what you can do next:</p>"
+        + "<ul>"
+        + "<li><strong>Discover</strong> pickup games near you</li>"
+        + "<li><strong>Create</strong> your own game and invite others</li>"
+        + "<li><strong>Build</strong> your reliability score by showing up</li>"
+        + "</ul>"
+        + "<p>See you on the field!</p>";
+    String footer = "You received this because you created"
+        + " an account on PlayLocal.";
+
+    return sendTypedEmail(to, subject, content, footer, "WELCOME");
+  }
+
   private boolean sendTypedEmail(String to, String subject,
                                  String content, String footer,
                                  String emailType) {

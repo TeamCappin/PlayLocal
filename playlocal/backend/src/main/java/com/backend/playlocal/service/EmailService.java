@@ -31,4 +31,9 @@ public interface EmailService {
    * Send an MFA verification code email.
    */
   boolean sendMfaCodeEmail(String to, String code);
+
+  /**
+   * Send a welcome email after successful registration.
+   */
+  boolean sendWelcomeEmail(String to, String displayName);
 }

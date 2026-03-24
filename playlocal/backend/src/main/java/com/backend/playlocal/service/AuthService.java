@@ -87,6 +87,8 @@ public class AuthService {
 
         privacySettingsService.createDefaultSettings(user.getUserId());
 
+        emailService.sendWelcomeEmail(user.getEmail(), user.getDisplayName());
+
         List<String> roles = userRoleRepository.findRoleNamesByUserId(user.getUserId());
         if (roles.isEmpty()) {
             roles = List.of("user");
