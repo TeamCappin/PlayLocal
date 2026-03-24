@@ -4,6 +4,7 @@ import com.backend.playlocal.controller.AuthController;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.ChangePasswordRequest;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.CaptchaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,9 @@ class AuthControllerUnitTest {
 
     @Mock
     private AuthService authService;
+
+    @Mock
+    private CaptchaService captchaService;
 
     @InjectMocks
     private AuthController authController;

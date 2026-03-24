@@ -7,6 +7,7 @@ import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.UserRoleRepository;
 import com.backend.playlocal.security.JwtService;
 import com.backend.playlocal.service.AuthService;
+import com.backend.playlocal.service.EmailService;
 import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.ChangePasswordRequest;
@@ -56,6 +57,9 @@ class AuthServiceTest {
 
     @Mock
     private PrivacySettingsService privacySettingsService;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AuthService authService;
@@ -136,6 +140,7 @@ class AuthServiceTest {
     @DisplayName("US-1.1: Register should succeed with valid data")
     void register_Success() {
         when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        when(userRepository.existsBySlug(any())).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
@@ -147,6 +152,7 @@ class AuthServiceTest {
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
         verify(userRepository).save(any(User.class));
+        verify(emailService).sendWelcomeEmail(eq("test@example.com"), eq("Test User"));
     }
 
     @Test
@@ -179,6 +185,25 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(registerRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must accept the EULA");
+    }
+
+    @Test
+    @DisplayName("Register should generate unique slug when collision exists")
+    void register_SlugCollision_GeneratesUniqueSlug() {
+        when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        // First slug check returns true (collision), second returns false
+        when(userRepository.existsBySlug(any())).thenReturn(true, false);
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
+        when(jwtService.generateToken(any(), any(), any())).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.AuthResponse response = authService.register(registerRequest);
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        // existsBySlug called at least twice due to collision
+        verify(userRepository, atLeast(2)).existsBySlug(any());
     }
 
     // ==========================================

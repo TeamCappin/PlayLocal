@@ -10,7 +10,12 @@ jest.mock('@/context/AuthContext', () => ({
       displayName: 'Test User',
       email: 'test@example.com',
     },
+    logout: jest.fn(),
   }),
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
 }));
 
 // Mock the APIs
@@ -149,6 +154,136 @@ describe('SettingsPage - Privacy Tab', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Privacy settings saved')).toBeInTheDocument();
+    });
+  });
+});
+
+const mockGetMfaStatus = authApi.getMfaStatus as jest.Mock;
+const mockEnableMfa = authApi.enableMfa as jest.Mock;
+const mockDisableMfa = authApi.disableMfa as jest.Mock;
+
+describe('SettingsPage - Security Tab (MFA)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetSettings.mockResolvedValue(defaultSettings);
+  });
+
+  it('renders MFA section with "Enable MFA" button when MFA is disabled', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Currently disabled')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+  });
+
+  it('renders "Disable MFA" button when MFA is enabled', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: true });
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Currently enabled')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+  });
+
+  it('enables MFA when "Enable MFA" button is clicked', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    mockEnableMfa.mockResolvedValue(undefined);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(mockEnableMfa).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/MFA has been enabled/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+  });
+
+  it('disables MFA when "Disable MFA" button is clicked', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: true });
+    mockDisableMfa.mockResolvedValue(undefined);
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }));
+
+    await waitFor(() => {
+      expect(mockDisableMfa).toHaveBeenCalledTimes(1);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/MFA has been disabled/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+  });
+
+  it('shows error message when MFA toggle fails', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    mockEnableMfa.mockRejectedValue(new Error('Server error'));
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to update MFA setting/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows "Updating..." while MFA toggle is in progress', async () => {
+    mockGetMfaStatus.mockResolvedValue({ mfaEnabled: false });
+    let resolveEnable!: () => void;
+    mockEnableMfa.mockImplementation(
+      () => new Promise<void>((resolve) => { resolveEnable = resolve; })
+    );
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Security & Safety'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Updating...' })).toBeInTheDocument();
+    });
+
+    resolveEnable();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeInTheDocument();
     });
   });
 });
