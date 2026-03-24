@@ -1475,13 +1475,14 @@ export function GameRoom() {
 
       {showEditModal && (
         <div
-          className="fixed inset-0 z-[10000] overflow-y-auto bg-black/50 px-3 py-20 sm:px-4 sm:py-8"
+          className="fixed inset-0 z-[10000] overflow-y-auto px-3 py-20 sm:px-4 sm:py-8"
           role="presentation"
         >
-          <div
-            aria-hidden="true"
+          <button
+            type="button"
+            aria-label="Close edit game dialog"
             data-testid="edit-game-backdrop"
-            className="absolute inset-0"
+            className="absolute inset-0 bg-black/50"
             onClick={() => {
               if (!isUpdating) {
                 setShowEditModal(false);
@@ -1493,7 +1494,6 @@ export function GameRoom() {
             aria-modal="true"
             aria-labelledby="edit-game-title"
             className="relative z-10 mx-auto grid max-h-[calc(100dvh-10rem)] w-full max-w-4xl grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl sm:max-h-[calc(100dvh-4rem)]"
-            onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-gray-200 bg-white px-6 py-4 pr-12">
               <h2 id="edit-game-title" className="text-xl text-gray-900">
