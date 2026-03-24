@@ -23,6 +23,7 @@ jest.mock('@/lib/api', () => {
       login: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
+      verifyMfa: jest.fn(),
     },
     setAuthToken: jest.fn(),
     getAuthToken: jest.fn(),
@@ -35,6 +36,7 @@ const mockedAuthApi = authApi as unknown as {
   login: jest.Mock;
   register: jest.Mock;
   logout: jest.Mock;
+  verifyMfa: jest.Mock;
 };
 
 const mockedSetAuthToken = setAuthToken as unknown as jest.Mock;
@@ -48,6 +50,7 @@ function TestConsumer() {
     isLoading,
     error,
     login,
+    verifyMfa,
     register,
     logout,
     refreshUser,
@@ -74,6 +77,9 @@ function TestConsumer() {
       </button>
       <button onClick={() => refreshUser()} type="button">
         doRefresh
+      </button>
+      <button onClick={() => verifyMfa('a@b.com', '123456').catch(() => {})} type="button">
+        doVerifyMfa
       </button>
     </div>
   );
@@ -436,6 +442,122 @@ describe('AuthContext / AuthProvider', () => {
 
     expect(mockedSetAuthToken).toHaveBeenCalledWith(null);
     expect(screen.getByTestId('userEmail')).toHaveTextContent('');
+  });
+
+  it('login with mfaRequired: returns mfaRequired true without setting user', async () => {
+    mockedGetAuthToken.mockReturnValueOnce(null);
+    mockedAuthApi.login.mockResolvedValueOnce({ mfaRequired: true });
+
+    function MfaLoginConsumer() {
+      const { login, isAuthenticated, isLoading } = useAuth();
+      const [mfaNeeded, setMfaNeeded] = React.useState(false);
+      return (
+        <div>
+          <div data-testid="auth">{String(isAuthenticated)}</div>
+          <div data-testid="loading">{String(isLoading)}</div>
+          <div data-testid="mfa">{String(mfaNeeded)}</div>
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await login('a@b.com', 'pw');
+              if (res.mfaRequired) setMfaNeeded(true);
+            }}
+          >
+            run
+          </button>
+        </div>
+      );
+    }
+
+    renderWithProvider(<MfaLoginConsumer />);
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'run' }).click();
+    });
+
+    expect(screen.getByTestId('mfa')).toHaveTextContent('true');
+    expect(screen.getByTestId('auth')).toHaveTextContent('false');
+    expect(mockedSetAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('verifyMfa success: stores token and sets user', async () => {
+    mockedGetAuthToken.mockReturnValueOnce(null);
+    mockedAuthApi.verifyMfa.mockResolvedValueOnce({
+      token: 'mfa-token',
+      user: { userId: 'u5', email: 'mfa@b.com', displayName: 'MFA', reliabilityScore: 80, gamesCount: 3 },
+    });
+
+    renderWithProvider(<TestConsumer />);
+    await waitFor(() => expect(screen.getByTestId('isLoading')).toHaveTextContent('false'));
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'doVerifyMfa' }).click();
+    });
+
+    expect(mockedAuthApi.verifyMfa).toHaveBeenCalledWith({ email: 'a@b.com', code: '123456' });
+    expect(mockedSetAuthToken).toHaveBeenCalledWith('mfa-token');
+    await waitFor(() => expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true'));
+    expect(screen.getByTestId('userEmail')).toHaveTextContent('mfa@b.com');
+  });
+
+  it('verifyMfa failure with ApiError: sets error message', async () => {
+    mockedGetAuthToken.mockReturnValueOnce(null);
+    const err = new (ApiError as any)('Invalid MFA code', 401);
+    mockedAuthApi.verifyMfa.mockRejectedValueOnce(err);
+
+    renderWithProvider(<TestConsumer />);
+    await waitFor(() => expect(screen.getByTestId('isLoading')).toHaveTextContent('false'));
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'doVerifyMfa' }).click();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('Invalid MFA code'));
+    expect(screen.getByTestId('isLoading')).toHaveTextContent('false');
+  });
+
+  it('verifyMfa failure with non-ApiError: sets generic message', async () => {
+    mockedGetAuthToken.mockReturnValueOnce(null);
+    mockedAuthApi.verifyMfa.mockRejectedValueOnce(new Error('network'));
+
+    renderWithProvider(<TestConsumer />);
+    await waitFor(() => expect(screen.getByTestId('isLoading')).toHaveTextContent('false'));
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'doVerifyMfa' }).click();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('MFA verification failed. Please try again.'));
+  });
+
+  it('register failure with non-ApiError: sets generic message', async () => {
+    mockedGetAuthToken.mockReturnValueOnce(null);
+    mockedAuthApi.register.mockRejectedValueOnce(new Error('network'));
+
+    function RegisterCatcher() {
+      const { error, register } = useAuth();
+      return (
+        <div>
+          <div data-testid="err">{error ?? ''}</div>
+          <button
+            type="button"
+            onClick={async () => {
+              try { await register('r@b.com', 'pw', 'Reg', true, true); } catch {}
+            }}
+          >
+            run
+          </button>
+        </div>
+      );
+    }
+
+    renderWithProvider(<RegisterCatcher />);
+    await act(async () => {
+      screen.getByRole('button', { name: 'run' }).click();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('err')).toHaveTextContent('Registration failed. Please try again.'));
   });
 
   it('refreshUser: no token => does nothing', async () => {

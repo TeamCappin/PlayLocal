@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AuthService {
@@ -80,7 +79,7 @@ public class AuthService {
         String baseSlug = User.generateSlug(request.getDisplayName());
         String slug = baseSlug;
         while (userRepository.existsBySlug(slug)) {
-            slug = baseSlug + "-" + ThreadLocalRandom.current().nextInt(1000, 9999);
+            slug = baseSlug + "-" + secureRandom.nextInt(1000, 9999);
         }
 
         User user = User.builder()
