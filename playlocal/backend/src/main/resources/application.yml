@@ -61,6 +61,13 @@ s3:
   forcePathStyle: true
   presignExpirySeconds: 900
   
+# Resend Email
+resend:
+  api-key: ${RESEND_API_KEY:re_test_placeholder}
+  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+  from-name: ${RESEND_FROM_NAME:PlayLocal}
+  enabled: ${RESEND_ENABLED:false}
+
 # Logging
 # %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
 logging:

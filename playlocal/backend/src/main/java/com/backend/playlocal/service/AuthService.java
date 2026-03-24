@@ -30,6 +30,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final PrivacySettingsService privacySettingsService;
+    private final EmailService emailService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -43,12 +44,14 @@ public class AuthService {
                        UserRoleRepository userRoleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       PrivacySettingsService privacySettingsService) {
+                       PrivacySettingsService privacySettingsService,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.privacySettingsService = privacySettingsService;
+        this.emailService = emailService;
     }
 
     /**
@@ -168,6 +171,9 @@ public class AuthService {
         Instant expiresAt = Instant.now().plusSeconds(RESET_CODE_TTL_SECONDS);
 
         resetCodeStore.put(normalizedEmail, new ResetCodeEntry(code, expiresAt, false));
+
+        // Send reset code via email (falls back to console log if disabled)
+        emailService.sendPasswordResetEmail(normalizedEmail, code);
 
         System.out.println("======================================");
         System.out.println("FORGOT PASSWORD RESET CODE GENERATED");

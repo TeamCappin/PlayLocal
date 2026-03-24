@@ -53,3 +53,9 @@ s3:
   publicEndpoint: ${publicEndpoint}
   forcePathStyle: false
   presignExpirySeconds: 900
+
+resend:
+  api-key: ${RESEND_API_KEY}
+  from-email: ${RESEND_FROM_EMAIL}
+  from-name: ${RESEND_FROM_NAME:PlayLocal}
+  enabled: ${RESEND_ENABLED:true}
