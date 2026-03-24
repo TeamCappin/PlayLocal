@@ -152,9 +152,10 @@ export function PasswordChangeCard() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-        <label className="block text-gray-700 mb-2">Current Password</label>
+        <label htmlFor="currentpassword" className="block text-gray-700 mb-2">Current Password</label>
         <div className="relative w-full">
             <input
+            id = "currentpassword"
             type={showCurrentPassword ? 'text' : 'password'}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -177,9 +178,10 @@ export function PasswordChangeCard() {
         </div>
 
         <div>
-          <label className="block text-gray-700 mb-2">New Password</label>
+          <label htmlFor="newpassword" className="block text-gray-700 mb-2">New Password</label>
           <div className="relative">
-            <input
+            <input 
+              id= "newpassword"
               type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -227,9 +229,10 @@ export function PasswordChangeCard() {
         </div>
 
         <div>
-          <label className="block text-gray-700 mb-2">Confirm New Password</label>
+          <label htmlFor="confirm" className="block text-gray-700 mb-2">Confirm New Password</label>
           <div className="relative">
             <input
+              id = "confirm"
               type={showConfirmNewPassword ? 'text' : 'password'}
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}

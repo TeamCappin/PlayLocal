@@ -127,35 +127,50 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Account Information</h2>
         <div className="space-y-6">
           <div>
-            <label className="block text-gray-700 mb-2">Display Name</label>
+            <label htmlFor="displayName" className="block text-gray-700 mb-2">
+              Display Name
+            </label>
             <input
+              id="displayName"
               type="text"
               defaultValue={user?.displayName || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Email</label>
+            <label htmlFor="email" className="block text-gray-700 mb-2">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               defaultValue={user?.email || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Phone Number</label>
+            <label htmlFor="phone" className="block text-gray-700 mb-2">
+              Phone Number
+            </label>
             <input
+              id="phone"
               type="tel"
               defaultValue={user?.phone || ''}
               placeholder="Enter your phone number"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Location</label>
+            <label htmlFor="location" className="block text-gray-700 mb-2">
+              Location
+            </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
+                id="location"
                 type="text"
                 defaultValue={user?.location || ''}
                 placeholder="Enter your location"
@@ -163,16 +178,21 @@ function AccountSettings({ user }: { user: any }) {
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-gray-700 mb-2">Bio</label>
+            <label htmlFor="bio" className="block text-gray-700 mb-2">
+              Bio
+            </label>
             <textarea
+              id="bio"
               rows={4}
               defaultValue={user?.bio || ''}
               placeholder="Tell others about yourself..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            ></textarea>
+            />
           </div>
         </div>
+
         <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-3">
           <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
             Cancel
@@ -187,10 +207,13 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Default Preferences</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">
+            <label htmlFor="defaultIntensity" className="block text-gray-700 mb-2">
               Default Intensity
             </label>
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            <select
+              id="defaultIntensity"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
               <option>Low - Casual & Social</option>
               <option>Medium - Competitive</option>
               <option>High - Very Competitive</option>
