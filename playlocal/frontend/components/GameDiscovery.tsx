@@ -321,39 +321,47 @@ export function GameDiscovery() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  gap: isMobile ? 0 : '5px',
                   padding: '7px 12px',
                   borderRadius: '7px',
                   border: 'none',
                   cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
                   transition: 'all 0.15s',
                   background: viewMode === 'grid' ? 'white' : 'transparent',
                   color: viewMode === 'grid' ? '#059669' : '#6b7280',
                   boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                <LayoutGrid style={{ width: '18px', height: '18px' }} />
+                <LayoutGrid style={{ width: '16px', height: '16px' }} />
+                {!isMobile && <span>Browse</span>}
               </button>
               <button
                 onClick={() => handleViewModeChange('map')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  gap: isMobile ? 0 : '5px',
                   padding: '7px 12px',
                   borderRadius: '7px',
                   border: 'none',
                   cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 500,
                   transition: 'all 0.15s',
                   background: viewMode === 'map' ? 'white' : 'transparent',
                   color: viewMode === 'map' ? '#059669' : '#6b7280',
                   boxShadow: viewMode === 'map' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                <MapIcon style={{ width: '18px', height: '18px' }} />
+                <MapIcon style={{ width: '16px', height: '16px' }} />
+                {!isMobile && <span>Map</span>}
               </button>
             </div>
           </div>
 
-          {/* Sport chips row — horizontally scrollable */}
+          {/* Chip rows — one row on desktop, two rows on mobile */}
           <div
             style={{
               display: 'flex',
@@ -364,7 +372,7 @@ export function GameDiscovery() {
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
             }}
-            className="mb-2"
+            className={isMobile ? 'mb-2' : ''}
           >
             {/* Filters chip — leads the row */}
             <button
@@ -403,30 +411,35 @@ export function GameDiscovery() {
             </button>
 
             {/* Divider */}
-            <div style={{ width: '1px', background: '#e5e7eb', flexShrink: 0, margin: '6px 0' }} />
+            <div style={{ width: '1.5px', background: '#e5e7eb', flexShrink: 0, margin: '6px 0' }} />
 
             {/* Sport chips */}
-            <FilterChip
-              label="All"
-              active={!appliedFilters.sportName}
-              onClick={() => {
-                setAppliedFilters((prev) => ({ ...prev, sportName: '' }));
-                setFilters((prev) => ({ ...prev, sportName: '' }));
-              }}
-            />
+            <FilterChip label="All" active={!appliedFilters.sportName} onClick={() => { setAppliedFilters((prev) => ({ ...prev, sportName: '' })); setFilters((prev) => ({ ...prev, sportName: '' })); }} />
             <FilterChip label="Basketball" active={appliedFilters.sportName.toLowerCase() === 'basketball'} onClick={() => handleSportQuickFilter('Basketball')} />
             <FilterChip label="Soccer" active={appliedFilters.sportName.toLowerCase() === 'soccer'} onClick={() => handleSportQuickFilter('Soccer')} />
             <FilterChip label="Volleyball" active={appliedFilters.sportName.toLowerCase() === 'volleyball'} onClick={() => handleSportQuickFilter('Volleyball')} />
             <FilterChip label="Tennis" active={appliedFilters.sportName.toLowerCase() === 'tennis'} onClick={() => handleSportQuickFilter('Tennis')} />
             <FilterChip label="Badminton" active={appliedFilters.sportName.toLowerCase() === 'badminton'} onClick={() => handleSportQuickFilter('Badminton')} />
+
+            {/* Contextual chips — inline on desktop, separate row on mobile */}
+            {!isMobile && (
+              <>
+                <div style={{ width: '1.5px', background: '#e5e7eb', flexShrink: 0, margin: '6px 0' }} />
+                <FilterChip label="Today" active={todayOnly} onClick={() => setTodayOnly((prev) => !prev)} />
+                <FilterChip label="Within 5km" active={appliedFilters.distance === 'within 5km'} onClick={handleDistanceQuickFilter} />
+                <FilterChip label="My Skill Level" active={false} />
+              </>
+            )}
           </div>
 
-          {/* Contextual chips row */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <FilterChip label="Today" active={todayOnly} onClick={() => setTodayOnly((prev) => !prev)} />
-            <FilterChip label="Within 5km" active={appliedFilters.distance === 'within 5km'} onClick={handleDistanceQuickFilter} />
-            <FilterChip label="My Skill Level" active={false} />
-          </div>
+          {/* Contextual chips — second row on mobile only */}
+          {isMobile && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <FilterChip label="Today" active={todayOnly} onClick={() => setTodayOnly((prev) => !prev)} />
+              <FilterChip label="Within 5km" active={appliedFilters.distance === 'within 5km'} onClick={handleDistanceQuickFilter} />
+              <FilterChip label="My Skill Level" active={false} />
+            </div>
+          )}
         </div>
       </div>
 

@@ -38,6 +38,9 @@ jest.mock('lucide-react', () => ({
   Loader2: () => <div data-testid="icon-loader" />,
   X: () => <div data-testid="icon-x" />,
   Search: () => <div data-testid="icon-search" />,
+  LayoutGrid: () => <div data-testid="icon-layout-grid" />,
+  SlidersHorizontal: () => <div data-testid="icon-sliders" />,
+  ChevronDown: () => <div data-testid="icon-chevron-down" />,
 }));
 
 // Prevent @vis.gl/react-google-maps from running in tests
@@ -49,6 +52,21 @@ jest.mock('../../components/MapView', () => ({
 import { useGames } from '../../hooks/useGames';
 
 describe('GameDiscovery Component', () => {
+  // Helper: open a custom FilterSelect dropdown and choose an option
+  async function selectFilterOption(labelText: string, optionLabel: string) {
+    const label = screen.getByText(labelText);
+    const wrapper = label.parentElement; // grid cell div containing label + FilterSelect
+    const trigger = wrapper?.querySelector('button');
+    if (!trigger) throw new Error(`Trigger button for "${labelText}" not found`);
+    await act(async () => { fireEvent.click(trigger); });
+    // Query the option within the FilterSelect wrapper (position:relative div)
+    const filterSelectDiv = trigger.parentElement;
+    const optionButton = Array.from(filterSelectDiv?.querySelectorAll('button') ?? [])
+      .find(btn => btn.textContent?.trim() === optionLabel);
+    if (!optionButton) throw new Error(`Option "${optionLabel}" not found in "${labelText}" dropdown`);
+    await act(async () => { fireEvent.click(optionButton); });
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorage.clear();
@@ -273,7 +291,7 @@ describe('GameDiscovery Component', () => {
         btn.querySelector('[data-testid="icon-map"]')
       );
       const gridButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="icon-calendar"]')
+        btn.querySelector('[data-testid="icon-layout-grid"]')
       );
 
       expect(mapButton).toBeDefined();
@@ -523,20 +541,8 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      // Change sport name filter
-      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
-      await act(async () => {
-        fireEvent.change(sportInput, { target: { value: 'Basketball' } });
-      });
-
-      // Change skill level
-      const skillLabel = screen.getByText('Skill Level');
-      const skillSelect = skillLabel.parentElement?.querySelector('select');
-      if (skillSelect) {
-        await act(async () => {
-          fireEvent.change(skillSelect, { target: { value: 'intermediate' } });
-        });
-      }
+      // Change skill level using custom dropdown
+      await selectFilterOption('Skill Level', 'Intermediate');
 
       // Click search button
       const searchButton = screen.getByText('Apply');
@@ -562,10 +568,13 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument()
       );
 
-      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
-      await act(async () => {
-        fireEvent.change(sportInput, { target: { value: 'Basketball' } });
-      });
+      // Change skill level using custom dropdown
+      await selectFilterOption('Skill Level', 'Beginner');
+
+      // Verify skill level trigger now shows Beginner
+      const skillLabel = screen.getByText('Skill Level');
+      const skillTrigger = skillLabel.parentElement?.querySelector('button');
+      expect(skillTrigger).toHaveTextContent('Beginner');
 
       // Click Clear
       const clearButton = screen.getByRole('button', { name: /clear/i });
@@ -573,8 +582,8 @@ describe('GameDiscovery Component', () => {
         fireEvent.click(clearButton);
       });
 
-      // Verify filters are cleared (input should be empty)
-      expect(sportInput).toHaveValue('');
+      // Verify skill level trigger is reset to Any
+      expect(skillTrigger).toHaveTextContent('Any');
 
       // useGames should have been called with no filters (undefined)
       const calls = (useGames as jest.Mock).mock.calls;
@@ -644,42 +653,23 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      // Change distance filter - find select near "Distance" label
+      // Change distance filter using custom dropdown
       const distanceLabel = screen.getByText('Distance');
-      const distanceSelect =
-        distanceLabel.parentElement?.querySelector('select');
-      if (distanceSelect) {
-        await act(async () => {
-          fireEvent.change(distanceSelect, {
-            target: { value: 'within 10km' },
-          });
-        });
-        expect(distanceSelect).toHaveValue('within 10km');
-      }
+      const distanceTrigger = distanceLabel.parentElement?.querySelector('button');
+      await selectFilterOption('Distance', 'Within 10 km');
+      expect(distanceTrigger).toHaveTextContent('Within 10 km');
 
       // Change location type
       const locationLabel = screen.getByText('Location Type');
-      const locationSelect =
-        locationLabel.parentElement?.querySelector('select');
-      if (locationSelect) {
-        await act(async () => {
-          fireEvent.change(locationSelect, { target: { value: 'indoor' } });
-        });
-        expect(locationSelect).toHaveValue('indoor');
-      }
+      const locationTrigger = locationLabel.parentElement?.querySelector('button');
+      await selectFilterOption('Location Type', 'Indoor');
+      expect(locationTrigger).toHaveTextContent('Indoor');
 
       // Change intensity
       const intensityLabel = screen.getByText('Intensity');
-      const intensitySelect =
-        intensityLabel.parentElement?.querySelector('select');
-      if (intensitySelect) {
-        await act(async () => {
-          fireEvent.change(intensitySelect, {
-            target: { value: 'competitive' },
-          });
-        });
-        expect(intensitySelect).toHaveValue('competitive');
-      }
+      const intensityTrigger = intensityLabel.parentElement?.querySelector('button');
+      await selectFilterOption('Intensity', 'Competitive');
+      expect(intensityTrigger).toHaveTextContent('Competitive');
     });
   });
 
@@ -790,23 +780,10 @@ describe('GameDiscovery Component', () => {
       // Clear initial calls
       (useGames as jest.Mock).mockClear();
 
-      const filterButton = screen.getByText('Filters');
+      // Use sport chip to set sportName filter (sport name input was removed from filter panel)
+      const basketballBtn = screen.getByRole('button', { name: 'Basketball' });
       await act(async () => {
-        fireEvent.click(filterButton);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('Distance')).toBeInTheDocument();
-      });
-
-      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
-      await act(async () => {
-        fireEvent.change(sportInput, { target: { value: 'Basketball' } });
-      });
-
-      const searchButton = screen.getByText('Apply');
-      await act(async () => {
-        fireEvent.click(searchButton);
+        fireEvent.click(basketballBtn);
       });
 
       // Verify useGames was called with sportName filter
@@ -835,12 +812,7 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const skillLabel = screen.getByText('Skill Level');
-      const skillSelect = skillLabel.parentElement?.querySelector('select');
-      if (!skillSelect) throw new Error('Skill select not found');
-      await act(async () => {
-        fireEvent.change(skillSelect, { target: { value: 'beginner' } });
-      });
+      await selectFilterOption('Skill Level', 'Beginner');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -872,13 +844,7 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const locationLabel = screen.getByText('Location Type');
-      const locationSelect =
-        locationLabel.parentElement?.querySelector('select');
-      if (!locationSelect) throw new Error('Location select not found');
-      await act(async () => {
-        fireEvent.change(locationSelect, { target: { value: 'indoor' } });
-      });
+      await selectFilterOption('Location Type', 'Indoor');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -907,13 +873,7 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const intensityLabel = screen.getByText('Intensity');
-      const intensitySelect =
-        intensityLabel.parentElement?.querySelector('select');
-      if (!intensitySelect) throw new Error('Intensity select not found');
-      await act(async () => {
-        fireEvent.change(intensitySelect, { target: { value: 'high' } });
-      });
+      await selectFilterOption('Intensity', 'High');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -962,13 +922,7 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const distanceLabel = screen.getByText('Distance');
-      const distanceSelect =
-        distanceLabel.parentElement?.querySelector('select');
-      if (!distanceSelect) throw new Error('Distance select not found');
-      await act(async () => {
-        fireEvent.change(distanceSelect, { target: { value: 'within 10km' } });
-      });
+      await selectFilterOption('Distance', 'Within 10 km');
 
       // Clear initial calls before applying filter
       (useGames as jest.Mock).mockClear();
@@ -1025,48 +979,11 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      // Set all filters
-      const sportInput = screen.getByPlaceholderText(/Enter sport name/i);
-      await act(async () => {
-        fireEvent.change(sportInput, { target: { value: 'Soccer' } });
-      });
-
-      const skillLabel = screen.getByText('Skill Level');
-      const skillSelect = skillLabel.parentElement?.querySelector('select');
-      if (skillSelect) {
-        await act(async () => {
-          fireEvent.change(skillSelect, { target: { value: 'intermediate' } });
-        });
-      }
-
-      const locationLabel = screen.getByText('Location Type');
-      const locationSelect =
-        locationLabel.parentElement?.querySelector('select');
-      if (locationSelect) {
-        await act(async () => {
-          fireEvent.change(locationSelect, { target: { value: 'outdoor' } });
-        });
-      }
-
-      const intensityLabel = screen.getByText('Intensity');
-      const intensitySelect =
-        intensityLabel.parentElement?.querySelector('select');
-      if (intensitySelect) {
-        await act(async () => {
-          fireEvent.change(intensitySelect, {
-            target: { value: 'competitive' },
-          });
-        });
-      }
-
-      const distanceLabel = screen.getByText('Distance');
-      const distanceSelect =
-        distanceLabel.parentElement?.querySelector('select');
-      if (distanceSelect) {
-        await act(async () => {
-          fireEvent.change(distanceSelect, { target: { value: 'within 5km' } });
-        });
-      }
+      // Set all filters using custom dropdowns
+      await selectFilterOption('Skill Level', 'Intermediate');
+      await selectFilterOption('Location Type', 'Outdoor');
+      await selectFilterOption('Intensity', 'Competitive');
+      await selectFilterOption('Distance', 'Within 5 km');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -1078,7 +995,6 @@ describe('GameDiscovery Component', () => {
         expect(calls.length).toBeGreaterThan(0);
         const lastCall = calls[calls.length - 1];
         expect(lastCall[0]).toMatchObject({
-          sportName: 'soccer',
           skillLevel: 'intermediate',
           locationType: 'outdoor',
           intensity: 'competitive',
@@ -1103,14 +1019,8 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const skillLabel = screen.getByText('Skill Level');
-      const skillSelect = skillLabel.parentElement?.querySelector('select');
-      if (skillSelect) {
-        // Test with "advanced" (lowercase) - should map to "Advanced"
-        await act(async () => {
-          fireEvent.change(skillSelect, { target: { value: 'advanced' } });
-        });
-      }
+      // Test with "advanced" (lowercase) - should map to "advanced" in API call
+      await selectFilterOption('Skill Level', 'Advanced');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -1141,15 +1051,8 @@ describe('GameDiscovery Component', () => {
         expect(screen.getByText('Distance')).toBeInTheDocument();
       });
 
-      const intensityLabel = screen.getByText('Intensity');
-      const intensitySelect =
-        intensityLabel.parentElement?.querySelector('select');
-      if (intensitySelect) {
-        // Test with "casual" (lowercase) - should map to "Casual"
-        await act(async () => {
-          fireEvent.change(intensitySelect, { target: { value: 'casual' } });
-        });
-      }
+      // Test with "casual" (lowercase) - should map to "casual" in API call
+      await selectFilterOption('Intensity', 'Casual');
 
       const searchButton = screen.getByText('Apply');
       await act(async () => {
@@ -1485,9 +1388,9 @@ describe('GameDiscovery Component', () => {
       });
     });
 
-    it("'All Sports' chip is active by default", () => {
+    it("'All' chip is active by default", () => {
       render(<GameDiscovery />);
-      const allSportsBtn = screen.getByRole('button', { name: 'All Sports' });
+      const allSportsBtn = screen.getByRole('button', { name: 'All' });
       expect(allSportsBtn).toHaveClass('bg-emerald-600');
     });
 
@@ -1507,7 +1410,7 @@ describe('GameDiscovery Component', () => {
       });
     });
 
-    it("'All Sports' chip is active when a sport is selected and clicking it clears the filter", async () => {
+    it("'All' chip is active when a sport is selected and clicking it clears the filter", async () => {
       render(<GameDiscovery />);
 
       // Select Basketball
@@ -1516,7 +1419,7 @@ describe('GameDiscovery Component', () => {
         fireEvent.click(basketballBtn);
       });
       expect(basketballBtn).toHaveClass('bg-emerald-600');
-      const allSportsBtn = screen.getByRole('button', { name: 'All Sports' });
+      const allSportsBtn = screen.getByRole('button', { name: 'All' });
       expect(allSportsBtn).not.toHaveClass('bg-emerald-600');
 
       // Click All Sports to clear
@@ -1689,15 +1592,13 @@ describe('GameDiscovery Component', () => {
       expect(btn).not.toHaveClass('bg-emerald-600');
     });
 
-    it("'My Skill Level' chip opens the filter modal", async () => {
+    it("'My Skill Level' chip is rendered but not interactive", () => {
       render(<GameDiscovery />);
       const btn = screen.getByRole('button', { name: 'My Skill Level' });
-      await act(async () => {
-        fireEvent.click(btn);
-      });
-      await waitFor(() => {
-        expect(screen.getByText('Filter Games')).toBeInTheDocument();
-      });
+      expect(btn).toBeInTheDocument();
+      // Chip has no onClick — clicking it does not open the filter modal
+      fireEvent.click(btn);
+      expect(screen.queryByText('Filter Games')).not.toBeInTheDocument();
     });
   });
 
@@ -1739,7 +1640,7 @@ describe('GameDiscovery Component', () => {
         btn.querySelector('[data-testid="icon-map"]')
       );
       const gridButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="icon-calendar"]')
+        btn.querySelector('[data-testid="icon-layout-grid"]')
       );
       fireEvent.click(mapButton!);
       fireEvent.click(gridButton!);
@@ -1747,7 +1648,7 @@ describe('GameDiscovery Component', () => {
     });
 
     it("restores map view mode from sessionStorage on mount", async () => {
-      mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? "map" : null));
+      mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? "map" : null) as null);
       render(<GameDiscovery />);
       await act(async () => {
         jest.runAllTimers();
@@ -1856,13 +1757,7 @@ describe('GameDiscovery Component', () => {
       );
 
       // Change distance to something other than "any distance"
-      const distanceLabel = screen.getByText('Distance');
-      const distanceSelect =
-        distanceLabel.parentElement?.querySelector('select');
-      expect(distanceSelect).toBeTruthy();
-      await act(async () => {
-        fireEvent.change(distanceSelect!, { target: { value: 'within 5km' } });
-      });
+      await selectFilterOption('Distance', 'Within 5 km');
 
       // Warning should appear
       expect(
