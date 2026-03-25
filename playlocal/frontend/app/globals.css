@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Hide reCAPTCHA badge on mobile — required text notice added to auth pages */
+@media (max-width: 640px) {
+  .grecaptcha-badge {
+    visibility: hidden !important;
+  }
+}
+
 /*
  * Previously this file was a frozen Tailwind *output* snapshot. Utilities used only in
  * newer components (e.g. flex-col, bottom-6, w-[520px]) were missing, so `flex` fell

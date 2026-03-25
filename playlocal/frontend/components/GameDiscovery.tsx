@@ -344,7 +344,7 @@ export function GameDiscovery() {
             <button
               type="button"
               onClick={() => openAssistant('discover')}
-              className="flex items-center gap-2 px-4 py-2 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:gap-2 sm:px-4 border border-emerald-200 bg-emerald-50 text-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
               aria-label="Open help assistant"
             >
               <Bot className="w-5 h-5 shrink-0" aria-hidden />

@@ -83,17 +83,26 @@ export function Navigation() {
             {isLoading ? (
               <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
             ) : isAuthenticated ? (
-              <Link
-                href="/notifications"
-                className="relative flex items-center justify-center min-h-[44px] min-w-[44px] text-gray-600 hover:text-gray-900 rounded-lg transition-colors"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <>
+                <Link
+                  href="/notifications"
+                  className="relative flex items-center justify-center min-h-[44px] min-w-[44px] text-gray-600 hover:text-gray-900 rounded-lg transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-xs rounded-full px-1">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center min-h-[44px] min-w-[44px] text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
             ) : (
               <Link
                 href="/login"
