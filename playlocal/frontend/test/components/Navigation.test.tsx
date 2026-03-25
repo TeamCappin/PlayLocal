@@ -45,10 +45,16 @@ jest.mock('@/lib/authRedirect', () => ({
   performLogoutRedirect: (...args: unknown[]) => performLogoutRedirectMock(...args),
 }));
 
+let isMobileMock = false;
+jest.mock('@/components/ui/use-mobile', () => ({
+  useIsMobile: () => isMobileMock,
+}));
+
 describe('Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     pathnameMock = '/discover';
+    isMobileMock = false;
     authStateMock = {
       user: { displayName: 'Youssef' },
       isAuthenticated: true,
@@ -91,5 +97,51 @@ describe('Navigation', () => {
     fireEvent.click(screen.getByTitle('Sign out'));
 
     expect(performLogoutRedirectMock).toHaveBeenCalledWith('/');
+  });
+
+  describe('mobile view', () => {
+    beforeEach(() => {
+      isMobileMock = true;
+    });
+
+    it('shows notification bell and sign out for authenticated user', () => {
+      render(<Navigation />);
+
+      expect(screen.getByTitle('Sign out')).toBeInTheDocument();
+      expect(screen.queryByText('Discover Games')).not.toBeInTheDocument();
+    });
+
+    it('calls logout when mobile sign out is clicked', () => {
+      render(<Navigation />);
+
+      fireEvent.click(screen.getByTitle('Sign out'));
+
+      expect(performLogoutRedirectMock).toHaveBeenCalledWith('/');
+    });
+
+    it('shows Sign In link when not authenticated', () => {
+      authStateMock = {
+        user: null as any,
+        isAuthenticated: false,
+        isLoading: false,
+      };
+
+      render(<Navigation />);
+
+      expect(screen.getByText('Sign In')).toBeInTheDocument();
+      expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
+    });
+
+    it('shows loading skeleton on mobile when auth is loading', () => {
+      authStateMock = {
+        user: null as any,
+        isAuthenticated: false,
+        isLoading: true,
+      };
+
+      const { container } = render(<Navigation />);
+
+      expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    });
   });
 });
