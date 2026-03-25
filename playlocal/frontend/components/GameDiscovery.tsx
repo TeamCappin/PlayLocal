@@ -589,6 +589,8 @@ export function GameDiscovery() {
                   <div
                     style={{ position: 'fixed', inset: 0, zIndex: 10 }}
                     onClick={() => setShowSortMenu(false)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') setShowSortMenu(false); }}
+                    role="presentation"
                   />
                 )}
                 <button
@@ -859,6 +861,8 @@ function FilterSelect({
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 10 }}
           onClick={() => setOpen(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}
+          role="presentation"
         />
       )}
       <button
