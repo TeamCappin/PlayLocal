@@ -5,6 +5,11 @@ if (typeof window !== 'undefined') {
   window.scrollTo = jest.fn();
 }
 
+// Some components call element.scrollTo on refs; JSDOM doesn't implement it.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = jest.fn();
+}
+
 // ResizeObserver is not available in jsdom (required by Radix Slider and similar)
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class ResizeObserver {
@@ -83,6 +88,11 @@ jest.mock('@/lib/api', () => {
     scoreHistoryApi: {
       getHistory: createMockArrayFn(),
     },
+    statsApi: {
+      getShowUpRate: createMockObjectFn(),
+      getSkillTrend: createMockObjectFn(),
+      getAttendanceRate: createMockObjectFn(),
+    },
     // Export default object
     __esModule: true,
     default: {
@@ -95,6 +105,7 @@ jest.mock('@/lib/api', () => {
       health: {},
       scoreHistory: {},
       organizerQuality: {},
+      stats: {},
     },
   };
 });

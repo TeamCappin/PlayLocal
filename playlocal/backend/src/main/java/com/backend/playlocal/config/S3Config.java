@@ -1,8 +1,11 @@
 package com.backend.playlocal.config;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -10,17 +13,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-import java.net.URI;
-
 @Configuration
 public class S3Config {
 
-    /**
-     * For MinIO/local: set endpoint (e.g. http://localhost:9000) and forcePathStyle=true
-     * For AWS S3/prod: leave endpoint empty (or omit) and forcePathStyle=false
-     */
     @Value("${s3.endpoint:}")
     private String endpoint;
+
+    @Value("${s3.publicEndpoint:}")
+    private String publicEndpoint;
 
     @Value("${s3.region:us-east-1}")
     private String region;
@@ -33,6 +33,11 @@ public class S3Config {
 
     @Value("${s3.forcePathStyle:false}")
     private boolean forcePathStyle;
+
+    /**
+     * For MinIO/local: set endpoint (e.g. http://localhost:9000) and forcePathStyle=true
+     * For AWS S3/prod: leave endpoint empty (or omit) and forcePathStyle=false
+     */
 
     @Bean
     public S3Client s3Client() {
@@ -47,7 +52,6 @@ public class S3Config {
                                 .build()
                 );
 
-        // Only override endpoint when using MinIO / non-AWS S3
         if (endpoint != null && !endpoint.isBlank()) {
             builder = builder.endpointOverride(URI.create(endpoint));
         }
@@ -68,8 +72,12 @@ public class S3Config {
                                 .build()
                 );
 
-        if (endpoint != null && !endpoint.isBlank()) {
-            builder = builder.endpointOverride(URI.create(endpoint));
+        String presignEndpoint = (publicEndpoint != null && !publicEndpoint.isBlank())
+                ? publicEndpoint
+                : endpoint;
+
+        if (presignEndpoint != null && !presignEndpoint.isBlank()) {
+            builder = builder.endpointOverride(URI.create(presignEndpoint));
         }
 
         return builder.build();

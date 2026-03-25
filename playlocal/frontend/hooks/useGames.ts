@@ -156,22 +156,30 @@ export function useGame(gameId: string | undefined) {
     return response;
   };
 
-  const leaveGame = async (): Promise<void> => {
+  const leaveGame = async (options?: {
+    refetchAfter?: boolean;
+  }): Promise<void> => {
     if (!gameId) throw new Error('Game ID required');
     if (!gamesApi || typeof gamesApi.leave !== 'function') {
       throw new Error('gamesApi.leave is not available');
     }
     await gamesApi.leave(gameId);
-    await fetchGame(); // Refresh data
+    if (options?.refetchAfter ?? true) {
+      await fetchGame();
+    }
   };
 
-  const cancelGame = async (): Promise<GameResponse> => {
+  const cancelGame = async (options?: {
+    refetchAfter?: boolean;
+  }): Promise<GameResponse> => {
     if (!gameId) throw new Error('Game ID required');
     if (!gamesApi || typeof gamesApi.cancel !== 'function') {
       throw new Error('gamesApi.cancel is not available');
     }
     const response = await gamesApi.cancel(gameId);
-    await fetchGame(); // Refresh data
+    if (options?.refetchAfter ?? true) {
+      await fetchGame();
+    }
     return response;
   };
 

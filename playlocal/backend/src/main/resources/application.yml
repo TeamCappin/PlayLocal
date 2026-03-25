@@ -8,7 +8,7 @@ spring:
     time-zone: UTC
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/playlocal}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5439/playlocal}
     username: ${DATABASE_USERNAME:playlocal}
     password: ${DATABASE_PASSWORD:playlocal}
     driver-class-name: org.postgresql.Driver
@@ -67,6 +67,19 @@ s3:
   forcePathStyle: true
   presignExpirySeconds: 900
   
+# reCAPTCHA v3
+recaptcha:
+  secret-key: ${RECAPTCHA_SECRET_KEY:6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe}
+  enabled: ${RECAPTCHA_ENABLED:false}
+  score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
+
+# Resend Email
+resend:
+  api-key: ${RESEND_API_KEY:re_test_placeholder}
+  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
+  from-name: ${RESEND_FROM_NAME:PlayLocal}
+  enabled: ${RESEND_ENABLED:false}
+
 # Logging
 # %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
 logging:

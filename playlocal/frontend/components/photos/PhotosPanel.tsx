@@ -2,6 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { PhotoItem } from '@/lib/api';
+import { toast, getActionableErrorMessage } from '@/lib/toast';
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const MAX_PHOTOS = 5;
 
@@ -31,6 +42,8 @@ export function PhotosPanel({
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoToDelete, setPhotoToDelete] = useState<PhotoItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // IMPORTANT: activeIndex is the SLOT index [0..MAX_PHOTOS-1]
   const [activeIndex, setActiveIndex] = useState(0);
@@ -164,10 +177,32 @@ export function PhotosPanel({
 
       await api.photos.finalizeUpload(gameId, slot.mediaId);
       await refresh();
+      toast.success('Photo uploaded');
     } catch (e: any) {
-      setError(e?.message || 'Upload failed');
+      const errorMessage = getActionableErrorMessage(e, 'upload photo');
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleDeletePhoto() {
+    if (!photoToDelete) return;
+
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await api.photos.delete(gameId, photoToDelete.mediaId);
+      await refresh();
+      toast.success('Photo deleted');
+      setPhotoToDelete(null);
+    } catch (e: any) {
+      const errorMessage = getActionableErrorMessage(e, 'delete photo');
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -269,15 +304,27 @@ export function PhotosPanel({
             </div>
 
             {activePhoto && (
-              <a
-                href={activePhoto.url}
-                target="_blank"
-                rel="noreferrer"
-                className="absolute right-3 bottom-3 z-20 text-sm font-semibold px-3 py-2 rounded-lg bg-white/95 text-gray-900 hover:bg-white shadow"
-                title="Opens in a new tab"
-              >
-                Open in new tab
-              </a>
+              <div className="absolute right-3 bottom-3 z-20 flex gap-2">
+                {canUpload && (
+                  <button
+                    onClick={() => setPhotoToDelete(activePhoto)}
+                    disabled={busy || isDeleting}
+                    className="text-sm font-semibold px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 shadow disabled:opacity-50"
+                    title="Delete this photo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <a
+                  href={activePhoto.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-semibold px-3 py-2 rounded-lg bg-white/95 text-gray-900 hover:bg-white shadow"
+                  title="Opens in a new tab"
+                >
+                  Open in new tab
+                </a>
+              </div>
             )}
           </div>
 
@@ -419,6 +466,33 @@ export function PhotosPanel({
           </div>
         </div>
       )}
+
+      {/* Delete Photo Confirmation Dialog */}
+      <AlertDialog
+        open={photoToDelete !== null}
+        onOpenChange={(open) => !open && setPhotoToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This photo will be permanently deleted. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <button
+              type="button"
+              onClick={handleDeletePhoto}
+              disabled={isDeleting}
+              className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Photo'}
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

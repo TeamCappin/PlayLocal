@@ -101,6 +101,10 @@ public class User {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "mfa_enabled")
+    @Builder.Default
+    private Boolean mfaEnabled = false;
+
     @Column(name = "age_confirmed_at")
     private Instant ageConfirmedAt;
 
