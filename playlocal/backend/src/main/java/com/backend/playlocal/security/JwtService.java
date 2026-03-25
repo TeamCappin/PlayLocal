@@ -4,6 +4,8 @@ import com.backend.playlocal.config.JwtConfig;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -14,12 +16,27 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+
     private final JwtConfig jwtConfig;
     private final SecretKey signingKey;
 
     public JwtService(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
-        this.signingKey = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        
+        String secret = jwtConfig.getSecret();
+        if (secret == null || secret.trim().isEmpty()) {
+            log.warn("[SECURITY] JWT secret is null or blank. Generating an ephemeral random signing key. Tokens will not survive an application restart!");
+            this.signingKey = Jwts.SIG.HS256.key().build();
+        } else {
+            byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+            if (keyBytes.length < 32) {
+                log.warn("[SECURITY] JWT secret is less than 32 bytes ({} bytes). This is unsafe. Generating an ephemeral random signing key instead.", keyBytes.length);
+                this.signingKey = Jwts.SIG.HS256.key().build();
+            } else {
+                this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+            }
+        }
     }
 
     public String generateToken(UUID userId, String email, List<String> roles) {
