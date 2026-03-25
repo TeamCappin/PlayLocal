@@ -7,6 +7,7 @@ const performLogoutRedirectMock = jest.fn();
 const openAssistantMock = jest.fn();
 const inferRouteMock = jest.fn(() => ({ context: 'discover' as const }));
 let pathnameMock = '/discover';
+let unreadCountMock = 0;
 let authStateMock = {
   user: { displayName: 'Youssef' },
   isAuthenticated: true,
@@ -30,7 +31,7 @@ jest.mock('@/context/AuthContext', () => ({
 }));
 
 jest.mock('@/hooks/useNotifications', () => ({
-  useNotifications: () => ({ unreadCount: 0 }),
+  useNotifications: () => ({ unreadCount: unreadCountMock }),
 }));
 
 jest.mock('@/context/AssistantContext', () => ({
@@ -49,6 +50,7 @@ describe('Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     pathnameMock = '/discover';
+    unreadCountMock = 0;
     authStateMock = {
       user: { displayName: 'Youssef' },
       isAuthenticated: true,
@@ -91,5 +93,18 @@ describe('Navigation', () => {
     fireEvent.click(screen.getByTitle('Sign out'));
 
     expect(performLogoutRedirectMock).toHaveBeenCalledWith('/');
+  });
+
+  it('shows unread notification badge on the bell link', () => {
+    unreadCountMock = 3;
+
+    render(<Navigation />);
+
+    const notificationsLink = screen
+      .getAllByRole('link')
+      .find((link) => link.getAttribute('href') === '/notifications');
+
+    expect(notificationsLink).toBeDefined();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });
