@@ -25,7 +25,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.userId = :userId AND n.status = 'SENT' AND n.channel = 'IN_APP'")
     int countUnread(UUID userId);
 
-    Optional<Notification> findByNotificationIdAndUser_UserId(UUID notificationId, UUID userId);
+    @Query("SELECT n FROM Notification n " +
+            "WHERE n.notificationId = :notificationId " +
+            "AND n.user.userId = :userId " +
+            "AND n.channel = 'IN_APP' " +
+            "AND n.status IN ('SENT', 'READ')")
+    Optional<Notification> findInboxNotification(UUID notificationId, UUID userId);
 
     boolean existsByProviderMessageId(String providerMessageId);
 }
