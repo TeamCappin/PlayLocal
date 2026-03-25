@@ -90,7 +90,7 @@ function AssistantFab({
         const { context: c, gameId: gid } = inferAssistantRoute(pathname);
         openAssistant(c, gid);
       }}
-      className={`fixed bottom-8 right-8 z-[9998] flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-emerald-500 bg-white px-5 py-3 text-sm font-medium text-gray-900 shadow-xl ring-2 ring-emerald-600/20 transition-all duration-200 hover:border-emerald-600 hover:bg-emerald-50/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+      className={`fixed bottom-8 right-8 sm:flex hidden z-[9998] flex min-h-[52px] items-center justify-center gap-2 rounded-full border-2 border-emerald-500 bg-white px-5 py-3 text-sm font-medium text-gray-900 shadow-xl ring-2 ring-emerald-600/20 transition-all duration-200 hover:border-emerald-600 hover:bg-emerald-50/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
         open ? "pointer-events-none scale-95 opacity-0" : "opacity-100"
       }`}
       aria-label="Open help assistant"

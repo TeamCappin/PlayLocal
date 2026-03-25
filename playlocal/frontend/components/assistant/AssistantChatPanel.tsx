@@ -255,7 +255,7 @@ export function AssistantChatPanel({
       />
       <div
         ref={panelRef}
-        className={`absolute bottom-6 right-6 z-10 ${PANEL_SHELL} h-[min(72vh,680px)] transition-[opacity,transform] ease-out motion-reduce:transition-none ${
+        className={`absolute bottom-20 right-6 sm:bottom-6 z-10 ${PANEL_SHELL} h-[min(72vh,680px)] transition-[opacity,transform] ease-out motion-reduce:transition-none ${
           animateIn ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
         }`}
         style={{ transitionDuration: `${PANEL_TRANSITION_MS}ms` }}

@@ -3,6 +3,8 @@ import './globals.css';
 
 import { Providers } from './providers';
 import { Navigation } from '@/components/Navigation';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { MobileBottomPadding } from '@/components/MobileBottomPadding';
 import { Toaster } from '@/components/ui/sonner';
 
 // Use system font stack so Docker build does not require network (Google Fonts fetch)
@@ -22,10 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={fontClass}>
+      <body className={`${fontClass} bg-gray-50`}>
         <Providers>
           <Navigation />
-          {children}
+          <main>
+            {children}
+            <MobileBottomPadding />
+          </main>
+          <MobileBottomNav />
           <Toaster richColors position="top-right" />
         </Providers>
       </body>
