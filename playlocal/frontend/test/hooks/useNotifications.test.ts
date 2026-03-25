@@ -293,4 +293,153 @@ describe('useNotifications', () => {
     });
     expect(result.current.unreadCount).toBe(0);
   });
+
+  it('warns for malformed payload field types and falls back safely', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n3',
+        type: 'GAME_CANCELLED',
+        payload:
+          '{"title":123,"message":456,"link":789,"gameId":111,"gameTitle":"Soccer"}',
+        status: 'SENT',
+        sentAt: '2026-02-08T11:00:00Z',
+      },
+    ]);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(warnSpy).toHaveBeenCalledTimes(4);
+    expect(result.current.notifications[0]).toMatchObject({
+      title: 'Game cancelled',
+      message: 'Update for Soccer',
+      link: undefined,
+    });
+
+    warnSpy.mockRestore();
+  });
+
+  it('handles fetch failure and exposes error state', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockRejectedValue(new Error('network down'));
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBe('Failed to load notifications');
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error fetching notifications:',
+      expect.any(Error)
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  it('clears notifications when authentication becomes false', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n1',
+        type: 'GAME_CANCELLED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
+      },
+    ]);
+
+    const { result, rerender } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.notifications).toHaveLength(1);
+    });
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: false } as any);
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.notifications).toHaveLength(0);
+    });
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it('logs markAsRead failures without crashing state', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n1',
+        type: 'GAME_CANCELLED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
+      },
+    ]);
+    (notificationsApi.markAsRead as jest.Mock).mockRejectedValue(
+      new Error('mark failed')
+    );
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAsRead('n1');
+    });
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error marking notification as read:',
+      expect.any(Error)
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  it('logs markAllAsRead failures without crashing state', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockUseAuth.mockReturnValue({ isAuthenticated: true } as any);
+    mockGetAll.mockResolvedValue([
+      {
+        notificationId: 'n1',
+        type: 'GAME_CANCELLED',
+        payload: '{}',
+        status: 'SENT',
+        sentAt: '2026-02-08T10:00:00Z',
+      },
+    ]);
+    (notificationsApi.markAllAsRead as jest.Mock).mockRejectedValue(
+      new Error('mark all failed')
+    );
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAllAsRead();
+    });
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error marking all notifications as read:',
+      expect.any(Error)
+    );
+
+    errorSpy.mockRestore();
+  });
 });

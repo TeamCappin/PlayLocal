@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -349,6 +350,39 @@ class NotificationServiceTest {
     }
 
     @Test
+    void scheduleAttendanceReminder_WhenConcurrentDuplicateInsertOccursForInApp_ReturnsNull() {
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Night Run")
+                .createdBy(user)
+                .build();
+        when(notificationRepository.existsByProviderMessageId(anyString())).thenReturn(false);
+        when(notificationRepository.saveAndFlush(any(Notification.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        Notification created = notificationService.scheduleAttendanceReminder(game, Instant.now().plusSeconds(1200));
+
+        assertThat(created).isNull();
+    }
+
+    @Test
+    void scheduleAttendanceReminder_WhenConcurrentDuplicateInsertOccursForEmail_ReturnsNull() {
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Night Run")
+                .createdBy(user)
+                .build();
+        when(notificationRepository.existsByProviderMessageId(anyString())).thenReturn(false);
+        when(notificationRepository.saveAndFlush(any(Notification.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        Notification created = notificationService.scheduleAttendanceReminder(game, Instant.now().plusSeconds(1200));
+
+        assertThat(created).isNull();
+    }
+
+    @Test
     void notifyWaitlistPromoted_CreatesTypedNotificationWithIdempotencyKey() {
         Game game = Game.builder()
                 .gameId(UUID.randomUUID())
@@ -411,6 +445,83 @@ class NotificationServiceTest {
 
         assertThat(notifications).hasSize(1);
         assertThat(notifications.get(0).notificationId()).isEqualTo(newer.getNotificationId().toString());
+    }
+
+    @Test
+    void getUserNotifications_ForGameUpdated_KeepsDistinctEventsAndPrefersUnreadForSameEvent() {
+        Notification readSameEvent = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_UPDATED)
+                .payloadJson("{\"gameId\":\"g1\",\"eventAt\":\"2026-02-08T10:00:00Z\",\"message\":\"Game updated\"}")
+                .status(Notification.NotificationStatus.READ)
+                .scheduledFor(Instant.parse("2026-02-08T10:00:00Z"))
+                .sentAt(Instant.parse("2026-02-08T10:00:00Z"))
+                .build();
+        Notification unreadSameEvent = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_UPDATED)
+                .payloadJson("{\"gameId\":\"g1\",\"eventAt\":\"2026-02-08T10:00:00Z\",\"message\":\"Game updated\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T10:00:01Z"))
+                .sentAt(Instant.parse("2026-02-08T10:00:01Z"))
+                .build();
+        Notification laterEvent = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_UPDATED)
+                .payloadJson("{\"gameId\":\"g1\",\"eventAt\":\"2026-02-08T11:00:00Z\",\"message\":\"Game updated again\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T11:00:00Z"))
+                .sentAt(Instant.parse("2026-02-08T11:00:00Z"))
+                .build();
+        when(notificationRepository.findUserNotifications(userId))
+                .thenReturn(List.of(laterEvent, unreadSameEvent, readSameEvent));
+
+        List<NotificationService.NotificationDto> notifications = notificationService.getUserNotifications(userId);
+
+        assertThat(notifications).hasSize(2);
+        assertThat(notifications)
+                .extracting(NotificationService.NotificationDto::notificationId)
+                .containsExactly(laterEvent.getNotificationId().toString(), unreadSameEvent.getNotificationId().toString());
+    }
+
+    @Test
+    void getUserNotifications_DedupesUnknownTypesUsingFallbackFields() {
+        Notification older = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType("NEW_BADGE_UNLOCKED")
+                .payloadJson("{\"link\":\"/profile/me\",\"title\":\"Badge unlocked\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T10:00:00Z"))
+                .build();
+        Notification newer = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType("NEW_BADGE_UNLOCKED")
+                .payloadJson("{\"link\":\"/profile/me\",\"title\":\"Badge unlocked\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T10:01:00Z"))
+                .build();
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(newer, older));
+
+        List<NotificationService.NotificationDto> notifications = notificationService.getUserNotifications(userId);
+
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.get(0).notificationId()).isEqualTo(newer.getNotificationId().toString());
+    }
+
+    @Test
+    void getUserNotifications_WhenPayloadCannotBeParsed_StillReturnsNotification() {
+        Notification invalidPayload = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType("NEW_BADGE_UNLOCKED")
+                .payloadJson("not-json")
+                .status(Notification.NotificationStatus.SENT)
+                .build();
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(invalidPayload));
+
+        List<NotificationService.NotificationDto> notifications = notificationService.getUserNotifications(userId);
+
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.get(0).notificationId()).isEqualTo(invalidPayload.getNotificationId().toString());
     }
 
     @Test
@@ -511,5 +622,18 @@ class NotificationServiceTest {
                 "key-1");
 
         assertThat(created).isNull();
+    }
+
+    @Test
+    void createInAppNotification_WhenDuplicateInsertOccursWithoutProviderMessageId_Rethrows() {
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(notificationRepository.saveAndFlush(any(Notification.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        assertThatThrownBy(() -> notificationService.createInAppNotification(
+                userId,
+                NotificationService.TYPE_GAME_CANCELLED,
+                Map.of("message", "cancelled")))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }
