@@ -1,6 +1,7 @@
 package com.backend.playlocal.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.Notification;
@@ -9,13 +10,17 @@ import com.backend.playlocal.repository.NotificationRepository;
 import com.backend.playlocal.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -28,9 +33,24 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     public static final String TYPE_GAME_CANCELLED = "GAME_CANCELLED";
+    public static final String TYPE_GAME_UPDATED = "GAME_UPDATED";
+    public static final String TYPE_GAME_REMOVED_REQUIREMENTS = "GAME_REMOVED_REQUIREMENTS";
     public static final String TYPE_WAITLIST_PROMOTED = "WAITLIST_PROMOTED";
     public static final String TYPE_GAME_STARTING_SOON = "GAME_STARTING_SOON";
     public static final String TYPE_ATTENDANCE_PROMPT = "ATTENDANCE_PROMPT";
+    private static final String TYPE_ATTENDANCE_CONFIRMATION = "ATTENDANCE_CONFIRMATION";
+    private static final String PAYLOAD_GAME_ID = "gameId";
+    private static final String PAYLOAD_MESSAGE = "message";
+    private static final String PAYLOAD_TITLE = "title";
+    private static final String PAYLOAD_LINK = "link";
+    private static final String PAYLOAD_EVENT_AT = "eventAt";
+    private static final Set<String> SINGLE_EVENT_GAME_TYPES = Set.of(
+            TYPE_GAME_CANCELLED,
+            TYPE_GAME_REMOVED_REQUIREMENTS,
+            TYPE_WAITLIST_PROMOTED,
+            TYPE_GAME_STARTING_SOON,
+            TYPE_ATTENDANCE_PROMPT,
+            TYPE_ATTENDANCE_CONFIRMATION);
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -85,7 +105,7 @@ public class NotificationService {
                 .providerMessageId(idempotencyKey)
                 .build();
 
-        return notificationRepository.save(notification);
+        return saveNotificationIfUnique(notification);
     }
 
     /**
@@ -96,7 +116,9 @@ public class NotificationService {
     public Notification scheduleAttendanceReminder(Game game, Instant scheduledFor) {
         User organizer = game.getCreatedBy();
         String inAppKey = buildIdempotencyKey(TYPE_ATTENDANCE_PROMPT, game.getGameId(), organizer.getUserId());
-        if (notificationRepository.existsByProviderMessageId(inAppKey)) {
+        String emailKey = "EMAIL:" + inAppKey;
+        if (notificationRepository.existsByProviderMessageId(inAppKey)
+                || notificationRepository.existsByProviderMessageId(emailKey)) {
             return null;
         }
 
@@ -131,21 +153,26 @@ public class NotificationService {
                 .payloadJson(payloadJson)
                 .scheduledFor(scheduledFor)
                 .status(Notification.NotificationStatus.PENDING)
-                .providerMessageId(
-                        "EMAIL:" + buildIdempotencyKey(TYPE_ATTENDANCE_PROMPT, game.getGameId(), organizer.getUserId()))
+                .providerMessageId(emailKey)
                 .build();
 
-        notificationRepository.save(inAppNotification);
-        notificationRepository.save(emailNotification);
+        Notification savedInApp = saveNotificationIfUnique(inAppNotification);
+        if (savedInApp == null) {
+            return null;
+        }
+        Notification savedEmail = saveNotificationIfUnique(emailNotification);
+        if (savedEmail == null) {
+            return null;
+        }
 
-        return inAppNotification;
+        return savedInApp;
     }
 
     /**
      * Get notifications for a user.
      */
     public List<NotificationDto> getUserNotifications(UUID userId) {
-        return notificationRepository.findUserNotifications(userId).stream()
+        return dedupeNotifications(notificationRepository.findUserNotifications(userId)).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
@@ -154,7 +181,7 @@ public class NotificationService {
      * Get unread notification count.
      */
     public int getUnreadCount(UUID userId) {
-        return notificationRepository.countUnread(userId);
+        return dedupeNotifications(notificationRepository.findUnreadNotifications(userId)).size();
     }
 
     /**
@@ -162,9 +189,19 @@ public class NotificationService {
      */
     @Transactional
     public boolean markAsRead(UUID userId, UUID notificationId) {
-        return notificationRepository.findByNotificationIdAndUser_UserId(notificationId, userId).map(n -> {
-            n.setStatus(Notification.NotificationStatus.READ);
-            notificationRepository.save(n);
+        return notificationRepository.findInboxNotification(notificationId, userId).map(target -> {
+            String semanticKey = buildSemanticKey(target);
+            List<Notification> notificationsToUpdate = notificationRepository.findUserNotifications(userId).stream()
+                    .filter(notification -> notification.getStatus() == Notification.NotificationStatus.SENT)
+                    .filter(notification -> semanticKey.equals(buildSemanticKey(notification)))
+                    .toList();
+
+            if (notificationsToUpdate.isEmpty()) {
+                return true;
+            }
+
+            notificationsToUpdate.forEach(notification -> notification.setStatus(Notification.NotificationStatus.READ));
+            notificationRepository.saveAll(notificationsToUpdate);
             return true;
         }).orElse(false);
     }
@@ -237,8 +274,65 @@ public class NotificationService {
         return createInAppNotification(organizerId, TYPE_ATTENDANCE_PROMPT, payload, key);
     }
 
+    @Transactional
+    public Notification notifyGameCancelled(Game game, UUID userId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put(PAYLOAD_TITLE, "Game cancelled");
+        payload.put(PAYLOAD_MESSAGE, String.format("The game \"%s\" has been cancelled by the organizer.", game.getTitle()));
+        payload.put(PAYLOAD_GAME_ID, game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put(PAYLOAD_LINK, "/discover");
+        String key = buildIdempotencyKey(TYPE_GAME_CANCELLED, game.getGameId(), userId);
+        return createInAppNotification(userId, TYPE_GAME_CANCELLED, payload, key);
+    }
+
+    @Transactional
+    public Notification notifyGameUpdated(Game game, UUID userId) {
+        Instant eventAt = game.getUpdatedAt() != null ? game.getUpdatedAt() : Instant.now();
+        Map<String, Object> payload = new HashMap<>();
+        payload.put(PAYLOAD_TITLE, "Game updated");
+        payload.put(PAYLOAD_MESSAGE, String.format("The game \"%s\" has been updated. Check the details for changes.",
+                game.getTitle()));
+        payload.put(PAYLOAD_GAME_ID, game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put(PAYLOAD_LINK, "/games/" + game.getGameId());
+        payload.put(PAYLOAD_EVENT_AT, eventAt.toString());
+        String key = buildIdempotencyKey(TYPE_GAME_UPDATED, game.getGameId(), userId, eventAt.toString());
+        return createInAppNotification(userId, TYPE_GAME_UPDATED, payload, key);
+    }
+
+    @Transactional
+    public Notification notifyRemovedFromGameRequirements(Game game, UUID userId) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put(PAYLOAD_TITLE, "Removed from game");
+        payload.put(PAYLOAD_MESSAGE, String.format(
+                "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
+                game.getTitle()));
+        payload.put(PAYLOAD_GAME_ID, game.getGameId().toString());
+        payload.put("gameTitle", game.getTitle());
+        payload.put(PAYLOAD_LINK, "/games/" + game.getGameId());
+        String key = buildIdempotencyKey(TYPE_GAME_REMOVED_REQUIREMENTS, game.getGameId(), userId);
+        return createInAppNotification(userId, TYPE_GAME_REMOVED_REQUIREMENTS, payload, key);
+    }
+
     private String buildIdempotencyKey(String type, UUID gameId, UUID userId) {
         return String.format("IN_APP:%s:%s:%s", type, gameId, userId);
+    }
+
+    private String buildIdempotencyKey(String type, UUID gameId, UUID userId, String occurrenceToken) {
+        return String.format("IN_APP:%s:%s:%s:%s", type, gameId, userId, occurrenceToken);
+    }
+
+    private Notification saveNotificationIfUnique(Notification notification) {
+        try {
+            return notificationRepository.saveAndFlush(notification);
+        } catch (DataIntegrityViolationException e) {
+            if (notification.getProviderMessageId() != null) {
+                log.info("Skipped duplicate notification for key {}", notification.getProviderMessageId());
+                return null;
+            }
+            throw e;
+        }
     }
 
     private NotificationDto mapToDto(Notification n) {
@@ -249,6 +343,99 @@ public class NotificationService {
                 n.getStatus().name(),
                 n.getScheduledFor(),
                 n.getSentAt());
+    }
+
+    private List<Notification> dedupeNotifications(List<Notification> notifications) {
+        Map<String, Notification> deduped = new LinkedHashMap<>();
+
+        for (Notification notification : notifications) {
+            String semanticKey = buildSemanticKey(notification);
+            Notification existing = deduped.get(semanticKey);
+            if (existing == null || shouldReplaceRepresentative(existing, notification)) {
+                deduped.put(semanticKey, notification);
+            }
+        }
+
+        return deduped.values().stream()
+                .sorted(Comparator.comparing(this::notificationInstant).reversed())
+                .toList();
+    }
+
+    private boolean shouldReplaceRepresentative(Notification existing, Notification candidate) {
+        int existingPriority = statusPriority(existing.getStatus());
+        int candidatePriority = statusPriority(candidate.getStatus());
+        if (candidatePriority != existingPriority) {
+            return candidatePriority > existingPriority;
+        }
+        return notificationInstant(candidate).isAfter(notificationInstant(existing));
+    }
+
+    private int statusPriority(Notification.NotificationStatus status) {
+        return status == Notification.NotificationStatus.SENT ? 1 : 0;
+    }
+
+    private Instant notificationInstant(Notification notification) {
+        if (notification.getSentAt() != null) {
+            return notification.getSentAt();
+        }
+        if (notification.getScheduledFor() != null) {
+            return notification.getScheduledFor();
+        }
+        return Instant.EPOCH;
+    }
+
+    private String buildSemanticKey(Notification notification) {
+        Map<String, Object> payload = parsePayload(notification.getPayloadJson());
+        String type = normalizeType(notification.getNotifType());
+        String gameId = payloadValue(payload, PAYLOAD_GAME_ID);
+
+        if (SINGLE_EVENT_GAME_TYPES.contains(type)) {
+            return String.format("%s:%s", type, firstNonBlank(gameId, payloadValue(payload, PAYLOAD_LINK),
+                    payloadValue(payload, PAYLOAD_MESSAGE), notification.getNotificationId().toString()));
+        }
+
+        if (TYPE_GAME_UPDATED.equals(type)) {
+            String occurrenceToken = firstNonBlank(
+                    payloadValue(payload, PAYLOAD_EVENT_AT),
+                    payloadValue(payload, PAYLOAD_MESSAGE),
+                    notificationInstant(notification).toString());
+            return String.format("%s:%s:%s", type, firstNonBlank(gameId, "no-game"), occurrenceToken);
+        }
+
+        return String.format("%s:%s", type,
+                firstNonBlank(payloadValue(payload, PAYLOAD_LINK), payloadValue(payload, PAYLOAD_TITLE),
+                        payloadValue(payload, PAYLOAD_MESSAGE), notification.getNotificationId().toString()));
+    }
+
+    private Map<String, Object> parsePayload(String payloadJson) {
+        if (payloadJson == null || payloadJson.isBlank()) {
+            return Map.of();
+        }
+        try {
+            return objectMapper.readValue(payloadJson, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse notification payload for dedupe", e);
+            return Map.of();
+        }
+    }
+
+    private String payloadValue(Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        return value instanceof String stringValue && !stringValue.isBlank() ? stringValue : null;
+    }
+
+    private String normalizeType(String type) {
+        return type == null ? "NOTIFICATION" : type.toUpperCase();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
     }
 
     public record NotificationDto(

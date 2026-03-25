@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -150,7 +151,7 @@ class GameServiceLifecycleTest {
 
         ArgumentCaptor<UUID> userCaptor = ArgumentCaptor.forClass(UUID.class);
         verify(notificationService, times(2))
-                .createInAppNotification(userCaptor.capture(), eq("GAME_CANCELLED"), anyMap());
+                .notifyGameCancelled(eq(game), userCaptor.capture());
         assertThat(userCaptor.getAllValues())
                 .containsExactlyInAnyOrder(confirmedUser.getUserId(), waitlistedUser.getUserId());
     }
@@ -359,7 +360,25 @@ class GameServiceLifecycleTest {
         gameService.cancelGame(gameId, organizer.getUserId());
 
         verify(notificationService, times(1))
-                .createInAppNotification(eq(confirmedUser.getUserId()), eq("GAME_CANCELLED"), anyMap());
+                .notifyGameCancelled(eq(game), eq(confirmedUser.getUserId()));
+    }
+
+    @Test
+    void cancelGame_WhenOrganizerAppearsOnlyInWaitlist_DoesNotNotifyOrganizer() {
+        GameParticipation organizerWaitlisted = GameParticipation.builder()
+                .game(game)
+                .user(organizer)
+                .joinStatus(GameParticipation.JoinStatus.WAITLISTED)
+                .build();
+
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(participationRepository.findConfirmedByGame(gameId)).thenReturn(List.of());
+        when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of(organizerWaitlisted));
+
+        gameService.cancelGame(gameId, organizer.getUserId());
+
+        verify(notificationService, never())
+                .notifyGameCancelled(eq(game), eq(organizer.getUserId()));
     }
 
     @Test

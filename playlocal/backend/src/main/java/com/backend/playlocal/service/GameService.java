@@ -580,17 +580,9 @@ public class GameService {
 
                         // US-4.3: Notify removed player they no longer meet the updated requirements
                         if (notificationService != null) {
-                                Map<String, Object> payload = new java.util.HashMap<>();
-                                payload.put("title", "Removed from game");
-                                payload.put("message", String.format(
-                                                "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
-                                                game.getTitle()));
-                                payload.put("gameId", gameId.toString());
-                                payload.put("link", "/games/" + gameId.toString());
-                                notificationService.createInAppNotification(
-                                                p.getUser().getUserId(),
-                                                "GAME_REMOVED_REQUIREMENTS",
-                                                payload);
+                                notificationService.notifyRemovedFromGameRequirements(
+                                                game,
+                                                p.getUser().getUserId());
                         }
                 }
         }
@@ -618,13 +610,7 @@ public class GameService {
 
         private void sendGameUpdatedNotification(Game game, UUID userId) {
                 if (notificationService == null) return;
-                Map<String, Object> payload = new java.util.HashMap<>();
-                payload.put("title", "Game updated");
-                payload.put("message", String.format("The game \"%s\" has been updated. Check the details for changes.",
-                                game.getTitle()));
-                payload.put("gameId", game.getGameId().toString());
-                payload.put("link", "/games/" + game.getGameId().toString());
-                notificationService.createInAppNotification(userId, "GAME_UPDATED", payload);
+                notificationService.notifyGameUpdated(game, userId);
         }
 
         /**
@@ -642,7 +628,7 @@ public class GameService {
                         }
                 }
                 for (GameParticipation p : waitlisted) {
-                        if (notified.add(p.getUser().getUserId())) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
                                 sendGameCancelledNotification(game, p.getUser().getUserId());
                         }
                 }
@@ -650,14 +636,7 @@ public class GameService {
 
         private void sendGameCancelledNotification(Game game, UUID userId) {
                 if (notificationService == null) return;
-                Map<String, Object> payload = new java.util.HashMap<>();
-                payload.put("title", "Game cancelled");
-                payload.put("message", String.format("The game \"%s\" has been cancelled by the organizer.",
-                                game.getTitle()));
-                payload.put("gameId", game.getGameId().toString());
-                payload.put("gameTitle", game.getTitle());
-                payload.put("link", "/discover");
-                notificationService.createInAppNotification(userId, NotificationService.TYPE_GAME_CANCELLED, payload);
+                notificationService.notifyGameCancelled(game, userId);
         }
 
         /**

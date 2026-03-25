@@ -13,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,27 +59,84 @@ class NotificationServiceTest {
                 .notificationId(UUID.randomUUID())
                 .user(user)
                 .status(Notification.NotificationStatus.SENT)
+                .channel(Notification.NotificationChannel.IN_APP)
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\"}")
                 .build();
-        when(notificationRepository.findByNotificationIdAndUser_UserId(notification.getNotificationId(), userId))
+        when(notificationRepository.findInboxNotification(notification.getNotificationId(), userId))
                 .thenReturn(Optional.of(notification));
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(notification));
 
         boolean marked = notificationService.markAsRead(userId, notification.getNotificationId());
 
         assertThat(marked).isTrue();
         assertThat(notification.getStatus()).isEqualTo(Notification.NotificationStatus.READ);
-        verify(notificationRepository).save(notification);
+        verify(notificationRepository).saveAll(List.of(notification));
     }
 
     @Test
     void markAsRead_WhenNotificationBelongsToAnotherUser_DoesNothing() {
         UUID notificationId = UUID.randomUUID();
-        when(notificationRepository.findByNotificationIdAndUser_UserId(notificationId, userId))
+        when(notificationRepository.findInboxNotification(notificationId, userId))
                 .thenReturn(Optional.empty());
 
         boolean marked = notificationService.markAsRead(userId, notificationId);
 
         assertThat(marked).isFalse();
         verify(notificationRepository, never()).save(any(Notification.class));
+    }
+
+    @Test
+    void markAsRead_WhenNotificationAlreadyRead_IsIdempotent() {
+        Notification notification = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .user(user)
+                .status(Notification.NotificationStatus.READ)
+                .channel(Notification.NotificationChannel.IN_APP)
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\"}")
+                .build();
+        when(notificationRepository.findInboxNotification(notification.getNotificationId(), userId))
+                .thenReturn(Optional.of(notification));
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(notification));
+
+        boolean marked = notificationService.markAsRead(userId, notification.getNotificationId());
+
+        assertThat(marked).isTrue();
+        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(notificationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void markAsRead_WhenDuplicateUnreadNotificationsExist_MarksAllMatchingNotificationsRead() {
+        Notification first = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .user(user)
+                .channel(Notification.NotificationChannel.IN_APP)
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"Game cancelled: Sunday Soccer\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .sentAt(Instant.parse("2026-02-08T10:00:00Z"))
+                .build();
+        Notification second = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .user(user)
+                .channel(Notification.NotificationChannel.IN_APP)
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"The game \\\"Sunday Soccer\\\" has been cancelled by the organizer.\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .sentAt(Instant.parse("2026-02-08T10:00:01Z"))
+                .build();
+        when(notificationRepository.findInboxNotification(first.getNotificationId(), userId))
+                .thenReturn(Optional.of(first));
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(second, first));
+
+        boolean marked = notificationService.markAsRead(userId, first.getNotificationId());
+
+        assertThat(marked).isTrue();
+        assertThat(first.getStatus()).isEqualTo(Notification.NotificationStatus.READ);
+        assertThat(second.getStatus()).isEqualTo(Notification.NotificationStatus.READ);
+        verify(notificationRepository).saveAll(List.of(second, first));
     }
 
     @Test
@@ -95,12 +153,75 @@ class NotificationServiceTest {
         notificationService.notifyGameStartingSoon(game, userId);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
+        verify(notificationRepository).saveAndFlush(captor.capture());
         Notification saved = captor.getValue();
         assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_GAME_STARTING_SOON);
         assertThat(saved.getProviderMessageId())
                 .isEqualTo("IN_APP:GAME_STARTING_SOON:" + game.getGameId() + ":" + userId);
         assertThat(saved.getStatus()).isEqualTo(Notification.NotificationStatus.SENT);
+    }
+
+    @Test
+    void notifyGameCancelled_CreatesIdempotentInAppNotification() {
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Test Match")
+                .createdBy(user)
+                .build();
+        when(notificationRepository.existsByProviderMessageId(any())).thenReturn(false);
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+
+        notificationService.notifyGameCancelled(game, userId);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).saveAndFlush(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_GAME_CANCELLED);
+        assertThat(saved.getProviderMessageId())
+                .isEqualTo("IN_APP:GAME_CANCELLED:" + game.getGameId() + ":" + userId);
+    }
+
+    @Test
+    void notifyGameUpdated_UsesUpdatedAtForPerEventIdempotency() {
+        Instant updatedAt = Instant.parse("2026-02-08T10:00:00Z");
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Test Match")
+                .createdBy(user)
+                .updatedAt(updatedAt)
+                .build();
+        when(notificationRepository.existsByProviderMessageId(any())).thenReturn(false);
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+
+        notificationService.notifyGameUpdated(game, userId);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).saveAndFlush(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_GAME_UPDATED);
+        assertThat(saved.getProviderMessageId())
+                .isEqualTo("IN_APP:GAME_UPDATED:" + game.getGameId() + ":" + userId + ":" + updatedAt);
+        assertThat(saved.getPayloadJson()).contains("\"eventAt\":\"2026-02-08T10:00:00Z\"");
+    }
+
+    @Test
+    void notifyRemovedFromGameRequirements_CreatesIdempotentInAppNotification() {
+        Game game = Game.builder()
+                .gameId(UUID.randomUUID())
+                .title("Test Match")
+                .createdBy(user)
+                .build();
+        when(notificationRepository.existsByProviderMessageId(any())).thenReturn(false);
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+
+        notificationService.notifyRemovedFromGameRequirements(game, userId);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).saveAndFlush(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_GAME_REMOVED_REQUIREMENTS);
+        assertThat(saved.getProviderMessageId())
+                .isEqualTo("IN_APP:GAME_REMOVED_REQUIREMENTS:" + game.getGameId() + ":" + userId);
     }
 
     @Test
@@ -114,7 +235,7 @@ class NotificationServiceTest {
                 "key-1");
 
         assertThat(created).isNull();
-        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(notificationRepository, never()).saveAndFlush(any(Notification.class));
     }
 
     @Test
@@ -127,7 +248,7 @@ class NotificationServiceTest {
                 Map.of("message", "cancelled"));
 
         assertThat(created).isNull();
-        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(notificationRepository, never()).saveAndFlush(any(Notification.class));
     }
 
     @Test
@@ -142,7 +263,7 @@ class NotificationServiceTest {
         Notification scheduled = notificationService.scheduleAttendanceReminder(game, Instant.now().plusSeconds(300));
 
         assertThat(scheduled).isNull();
-        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(notificationRepository, never()).saveAndFlush(any(Notification.class));
     }
 
     @Test
@@ -186,7 +307,7 @@ class NotificationServiceTest {
         notificationService.notifyAttendanceConfirmationNeeded(game);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
+        verify(notificationRepository).saveAndFlush(captor.capture());
         Notification saved = captor.getValue();
         assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_ATTENDANCE_PROMPT);
         assertThat(saved.getProviderMessageId())
@@ -204,7 +325,7 @@ class NotificationServiceTest {
         when(notificationRepository.existsByProviderMessageId(anyString())).thenReturn(false);
 
         List<Notification> savedNotifications = new ArrayList<>();
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> {
             Notification saved = invocation.getArgument(0);
             savedNotifications.add(saved);
             return saved;
@@ -240,7 +361,7 @@ class NotificationServiceTest {
         notificationService.notifyWaitlistPromoted(game, userId);
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
+        verify(notificationRepository).saveAndFlush(captor.capture());
         Notification saved = captor.getValue();
         assertThat(saved.getNotifType()).isEqualTo(NotificationService.TYPE_WAITLIST_PROMOTED);
         assertThat(saved.getProviderMessageId())
@@ -267,12 +388,59 @@ class NotificationServiceTest {
     }
 
     @Test
-    void getUnreadCount_DelegatesToRepository() {
-        when(notificationRepository.countUnread(userId)).thenReturn(7);
+    void getUserNotifications_DedupesSemanticallyEquivalentNotifications() {
+        Notification older = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"Game cancelled: Sunday Soccer\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T10:00:00Z"))
+                .sentAt(Instant.parse("2026-02-08T10:00:00Z"))
+                .build();
+        Notification newer = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"The game \\\"Sunday Soccer\\\" has been cancelled by the organizer.\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .scheduledFor(Instant.parse("2026-02-08T10:00:01Z"))
+                .sentAt(Instant.parse("2026-02-08T10:00:01Z"))
+                .build();
+        when(notificationRepository.findUserNotifications(userId)).thenReturn(List.of(newer, older));
+
+        List<NotificationService.NotificationDto> notifications = notificationService.getUserNotifications(userId);
+
+        assertThat(notifications).hasSize(1);
+        assertThat(notifications.get(0).notificationId()).isEqualTo(newer.getNotificationId().toString());
+    }
+
+    @Test
+    void getUnreadCount_DedupesUnreadNotifications() {
+        Notification older = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"Game cancelled: Sunday Soccer\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .sentAt(Instant.parse("2026-02-08T10:00:00Z"))
+                .build();
+        Notification newer = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_GAME_CANCELLED)
+                .payloadJson("{\"gameId\":\"g1\",\"message\":\"The game \\\"Sunday Soccer\\\" has been cancelled by the organizer.\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .sentAt(Instant.parse("2026-02-08T10:00:01Z"))
+                .build();
+        Notification distinct = Notification.builder()
+                .notificationId(UUID.randomUUID())
+                .notifType(NotificationService.TYPE_WAITLIST_PROMOTED)
+                .payloadJson("{\"gameId\":\"g2\"}")
+                .status(Notification.NotificationStatus.SENT)
+                .sentAt(Instant.parse("2026-02-08T11:00:00Z"))
+                .build();
+        when(notificationRepository.findUnreadNotifications(userId)).thenReturn(List.of(newer, older, distinct));
 
         int unread = notificationService.getUnreadCount(userId);
 
-        assertThat(unread).isEqualTo(7);
+        assertThat(unread).isEqualTo(2);
     }
 
     @Test
@@ -305,7 +473,7 @@ class NotificationServiceTest {
         service.createInAppNotification(userId, NotificationService.TYPE_GAME_CANCELLED, Map.of("message", "x"));
 
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
+        verify(notificationRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getPayloadJson()).isNull();
     }
 
@@ -321,10 +489,27 @@ class NotificationServiceTest {
         when(notificationRepository.existsByProviderMessageId(anyString())).thenReturn(false);
         when(failingMapper.writeValueAsString(any())).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("boom") {
         });
+        when(notificationRepository.saveAndFlush(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Notification created = service.scheduleAttendanceReminder(game, Instant.now().plusSeconds(60));
 
         assertThat(created).isNotNull();
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(notificationRepository, times(2)).saveAndFlush(any(Notification.class));
+    }
+
+    @Test
+    void createInAppNotification_WhenConcurrentDuplicateInsertOccurs_ReturnsNull() {
+        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
+        when(notificationRepository.existsByProviderMessageId("key-1")).thenReturn(false);
+        when(notificationRepository.saveAndFlush(any(Notification.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        Notification created = notificationService.createInAppNotification(
+                userId,
+                NotificationService.TYPE_GAME_CANCELLED,
+                Map.of("message", "cancelled"),
+                "key-1");
+
+        assertThat(created).isNull();
     }
 }
