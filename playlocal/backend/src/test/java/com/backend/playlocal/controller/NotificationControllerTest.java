@@ -39,10 +39,22 @@ class NotificationControllerTest {
     @Test
     void markAsRead_UsesAuthenticatedUserForOwnershipGuard() {
         UUID notificationId = UUID.randomUUID();
+        when(notificationService.markAsRead(userId, notificationId)).thenReturn(true);
 
         ResponseEntity<Void> response = controller.markAsRead(notificationId, authentication);
 
         assertThat(response.getStatusCode().value()).isEqualTo(204);
+        verify(notificationService).markAsRead(userId, notificationId);
+    }
+
+    @Test
+    void markAsRead_WhenNotificationMissing_ReturnsNotFound() {
+        UUID notificationId = UUID.randomUUID();
+        when(notificationService.markAsRead(userId, notificationId)).thenReturn(false);
+
+        ResponseEntity<Void> response = controller.markAsRead(notificationId, authentication);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
         verify(notificationService).markAsRead(userId, notificationId);
     }
 

@@ -46,7 +46,10 @@ public class NotificationController {
     @PostMapping("/{notificationId}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable UUID notificationId, Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        notificationService.markAsRead(userId, notificationId);
+        boolean marked = notificationService.markAsRead(userId, notificationId);
+        if (!marked) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.noContent().build();
     }
 
