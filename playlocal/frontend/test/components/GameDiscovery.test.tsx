@@ -56,6 +56,11 @@ jest.mock('@/context/AssistantContext', () => ({
   useAssistant: () => ({ openAssistant: openAssistantMock }),
 }));
 
+let isMobileMock = false;
+jest.mock('@/components/ui/use-mobile', () => ({
+  useIsMobile: () => isMobileMock,
+}));
+
 describe('GameDiscovery Component', () => {
   // Helper: open a custom FilterSelect dropdown and choose an option
   async function selectFilterOption(labelText: string, optionLabel: string) {
@@ -75,6 +80,7 @@ describe('GameDiscovery Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     openAssistantMock.mockClear();
+    isMobileMock = false;
     sessionStorage.clear();
     mockSearchParams.get.mockImplementation((key: string) => (key === "view" ? null : null));
     Object.defineProperty(global.navigator, "geolocation", {
@@ -2045,6 +2051,121 @@ describe('GameDiscovery Component', () => {
       // Both the overlay badge and the chip in the details section should appear
       const badges = screen.getAllByText('Min 80% Reliability');
       expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Mobile view', () => {
+    const mockGames = [
+      {
+        gameId: 'game-1',
+        title: 'Basketball Pickup',
+        sportName: 'Basketball',
+        startTime: new Date(Date.now() + 3600000).toISOString(),
+        endTime: new Date(Date.now() + 7200000).toISOString(),
+        location: { name: 'Central Park', city: 'Montreal' },
+        hasExactLocationAccess: true,
+        approximateLocation: 'Montreal, QC',
+        confirmedCount: 6,
+        maxPlayers: 10,
+        minPlayers: 4,
+        skillBand: 'Intermediate',
+        intensityBand: 'High',
+        indoorOutdoor: 'outdoor',
+        organizer: { userId: 'user-1', displayName: 'John', reliabilityScore: 95 },
+        status: 'SCHEDULED',
+        description: 'Fun game',
+        tags: [],
+      },
+    ];
+
+    beforeEach(() => {
+      isMobileMock = true;
+      (useGames as jest.Mock).mockReturnValue({
+        games: mockGames,
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+    });
+
+    it('opens filter bottom sheet on mobile', async () => {
+      render(<GameDiscovery />);
+
+      // Click Filters button
+      await act(async () => {
+        fireEvent.click(screen.getByText('Filters'));
+      });
+
+      // Bottom sheet should show filter form with Filter Games heading
+      expect(screen.getByText('Filter Games')).toBeInTheDocument();
+    });
+
+    it('closes filter bottom sheet when backdrop is clicked', async () => {
+      jest.useFakeTimers();
+      render(<GameDiscovery />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Filters'));
+      });
+
+      expect(screen.getByText('Filter Games')).toBeInTheDocument();
+
+      // Click the backdrop
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Filter drawer backdrop'));
+      });
+
+      // Advance past close animation timer
+      await act(async () => {
+        jest.advanceTimersByTime(400);
+      });
+
+      expect(screen.queryByText('Filter Games')).not.toBeInTheDocument();
+      jest.useRealTimers();
+    });
+
+    it('shows mobile contextual chips in separate row', () => {
+      render(<GameDiscovery />);
+
+      // Mobile should still show Today and Within 5km chips
+      expect(screen.getByText('Today')).toBeInTheDocument();
+      expect(screen.getByText('Within 5km')).toBeInTheDocument();
+    });
+
+    it('filters games by search query and clears it', async () => {
+      render(<GameDiscovery />);
+
+      const searchInput = screen.getByPlaceholderText('Search games, sports, locations...');
+
+      // Type a query that matches
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'Basketball' } });
+      });
+
+      expect(screen.getByText('Basketball Pickup')).toBeInTheDocument();
+
+      // Type a query that doesn't match
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'zzzznotexist' } });
+      });
+
+      expect(screen.queryByText('Basketball Pickup')).not.toBeInTheDocument();
+
+      // Clear the search via the clear button
+      const clearButtons = screen.getAllByRole('button');
+      const clearBtn = clearButtons.find(btn => {
+        const icon = btn.querySelector('[data-testid="icon-x"]');
+        // The search clear button is inside the search bar (not in a filter chip)
+        return icon && btn.closest('[style*="position: relative"]');
+      });
+
+      if (clearBtn) {
+        await act(async () => {
+          fireEvent.click(clearBtn);
+        });
+
+        expect(screen.getByText('Basketball Pickup')).toBeInTheDocument();
+      }
     });
   });
 });

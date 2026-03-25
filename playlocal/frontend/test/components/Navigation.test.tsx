@@ -29,8 +29,9 @@ jest.mock('@/context/AuthContext', () => ({
   useAuth: () => authStateMock,
 }));
 
+let unreadCountMock = 0;
 jest.mock('@/hooks/useNotifications', () => ({
-  useNotifications: () => ({ unreadCount: 0 }),
+  useNotifications: () => ({ unreadCount: unreadCountMock }),
 }));
 
 jest.mock('@/context/AssistantContext', () => ({
@@ -55,6 +56,7 @@ describe('Navigation', () => {
     jest.clearAllMocks();
     pathnameMock = '/discover';
     isMobileMock = false;
+    unreadCountMock = 0;
     authStateMock = {
       user: { displayName: 'Youssef' },
       isAuthenticated: true,
@@ -130,6 +132,14 @@ describe('Navigation', () => {
 
       expect(screen.getByText('Sign In')).toBeInTheDocument();
       expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
+    });
+
+    it('shows notification badge when unreadCount > 0', () => {
+      unreadCountMock = 5;
+
+      render(<Navigation />);
+
+      expect(screen.getByText('5')).toBeInTheDocument();
     });
 
     it('shows loading skeleton on mobile when auth is loading', () => {
