@@ -10,10 +10,10 @@ export function PrivacyPolicy() {
 				<div className="space-y-6 text-gray-800">
 					<section className="space-y-3">
 						<h3 className="text-lg text-gray-900">0. LEXICON</h3>
-						<p>0.1. "We", "us", and "our" mean the PlayLocal student project operators.</p>
-						<p>0.2. "PlayLocal","Service" means the hosted PlayLocal website, application, APIs, and related platform features provided by us.</p>
-						<p>0.3. "You" and "your" mean the individual user of the Service.</p>
-						<p>0.4. "PIPEDA" means the Personal Information Protection and Electronic Documents Act (Canada).</p>
+						<p>0.1. &ldquo;We&rdquo;, &ldquo;us&rdquo;, and &ldquo;our&rdquo; mean the PlayLocal student project operators.</p>
+						<p>0.2. &ldquo;PlayLocal&rdquo;, &ldquo;Service&rdquo; means the hosted PlayLocal website, application, APIs, and related platform features provided by us.</p>
+						<p>0.3. &ldquo;You&rdquo; and &ldquo;your&rdquo; mean the individual user of the Service.</p>
+						<p>0.4. &ldquo;PIPEDA&rdquo; means the Personal Information Protection and Electronic Documents Act (Canada).</p>
 					</section>
 
 					<section className="space-y-3">

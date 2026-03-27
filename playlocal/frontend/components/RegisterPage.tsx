@@ -285,6 +285,7 @@ export const RegisterPage: React.FC = () => {
                       <Link
                         href="/terms-of-service"
                         className="text-emerald-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         Terms of Service
                       </Link>
@@ -304,6 +305,7 @@ export const RegisterPage: React.FC = () => {
                       <Link
                         href="/privacy-policy"
                         className="text-emerald-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         Privacy Policy
                       </Link>

@@ -35,7 +35,7 @@ export function Footer() {
                 <a
                   href="https://github.com/TeamCappin/PlayLocal"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors"
                 >
                   Repository
@@ -45,7 +45,7 @@ export function Footer() {
                 <a
                   href="https://github.com/TeamCappin/PlayLocal/issues"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors"
                 >
                   Contact

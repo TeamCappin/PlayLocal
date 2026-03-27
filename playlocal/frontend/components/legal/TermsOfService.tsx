@@ -12,16 +12,16 @@ export function TermsOfService() {
 
           <section className="space-y-3">
             <h3 className="text-lg text-gray-900">0. LEXICON</h3>
-            <p>0.1. "We", "us", and "our" mean the PlayLocal student project operators.</p>
-            <p>0.2. "PlayLocal", "Service" means the hosted PlayLocal website, application, APIs, and related platform features provided by us.</p>
-            <p>0.3. "You" and "your" mean the individual user of the Service.</p>
-            <p>0.4. "Mandatory Law" means the laws and legal rules of the Province of Ontario and the federal laws of Canada applicable therein that cannot be waived or excluded by contract.</p>
+            <p>0.1. &ldquo;We&rdquo;, &ldquo;us&rdquo;, and &ldquo;our&rdquo; mean the PlayLocal student project operators.</p>
+            <p>0.2. &ldquo;PlayLocal&rdquo;, &ldquo;Service&rdquo; means the hosted PlayLocal website, application, APIs, and related platform features provided by us.</p>
+            <p>0.3. &ldquo;You&rdquo; and &ldquo;your&rdquo; mean the individual user of the Service.</p>
+            <p>0.4. &ldquo;Mandatory Law&rdquo; means the laws and legal rules of the Province of Ontario and the federal laws of Canada applicable therein that cannot be waived or excluded by contract.</p>
           </section>
 
           <section className="space-y-3">
             <h3 className="text-lg text-gray-900">1. EXPERIMENTAL NATURE OF SERVICE AND DISCLAIMER OF WARRANTIES</h3>
             <p>1.1. <strong>Academic Project Status:</strong> You acknowledge and agree that PlayLocal is an experimental academic student project and not a commercial or production-ready service.</p>
-            <p>1.2. <strong>"As-Is" Provision:</strong> We provide the Service, including all current or future features, reporting mechanisms, or safety tools, strictly on an "AS IS" and "AS AVAILABLE" basis. We expressly disclaim all warranties of any kind, whether express or implied, including but not limited to the implied warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+            <p>1.2. <strong>&ldquo;As-Is&rdquo; Provision:</strong> We provide the Service, including all current or future features, reporting mechanisms, or safety tools, strictly on an &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; basis. We expressly disclaim all warranties of any kind, whether express or implied, including but not limited to the implied warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
             <p>1.3. <strong>Assumption of Risk:</strong> You acknowledge that the Service may contain significant software bugs, security vulnerabilities, or operational defects. You assume total responsibility and all risks associated with your use of the Service, including the risk of data breach, data loss, or system failure.</p>
             <p>1.4. <strong>No Support Obligation:</strong> We have no obligation to provide you with maintenance, technical support, debugging, moderation, or customer service.</p>
           </section>
@@ -57,7 +57,7 @@ export function TermsOfService() {
             <h3 className="text-lg text-gray-900">5. LIMITATION OF LIABILITY AND INDEMNIFICATION</h3>
             <p>5.1. <strong>Maximum Exculpation:</strong> To the maximum extent permitted by Mandatory Law, in no event shall we, our academic institutions, or affiliates be liable for any direct, indirect, incidental, special, consequential, or punitive damages.</p>
             <p>5.2. <strong>Scope of Waiver:</strong> This limitation of liability applies to any claims arising out of or related to your use of the Service, including those arising from our ordinary negligence, errors, omissions, technical failures, or failure to enforce the Acceptable Use Policy.</p>
-            <p>5.3. <strong>Indemnification:</strong> You agree to indemnify, defend, and hold us harmless from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney's fees) arising from your use of the Service, your violation of any term of this agreement, or your violation of any third-party right.</p>
+            <p>5.3. <strong>Indemnification:</strong> You agree to indemnify, defend, and hold us harmless from and against any and all claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including but not limited to attorney&apos;s fees) arising from your use of the Service, your violation of any term of this agreement, or your violation of any third-party right.</p>
           </section>
 
           <section className="space-y-3">
