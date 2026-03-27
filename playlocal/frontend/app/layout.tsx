@@ -3,6 +3,8 @@ import './globals.css';
 
 import { Providers } from './providers';
 import { Navigation } from '@/components/Navigation';
+import { GoogleAdsenseClient } from '@/components/ads/GoogleAdsenseClient';
+import Script from 'next/script';
 
 // Use system font stack so Docker build does not require network (Google Fonts fetch)
 const fontClass =
@@ -19,11 +21,27 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const adsEnabled =
+    process.env.NEXT_PUBLIC_ADS_ENABLED === 'true' ||
+    process.env.NEXT_PUBLIC_ADS_ENABLED === '1';
+  const pubId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_PUB_ID;
+
   return (
     <html lang="en">
       <body className={fontClass}>
+        {adsEnabled && pubId ? (
+          <Script
+            id="google-adsense-script"
+            async
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(
+              pubId
+            )}`}
+          />
+        ) : null}
         <Providers>
           <Navigation />
+          <GoogleAdsenseClient />
           {children}
         </Providers>
       </body>
