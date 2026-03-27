@@ -149,9 +149,11 @@ describe('GoogleAdsenseClient', () => {
 
     render(<GoogleAdsenseClient />);
 
-    const script = await waitFor(() =>
-      document.getElementById('google-adsense-script') as HTMLScriptElement
-    );
+    const script = (await waitFor(() => {
+      const el = document.getElementById('google-adsense-script');
+      expect(el).not.toBeNull();
+      return el;
+    })) as HTMLScriptElement;
 
     await act(async () => {
       script.dispatchEvent(new Event('error'));
