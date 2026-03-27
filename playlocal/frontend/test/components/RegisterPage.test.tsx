@@ -33,7 +33,7 @@ jest.mock('react-google-recaptcha-v3', () => ({
 jest.mock('@/lib/constants', () => {
   const Icon =
     (name: string) =>
-    (props: any): JSX.Element =>
+    (props: any): React.ReactElement =>
       <svg data-testid={name} {...props} />;
 
   return {
@@ -121,6 +121,16 @@ describe('RegisterPage', () => {
       'href',
       '/login'
     );
+    expect(
+      screen
+        .getAllByRole('link', { name: /terms-of-service of service/i })
+        .some((link) => link.getAttribute('href') === '/terms-of-service')
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('link', { name: /privacy policy/i })
+        .some((link) => link.getAttribute('href') === '/privacy-policy')
+    ).toBe(true);
   });
 
   it('shows password checklist when password field is focused', () => {
@@ -146,7 +156,7 @@ describe('RegisterPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows error when a weak password is submitted (e.g. all same chars)', () => {
+  it('keeps Continue disabled when password is weak', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
@@ -162,18 +172,16 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-
-    expect(
-      screen.getByText(/password does not meet requirements/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /create account/i })
-    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
   });
 
-  it('shows error if age is not confirmed when submitting step 1', () => {
+  it('keeps Continue disabled until age is confirmed', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
@@ -186,15 +194,17 @@ describe('RegisterPage', () => {
     fireEvent.change(getPasswordInput(), {
       target: { value: 'Password1!' },
     });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-
-    expect(
-      screen.getByText(/you must confirm you are at least 13 years old/i)
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
   });
 
-  it('shows error if EULA is not accepted when submitting step 1', () => {
+  it('keeps Continue disabled until terms are accepted', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
@@ -211,17 +221,14 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-
-    expect(
-      screen.getByText(
-        /you must accept the terms of service and privacy policy/i
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
   });
 
-  it('moves to step 2 when age + EULA are accepted', () => {
+  it('keeps Continue disabled until privacy policy is accepted', () => {
     setAuthMock({});
     render(<RegisterPage />);
 
@@ -238,7 +245,101 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+  });
+
+  it('keeps Continue disabled when email is invalid', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    fireEvent.change(screen.getByLabelText(/display name/i), {
+      target: { value: 'Hudson' },
+    });
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
+      target: { value: 'invalid-email' },
+    });
+    fireEvent.change(getPasswordInput(), {
+      target: { value: 'Password1!' },
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /at least 13 years old/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+  });
+
+  it('enables Continue only when all step 1 fields and acknowledgments are valid', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    const continueButton = screen.getByRole('button', { name: /continue/i });
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/display name/i), {
+      target: { value: 'Hudson' },
+    });
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
+      target: { value: 'hudson@x.com' },
+    });
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.change(getPasswordInput(), {
+      target: { value: 'Password1!' },
+    });
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /at least 13 years old/i })
+    );
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    expect(continueButton).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
+
+    expect(continueButton).toBeEnabled();
+  });
+
+  it('moves to step 2 when age + terms + privacy are accepted', () => {
+    setAuthMock({});
+    render(<RegisterPage />);
+
+    fireEvent.change(screen.getByLabelText(/display name/i), {
+      target: { value: 'Hudson' },
+    });
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
+      target: { value: 'h@x.com' },
+    });
+    fireEvent.change(getPasswordInput(), {
+      target: { value: 'Password1!' },
+    });
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /at least 13 years old/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
@@ -268,7 +369,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
@@ -294,7 +400,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
@@ -326,7 +437,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /competitive/i }));
@@ -367,7 +483,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
@@ -402,7 +523,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /mixed/i }));
@@ -434,7 +560,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     fireEvent.click(screen.getByRole('button', { name: /casual/i }));
@@ -473,7 +604,12 @@ describe('RegisterPage', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: /at least 13 years old/i })
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /i agree to the/i }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the terms of service/i })
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /accept the privacy policy/i })
+    );
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     expect(
