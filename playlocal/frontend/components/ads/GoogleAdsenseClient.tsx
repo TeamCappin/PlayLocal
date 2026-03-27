@@ -97,6 +97,9 @@ export function GoogleAdsenseClient() {
     !!cfg.pubId &&
     isAdsAllowedForPathname(pathname || '/', cfg.includeSensitive);
 
+  // Reserve UI space / load client script only when something will render or request ads.
+  const hasActiveAdMode = Boolean(cfg.adSlotId || cfg.enablePageLevelAds);
+
   const [scriptReady, setScriptReady] = useState(false);
   const lastAdRequestPathRef = useRef<string | null>(null);
 
@@ -104,7 +107,7 @@ export function GoogleAdsenseClient() {
     let cancelled = false;
 
     async function run() {
-      if (!allowed || !cfg.pubId) return;
+      if (!allowed || !cfg.pubId || !hasActiveAdMode) return;
 
       await ensureAdsenseScript(cfg.pubId);
       if (!cancelled) setScriptReady(true);
@@ -115,11 +118,11 @@ export function GoogleAdsenseClient() {
     return () => {
       cancelled = true;
     };
-  }, [allowed, cfg.pubId]);
+  }, [allowed, cfg.pubId, hasActiveAdMode]);
 
   useEffect(() => {
     // Only push after the script is present and we know the route is allowed.
-    if (!allowed || !scriptReady || !cfg.pubId) return;
+    if (!allowed || !scriptReady || !cfg.pubId || !hasActiveAdMode) return;
 
     // Avoid duplicate requests when React re-runs effects.
     if (lastAdRequestPathRef.current === pathname) return;
@@ -142,9 +145,10 @@ export function GoogleAdsenseClient() {
     cfg.pubId,
     scriptReady,
     pathname,
+    hasActiveAdMode,
   ]);
 
-  if (!allowed || !cfg.pubId) return null;
+  if (!allowed || !cfg.pubId || !hasActiveAdMode) return null;
 
   return (
     <div

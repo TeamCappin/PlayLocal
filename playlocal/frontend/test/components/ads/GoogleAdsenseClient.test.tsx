@@ -162,7 +162,7 @@ describe('GoogleAdsenseClient', () => {
     });
   });
 
-  it('does not push page-level when enablePageLevelAds is false and no slot', async () => {
+  it('renders nothing and does not push when no slot and page-level ads disabled', async () => {
     process.env.NEXT_PUBLIC_ADS_ENABLED = 'true';
     process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_PUB_ID = 'ca-pub-test';
     process.env.NEXT_PUBLIC_ADS_ENABLE_PAGE_LEVEL = 'false';
@@ -171,14 +171,13 @@ describe('GoogleAdsenseClient', () => {
     window.adsbygoogle = [];
     window.adsbygoogle.push = jest.fn(() => 0);
 
-    render(<GoogleAdsenseClient />);
+    const { container } = render(<GoogleAdsenseClient />);
 
     await act(async () => {
       await new Promise((r) => setTimeout(r, 50));
     });
 
     expect(window.adsbygoogle?.push).not.toHaveBeenCalled();
-    const wrapper = document.querySelector('[aria-hidden="true"].w-full.flex');
-    expect(wrapper).toBeInTheDocument();
+    expect(container.firstChild).toBeNull();
   });
 });
