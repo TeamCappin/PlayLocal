@@ -448,7 +448,7 @@ export const RegisterPage: React.FC = () => {
           <p className="mt-4 text-center text-xs text-gray-400 sm:hidden">
             This site is protected by reCAPTCHA and the Google{' '}
             <a href="https://policies.google.com/privacy" className="underline">Privacy Policy</a> and{' '}
-            <a href="https://policies.google.com/terms-of-service" className="underline">Terms of Service</a> apply.
+            <a href="https://policies.google.com/terms" className="underline">Terms of Service</a> apply.
           </p>
         </div>
       </div>
