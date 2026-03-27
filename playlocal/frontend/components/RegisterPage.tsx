@@ -25,6 +25,10 @@ function validatePassword(password: string): string | null {
     return null;
 }
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export const RegisterPage: React.FC = () => {
     const [step, setStep] = useState(1);
     const [email, setEmail] = useState('');
@@ -32,7 +36,8 @@ export const RegisterPage: React.FC = () => {
     const [passwordFocused, setPasswordFocused] = useState(false);
     const [displayName, setDisplayName] = useState('');
     const [ageConfirmed, setAgeConfirmed] = useState(false);
-    const [eulaAccepted, setEulaAccepted] = useState(false);
+    const [tosAccepted, setTosAccepted] = useState(false);
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [intensity, setIntensity] = useState('');
     const [availability, setAvailability] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +47,14 @@ export const RegisterPage: React.FC = () => {
   const { register, user, isLoading: authLoading } = useAuth();
   const navigate = useRouter();
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const eulaAccepted = tosAccepted && privacyAccepted;
+  const isStep1FormValid =
+    displayName.trim().length > 0 &&
+    isValidEmail(email) &&
+    !validatePassword(password) &&
+    ageConfirmed &&
+    tosAccepted &&
+    privacyAccepted;
 
   // Redirect authenticated users to discover page
   useEffect(() => {
@@ -71,8 +84,13 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    if (!eulaAccepted) {
-      setError('You must accept the Terms of Service and Privacy Policy');
+    if (!tosAccepted) {
+      setError('You must accept the Terms of Service');
+      return;
+    }
+
+    if (!privacyAccepted) {
+      setError('You must accept the Privacy Policy');
       return;
     }
 
@@ -258,32 +276,47 @@ export const RegisterPage: React.FC = () => {
                     <input
                       id = "terms"
                       type="checkbox"
-                      checked={eulaAccepted}
-                      onChange={(e) => setEulaAccepted(e.target.checked)}
+                      checked={tosAccepted}
+                      onChange={(e) => setTosAccepted(e.target.checked)}
                       className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="text-sm text-gray-600">
-                      I agree to the{' '}
-                      <a
-                        href="/terms"
+                      I or my guardian accept the{' '}
+                      <Link
+                        href="/terms-of-service"
                         className="text-emerald-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         Terms of Service
-                      </a>{' '}
-                      and{' '}
-                      <a
-                        href="/privacy"
+                      </Link>
+                    </span>
+                  </label>
+
+                  <label htmlFor="privacy" className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      id = "privacy"
+                      type="checkbox"
+                      checked={privacyAccepted}
+                      onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                      className="mt-1 w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm text-gray-600">
+                      I or my guardian accept the{' '}
+                      <Link
+                        href="/privacy-policy"
                         className="text-emerald-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         Privacy Policy
-                      </a>
+                      </Link>
                     </span>
                   </label>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
+                  disabled={!isStep1FormValid}
+                  className="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
                 </button>

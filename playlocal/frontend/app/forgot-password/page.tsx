@@ -91,7 +91,7 @@ const ForgotPasswordPage: React.FC = () => {
           </div>
 
           <div className="mt-8 flex items-center justify-center gap-3 text-sm text-gray-500">
-            <Link href="/terms" className="underline hover:text-gray-700">
+            <Link href="/terms-of-service" className="underline hover:text-gray-700">
               Terms of Use
             </Link>
             <span>|</span>
