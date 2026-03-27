@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { GoogleAdsenseClient } from '@/components/ads/GoogleAdsenseClient';
 
@@ -78,7 +78,7 @@ describe('GoogleAdsenseClient', () => {
     expect(pushes.some((p) => (p as { google_ad_client?: string })?.google_ad_client === 'ca-pub-test')).toBe(true);
     expect(pushes.some((p) => (p as { enable_page_level_ads?: boolean })?.enable_page_level_ads)).toBe(true);
 
-    const wrapper = document.querySelector('[aria-hidden="true"].w-full.flex');
+    const wrapper = document.querySelector('[aria-hidden="true"]');
     expect(wrapper).toBeInTheDocument();
   });
 

@@ -21,11 +21,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adsEnabled =
-    process.env.NEXT_PUBLIC_ADS_ENABLED === 'true' ||
-    process.env.NEXT_PUBLIC_ADS_ENABLED === '1';
-  const pubId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_PUB_ID;
+  const rawAdsEnabled = process.env.NEXT_PUBLIC_ADS_ENABLED;
+  const adsEnabled = rawAdsEnabled
+    ? ['1', 'true', 'yes', 'y', 'on'].includes(rawAdsEnabled.toLowerCase())
+    : false;
 
+  const rawPubId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_PUB_ID;
+  const pubId = rawPubId && rawPubId.trim() !== '' ? rawPubId.trim() : undefined;
   return (
     <html lang="en">
       <body className={fontClass}>
