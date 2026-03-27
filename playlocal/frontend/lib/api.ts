@@ -1050,6 +1050,57 @@ export const statsApi = {
 
   getAttendanceRate: (timeframe: StatsTimeframe = '30') =>
     apiFetch<StatsResponse>(`/stats/attendance-rate?timeframe=${timeframe}`),
+
+  getPlayerRatingStats: (timeframe: StatsTimeframe = '30') =>
+    apiFetch<StatsResponse>(`/stats/player-rating?timeframe=${timeframe}`),
+};
+
+// Player Ratings
+export interface CreatePlayerRatingRequest {
+  gameId: string;
+  rateeId: string;
+  rating: number; // 1-5
+  comment?: string;
+}
+
+export interface UpdatePlayerRatingRequest {
+  rating: number; // 1-5
+  comment?: string;
+}
+
+export interface PlayerRatingResponse {
+  ratingId: string;
+  gameId: string;
+  raterId: string;
+  raterName: string;
+  rateeId: string;
+  rating: number;
+  comment?: string;
+  isFlagged: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const playerRatingsApi = {
+  createRating: (data: CreatePlayerRatingRequest) =>
+    apiFetch<PlayerRatingResponse>('/ratings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateRating: (ratingId: string, data: UpdatePlayerRatingRequest) =>
+    apiFetch<PlayerRatingResponse>(`/ratings/${ratingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  getRatingsForUser: (userId: string) =>
+    apiFetch<PlayerRatingResponse[]>(`/ratings/user/${userId}`),
+
+  flagRating: (ratingId: string) =>
+    apiFetch<void>(`/ratings/${ratingId}/flag`, {
+      method: 'POST',
+    }),
 };
 
 export default {
@@ -1066,4 +1117,5 @@ export default {
   organizerQuality: organizerQualityApi,
   stats: statsApi,
   privacy: privacyApi,
+  playerRatings: playerRatingsApi,
 };

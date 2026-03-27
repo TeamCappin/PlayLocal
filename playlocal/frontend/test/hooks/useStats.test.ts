@@ -7,6 +7,7 @@ jest.mock('@/lib/api', () => ({
     getShowUpRate: jest.fn(),
     getSkillTrend: jest.fn(),
     getAttendanceRate: jest.fn(),
+    getPlayerRatingStats: jest.fn(),
   },
 }));
 
@@ -19,10 +20,12 @@ describe('useStats hook', () => {
     const mockShowUpRate = { value: 75, trend: 5 };
     const mockSkillTrend = { data: [] };
     const mockAttendanceRate = { rate: 90 };
+    const mockPlayerRating = { value: 4.5, count: 12 };
 
     (statsApi.getShowUpRate as jest.Mock).mockResolvedValue(mockShowUpRate);
     (statsApi.getSkillTrend as jest.Mock).mockResolvedValue(mockSkillTrend);
     (statsApi.getAttendanceRate as jest.Mock).mockResolvedValue(mockAttendanceRate);
+    (statsApi.getPlayerRatingStats as jest.Mock).mockResolvedValue(mockPlayerRating);
 
     const { result } = renderHook(() => useStats());
 
@@ -41,17 +44,20 @@ describe('useStats hook', () => {
     
     expect(result.current.skillTrend.data).toEqual(mockSkillTrend);
     expect(result.current.attendanceRate.data).toEqual(mockAttendanceRate);
+    expect(result.current.playerRating.data).toEqual(mockPlayerRating);
   });
 
   it('handles fetch errors gracefully', async () => {
     (statsApi.getShowUpRate as jest.Mock).mockRejectedValue(new Error('Network error'));
     (statsApi.getSkillTrend as jest.Mock).mockRejectedValue(new Error('Network error'));
     (statsApi.getAttendanceRate as jest.Mock).mockRejectedValue(new Error('Network error'));
+    (statsApi.getPlayerRatingStats as jest.Mock).mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useStats());
 
     await waitFor(() => {
       expect(result.current.showUpRate.isLoading).toBe(false);
+      expect(result.current.playerRating.isLoading).toBe(false);
     });
 
     expect(result.current.showUpRate.error).toBe('Failed to load show-up rate');
@@ -59,12 +65,14 @@ describe('useStats hook', () => {
 
     expect(result.current.skillTrend.error).toBe('Failed to load skill trend');
     expect(result.current.attendanceRate.error).toBe('Failed to load attendance rate');
+    expect(result.current.playerRating.error).toBe('Failed to load player rating');
   });
 
   it('updates timeframe and refetches data', async () => {
     (statsApi.getShowUpRate as jest.Mock).mockResolvedValue({});
     (statsApi.getSkillTrend as jest.Mock).mockResolvedValue({});
     (statsApi.getAttendanceRate as jest.Mock).mockResolvedValue({});
+    (statsApi.getPlayerRatingStats as jest.Mock).mockResolvedValue({});
 
     const { result } = renderHook(() => useStats('30'));
 
@@ -93,6 +101,7 @@ describe('useStats hook', () => {
     (statsApi.getShowUpRate as jest.Mock).mockResolvedValue({});
     (statsApi.getSkillTrend as jest.Mock).mockResolvedValue({});
     (statsApi.getAttendanceRate as jest.Mock).mockResolvedValue({});
+    (statsApi.getPlayerRatingStats as jest.Mock).mockResolvedValue({});
 
     const { result } = renderHook(() => useStats());
 

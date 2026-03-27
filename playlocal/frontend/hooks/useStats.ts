@@ -12,6 +12,7 @@ export interface UseStatsResult {
   showUpRate: UseStatsState;
   skillTrend: UseStatsState;
   attendanceRate: UseStatsState;
+  playerRating: UseStatsState;
   timeframe: StatsTimeframe;
   setTimeframe: (tf: StatsTimeframe) => void;
   refresh: () => void;
@@ -35,6 +36,7 @@ export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResul
   const [showUpRate,       setShowUpRate]       = useState<UseStatsState>(INITIAL_STATE);
   const [skillTrend,    setSkillTrend]    = useState<UseStatsState>(INITIAL_STATE);
   const [attendanceRate, setAttendanceRate] = useState<UseStatsState>(INITIAL_STATE);
+  const [playerRating, setPlayerRating] = useState<UseStatsState>(INITIAL_STATE);
 
   const fetchMetric = useCallback(
     async <T extends UseStatsState>(
@@ -61,6 +63,7 @@ export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResul
     fetchMetric(() => statsApi.getShowUpRate(timeframe),       setShowUpRate,       'show-up rate');
     fetchMetric(() => statsApi.getSkillTrend(timeframe),    setSkillTrend,    'skill trend');
     fetchMetric(() => statsApi.getAttendanceRate(timeframe), setAttendanceRate, 'attendance rate');
+    fetchMetric(() => statsApi.getPlayerRatingStats(timeframe), setPlayerRating, 'player rating');
   }, [timeframe, fetchMetric]);
 
   useEffect(() => {
@@ -71,6 +74,7 @@ export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResul
     showUpRate,
     skillTrend,
     attendanceRate,
+    playerRating,
     timeframe,
     setTimeframe,
     refresh: fetchAll,
