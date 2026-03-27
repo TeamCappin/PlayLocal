@@ -13,7 +13,6 @@ export function PrivacyPolicy() {
 						<p>0.1. "We", "us", and "our" mean the PlayLocal student project operators.</p>
 						<p>0.2. "PlayLocal","Service" means the hosted PlayLocal website, application, APIs, and related platform features provided by us.</p>
 						<p>0.3. "You" and "your" mean the individual user of the Service.</p>
-						<p>a applicable therein that cannot be waived or excluded by contract.</p>
 						<p>0.4. "PIPEDA" means the Personal Information Protection and Electronic Documents Act (Canada).</p>
 					</section>
 

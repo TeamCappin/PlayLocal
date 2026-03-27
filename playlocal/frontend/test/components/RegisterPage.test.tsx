@@ -123,7 +123,7 @@ describe('RegisterPage', () => {
     );
     expect(
       screen
-        .getAllByRole('link', { name: /terms-of-service of service/i })
+        .getAllByRole('link', { name: /terms of service/i })
         .some((link) => link.getAttribute('href') === '/terms-of-service')
     ).toBe(true);
     expect(
