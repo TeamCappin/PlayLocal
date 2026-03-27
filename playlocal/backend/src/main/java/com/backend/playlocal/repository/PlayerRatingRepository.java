@@ -36,6 +36,15 @@ public interface PlayerRatingRepository extends JpaRepository<PlayerRating, UUID
     List<PlayerRating> findByRateeUserId(UUID rateeId);
 
     /**
+     * Retrieves all ratings received by a specific user generated after a certain time.
+     * 
+     * @param rateeId The user UUID.
+     * @param cutoff The earliest instant to include.
+     * @return A list of ratings fitting the criteria.
+     */
+    List<PlayerRating> findByRateeUserIdAndCreatedAtAfter(UUID rateeId, java.time.Instant cutoff);
+
+    /**
      * Retrieves all ratings given by a specific user.
      *
      * @param raterId The JVM user UUID.
