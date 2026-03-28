@@ -12,7 +12,7 @@ interface PlayerRatingCardProps {
   error: string | null;
 }
 
-export function PlayerRatingCard({ data, isLoading, error }: PlayerRatingCardProps) {
+export function PlayerRatingCard({ data, isLoading, error }: Readonly<PlayerRatingCardProps>) {
   if (isLoading && !data) {
     return (
       <div data-testid="player-rating-card-skeleton" className="space-y-4 pt-4">

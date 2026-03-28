@@ -18,7 +18,7 @@ export function RateUserModal({
   isOpen,
   onClose,
   onSuccess,
-}: RateUserModalProps) {
+}: Readonly<RateUserModalProps>) {
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const { createRating, isLoading: isSubmitting } = usePlayerRatings();

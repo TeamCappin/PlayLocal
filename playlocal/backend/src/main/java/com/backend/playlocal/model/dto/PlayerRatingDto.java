@@ -18,6 +18,8 @@ import java.util.UUID;
  */
 public class PlayerRatingDto {
 
+    private PlayerRatingDto() {}
+
     /**
      * DTO for requesting the creation of a new player rating.
      */

@@ -280,4 +280,69 @@ class PlayerRatingServiceTest {
         PlayerRatingDto.Response response = playerRatingService.createRating(rater.getUserId(), request);
         assertFalse(response.isFlagged());
     }
+
+    @Test
+    void createRating_GameNotFound_ThrowsException() {
+        PlayerRatingDto.CreateRequest request = new PlayerRatingDto.CreateRequest();
+        request.setRateeId(UUID.randomUUID());
+        request.setGameId(UUID.randomUUID());
+        when(gameRepository.findById(any())).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> playerRatingService.createRating(rater.getUserId(), request));
+    }
+
+    @Test
+    void createRating_RaterNotFound_ThrowsException() {
+        PlayerRatingDto.CreateRequest request = new PlayerRatingDto.CreateRequest();
+        request.setRateeId(ratee.getUserId());
+        request.setGameId(game.getGameId());
+        when(gameRepository.findById(game.getGameId())).thenReturn(Optional.of(game));
+        when(userRepository.findById(rater.getUserId())).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> playerRatingService.createRating(rater.getUserId(), request));
+    }
+
+    @Test
+    void createRating_RateeNotFound_ThrowsException() {
+        PlayerRatingDto.CreateRequest request = new PlayerRatingDto.CreateRequest();
+        request.setRateeId(ratee.getUserId());
+        request.setGameId(game.getGameId());
+        when(gameRepository.findById(game.getGameId())).thenReturn(Optional.of(game));
+        when(userRepository.findById(rater.getUserId())).thenReturn(Optional.of(rater));
+        when(userRepository.findById(ratee.getUserId())).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> playerRatingService.createRating(rater.getUserId(), request));
+    }
+
+    @Test
+    void createRating_RateeDidNotAttend_ThrowsException() {
+        PlayerRatingDto.CreateRequest request = new PlayerRatingDto.CreateRequest();
+        request.setGameId(game.getGameId());
+        request.setRateeId(ratee.getUserId());
+        request.setRating(5);
+        request.setComment("test");
+
+        when(gameRepository.findById(request.getGameId())).thenReturn(Optional.of(game));
+        when(userRepository.findById(rater.getUserId())).thenReturn(Optional.of(rater));
+        when(userRepository.findById(ratee.getUserId())).thenReturn(Optional.of(ratee));
+
+        GameParticipation raterPart = GameParticipation.builder().attendanceStatus(GameParticipation.AttendanceStatus.ATTENDED).build();
+        when(gameParticipationRepository.findByGameAndUser(game.getGameId(), rater.getUserId()))
+                .thenReturn(Optional.of(raterPart));
+        
+        GameParticipation rateePart = GameParticipation.builder().attendanceStatus(GameParticipation.AttendanceStatus.NO_SHOW).build();
+        when(gameParticipationRepository.findByGameAndUser(game.getGameId(), ratee.getUserId()))
+                .thenReturn(Optional.of(rateePart));
+
+        assertThrows(IllegalArgumentException.class, () -> playerRatingService.createRating(rater.getUserId(), request));
+    }
+
+    @Test
+    void updateRating_RatingNotFound_ThrowsException() {
+        when(playerRatingRepository.findById(any())).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> playerRatingService.updateRating(rater.getUserId(), UUID.randomUUID(), new PlayerRatingDto.UpdateRequest()));
+    }
+
+    @Test
+    void flagRating_RatingNotFound_ThrowsException() {
+        when(playerRatingRepository.findById(any())).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> playerRatingService.flagRating(UUID.randomUUID()));
+    }
 }

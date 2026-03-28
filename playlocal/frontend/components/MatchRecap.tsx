@@ -168,14 +168,14 @@ export function MatchRecap() {
   };
 
   const teams = useMemo(() => {
-    if (realRoster && realRoster.confirmed && realRoster.confirmed.length > 0) {
+      if (realRoster?.confirmed?.length > 0) {
       const allPlayers = realRoster.confirmed.map((p: any) => {
         // Deterministic stats per user so they don't change on render
         const seedStr = (p.userId || '') + (p.displayName || '');
         let seed = 0;
         for (let i = 0; i < seedStr.length; i++) {
-          seed = (seed << 5) - seed + seedStr.charCodeAt(i);
-          seed |= 0; 
+          seed = (seed << 5) - seed + (seedStr.codePointAt(i) || 0);
+          seed = Math.trunc(seed); 
         }
         seed = Math.abs(seed);
         return {
@@ -185,7 +185,7 @@ export function MatchRecap() {
           points: (seed % 15) + 4,
           assists: (seed % 8) + 1,
           rebounds: (seed % 12) + 2,
-          rating: (7.0 + (seed % 25) / 10).toFixed(1),
+          rating: (7 + (seed % 25) / 10).toFixed(1),
         };
       });
       const mid = Math.ceil(allPlayers.length / 2);
@@ -248,9 +248,6 @@ export function MatchRecap() {
     return recap.mvp;
   })();
 
-  const computedSummary = realGame 
-   ? `An intense ${recap?.sport || 'match'} matchup on ${recap?.date || 'a recent date'}. The event "${recap?.gameTitle || 'Game'}" took place at ${recap?.location || 'the court'}. Player performances were outstanding, marked by strong efforts across the board from both teams.`
-   : "{computedSummary}";
 
   const computedHighlights = realGame ? [] : highlights;
 
@@ -656,8 +653,8 @@ export function MatchRecap() {
                 <button
                   onClick={() => {
                     setActiveTab('stats');
-                    if (typeof window !== 'undefined') {
-                      window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+                    if (typeof globalThis.window !== 'undefined') {
+                      globalThis.window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
                     }
                   }}
                   className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
@@ -673,7 +670,7 @@ export function MatchRecap() {
   );
 }
 
-function PlayerStatRow({ player, rank, gameId }: { player: any; rank: number; gameId: string }) {
+function PlayerStatRow({ player, rank, gameId }: Readonly<{ player: any; rank: number; gameId: string }>) {
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
   return (
@@ -703,7 +700,7 @@ function PlayerStatRow({ player, rank, gameId }: { player: any; rank: number; ga
 
       <RateUserModal
         gameId={gameId}
-        targetUserId={player.id || `mock-${player.name.replace(/\s+/g, '-').toLowerCase()}`}
+        targetUserId={player.id || `mock-${player.name.replaceAll(/\s+/g, '-').toLowerCase()}`}
         targetUserName={player.name}
         isOpen={isRatingModalOpen}
         onClose={() => setIsRatingModalOpen(false)}
