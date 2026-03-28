@@ -129,10 +129,10 @@ export const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="sm:min-h-screen flex items-center justify-center pt-24 pb-32 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full" style={{ maxWidth: '32rem' }}>
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <div className="text-center mb-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
+          <div className="text-center mb-4 sm:mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
             <p className="mt-2 text-gray-600">Sign in to continue to PlayLocal</p>
           </div>
