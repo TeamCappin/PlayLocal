@@ -695,7 +695,7 @@ function PlayerStatRow({ player, rank, gameId }: { player: any; rank: number; ga
         </div>
         <button
           onClick={() => setIsRatingModalOpen(true)}
-          className="px-3 py-1 text-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-emerald-600 rounded shadow-sm transition-colors"
+          className="px-4 py-1.5 text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
         >
           Rate
         </button>
