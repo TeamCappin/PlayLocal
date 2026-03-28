@@ -30,13 +30,13 @@ import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 import { performLogoutRedirect } from '@/lib/authRedirect';
 
 /** AC6: Error state while loading settings — clear message and retry */
-export function SettingsError({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
+export function SettingsError(
+  props: Readonly<{
+    message: string;
+    onRetry: () => void;
+  }>
+) {
+  const { message, onRetry } = props;
   return (
     <div
       className="fixed inset-0 z-[100] bg-gray-50 flex flex-col items-center justify-center px-4"
@@ -461,8 +461,14 @@ export function PrivacySettings({
         setLocalSettings(data);
         setLocalLoading(false);
       })
-      .catch((err) => {
-        setLocalError(err.message || 'Failed to load privacy settings');
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : 'Failed to load privacy settings';
+        setLocalError(message || 'Failed to load privacy settings');
         setLocalLoading(false);
       });
   }, [controlled]);
@@ -483,8 +489,11 @@ export function PrivacySettings({
 
   const handleSettingsChange = useCallback(
     (next: PrivacySettingsResponse | null) => {
-      if (controlled) onSettingsChange!(next);
-      else setLocalSettings(next);
+      if (controlled) {
+        if (onSettingsChange) onSettingsChange(next);
+      } else {
+        setLocalSettings(next);
+      }
     },
     [controlled, onSettingsChange]
   );

@@ -426,6 +426,24 @@ describe('Settings hub UI', () => {
         ).toBeInTheDocument();
       });
     });
+
+    it('shows rejected string as error message for standalone load', async () => {
+      mockGetSettings.mockRejectedValue('bad');
+      render(<PrivacySettings />);
+      await waitFor(() => {
+        expect(screen.getByText('bad')).toBeInTheDocument();
+      });
+    });
+
+    it('shows fallback when getSettings rejects a non-Error object', async () => {
+      mockGetSettings.mockRejectedValue({ notAnError: true });
+      render(<PrivacySettings />);
+      await waitFor(() => {
+        expect(
+          screen.getByText('Failed to load privacy settings')
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('ProfileSettings', () => {

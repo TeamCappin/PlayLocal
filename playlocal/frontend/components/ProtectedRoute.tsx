@@ -5,11 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
   /** Optional custom loading UI (e.g. "Loading settings...") */
-  loadingContent?: React.ReactNode;
+  readonly loadingContent?: React.ReactNode;
   /** Optional custom error UI (error message, retry callback). AC6. */
-  errorContent?: (error: string, retry: () => void) => React.ReactNode;
+  readonly errorContent?: (error: string, retry: () => void) => React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
