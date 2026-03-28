@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ChevronLeft,
@@ -9,9 +9,11 @@ import {
   Clock,
   Plus,
   Loader2,
+  X,
 } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
 import { useAuth } from '@/context/AuthContext';
+import { useIsMobile } from '@/components/ui/use-mobile';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -43,8 +45,11 @@ interface CalendarGame {
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
   const { games: apiGames, isLoading } = useGames();
   const { user, isAuthenticated } = useAuth();
+  const isMobile = useIsMobile();
 
   // Transform API games to calendar format
   const games: CalendarGame[] = useMemo(() => {
@@ -89,8 +94,29 @@ export function CalendarView() {
     );
   };
 
+  const openDayOverlay = (date: Date) => {
+    setSelectedDay(date);
+    requestAnimationFrame(() => setOverlayVisible(true));
+  };
+
+  const closeDayOverlay = () => {
+    setOverlayVisible(false);
+    setTimeout(() => setSelectedDay(null), 200);
+  };
+
+  useEffect(() => {
+    if (!selectedDay) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeDayOverlay();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [selectedDay]);
+
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const weeks = Math.ceil((firstDay + daysInMonth) / 7);
+
+  const selectedDayGames = selectedDay ? getGamesForDate(selectedDay) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -103,7 +129,7 @@ export function CalendarView() {
           </div>
           <Link
             href="/games/create"
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            className="hidden sm:flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Create Game</span>
@@ -115,7 +141,7 @@ export function CalendarView() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               {/* Calendar Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-4 sm:p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl text-gray-900">
                     {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -178,21 +204,21 @@ export function CalendarView() {
               </div>
 
               {/* Calendar Grid */}
-              <div className="p-6">
+              <div className="p-2 sm:p-6">
                 {/* Day Headers */}
-                <div className="grid grid-cols-7 gap-2 mb-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-1 sm:mb-2">
                   {DAYS.map((day) => (
                     <div
                       key={day}
-                      className="text-center text-sm text-gray-600 py-2"
+                      className="text-center text-xs sm:text-sm text-gray-600 py-1 sm:py-2"
                     >
-                      {day}
+                      {isMobile ? day.charAt(0) : day}
                     </div>
                   ))}
                 </div>
 
                 {/* Calendar Days */}
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                   {Array.from({ length: weeks * 7 }).map((_, index) => {
                     const dayNumber = index - firstDay + 1;
                     const isValidDay =
@@ -208,6 +234,47 @@ export function CalendarView() {
                       date.getMonth() === new Date().getMonth() &&
                       date.getFullYear() === new Date().getFullYear();
                     const dayGames = isValidDay ? getGamesForDate(date) : [];
+
+                    if (isMobile) {
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => isValidDay && dayGames.length > 0 && openDayOverlay(date)}
+                          className={`aspect-square p-1 rounded-lg border border-gray-200 flex flex-col items-center justify-center ${
+                            !isValidDay
+                              ? 'bg-gray-50'
+                              : dayGames.length > 0
+                                ? 'bg-white active:bg-gray-100 cursor-pointer'
+                                : 'bg-white'
+                          } transition-colors`}
+                        >
+                          {isValidDay && (
+                            <>
+                              <div
+                                className={`text-xs ${
+                                  isToday
+                                    ? 'w-6 h-6 bg-emerald-600 text-white rounded-full flex items-center justify-center'
+                                    : 'text-gray-700'
+                                }`}
+                              >
+                                {dayNumber}
+                              </div>
+                              {dayGames.length > 0 && (
+                                <div className="mt-0.5 flex items-center gap-0.5">
+                                  <MapPin className="w-3 h-3 text-emerald-600" />
+                                  {dayGames.length > 1 && (
+                                    <span className="text-[10px] text-emerald-600 font-medium">
+                                      {dayGames.length}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </button>
+                      );
+                    }
 
                     return (
                       <div
@@ -308,7 +375,7 @@ export function CalendarView() {
             </div>
 
             {/* Legend */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="hidden sm:block bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg text-gray-900 mb-4">Legend</h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
@@ -347,6 +414,88 @@ export function CalendarView() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Day Detail Overlay */}
+      {selectedDay && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          onClick={closeDayOverlay}
+          onKeyDown={(e) => { if (e.key === 'Escape') closeDayOverlay(); }}
+          role="presentation"
+        >
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200 ${
+              overlayVisible ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+          {/* Content */}
+          <div
+            className={`relative bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 w-full max-w-sm overflow-hidden transition-all duration-200 ${
+              overlayVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200/50">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedDay.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </h3>
+              <button
+                onClick={closeDayOverlay}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Games List */}
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              {selectedDayGames.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No games scheduled</p>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDayGames.map((game) => (
+                    <Link
+                      key={game.id}
+                      href={`/games/${game.id}`}
+                      className={`block p-3 rounded-xl border transition-colors ${
+                        game.role === 'host'
+                          ? 'border-purple-200/60 bg-purple-50/60 hover:bg-purple-100/60'
+                          : game.status === 'tentative'
+                            ? 'border-amber-200/60 bg-amber-50/60 hover:bg-amber-100/60'
+                            : 'border-emerald-200/60 bg-emerald-50/60 hover:bg-emerald-100/60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-900">{game.sport}</span>
+                        {game.role === 'host' && (
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+                            Host
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2">{game.title}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Clock className="w-3 h-3" />
+                        <span>{game.time}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <MapPin className="w-3 h-3" />
+                        <span>{game.location}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
