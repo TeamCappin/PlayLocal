@@ -63,6 +63,16 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
+jest.mock('@/components/PasswordChangeCard', () => ({
+  PasswordChangeCard: () => (
+    <div data-testid="password-change-card">
+      <input placeholder="Enter current password" />
+      <input placeholder="Enter new password" />
+      <button type="button">Update Password</button>
+    </div>
+  ),
+}));
+
 jest.mock('@/lib/toast', () => {
   const actual = jest.requireActual('@/lib/toast');
   return {
@@ -393,10 +403,11 @@ describe('Settings hub UI', () => {
   });
 
   describe('AccountSettings', () => {
-    it('renders account information heading', () => {
+    it('renders PasswordChangeCard and Safety & Moderation', () => {
       render(<AccountSettings />);
+      expect(screen.getByTestId('password-change-card')).toBeInTheDocument();
       expect(
-        screen.getByRole('heading', { name: 'Account Information' })
+        screen.getByRole('heading', { name: 'Safety & Moderation' })
       ).toBeInTheDocument();
     });
   });
@@ -418,14 +429,14 @@ describe('Settings hub UI', () => {
   });
 
   describe('ProfileSettings', () => {
-    it('renders profile fields via AccountSettings', () => {
+    it('renders profile information heading and fields', () => {
       render(
         <ProfileSettings
           user={{ displayName: 'Test User', email: 'test@example.com' }}
         />
       );
       expect(
-        screen.getByRole('heading', { name: 'Account Information' })
+        screen.getByRole('heading', { name: 'Profile Information' })
       ).toBeInTheDocument();
     });
   });

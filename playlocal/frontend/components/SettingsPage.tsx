@@ -225,7 +225,12 @@ export function SettingsPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            {activeTab === 'account' && <AccountSettings user={user} />}
+            {activeTab === 'account' && (
+              <>
+                <AccountSettings />
+                <ProfileSettings user={user} />
+              </>
+            )}
             {activeTab === 'privacy' && <PrivacySettings initialSettings={privacySettings} initialLoading={privacyLoading} initialError={privacyError} onSettingsChange={setPrivacySettings} />}
             {activeTab === 'notifications' && <NotificationSettings />}
             {activeTab === 'security' && <SecuritySettings />}
@@ -236,7 +241,38 @@ export function SettingsPage() {
   );
 }
 
-export function AccountSettings({
+/** AC3: Account route — password change and safety toggles. Exported for /settings/account. */
+export function AccountSettings() {
+  return (
+    <>
+      <PasswordChangeCard />
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Safety & Moderation</h2>
+        <div className="space-y-4">
+          <ToggleSetting
+            label="Require Check-in Confirmation"
+            description="Require manual check-in for all games"
+            value={true}
+          />
+          <ToggleSetting
+            label="Hide Location Until Accepted"
+            description="Don't show exact location until you're accepted to a game"
+            value={true}
+          />
+          <ToggleSetting
+            label="Block Anonymous Users"
+            description="Only allow verified users to contact you"
+            value={false}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** AC3: Profile fields and preferences. Exported for /settings/profile. */
+export function ProfileSettings({
   user: userFromProps,
 }: {
   user?: {
@@ -253,14 +289,14 @@ export function AccountSettings({
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Account Information</h2>
+        <h2 className="text-xl text-gray-900 mb-6">Profile Information</h2>
         <div className="space-y-6">
           <div>
-            <label htmlFor="displayName" className="block text-gray-700 mb-2">
+            <label htmlFor="profileDisplayName" className="block text-gray-700 mb-2">
               Display Name
             </label>
             <input
-              id="displayName"
+              id="profileDisplayName"
               type="text"
               defaultValue={user?.displayName || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -268,11 +304,11 @@ export function AccountSettings({
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-gray-700 mb-2">
+            <label htmlFor="profileEmail" className="block text-gray-700 mb-2">
               Email
             </label>
             <input
-              id="email"
+              id="profileEmail"
               type="email"
               defaultValue={user?.email || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -280,11 +316,11 @@ export function AccountSettings({
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-gray-700 mb-2">
+            <label htmlFor="profilePhone" className="block text-gray-700 mb-2">
               Phone Number
             </label>
             <input
-              id="phone"
+              id="profilePhone"
               type="tel"
               defaultValue={user?.phone || ''}
               placeholder="Enter your phone number"
@@ -293,13 +329,13 @@ export function AccountSettings({
           </div>
 
           <div>
-            <label htmlFor="location" className="block text-gray-700 mb-2">
+            <label htmlFor="profileLocation" className="block text-gray-700 mb-2">
               Location
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="location"
+                id="profileLocation"
                 type="text"
                 defaultValue={user?.location || ''}
                 placeholder="Enter your location"
@@ -309,11 +345,11 @@ export function AccountSettings({
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-gray-700 mb-2">
+            <label htmlFor="profileBio" className="block text-gray-700 mb-2">
               Bio
             </label>
             <textarea
-              id="bio"
+              id="profileBio"
               rows={4}
               defaultValue={user?.bio || ''}
               placeholder="Tell others about yourself..."
@@ -323,10 +359,16 @@ export function AccountSettings({
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-3">
-          <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            type="button"
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Cancel
           </button>
-          <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+          <button
+            type="button"
+            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
             Save Changes
           </button>
         </div>
@@ -336,11 +378,11 @@ export function AccountSettings({
         <h2 className="text-xl text-gray-900 mb-6">Default Preferences</h2>
         <div className="space-y-4">
           <div>
-            <label htmlFor="defaultIntensity" className="block text-gray-700 mb-2">
+            <label htmlFor="profileDefaultIntensity" className="block text-gray-700 mb-2">
               Default Intensity
             </label>
             <select
-              id="defaultIntensity"
+              id="profileDefaultIntensity"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option>Low - Casual & Social</option>
@@ -352,20 +394,6 @@ export function AccountSettings({
       </div>
     </>
   );
-}
-
-export function ProfileSettings({
-  user,
-}: {
-  user: {
-    displayName?: string;
-    email?: string;
-    phone?: string;
-    location?: string;
-    bio?: string;
-  } | null;
-}) {
-  return <AccountSettings user={user} />;
 }
 
 // Maps between display labels and backend codes
