@@ -29,6 +29,8 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  /** Retry initial auth check after a failure (e.g. network error). AC6. */
+  retryAuthCheck: () => Promise<void>;
   error: string | null;
 }
 
@@ -51,25 +53,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check for existing token on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = getAuthToken();
-      if (token) {
-        try {
-          const userData = await authApi.getCurrentUser();
-          setUser(userData);
-        } catch (err) {
-          // Token expired or invalid
+  // Check for existing token on mount (AC6: set error on failure so UI can show retry)
+  const checkAuth = async () => {
+    const token = getAuthToken();
+    if (token) {
+      try {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+        setError(null);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
           setAuthToken(null);
+          setUser(null);
+          setError(null);
+        } else {
+          setUser(null);
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : 'Something went wrong. Please try again.'
+          );
         }
       }
-      setIsLoading(false);
-    };
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string, captchaToken?: string): Promise<{ mfaRequired?: boolean }> => {
+  const retryAuthCheck = async () => {
+    setError(null);
+    setIsLoading(true);
+    const token = getAuthToken();
+    if (token) {
+      try {
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          setAuthToken(null);
+          setUser(null);
+          setError(null);
+        } else {
+          setUser(null);
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : 'Something went wrong. Please try again.'
+          );
+        }
+      }
+    }
+    setIsLoading(false);
+  };
+
+  const login = async (
+    email: string,
+    password: string,
+    captchaToken?: string
+  ): Promise<{ mfaRequired?: boolean }> => {
     setError(null);
     setIsLoading(true);
     try {
@@ -174,6 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         register,
         logout,
         refreshUser,
+        retryAuthCheck,
         error,
       }}
     >
