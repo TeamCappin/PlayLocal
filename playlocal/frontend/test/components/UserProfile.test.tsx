@@ -110,6 +110,7 @@ jest.mock('@/hooks/useStats', () => ({
     showUpRate: { data: null, isLoading: false, error: null },
     skillTrend: { data: null, isLoading: false, error: null },
     attendanceRate: { data: null, isLoading: false, error: null },
+    playerRating: { data: null, isLoading: false, error: null },
     timeframe: '30',
     setTimeframe: jest.fn(),
   }),
