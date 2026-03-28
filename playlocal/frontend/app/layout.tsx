@@ -30,17 +30,20 @@ export default function RootLayout({
   const pubId = rawPubId && rawPubId.trim() !== '' ? rawPubId.trim() : undefined;
   return (
     <html lang="en">
-      <body className={fontClass}>
+      <head>
         {adsEnabled && pubId ? (
           <Script
             id="google-adsense-script"
             async
-            crossOrigin="anonymous"
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(
               pubId
             )}`}
+            crossOrigin="anonymous"  // Required for CORS when loading external scripts
+            strategy="afterInteractive" // Load script after the page becomes interactive
           />
         ) : null}
+      </head>
+      <body className={fontClass}>
         <Providers>
           <Navigation />
           <GoogleAdsenseClient />
