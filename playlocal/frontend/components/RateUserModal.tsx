@@ -8,7 +8,7 @@ interface RateUserModalProps {
   targetUserName: string;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (rating: number) => void;
 }
 
 export function RateUserModal({
@@ -30,7 +30,7 @@ export function RateUserModal({
 
     try {
       await createRating({ gameId, rateeId: targetUserId, rating });
-      onSuccess?.();
+      onSuccess?.(rating);
       onClose();
     } catch (err) {
       // Error is handled by the hook via toast

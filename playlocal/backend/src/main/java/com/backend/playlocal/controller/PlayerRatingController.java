@@ -16,7 +16,7 @@ import java.util.UUID;
  * REST controller endpoints for managing player ratings and post-game feedback.
  */
 @RestController
-@RequestMapping("/api/ratings")
+@RequestMapping("/api/v1/ratings")
 @RequiredArgsConstructor
 public class PlayerRatingController {
 

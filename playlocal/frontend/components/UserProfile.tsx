@@ -176,7 +176,7 @@ export function UserProfile() {
             gamesPlayed: otherUser?.gamesCount || 0,
             gamesHosted: 0,
             reliabilityScore: otherUser?.reliabilityScore || 0,
-            averageRating: 0,
+            averageRating: (otherUser as any)?.averageRating || 0,
           },
         };
 

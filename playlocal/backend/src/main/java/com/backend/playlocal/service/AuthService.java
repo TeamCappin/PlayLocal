@@ -1,6 +1,7 @@
 package com.backend.playlocal.service;
 
 import com.backend.playlocal.exception.DuplicateResourceException;
+import com.backend.playlocal.repository.PlayerRatingRepository;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.ChangePasswordRequest;
@@ -32,6 +33,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final PrivacySettingsService privacySettingsService;
     private final EmailService emailService;
+    private final PlayerRatingRepository playerRatingRepository;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -49,13 +51,15 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        PrivacySettingsService privacySettingsService,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       PlayerRatingRepository playerRatingRepository) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.privacySettingsService = privacySettingsService;
         this.emailService = emailService;
+        this.playerRatingRepository = playerRatingRepository;
     }
 
     /**
@@ -348,6 +352,7 @@ public class AuthService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
+                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .mfaEnabled(user.getMfaEnabled())
                 .build();

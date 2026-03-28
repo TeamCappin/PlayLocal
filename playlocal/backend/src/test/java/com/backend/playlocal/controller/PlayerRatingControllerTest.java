@@ -67,7 +67,7 @@ class PlayerRatingControllerTest {
         Mockito.when(playerRatingService.createRating(eq(raterId), any(PlayerRatingDto.CreateRequest.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/api/ratings")
+        mockMvc.perform(post("/api/v1/ratings")
                         .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -91,7 +91,7 @@ class PlayerRatingControllerTest {
         Mockito.when(playerRatingService.updateRating(eq(raterId), eq(ratingId), any(PlayerRatingDto.UpdateRequest.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(put("/api/ratings/" + ratingId)
+        mockMvc.perform(put("/api/v1/ratings/" + ratingId)
                         .header("Authorization", "Bearer valid-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -108,7 +108,7 @@ class PlayerRatingControllerTest {
 
         Mockito.when(playerRatingService.getRatingsForUser(rateeId)).thenReturn(List.of(response));
 
-        mockMvc.perform(get("/api/ratings/user/" + rateeId)
+        mockMvc.perform(get("/api/v1/ratings/user/" + rateeId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].ratingId").value(ratingId.toString()));
@@ -118,7 +118,7 @@ class PlayerRatingControllerTest {
     void flagRating_Success() throws Exception {
         Mockito.doNothing().when(playerRatingService).flagRating(ratingId);
 
-        mockMvc.perform(post("/api/ratings/" + ratingId + "/flag")
+        mockMvc.perform(post("/api/v1/ratings/" + ratingId + "/flag")
                         .header("Authorization", "Bearer valid-token"))
                 .andExpect(status().isOk());
     }

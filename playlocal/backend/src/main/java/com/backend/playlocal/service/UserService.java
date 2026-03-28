@@ -12,6 +12,7 @@ import com.backend.playlocal.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import com.backend.playlocal.repository.PlayerRatingRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +32,17 @@ public class UserService {
     private final PrivacySettingsService privacySettingsService;
     private final FriendshipRepository friendshipRepository;
     private final GameParticipationRepository gameParticipationRepository;
+    private final PlayerRatingRepository playerRatingRepository;
 
     public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository,
             PrivacySettingsService privacySettingsService, FriendshipRepository friendshipRepository,
-            GameParticipationRepository gameParticipationRepository) {
+            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository) {
         this.userRepository = userRepository;
         this.endorsementRepository = endorsementRepository;
         this.privacySettingsService = privacySettingsService;
         this.friendshipRepository = friendshipRepository;
         this.gameParticipationRepository = gameParticipationRepository;
+        this.playerRatingRepository = playerRatingRepository;
     }
 
     /**
@@ -197,6 +200,7 @@ public class UserService {
                 .avatarUrl(user.getAvatarUrl())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
+                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
                 .endorsementsCount(endorsementCount)
                 .defaultIntensity(user.getDefaultIntensity())
                 .profileRestricted(true)
@@ -260,6 +264,7 @@ public class UserService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
+                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
                 .endorsementsCount(count)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .build();
