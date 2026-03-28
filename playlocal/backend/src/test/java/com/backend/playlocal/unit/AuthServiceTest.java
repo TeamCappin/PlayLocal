@@ -61,6 +61,9 @@ class AuthServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+
     @InjectMocks
     private AuthService authService;
 

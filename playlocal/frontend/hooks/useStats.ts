@@ -30,7 +30,7 @@ const INITIAL_STATE: UseStatsState = {
  *
  * @param initialTimeframe  Default timeframe on mount (default "30").
  */
-export function useStats(initialTimeframe: StatsTimeframe = '30'): UseStatsResult {
+export function useStats(initialTimeframe: StatsTimeframe = 'all'): UseStatsResult {
   const [timeframe, setTimeframe] = useState<StatsTimeframe>(initialTimeframe);
 
   const [showUpRate,       setShowUpRate]       = useState<UseStatsState>(INITIAL_STATE);

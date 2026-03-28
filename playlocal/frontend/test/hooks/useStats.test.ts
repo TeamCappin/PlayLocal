@@ -30,7 +30,7 @@ describe('useStats hook', () => {
     const { result } = renderHook(() => useStats());
 
     // Initially loading
-    expect(result.current.timeframe).toBe('30');
+    expect(result.current.timeframe).toBe('all');
     expect(result.current.showUpRate.isLoading).toBe(true);
 
     // Wait for the mock fetches to resolve

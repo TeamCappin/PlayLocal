@@ -23,9 +23,6 @@ public class CaptchaService {
      * Validates a reCAPTCHA v3 token. If CAPTCHA is disabled, always passes.
      */
     public void validate(String token) {
-        // BYPASS CAPTCHA FOR LOCAL DEV TEST
-        return;
-        /*
         if (!config.isEnabled()) {
             return;
         }
@@ -44,7 +41,6 @@ public class CaptchaService {
         if (response.getScore() < config.getScoreThreshold()) {
             throw new IllegalArgumentException("CAPTCHA score too low");
         }
-        */
     }
 
     @Data
