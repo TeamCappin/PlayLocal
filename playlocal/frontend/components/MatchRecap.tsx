@@ -24,6 +24,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { RateUserModal } from './RateUserModal';
 
 export function MatchRecap() {
   const { id } = useParams();
@@ -413,6 +414,7 @@ export function MatchRecap() {
                             key={index}
                             player={player}
                             rank={index + 1}
+                            gameId={recap.id}
                           />
                         ))}
                       </div>
@@ -430,6 +432,7 @@ export function MatchRecap() {
                             key={index}
                             player={player}
                             rank={index + 1}
+                            gameId={recap.id}
                           />
                         ))}
                       </div>
@@ -545,7 +548,15 @@ export function MatchRecap() {
                 >
                   Create Rematch
                 </Link>
-                <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+                <button
+                  onClick={() => {
+                    setActiveTab('stats');
+                    if (typeof window !== 'undefined') {
+                      window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+                    }
+                  }}
+                  className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                >
                   Rate Players
                 </button>
               </div>
@@ -557,7 +568,9 @@ export function MatchRecap() {
   );
 }
 
-function PlayerStatRow({ player, rank }: { player: any; rank: number }) {
+function PlayerStatRow({ player, rank, gameId }: { player: any; rank: number; gameId: string }) {
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+
   return (
     <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
       <span className="text-gray-500 w-6">{rank}</span>
@@ -570,10 +583,26 @@ function PlayerStatRow({ player, rank }: { player: any; rank: number }) {
           {player.points} pts • {player.assists} ast • {player.rebounds} reb
         </div>
       </div>
-      <div className="flex items-center gap-1">
-        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-        <span className="text-gray-900">{player.rating}</span>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+          <span className="text-gray-900">{player.rating}</span>
+        </div>
+        <button
+          onClick={() => setIsRatingModalOpen(true)}
+          className="px-3 py-1 text-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-emerald-600 rounded shadow-sm transition-colors"
+        >
+          Rate
+        </button>
       </div>
+
+      <RateUserModal
+        gameId={gameId}
+        targetUserId={player.id || `mock-${player.name.replace(/\s+/g, '-').toLowerCase()}`}
+        targetUserName={player.name}
+        isOpen={isRatingModalOpen}
+        onClose={() => setIsRatingModalOpen(false)}
+      />
     </div>
   );
 }
