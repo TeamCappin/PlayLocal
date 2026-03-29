@@ -261,13 +261,11 @@ export function CalendarView() {
                                 {dayNumber}
                               </div>
                               {dayGames.length > 0 && (
-                                <div className="mt-0.5 flex items-center gap-0.5">
+                                <div className="mt-0.5 flex flex-col items-center">
                                   <MapPin className="w-3 h-3 text-emerald-600" />
-                                  {dayGames.length > 1 && (
-                                    <span className="text-[10px] text-emerald-600 font-medium">
-                                      {dayGames.length}
-                                    </span>
-                                  )}
+                                  <span className="text-[9px] text-emerald-600 font-medium leading-tight">
+                                    {dayGames.length} {dayGames.length === 1 ? 'game' : 'games'}
+                                  </span>
                                 </div>
                               )}
                             </>
