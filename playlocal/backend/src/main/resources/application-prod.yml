@@ -69,3 +69,11 @@ recaptcha:
   secret-key: ${RECAPTCHA_SECRET_KEY}
   enabled: ${RECAPTCHA_ENABLED:true}
   score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+    operations-sorter: alpha
