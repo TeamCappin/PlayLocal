@@ -1,7 +1,10 @@
 import {
   defaultMatchHistoryFilters,
   filterPastGamesForMatchHistory,
+  formatMatchHistoryDateTime,
+  getMatchHistoryVenueLabel,
   getMockMatchOutcome,
+  getMockMatchScoreDisplay,
   sortMatchHistoryGames,
   uniqueSportNames,
 } from '@/lib/matchHistoryUtils';
@@ -33,6 +36,74 @@ describe('matchHistoryUtils', () => {
   it('getMockMatchOutcome is stable per gameId', () => {
     expect(getMockMatchOutcome('abc')).toBe(getMockMatchOutcome('abc'));
     expect(['win', 'loss']).toContain(getMockMatchOutcome('x'));
+  });
+
+  it('getMockMatchScoreDisplay is stable per gameId', () => {
+    expect(getMockMatchScoreDisplay('abc')).toBe(getMockMatchScoreDisplay('abc'));
+    expect(getMockMatchScoreDisplay('x')).toMatch(/^\d+ – \d+$/);
+  });
+
+  it('getMatchHistoryVenueLabel uses exact location when allowed', () => {
+    expect(
+      getMatchHistoryVenueLabel(
+        game({
+          gameId: '1',
+          hasExactLocationAccess: true,
+          location: { name: 'Court A', city: 'Boston' },
+        })
+      )
+    ).toBe('Court A · Boston');
+    expect(
+      getMatchHistoryVenueLabel(
+        game({ gameId: '2', hasExactLocationAccess: true, location: { name: 'Court A' } })
+      )
+    ).toBe('Court A');
+  });
+
+  it('getMatchHistoryVenueLabel falls back to approximate or unavailable', () => {
+    expect(
+      getMatchHistoryVenueLabel(
+        game({
+          gameId: '3',
+          hasExactLocationAccess: false,
+          approximateLocation: 'North side',
+        })
+      )
+    ).toBe('North side');
+    expect(
+      getMatchHistoryVenueLabel(
+        game({ gameId: '4', hasExactLocationAccess: false, location: { name: 'Hidden' } })
+      )
+    ).toBe('Location unavailable');
+  });
+
+  it('formatMatchHistoryDateTime includes range when endTime present', () => {
+    expect(
+      formatMatchHistoryDateTime(
+        game({
+          gameId: 'e',
+          startTime: '2025-06-15T18:00:00Z',
+          endTime: '2025-06-15T19:30:00Z',
+        })
+      )
+    ).toMatch(/Jun 15, 2025/);
+    expect(
+      formatMatchHistoryDateTime(
+        game({
+          gameId: 'e',
+          startTime: '2025-06-15T18:00:00Z',
+          endTime: '2025-06-15T19:30:00Z',
+        })
+      )
+    ).toContain('–');
+  });
+
+  it('formatMatchHistoryDateTime single stamp without endTime', () => {
+    const s = formatMatchHistoryDateTime(
+      game({ gameId: 'f', startTime: '2025-06-15T18:00:00Z' })
+    );
+    expect(s).toMatch(/Jun 15, 2025/);
+    expect(s).toContain('at');
   });
 
   it('filters by sport', () => {

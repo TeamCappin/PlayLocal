@@ -10,9 +10,13 @@ import {
   ChevronRight,
   Flag,
 } from 'lucide-react';
-import { format } from 'date-fns/format';
 import { gamesApi, ParticipantDto, type GameResponse } from '@/lib/api';
-import { getMockMatchOutcome } from '@/lib/matchHistoryUtils';
+import {
+  formatMatchHistoryDateTime,
+  getMatchHistoryVenueLabel,
+  getMockMatchOutcome,
+  getMockMatchScoreDisplay,
+} from '@/lib/matchHistoryUtils';
 import { useEffect, useState } from 'react';
 
 type MatchHistoryListProps = {
@@ -80,11 +84,11 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
   const isParticipantUnknownAttendance =
     gameParticipation?.role !== 'ORGANIZER' &&
     gameParticipation?.attendanceStatus === 'UNKNOWN';
-  const gameDate = game
-    ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a")
-    : '';
+  const gameDateTime = game ? formatMatchHistoryDateTime(game) : '';
+  const venueLabel = game ? getMatchHistoryVenueLabel(game) : '';
 
   const outcome = game ? getMockMatchOutcome(game.gameId) : null;
+  const scoreDisplay = game ? getMockMatchScoreDisplay(game.gameId) : null;
 
   return (
     <div className="block p-4 flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -110,24 +114,20 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
                   {gameParticipation?.role}
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <div>
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>{gameDate}</div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 gap-2 text-sm text-gray-600">
+                <div className="flex items-start gap-1 min-w-0">
+                  <Clock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  <time dateTime={game?.startTime}>{gameDateTime}</time>
                 </div>
-                <div className="flex items-center gap-1">
-                  <div>
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <div>{game?.location?.name}</div>
+                <div className="flex items-start gap-1 min-w-0">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{venueLabel}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right shrink-0">
             {outcome && (
               <div
                 className={`mb-1 px-2 text-sm font-semibold rounded-md inline-block ${
@@ -139,8 +139,11 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
                 {outcome === 'win' ? 'Win' : 'Loss'}
               </div>
             )}
-
-            <div className="text-sm text-gray-500">Team • Score</div>
+            {scoreDisplay && (
+              <div className="text-sm text-gray-700 tabular-nums font-medium">
+                Score {scoreDisplay}
+              </div>
+            )}
           </div>
         </div>
       </Link>

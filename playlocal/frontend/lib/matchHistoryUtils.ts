@@ -1,3 +1,4 @@
+import { format } from 'date-fns/format';
 import type { GameResponse } from '@/lib/api';
 
 /** US-7.5 AC2: match list sort direction. */
@@ -95,4 +96,42 @@ export function sortMatchHistoryGames(
     return order === 'newest_first' ? tb - ta : ta - tb;
   });
   return sorted;
+}
+
+/** US-7.5 AC3: venue / area label (respects privacy fields from API). */
+export function getMatchHistoryVenueLabel(game: GameResponse): string {
+  if (game.hasExactLocationAccess && game.location) {
+    const parts = [game.location.name, game.location.city].filter(
+      (p): p is string => Boolean(p?.trim())
+    );
+    return parts.length > 0 ? parts.join(' · ') : 'Venue TBD';
+  }
+  if (game.approximateLocation?.trim()) {
+    return game.approximateLocation.trim();
+  }
+  return 'Location unavailable';
+}
+
+/** US-7.5 AC3: human-readable date/time; includes end time when present. */
+export function formatMatchHistoryDateTime(game: GameResponse): string {
+  const start = new Date(game.startTime);
+  if (game.endTime) {
+    const end = new Date(game.endTime);
+    return `${format(start, 'EEE, MMM d, yyyy · h:mm a')} – ${format(end, 'h:mm a')}`;
+  }
+  return format(start, "EEEE, MMM d, yyyy 'at' h:mm a");
+}
+
+/**
+ * Placeholder score line until the API returns final scores on past games.
+ * Stable per `gameId` (same as filters / result mock).
+ */
+export function getMockMatchScoreDisplay(gameId: string): string {
+  let h = 0;
+  for (let i = 0; i < gameId.length; i++) {
+    h = (Math.imul(31, h) + gameId.charCodeAt(i)) | 0;
+  }
+  const a = 8 + (Math.abs(h) % 25);
+  const b = 8 + (Math.abs(h >> 5) % 25);
+  return `${a} – ${b}`;
 }

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { MatchHistoryList } from '../../components/sub-components/MatchHistoryList';
 import { gamesApi } from '@/lib/api';
+import { getMockMatchScoreDisplay } from '@/lib/matchHistoryUtils';
 
 jest.mock('next/link', () => {
   return function MockLink({
@@ -57,6 +58,7 @@ describe('MatchHistoryList', () => {
 
     expect(screen.getByText('Saturday Soccer')).toBeInTheDocument();
     expect(screen.getByText('Riverside Fields')).toBeInTheDocument();
+    expect(screen.getByText(`Score ${getMockMatchScoreDisplay('g1')}`)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(mockGetGameParticipation).toHaveBeenCalledWith('g1');
