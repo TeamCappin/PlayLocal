@@ -1,5 +1,3 @@
-package com.backend.playlocal.concurrency;
-
 import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.Sport;
@@ -10,27 +8,28 @@ import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
+import com.backend.playlocal.service.EmailService;
 import com.backend.playlocal.service.GameService;
+import com.backend.playlocal.testutil.DockerOrExternalDbCondition;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.junit.jupiter.api.extension.ExtendWith;
-import com.backend.playlocal.testutil.DockerOrExternalDbCondition;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.junit.jupiter.api.Assumptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,10 +38,31 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Validates: Concurrency P0 - No overbooking under parallel requests.
  * UserStory: US-2.5 Join/Leave + Waitlist (Concurrency-Safe)
  */
-@SpringBootTest
+@SpringBootTest(properties = {
+        "mail.from-email=test@playlocal.com",
+        "mail.from-name=PlayLocal",
+        "mail.enabled=false",
+        "mail.brevo-api-key=test-key",
+        "jwt.secret=test-secret-key-that-is-long-enough-for-testing-purposes",
+        "jwt.expiration=86400000",
+        "recaptcha.secret-key=test-key",
+        "recaptcha.enabled=false",
+        "recaptcha.score-threshold=0.5",
+        "s3.bucket=test-bucket",
+        "s3.region=us-east-2",
+        "s3.accessKey=test-key",
+        "s3.secretKey=test-secret",
+        "s3.endpoint=http://localhost:4566",
+        "s3.publicEndpoint=http://localhost:4566",
+        "s3.forcePathStyle=true",
+        "s3.presignExpirySeconds=900"
+})
 @Tag("concurrency")
 @ExtendWith(DockerOrExternalDbCondition.class)
 class GameJoinConcurrencyTest {
+    @MockBean
+    private EmailService emailService;
+
 
     // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
     static PostgreSQLContainer<?> postgres;
