@@ -3,6 +3,15 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TeamCappin_PlayLocal&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=TeamCappin_PlayLocal)
 [![codecov](https://codecov.io/gh/TeamCappin/PlayLocal/branch/dev/graph/badge.svg?token=8P22R0Z90L)](https://codecov.io/gh/TeamCappin/PlayLocal)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/9e082237-585c-4ac5-9085-c19eb58954ee/deploy-status)](https://app.netlify.com/projects/playlocal/deploys)
+![Neon Status](https://img.shields.io/badge/Neon-Connected-green)
+
+## Built with
+
+![Netlify](https://img.shields.io/badge/Netlify-000000?style=for-the-badge&logo=netlify&logoColor=00C7B7)
+![Render](https://img.shields.io/badge/Render-3B3B3B?style=for-the-badge&logo=render&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-000000?style=for-the-badge&logo=postgresql&logoColor=00E599)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 
 ## Project Overview
 
