@@ -62,5 +62,8 @@ public class StatsDto {
          */
         @Builder.Default
         private boolean empty = false;
+        
+        /** Additional context for certain metrics, like "count" for player ratings. */
+        private Long count;
     }
 }

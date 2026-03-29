@@ -114,6 +114,7 @@ function setup({
 } = {}) {
   const markAsRead = jest.fn(markAsReadImpl ?? (() => Promise.resolve()));
   const markAllAsRead = jest.fn(markAllAsReadImpl ?? (() => Promise.resolve()));
+  const refetch = jest.fn(() => Promise.resolve());
 
   useAuthMock.mockReturnValue({ isAuthenticated });
 
@@ -123,9 +124,10 @@ function setup({
     isLoading,
     markAsRead,
     markAllAsRead,
+    refetch,
   });
 
-  return { markAsRead, markAllAsRead };
+  return { markAsRead, markAllAsRead, refetch };
 }
 
 beforeEach(() => {
