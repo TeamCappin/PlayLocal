@@ -1,7 +1,4 @@
 spring:
-  main:
-    lazy-initialization: true
-
   application:
     name: playlocal-backend
   datasource:
