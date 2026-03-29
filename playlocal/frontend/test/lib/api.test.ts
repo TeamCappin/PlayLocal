@@ -781,4 +781,93 @@ describe('gamesApi lifecycle endpoints', () => {
       );
     });
   });
+
+  describe('statsApi', () => {
+
+    it('getShowUpRate calls /stats/show-up-rate', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ score: 95 }));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await require('@/lib/api').statsApi.getShowUpRate('30');
+      expect(res).toEqual({ score: 95 });
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/stats/show-up-rate?timeframe=30'), expect.any(Object));
+    });
+
+    it('getSkillTrend calls /stats/skill-trend', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ trend: 'up' }));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await require('@/lib/api').statsApi.getSkillTrend('30');
+      expect(res).toEqual({ trend: 'up' });
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/stats/skill-trend?timeframe=30'), expect.any(Object));
+    });
+
+    it('getAttendanceRate calls /stats/attendance-rate', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ rate: 100 }));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await require('@/lib/api').statsApi.getAttendanceRate('30');
+      expect(res).toEqual({ rate: 100 });
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/stats/attendance-rate?timeframe=30'), expect.any(Object));
+    });
+
+    it('getPlayerRatingStats calls /stats/player-rating', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ rating: 4.5 }));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await require('@/lib/api').statsApi.getPlayerRatingStats('30');
+      expect(res).toEqual({ rating: 4.5 });
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/stats/player-rating?timeframe=30'), expect.any(Object));
+    });
+  });
+
+  describe('playerRatingsApi', () => {
+    it('createRating posts to /ratings', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ id: 'r1' }));
+      (globalThis as any).fetch = fetchMock;
+
+      const payload = { gameId: 'g1', rateeId: 'u1', rating: 5, comment: 'Great' };
+      const res = await require('@/lib/api').playerRatingsApi.createRating(payload);
+      
+      expect(res).toEqual({ id: 'r1' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/ratings'),
+        expect.objectContaining({ method: 'POST', body: JSON.stringify(payload) })
+      );
+    });
+
+    it('updateRating puts to /ratings/:id', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse({ id: 'r1' }));
+      (globalThis as any).fetch = fetchMock;
+
+      const payload = { rating: 4, comment: 'Good' };
+      const res = await require('@/lib/api').playerRatingsApi.updateRating('r1', payload);
+      
+      expect(res).toEqual({ id: 'r1' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/ratings/r1'),
+        expect.objectContaining({ method: 'PUT', body: JSON.stringify(payload) })
+      );
+    });
+
+    it('getRatingsForUser fetches from /ratings/user/:id', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(jsonResponse([{ id: 'r1' }]));
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await require('@/lib/api').playerRatingsApi.getRatingsForUser('u1');
+      expect(res).toEqual([{ id: 'r1' }]);
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/ratings/user/u1'), expect.any(Object));
+    });
+
+    it('flagRating posts to /ratings/:id/flag', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(noContentResponse());
+      (globalThis as any).fetch = fetchMock;
+
+      await require('@/lib/api').playerRatingsApi.flagRating('r1');
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/ratings/r1/flag'),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+  });
 });
