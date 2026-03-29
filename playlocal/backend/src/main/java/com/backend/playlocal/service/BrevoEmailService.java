@@ -24,16 +24,26 @@ public class BrevoEmailService implements EmailService {
 
   private final MailConfig config;
   private final EmailLogRepository emailLogRepository;
-  private final TransactionalEmailsApi brevoApi;
+  private TransactionalEmailsApi brevoApi;
 
   public BrevoEmailService(MailConfig config,
                            EmailLogRepository emailLogRepository) {
     this.config = config;
     this.emailLogRepository = emailLogRepository;
+  }
 
-    ApiClient apiClient = Configuration.getDefaultApiClient();
-    apiClient.setApiKey(config.getBrevoApiKey());
-    this.brevoApi = new TransactionalEmailsApi();
+  private TransactionalEmailsApi getBrevoApi() {
+    if (brevoApi == null) {
+      String key = config.getBrevoApiKey();
+      if (key == null || key.isBlank()) {
+        throw new IllegalStateException(
+            "BREVO_API_KEY is not configured");
+      }
+      ApiClient apiClient = Configuration.getDefaultApiClient();
+      apiClient.setApiKey(key);
+      brevoApi = new TransactionalEmailsApi();
+    }
+    return brevoApi;
   }
 
   @Override
@@ -158,7 +168,7 @@ public class BrevoEmailService implements EmailService {
       email.setSubject(subject);
       email.setHtmlContent(htmlBody);
 
-      CreateSmtpEmail result = brevoApi.sendTransacEmail(email);
+      CreateSmtpEmail result = getBrevoApi().sendTransacEmail(email);
 
       emailLog.setProviderMessageId(result.getMessageId());
       emailLog.setStatus(EmailLog.EmailStatus.SENT);
