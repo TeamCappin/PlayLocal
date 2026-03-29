@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -88,8 +88,14 @@ export function PlayerSearch() {
     searchPlayers('');
   }, [fetchFriendsList, searchPlayers]);
 
-  // Search on query change (debounced)
+  const skipNextDebouncedSearch = useRef(true);
+
+  // Search on query change (debounced); skip first run — initial load already searches above
   useEffect(() => {
+    if (skipNextDebouncedSearch.current) {
+      skipNextDebouncedSearch.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       searchPlayers(searchQuery);
     }, 300);
