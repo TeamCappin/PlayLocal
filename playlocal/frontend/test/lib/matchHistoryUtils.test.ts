@@ -1,6 +1,8 @@
 import {
+  defaultMatchHistoryFilters,
   filterPastGamesForMatchHistory,
   getMockMatchOutcome,
+  sortMatchHistoryGames,
   uniqueSportNames,
 } from '@/lib/matchHistoryUtils';
 import type { GameResponse } from '@/lib/api';
@@ -39,10 +41,8 @@ describe('matchHistoryUtils', () => {
       game({ gameId: '2', sportName: 'Basketball' }),
     ];
     const out = filterPastGamesForMatchHistory(games, {
+      ...defaultMatchHistoryFilters(),
       sport: 'Soccer',
-      result: 'all',
-      dateFrom: '',
-      dateTo: '',
     });
     expect(out).toHaveLength(1);
     expect(out[0].gameId).toBe('1');
@@ -55,10 +55,8 @@ describe('matchHistoryUtils', () => {
     ];
     const w = getMockMatchOutcome(games[0].gameId);
     const filtered = filterPastGamesForMatchHistory(games, {
-      sport: '',
+      ...defaultMatchHistoryFilters(),
       result: w,
-      dateFrom: '',
-      dateTo: '',
     });
     expect(filtered.every((g) => getMockMatchOutcome(g.gameId) === w)).toBe(true);
   });
@@ -69,8 +67,7 @@ describe('matchHistoryUtils', () => {
       game({ gameId: '2', startTime: '2025-03-20T12:00:00Z' }),
     ];
     const out = filterPastGamesForMatchHistory(games, {
-      sport: '',
-      result: 'all',
+      ...defaultMatchHistoryFilters(),
       dateFrom: '2025-02-01',
       dateTo: '2025-12-31',
     });
@@ -83,5 +80,24 @@ describe('matchHistoryUtils', () => {
       game({ gameId: '2', sportName: 'Alpha Sport' }),
     ];
     expect(uniqueSportNames(games)).toEqual(['Alpha Sport', 'Zebra Sport']);
+  });
+
+  it('sortMatchHistoryGames newest_first orders by startTime descending', () => {
+    const games = [
+      game({ gameId: 'a', startTime: '2025-01-01T12:00:00Z' }),
+      game({ gameId: 'b', startTime: '2025-06-01T12:00:00Z' }),
+      game({ gameId: 'c', startTime: '2025-03-01T12:00:00Z' }),
+    ];
+    const sorted = sortMatchHistoryGames(games, 'newest_first');
+    expect(sorted.map((g) => g.gameId)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('sortMatchHistoryGames oldest_first orders by startTime ascending', () => {
+    const games = [
+      game({ gameId: 'a', startTime: '2025-01-01T12:00:00Z' }),
+      game({ gameId: 'b', startTime: '2025-06-01T12:00:00Z' }),
+    ];
+    const sorted = sortMatchHistoryGames(games, 'oldest_first');
+    expect(sorted.map((g) => g.gameId)).toEqual(['a', 'b']);
   });
 });

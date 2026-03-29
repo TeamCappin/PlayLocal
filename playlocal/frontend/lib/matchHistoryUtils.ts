@@ -1,12 +1,16 @@
 import type { GameResponse } from '@/lib/api';
 
-/** UI filter state for Match History (US-7.5 AC1). */
+/** US-7.5 AC2: match list sort direction. */
+export type MatchHistorySortOrder = 'newest_first' | 'oldest_first';
+
+/** UI filter + sort state for Match History (US-7.5 AC1–AC2). */
 export type MatchHistoryFilterState = {
   sport: string;
   result: 'all' | 'win' | 'loss';
   /** `yyyy-mm-dd` or empty */
   dateFrom: string;
   dateTo: string;
+  sortOrder: MatchHistorySortOrder;
 };
 
 export const defaultMatchHistoryFilters = (): MatchHistoryFilterState => ({
@@ -14,6 +18,7 @@ export const defaultMatchHistoryFilters = (): MatchHistoryFilterState => ({
   result: 'all',
   dateFrom: '',
   dateTo: '',
+  sortOrder: 'newest_first',
 });
 
 /**
@@ -76,4 +81,18 @@ export function uniqueSportNames(games: GameResponse[]): string[] {
     if (g.sportName?.trim()) set.add(g.sportName.trim());
   }
   return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+/** US-7.5 AC2: sort by game start time (uses `startTime` ISO string). */
+export function sortMatchHistoryGames(
+  games: GameResponse[],
+  order: MatchHistorySortOrder
+): GameResponse[] {
+  const sorted = [...games];
+  sorted.sort((a, b) => {
+    const ta = new Date(a.startTime).getTime();
+    const tb = new Date(b.startTime).getTime();
+    return order === 'newest_first' ? tb - ta : ta - tb;
+  });
+  return sorted;
 }

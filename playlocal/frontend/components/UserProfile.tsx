@@ -34,6 +34,7 @@ import { MatchHistoryFilters } from './sub-components/MatchHistoryFilters';
 import {
   defaultMatchHistoryFilters,
   filterPastGamesForMatchHistory,
+  sortMatchHistoryGames,
   type MatchHistoryFilterState,
 } from '@/lib/matchHistoryUtils';
 import { usePastGames } from '@/hooks/useGames';
@@ -79,10 +80,13 @@ export function UserProfile() {
     MatchHistoryFilterState
   >(() => defaultMatchHistoryFilters());
 
-  const filteredPastGames = useMemo(
-    () => filterPastGamesForMatchHistory(pastGames, matchHistoryFilters),
-    [pastGames, matchHistoryFilters]
-  );
+  const filteredPastGames = useMemo(() => {
+    const filtered = filterPastGamesForMatchHistory(
+      pastGames,
+      matchHistoryFilters
+    );
+    return sortMatchHistoryGames(filtered, matchHistoryFilters.sortOrder);
+  }, [pastGames, matchHistoryFilters]);
   // US-32: Connection signals when viewing another user
   const [connectionSignals, setConnectionSignals] =
     useState<ConnectionSignals | null>(null);
