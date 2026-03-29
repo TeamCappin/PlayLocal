@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.backend.playlocal.service.OrganizerQualityService;
-
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -496,6 +494,9 @@ public class GameService {
                                 promoted.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
                                 promoted.setWaitlistPosition(null);
                                 participationRepository.save(promoted);
+                                if (notificationService != null) {
+                                        notificationService.notifyWaitlistPromoted(participation.getGame(), promoted.getUser().getUserId());
+                                }
 
                                 // Decrement remaining waitlist positions
                                 participationRepository.decrementWaitlistPositionsAfter(gameId, 1);
@@ -565,6 +566,9 @@ public class GameService {
                                         promoted.setJoinStatus(GameParticipation.JoinStatus.CONFIRMED);
                                         promoted.setWaitlistPosition(null);
                                         participationRepository.save(promoted);
+                                        if (notificationService != null) {
+                                                notificationService.notifyWaitlistPromoted(game, promoted.getUser().getUserId());
+                                        }
                                         participationRepository.decrementWaitlistPositionsAfter(gameId, 1);
                                 }
                         } else if (oldWaitlistPosition > 0) {
@@ -576,17 +580,9 @@ public class GameService {
 
                         // US-4.3: Notify removed player they no longer meet the updated requirements
                         if (notificationService != null) {
-                                Map<String, Object> payload = new java.util.HashMap<>();
-                                payload.put("title", "Removed from game");
-                                payload.put("message", String.format(
-                                                "You no longer meet the updated requirements for \"%s\". The organizer raised the minimum reliability score.",
-                                                game.getTitle()));
-                                payload.put("gameId", gameId.toString());
-                                payload.put("link", "/games/" + gameId.toString());
-                                notificationService.createInAppNotification(
-                                                p.getUser().getUserId(),
-                                                "GAME_REMOVED_REQUIREMENTS",
-                                                payload);
+                                notificationService.notifyRemovedFromGameRequirements(
+                                                game,
+                                                p.getUser().getUserId());
                         }
                 }
         }
@@ -614,13 +610,7 @@ public class GameService {
 
         private void sendGameUpdatedNotification(Game game, UUID userId) {
                 if (notificationService == null) return;
-                Map<String, Object> payload = new java.util.HashMap<>();
-                payload.put("title", "Game updated");
-                payload.put("message", String.format("The game \"%s\" has been updated. Check the details for changes.",
-                                game.getTitle()));
-                payload.put("gameId", game.getGameId().toString());
-                payload.put("link", "/games/" + game.getGameId().toString());
-                notificationService.createInAppNotification(userId, "GAME_UPDATED", payload);
+                notificationService.notifyGameUpdated(game, userId);
         }
 
         /**
@@ -638,7 +628,7 @@ public class GameService {
                         }
                 }
                 for (GameParticipation p : waitlisted) {
-                        if (notified.add(p.getUser().getUserId())) {
+                        if (!p.getUser().getUserId().equals(organizerId) && notified.add(p.getUser().getUserId())) {
                                 sendGameCancelledNotification(game, p.getUser().getUserId());
                         }
                 }
@@ -646,13 +636,7 @@ public class GameService {
 
         private void sendGameCancelledNotification(Game game, UUID userId) {
                 if (notificationService == null) return;
-                Map<String, Object> payload = new java.util.HashMap<>();
-                payload.put("title", "Game cancelled");
-                payload.put("message", String.format("The game \"%s\" has been cancelled by the organizer.",
-                                game.getTitle()));
-                payload.put("gameId", game.getGameId().toString());
-                payload.put("link", "/discover");
-                notificationService.createInAppNotification(userId, "GAME_CANCELLED", payload);
+                notificationService.notifyGameCancelled(game, userId);
         }
 
         /**
@@ -812,7 +796,6 @@ public class GameService {
                 game.setCancelledAt(Instant.now());
                 game = gameRepository.save(game);
 
-                notifyCancellation(game);
                 // US-6.1: Recalculate OQS for the organizer after game cancellation
                 oqsService.onGameCancelled(gameId);
 
@@ -831,15 +814,18 @@ public class GameService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
                 assertOrganizer(game, userId);
-
-                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
-                        throw new IllegalStateException(
-                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
-                }
-
-                game.setStatus(Game.GameStatus.COMPLETED);
-                game = gameRepository.save(game);
+                game = completeGameInternal(game);
                 return mapToGameResponse(game, userId);
+        }
+
+        /**
+         * Complete overdue game via scheduler and trigger organizer attendance reminder.
+         */
+        @Transactional
+        public Game completeGameByScheduler(UUID gameId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+                return completeGameInternal(game);
         }
 
         /**
@@ -1177,38 +1163,20 @@ public class GameService {
                 }
         }
 
-        private void notifyCancellation(Game game) {
-                List<GameParticipation> confirmed = Optional
-                                .ofNullable(participationRepository.findConfirmedByGame(game.getGameId()))
-                                .orElseGet(List::of);
-                List<GameParticipation> waitlisted = Optional
-                                .ofNullable(participationRepository.findWaitlistedByGame(game.getGameId()))
-                                .orElseGet(List::of);
-                Set<UUID> notified = new HashSet<>();
-
-                Map<String, Object> payload = Map.of(
-                                "gameId", game.getGameId().toString(),
-                                "gameTitle", game.getTitle(),
-                                "status", game.getStatus().name(),
-                                "message", "Game cancelled: " + game.getTitle());
-
-                for (GameParticipation participation : confirmed) {
-                        addCancellationNotification(participation, game, payload, notified);
+        private Game completeGameInternal(Game game) {
+                if (game.getStatus() == Game.GameStatus.CANCELLED || game.getStatus() == Game.GameStatus.ARCHIVED) {
+                        throw new IllegalStateException(
+                                        "Cannot complete a game that is " + game.getStatus().name().toLowerCase());
                 }
-                for (GameParticipation participation : waitlisted) {
-                        addCancellationNotification(participation, game, payload, notified);
+                if (game.getStatus() == Game.GameStatus.COMPLETED) {
+                        return game;
                 }
-        }
 
-        private void addCancellationNotification(GameParticipation participation, Game game,
-                        Map<String, Object> payload, Set<UUID> notified) {
-                UUID userId = participation.getUser().getUserId();
-                if (userId.equals(game.getCreatedBy().getUserId()) || notified.contains(userId)) {
-                        return;
-                }
+                game.setStatus(Game.GameStatus.COMPLETED);
+                Game saved = gameRepository.save(game);
                 if (notificationService != null) {
-                        notificationService.createInAppNotification(userId, "game_cancelled", payload);
-                        notified.add(userId);
+                        notificationService.notifyAttendanceConfirmationNeeded(saved);
                 }
+                return saved;
         }
 }

@@ -7,6 +7,13 @@ const pushMock = jest.fn();
 const performLogoutRedirectMock = jest.fn();
 const openAssistantMock = jest.fn();
 const inferRouteMock = jest.fn(() => ({ context: 'discover' as const }));
+let pathnameMock = '/discover';
+let unreadCountMock = 0;
+let authStateMock = {
+  user: { displayName: 'Youssef' },
+  isAuthenticated: true,
+  isLoading: false,
+};
 
 /** Mutable so tests can assert /settings active styles and route-driven behavior */
 let mockPathname = '/discover';
@@ -46,7 +53,7 @@ jest.mock('@/lib/authRedirect', () => ({
 }));
 
 jest.mock('@/hooks/useNotifications', () => ({
-  useNotifications: () => ({ unreadCount: 0 }),
+  useNotifications: () => ({ unreadCount: unreadCountMock }),
 }));
 
 jest.mock('@/context/AssistantContext', () => ({
@@ -60,6 +67,13 @@ jest.mock('@/lib/inferAssistantRoute', () => ({
 describe('Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    pathnameMock = '/discover';
+    unreadCountMock = 0;
+    authStateMock = {
+      user: { displayName: 'Youssef' },
+      isAuthenticated: true,
+      isLoading: false,
+    };
     mockPathname = '/discover';
   });
 
@@ -127,5 +141,18 @@ describe('Navigation', () => {
     mockPathname = '/';
     const { container } = render(<Navigation />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it('shows unread notification badge on the bell link', () => {
+    unreadCountMock = 3;
+
+    render(<Navigation />);
+
+    const notificationsLink = screen
+      .getAllByRole('link')
+      .find((link) => link.getAttribute('href') === '/notifications');
+
+    expect(notificationsLink).toBeDefined();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });
