@@ -1,6 +1,9 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/migration-dev
+  datasource:
+    # When using Docker for Postgres only (docker compose up postgres -d), use host port 5439
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5439/playlocal}
   jpa:
     show-sql: true
 

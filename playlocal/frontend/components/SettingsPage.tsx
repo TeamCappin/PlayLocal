@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   User,
   Lock,
@@ -11,6 +12,9 @@ import {
   Loader2,
   CheckCircle2,
   ShieldCheck,
+  AlertCircle,
+  UserX,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -24,6 +28,118 @@ import { toast, getActionableErrorMessage } from '@/lib/toast';
 import { ConfirmAccountActionDialog } from './ConfirmAccountActionDialog';
 import { PasswordChangeCard } from '@/components/PasswordChangeCard';
 import { performLogoutRedirect } from '@/lib/authRedirect';
+
+/** AC6: Error state while loading settings — clear message and retry */
+export function SettingsError(
+  props: Readonly<{
+    message: string;
+    onRetry: () => void;
+  }>
+) {
+  const { message, onRetry } = props;
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-gray-50 flex flex-col items-center justify-center px-4"
+      role="alert"
+    >
+      <p className="text-gray-800 text-center text-lg font-medium mb-2">
+        Couldn&apos;t load settings
+      </p>
+      <p className="text-gray-600 text-center mb-6 max-w-md">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/** AC5: Loading state while fetching settings — full-screen overlay so it’s clearly visible */
+export function SettingsLoading() {
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-gray-50 flex flex-col items-center justify-center"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div
+        className="animate-spin rounded-full h-12 w-12 border-2 border-emerald-600 border-t-transparent mb-4"
+        aria-hidden="true"
+      />
+      <p className="text-gray-600 text-lg font-medium">Loading settings…</p>
+    </div>
+  );
+}
+
+/** AC4: Hub listing links to each settings subpage (each subpage has back navigation). */
+export function SettingsHub() {
+  const sections = [
+    {
+      href: '/settings/account',
+      icon: Lock,
+      label: 'Account',
+      description: 'Password & security',
+    },
+    {
+      href: '/settings/privacy',
+      icon: Eye,
+      label: 'Privacy / Visibility',
+      description: 'Profile and location privacy',
+    },
+    {
+      href: '/settings/profile',
+      icon: User,
+      label: 'Profile',
+      description: 'Display name, bio, preferences',
+    },
+    {
+      href: '/settings/notifications',
+      icon: Bell,
+      label: 'Notifications',
+      description: 'Game, social & email preferences',
+    },
+    {
+      href: '/settings/deactivation',
+      icon: UserX,
+      label: 'Deactivation',
+      description: 'Deactivate or delete account',
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl text-gray-900 mb-2">Settings</h1>
+          <p className="text-gray-600">
+            Manage your account and privacy preferences
+          </p>
+        </div>
+        <div className="space-y-3">
+          {sections.map(({ href, icon: Icon, label, description }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900">{label}</div>
+                <div className="text-sm text-gray-500">{description}</div>
+              </div>
+              <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180 flex-shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -109,7 +225,12 @@ export function SettingsPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
-            {activeTab === 'account' && <AccountSettings user={user} />}
+            {activeTab === 'account' && (
+              <>
+                <AccountSettings />
+                <ProfileSettings user={user} />
+              </>
+            )}
             {activeTab === 'privacy' && <PrivacySettings initialSettings={privacySettings} initialLoading={privacyLoading} initialError={privacyError} onSettingsChange={setPrivacySettings} />}
             {activeTab === 'notifications' && <NotificationSettings />}
             {activeTab === 'security' && <SecuritySettings />}
@@ -120,18 +241,62 @@ export function SettingsPage() {
   );
 }
 
-function AccountSettings({ user }: { user: any }) {
+/** AC3: Account route — password change and safety toggles. Exported for /settings/account. */
+export function AccountSettings() {
+  return (
+    <>
+      <PasswordChangeCard />
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Safety & Moderation</h2>
+        <div className="space-y-4">
+          <ToggleSetting
+            label="Require Check-in Confirmation"
+            description="Require manual check-in for all games"
+            value={true}
+          />
+          <ToggleSetting
+            label="Hide Location Until Accepted"
+            description="Don't show exact location until you're accepted to a game"
+            value={true}
+          />
+          <ToggleSetting
+            label="Block Anonymous Users"
+            description="Only allow verified users to contact you"
+            value={false}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** AC3: Profile fields and preferences. Exported for /settings/profile. */
+export function ProfileSettings({
+  user: userFromProps,
+}: {
+  user?: {
+    displayName?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    bio?: string;
+  } | null;
+} = {}) {
+  const { user: authUser } = useAuth();
+  const user = userFromProps ?? authUser;
+
   return (
     <>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Account Information</h2>
+        <h2 className="text-xl text-gray-900 mb-6">Profile Information</h2>
         <div className="space-y-6">
           <div>
-            <label htmlFor="displayName" className="block text-gray-700 mb-2">
+            <label htmlFor="profileDisplayName" className="block text-gray-700 mb-2">
               Display Name
             </label>
             <input
-              id="displayName"
+              id="profileDisplayName"
               type="text"
               defaultValue={user?.displayName || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -139,11 +304,11 @@ function AccountSettings({ user }: { user: any }) {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-gray-700 mb-2">
+            <label htmlFor="profileEmail" className="block text-gray-700 mb-2">
               Email
             </label>
             <input
-              id="email"
+              id="profileEmail"
               type="email"
               defaultValue={user?.email || ''}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -151,11 +316,11 @@ function AccountSettings({ user }: { user: any }) {
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-gray-700 mb-2">
+            <label htmlFor="profilePhone" className="block text-gray-700 mb-2">
               Phone Number
             </label>
             <input
-              id="phone"
+              id="profilePhone"
               type="tel"
               defaultValue={user?.phone || ''}
               placeholder="Enter your phone number"
@@ -164,13 +329,13 @@ function AccountSettings({ user }: { user: any }) {
           </div>
 
           <div>
-            <label htmlFor="location" className="block text-gray-700 mb-2">
+            <label htmlFor="profileLocation" className="block text-gray-700 mb-2">
               Location
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="location"
+                id="profileLocation"
                 type="text"
                 defaultValue={user?.location || ''}
                 placeholder="Enter your location"
@@ -180,11 +345,11 @@ function AccountSettings({ user }: { user: any }) {
           </div>
 
           <div>
-            <label htmlFor="bio" className="block text-gray-700 mb-2">
+            <label htmlFor="profileBio" className="block text-gray-700 mb-2">
               Bio
             </label>
             <textarea
-              id="bio"
+              id="profileBio"
               rows={4}
               defaultValue={user?.bio || ''}
               placeholder="Tell others about yourself..."
@@ -194,10 +359,16 @@ function AccountSettings({ user }: { user: any }) {
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-3">
-          <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            type="button"
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
             Cancel
           </button>
-          <button className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+          <button
+            type="button"
+            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
             Save Changes
           </button>
         </div>
@@ -207,11 +378,11 @@ function AccountSettings({ user }: { user: any }) {
         <h2 className="text-xl text-gray-900 mb-6">Default Preferences</h2>
         <div className="space-y-4">
           <div>
-            <label htmlFor="defaultIntensity" className="block text-gray-700 mb-2">
+            <label htmlFor="profileDefaultIntensity" className="block text-gray-700 mb-2">
               Default Intensity
             </label>
             <select
-              id="defaultIntensity"
+              id="profileDefaultIntensity"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option>Low - Casual & Social</option>
@@ -237,22 +408,95 @@ function codeToLabel(map: Record<string, string>, code: string): string {
   return entry ? entry[0] : Object.keys(map)[0];
 }
 
-function PrivacySettings({
+const SKILLS_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  'Friends Only': 'friends',
+  'Participants Only': 'participants',
+  Private: 'private',
+};
+
+const HISTORY_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  'Friends Only': 'friends',
+  Private: 'private',
+};
+
+const MEDIA_VISIBILITY_MAP: Record<string, string> = {
+  Public: 'public',
+  Friends: 'friends',
+  Participants: 'participants',
+  Private: 'private',
+};
+
+const LOCATION_RULE_MAP: Record<string, string> = {
+  Always: 'always_visible',
+  'After Accepted': 'confirmed_only',
+  'After Check-in': 'approximate',
+  Never: 'hidden',
+};
+
+export function PrivacySettings({
   initialSettings,
   initialLoading,
   initialError,
   onSettingsChange,
-}: Readonly<{
-  initialSettings: PrivacySettingsResponse | null;
-  initialLoading: boolean;
-  initialError: string | null;
-  onSettingsChange: (settings: PrivacySettingsResponse | null) => void;
-}>) {
-  const settings = initialSettings;
-  const isLoading = initialLoading;
+}: {
+  initialSettings?: PrivacySettingsResponse | null;
+  initialLoading?: boolean;
+  initialError?: string | null;
+  onSettingsChange?: (settings: PrivacySettingsResponse | null) => void;
+} = {}) {
+  const controlled = onSettingsChange !== undefined;
+
+  const [localSettings, setLocalSettings] =
+    useState<PrivacySettingsResponse | null>(null);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (controlled) return;
+    privacyApi
+      .getSettings()
+      .then((data) => {
+        setLocalSettings(data);
+        setLocalLoading(false);
+      })
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error
+            ? err.message
+            : typeof err === 'string'
+              ? err
+              : 'Failed to load privacy settings';
+        setLocalError(message || 'Failed to load privacy settings');
+        setLocalLoading(false);
+      });
+  }, [controlled]);
+
+  const settings = controlled ? (initialSettings ?? null) : localSettings;
+  const isLoading = controlled ? (initialLoading ?? true) : localLoading;
+  const serverError = controlled
+    ? (initialError ?? null)
+    : localError;
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
+  const [error, setError] = useState<string | null>(serverError);
+
+  useEffect(() => {
+    setError(serverError);
+  }, [serverError]);
+
+  const handleSettingsChange = useCallback(
+    (next: PrivacySettingsResponse | null) => {
+      if (controlled) {
+        if (onSettingsChange) onSettingsChange(next);
+      } else {
+        setLocalSettings(next);
+      }
+    },
+    [controlled, onSettingsChange]
+  );
 
   const handleUpdate = useCallback(
     async (update: UpdatePrivacySettingsRequest) => {
@@ -261,16 +505,20 @@ function PrivacySettings({
       setError(null);
       try {
         const updated = await privacyApi.updateSettings(update);
-        onSettingsChange(updated);
+        handleSettingsChange(updated);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
-      } catch (err: any) {
-        setError(err.message || 'Failed to save privacy settings');
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Failed to save privacy settings';
+        setError(message);
       } finally {
         setIsSaving(false);
       }
     },
-    [onSettingsChange]
+    [handleSettingsChange]
   );
 
   if (isLoading) {
@@ -319,6 +567,48 @@ function PrivacySettings({
               })
             }
           />
+          <PrivacySetting
+            label="Skills Visibility"
+            description="Control who can see your skill ratings."
+            options={Object.keys(SKILLS_VISIBILITY_MAP)}
+            value={codeToLabel(
+              SKILLS_VISIBILITY_MAP,
+              settings?.skillsVisibility || 'public'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                skillsVisibility: SKILLS_VISIBILITY_MAP[label],
+              })
+            }
+          />
+          <PrivacySetting
+            label="Game History Visibility"
+            description="Control who can see your past games."
+            options={Object.keys(HISTORY_VISIBILITY_MAP)}
+            value={codeToLabel(
+              HISTORY_VISIBILITY_MAP,
+              settings?.historyVisibility || 'public'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                historyVisibility: HISTORY_VISIBILITY_MAP[label],
+              })
+            }
+          />
+          <PrivacySetting
+            label="Media Default Visibility"
+            description="Default visibility for uploaded photos and videos."
+            options={Object.keys(MEDIA_VISIBILITY_MAP)}
+            value={codeToLabel(
+              MEDIA_VISIBILITY_MAP,
+              settings?.mediaDefaultVisibility || 'participants'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                mediaDefaultVisibility: MEDIA_VISIBILITY_MAP[label],
+              })
+            }
+          />
         </div>
         <div className="mt-6 pt-6 border-t border-gray-200">
           <ToggleSetting
@@ -329,6 +619,35 @@ function PrivacySettings({
               handleUpdate({ allowProfileSearch: enabled })
             }
           />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Location Privacy</h2>
+        <div className="space-y-6">
+          <PrivacySetting
+            label="Location Visibility"
+            description="Control when others can see game locations."
+            options={Object.keys(LOCATION_RULE_MAP)}
+            value={codeToLabel(
+              LOCATION_RULE_MAP,
+              settings?.locationVisibilityRule || 'confirmed_only'
+            )}
+            onChange={(label) =>
+              handleUpdate({
+                locationVisibilityRule: LOCATION_RULE_MAP[label],
+              })
+            }
+          />
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800">
+                For safety reasons, exact locations are only shared with accepted
+                participants. You can customize this for each game.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -359,7 +678,7 @@ function PrivacySettings({
   );
 }
 
-function NotificationSettings() {
+export function NotificationSettings() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <h2 className="text-xl text-gray-900 mb-6">Notification Preferences</h2>
@@ -453,18 +772,124 @@ function NotificationSettings() {
   );
 }
 
+export function DeactivationSettings() {
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountAction, setAccountAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectingAction, setRedirectingAction] = useState<
+    'deactivate' | 'delete' | null
+  >(null);
+
+  const handleAccountAction = async () => {
+    if (!accountAction) return;
+
+    const pendingAction = accountAction;
+    setShowAccountDialog(false);
+    setRedirectingAction(pendingAction);
+    setIsProcessing(true);
+    try {
+      if (pendingAction === 'deactivate') {
+        await usersApi.deactivateAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deactivated',
+          type: 'success',
+        });
+      } else {
+        await usersApi.deleteAccount();
+        performLogoutRedirect('/', {
+          message: 'Account deleted',
+          type: 'success',
+        });
+      }
+    } catch (err: unknown) {
+      setRedirectingAction(null);
+      const errorMessage = getActionableErrorMessage(
+        err,
+        `${pendingAction} account`
+      );
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessing(false);
+      setAccountAction(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => {
+              setAccountAction('deactivate');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Lock className="w-5 h-5 text-gray-400" />
+            <div>
+              <div>Deactivate Account</div>
+              <div className="text-sm text-gray-600">
+                Temporarily disable your account
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountAction('delete');
+              setShowAccountDialog(true);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+            <div>
+              <div>Delete Account</div>
+              <div className="text-sm text-red-600">
+                Permanently delete your account and all data
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {accountAction && (
+        <ConfirmAccountActionDialog
+          isOpen={showAccountDialog}
+          onClose={() => {
+            setShowAccountDialog(false);
+            setAccountAction(null);
+          }}
+          onConfirm={handleAccountAction}
+          action={accountAction}
+          isLoading={isProcessing}
+        />
+      )}
+
+      {redirectingAction && (
+        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-gray-700">
+              {redirectingAction === 'deactivate'
+                ? 'Deactivating account...'
+                : 'Deleting account...'}
+            </span>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function SecuritySettings() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [mfaToggling, setMfaToggling] = useState(false);
   const [mfaMessage, setMfaMessage] = useState<string | null>(null);
-
-  const [showAccountDialog, setShowAccountDialog] = useState(false);
-  const [accountAction, setAccountAction] = useState<'deactivate' | 'delete' | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [redirectingAction, setRedirectingAction] = useState<
-    'deactivate' | 'delete' | null
-  >(null);
 
   useEffect(() => {
     authApi.getMfaStatus()
@@ -493,41 +918,6 @@ function SecuritySettings() {
       setMfaToggling(false);
     }
   };
-
-  const handleAccountAction = async () => {
-    if (!accountAction) return;
-
-    const pendingAction = accountAction;
-    setShowAccountDialog(false);
-    setRedirectingAction(pendingAction);
-    setIsProcessing(true);
-    try {
-      if (pendingAction === 'deactivate') {
-        await usersApi.deactivateAccount();
-        performLogoutRedirect('/', {
-          message: 'Account deactivated',
-          type: 'success',
-        });
-      } else {
-        await usersApi.deleteAccount();
-        performLogoutRedirect('/', {
-          message: 'Account deleted',
-          type: 'success',
-        });
-      }
-    } catch (err: any) {
-      setRedirectingAction(null);
-      const errorMessage = getActionableErrorMessage(
-        err,
-        `${pendingAction} account`
-      );
-      toast.error(errorMessage);
-    } finally {
-      setIsProcessing(false);
-      setAccountAction(null);
-    }
-  };
-
 
   return (
     <>
@@ -591,68 +981,7 @@ function SecuritySettings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl text-gray-900 mb-6">Account Actions</h2>
-        <div className="space-y-3">
-          <button
-            onClick={() => {
-              setAccountAction('deactivate');
-              setShowAccountDialog(true);
-            }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          >
-            <Lock className="w-5 h-5 text-gray-400" />
-            <div>
-              <div>Deactivate Account</div>
-              <div className="text-sm text-gray-600">
-                Temporarily disable your account
-              </div>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              setAccountAction('delete');
-              setShowAccountDialog(true);
-            }}
-            className="flex items-center gap-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-            <div>
-              <div>Delete Account</div>
-              <div className="text-sm text-red-600">
-                Permanently delete your account and all data
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Account Action Confirmation Dialog */}
-      {accountAction && (
-        <ConfirmAccountActionDialog
-          isOpen={showAccountDialog}
-          onClose={() => {
-            setShowAccountDialog(false);
-            setAccountAction(null);
-          }}
-          onConfirm={handleAccountAction}
-          action={accountAction}
-          isLoading={isProcessing}
-        />
-      )}
-
-      {redirectingAction && (
-        <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-            <span className="text-gray-700">
-              {redirectingAction === 'deactivate'
-                ? 'Deactivating account...'
-                : 'Deleting account...'}
-            </span>
-          </div>
-        </div>
-      )}
+      <DeactivationSettings />
     </>
   );
 }

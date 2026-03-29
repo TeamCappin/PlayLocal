@@ -183,7 +183,7 @@ describe('ForgotPasswordPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Terms of Use' })).toHaveAttribute(
       'href',
-      '/terms'
+      '/terms-of-service'
     );
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
       'href',
