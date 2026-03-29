@@ -1,42 +1,39 @@
 package com.backend.playlocal.unit;
 
-import com.backend.playlocal.config.ResendConfig;
+import com.backend.playlocal.config.MailConfig;
 import com.backend.playlocal.repository.EmailLogRepository;
-import com.backend.playlocal.service.ResendEmailService;
-import com.resend.Resend;
-import com.resend.services.emails.Emails;
-import com.resend.services.emails.model.CreateEmailResponse;
+import com.backend.playlocal.service.SmtpEmailService;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ResendEmailServiceTest {
+class SmtpEmailServiceTest {
 
     @Mock
-    private Resend resend;
+    private JavaMailSender mailSender;
 
     @Mock
-    private ResendConfig config;
+    private MailConfig config;
 
     @Mock
     private EmailLogRepository emailLogRepository;
 
-    @Mock
-    private Emails emails;
-
-    private ResendEmailService emailService;
+    private SmtpEmailService emailService;
 
     @BeforeEach
     void setUp() {
-        emailService = new ResendEmailService(resend, config, emailLogRepository);
+        emailService = new SmtpEmailService(mailSender, config,
+            emailLogRepository);
     }
 
     @Test
@@ -44,47 +41,46 @@ class ResendEmailServiceTest {
     void sendWelcomeEmail_Disabled_ReturnsFalse() {
         when(config.isEnabled()).thenReturn(false);
 
-        boolean result = emailService.sendWelcomeEmail("test@example.com", "Test User");
+        boolean result = emailService.sendWelcomeEmail(
+            "test@example.com", "Test User");
 
         assertThat(result).isFalse();
-        verify(resend, never()).emails();
+        verify(mailSender, never()).send(any(MimeMessage.class));
     }
 
     @Test
     @DisplayName("sendWelcomeEmail should send email when enabled")
-    void sendWelcomeEmail_Enabled_SendsEmail() throws Exception {
+    void sendWelcomeEmail_Enabled_SendsEmail() {
         when(config.isEnabled()).thenReturn(true);
         when(config.getFromName()).thenReturn("PlayLocal");
         when(config.getFromEmail()).thenReturn("noreply@playlocal.com");
-        when(resend.emails()).thenReturn(emails);
 
-        CreateEmailResponse response = mock(CreateEmailResponse.class);
-        when(response.getId()).thenReturn("email-123");
-        when(emails.send(any())).thenReturn(response);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
-        boolean result = emailService.sendWelcomeEmail("test@example.com", "Test User");
+        boolean result = emailService.sendWelcomeEmail(
+            "test@example.com", "Test User");
 
         assertThat(result).isTrue();
-        verify(emails).send(any());
+        verify(mailSender).send(any(MimeMessage.class));
         verify(emailLogRepository, times(1)).save(any());
     }
 
     @Test
     @DisplayName("sendWelcomeEmail should handle null displayName gracefully")
-    void sendWelcomeEmail_NullName_SendsEmail() throws Exception {
+    void sendWelcomeEmail_NullName_SendsEmail() {
         when(config.isEnabled()).thenReturn(true);
         when(config.getFromName()).thenReturn("PlayLocal");
         when(config.getFromEmail()).thenReturn("noreply@playlocal.com");
-        when(resend.emails()).thenReturn(emails);
 
-        CreateEmailResponse response = mock(CreateEmailResponse.class);
-        when(response.getId()).thenReturn("email-456");
-        when(emails.send(any())).thenReturn(response);
+        MimeMessage mimeMessage = mock(MimeMessage.class);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
-        boolean result = emailService.sendWelcomeEmail("test@example.com", null);
+        boolean result = emailService.sendWelcomeEmail(
+            "test@example.com", null);
 
         assertThat(result).isTrue();
-        verify(emails).send(any());
+        verify(mailSender).send(any(MimeMessage.class));
     }
 
     @Test
@@ -92,7 +88,8 @@ class ResendEmailServiceTest {
     void sendPasswordResetEmail_Disabled_ReturnsFalse() {
         when(config.isEnabled()).thenReturn(false);
 
-        boolean result = emailService.sendPasswordResetEmail("test@example.com", "123456");
+        boolean result = emailService.sendPasswordResetEmail(
+            "test@example.com", "123456");
 
         assertThat(result).isFalse();
     }
@@ -102,7 +99,8 @@ class ResendEmailServiceTest {
     void sendMfaCodeEmail_Disabled_ReturnsFalse() {
         when(config.isEnabled()).thenReturn(false);
 
-        boolean result = emailService.sendMfaCodeEmail("test@example.com", "123456");
+        boolean result = emailService.sendMfaCodeEmail(
+            "test@example.com", "123456");
 
         assertThat(result).isFalse();
     }
@@ -112,7 +110,8 @@ class ResendEmailServiceTest {
     void sendSignupVerificationEmail_Disabled_ReturnsFalse() {
         when(config.isEnabled()).thenReturn(false);
 
-        boolean result = emailService.sendSignupVerificationEmail("test@example.com", "123456");
+        boolean result = emailService.sendSignupVerificationEmail(
+            "test@example.com", "123456");
 
         assertThat(result).isFalse();
     }
@@ -122,7 +121,8 @@ class ResendEmailServiceTest {
     void sendEmail_Disabled_ReturnsFalse() {
         when(config.isEnabled()).thenReturn(false);
 
-        boolean result = emailService.sendEmail("test@example.com", "Subject", "Content", "Footer");
+        boolean result = emailService.sendEmail(
+            "test@example.com", "Subject", "Content", "Footer");
 
         assertThat(result).isFalse();
     }
