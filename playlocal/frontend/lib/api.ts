@@ -160,6 +160,7 @@ export interface UserDto {
   availability?: string;
   bio?: string;
   location?: string;
+  phone?: string;
   reliabilityScore: number;
   gamesCount: number;
   endorsementsCount?: number; // New field for endorsements count [US-3.3]

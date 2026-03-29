@@ -31,9 +31,11 @@ describe('ProtectedRoute', () => {
       isAuthenticated: false,
       isLoading: true,
       login: jest.fn(),
+      verifyMfa: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
       refreshUser: jest.fn(),
+      retryAuthCheck: jest.fn(),
       error: null,
     });
 
@@ -53,9 +55,11 @@ describe('ProtectedRoute', () => {
       isAuthenticated: false,
       isLoading: false,
       login: jest.fn(),
+      verifyMfa: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
       refreshUser: jest.fn(),
+      retryAuthCheck: jest.fn(),
       error: null,
     });
 
@@ -82,9 +86,11 @@ describe('ProtectedRoute', () => {
       isAuthenticated: true,
       isLoading: false,
       login: jest.fn(),
+      verifyMfa: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
       refreshUser: jest.fn(),
+      retryAuthCheck: jest.fn(),
       error: null,
     });
 
@@ -95,5 +101,62 @@ describe('ProtectedRoute', () => {
     );
 
     expect(screen.getByText('Secret content')).toBeInTheDocument();
+  });
+
+  it('renders custom loadingContent when provided', () => {
+    mockedUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      login: jest.fn(),
+      verifyMfa: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      refreshUser: jest.fn(),
+      retryAuthCheck: jest.fn(),
+      error: null,
+    });
+
+    render(
+      <ProtectedRoute loadingContent={<span>Custom loading UI</span>}>
+        <div>Secret</div>
+      </ProtectedRoute>
+    );
+
+    expect(screen.getByText('Custom loading UI')).toBeInTheDocument();
+  });
+
+  it('renders custom errorContent when auth error and callback provided', async () => {
+    const retryAuthCheck = jest.fn().mockResolvedValue(undefined);
+    mockedUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      login: jest.fn(),
+      verifyMfa: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      refreshUser: jest.fn(),
+      retryAuthCheck,
+      error: 'Boom',
+    });
+
+    render(
+      <ProtectedRoute
+        errorContent={(err, retry) => (
+          <button type="button" onClick={retry}>
+            {err}
+          </button>
+        )}
+      >
+        <div>Secret</div>
+      </ProtectedRoute>
+    );
+
+    expect(screen.getByRole('button', { name: 'Boom' })).toBeInTheDocument();
+    screen.getByRole('button', { name: 'Boom' }).click();
+    await waitFor(() => {
+      expect(retryAuthCheck).toHaveBeenCalled();
+    });
   });
 });
