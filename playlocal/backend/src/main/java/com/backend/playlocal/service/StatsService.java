@@ -3,7 +3,9 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.model.dto.StatsDto;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.GameParticipation;
+import com.backend.playlocal.model.entity.PlayerRating;
 import com.backend.playlocal.repository.GameParticipationRepository;
+import com.backend.playlocal.repository.PlayerRatingRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -43,9 +45,11 @@ public class StatsService {
             DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC);
 
     private final GameParticipationRepository participationRepository;
+    private final PlayerRatingRepository playerRatingRepository;
 
-    public StatsService(GameParticipationRepository participationRepository) {
+    public StatsService(GameParticipationRepository participationRepository, PlayerRatingRepository playerRatingRepository) { 
         this.participationRepository = participationRepository;
+        this.playerRatingRepository = playerRatingRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -220,6 +224,59 @@ public class StatsService {
             case "COMPETITIVE" -> 100.0;
             default            -> 50.0;
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Player Rating
+    // -------------------------------------------------------------------------
+
+    /**
+     * Player rating evolution. Monthly data points show the cumulative average of
+     * all ratings received up to that month.
+     *
+     * @param userId    the authenticated user's ID
+     * @param timeframe "30", "90", or "all"
+     * @return stats response; {@code empty=true} when no ratings exist
+     */
+    public StatsDto.StatsResponse getPlayerRatingStats(UUID userId, String timeframe) {
+        Instant cutoff = parseCutoff(timeframe);
+        List<PlayerRating> all = playerRatingRepository.findByRateeUserIdAndCreatedAtAfter(userId, cutoff);
+
+        if (all.isEmpty()) {
+            return emptyResponse("player_rating", timeframe);
+        }
+
+        Map<String, List<Integer>> monthlyScores = new TreeMap<>();
+        for (PlayerRating pr : all) {
+            String month = MONTH_FMT.format(pr.getCreatedAt());
+            monthlyScores.computeIfAbsent(month, k -> new java.util.ArrayList<>()).add(pr.getRating());
+        }
+
+        List<StatsDto.DataPoint> dataPoints = new java.util.ArrayList<>();
+        double cumulativeSum = 0;
+        int cumulativeCount = 0;
+        for (Map.Entry<String, List<Integer>> entry : monthlyScores.entrySet()) {
+            for (int s : entry.getValue()) {
+                cumulativeSum += s;
+                cumulativeCount++;
+            }
+            dataPoints.add(StatsDto.DataPoint.builder()
+                    .date(entry.getKey())
+                    .value(round1(cumulativeSum / cumulativeCount))
+                    .build());
+        }
+
+        double currentAvg = round1(cumulativeSum / cumulativeCount);
+        long count = all.size();
+
+        return StatsDto.StatsResponse.builder()
+                .metric("player_rating")
+                .value(currentAvg)
+                .count(count)
+                .timeframe(timeframe)
+                .dataPoints(dataPoints)
+                .empty(false)
+                .build();
     }
 
     // -------------------------------------------------------------------------

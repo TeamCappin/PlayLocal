@@ -5,7 +5,10 @@ import { AuthProvider } from '@/context/AuthContext';
 import { AssistantProvider } from '@/context/AssistantContext';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 
-const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '';
+/** Production: set NEXT_PUBLIC_RECAPTCHA_SITE_KEY. Local dev: Google’s public test key so Login/Register hooks always have a provider. */
+const RECAPTCHA_SITE_KEY =
+  process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY?.trim() ||
+  '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 import { consumeRedirectToast } from '@/lib/authRedirect';
 import { toast } from '@/lib/toast';
 
@@ -31,8 +34,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </AssistantProvider>
     </AuthProvider>
   );
-
-  if (!RECAPTCHA_SITE_KEY) return content;
 
   return (
     <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
