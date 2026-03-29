@@ -29,8 +29,18 @@ describe('MatchHistoryList', () => {
   const game = {
     gameId: 'g1',
     title: 'Saturday Soccer',
+    sportName: 'Soccer',
     startTime: '2025-02-01T10:00:00Z',
     location: { name: 'Riverside Fields' },
+    minPlayers: 2,
+    maxPlayers: 10,
+    allowWaitlist: false,
+    status: 'COMPLETED',
+    organizer: { userId: 'o1', displayName: 'Organizer' },
+    confirmedCount: 8,
+    waitlistCount: 0,
+    createdAt: '2025-01-01T00:00:00Z',
+    hasExactLocationAccess: true,
   };
 
   beforeEach(() => {
