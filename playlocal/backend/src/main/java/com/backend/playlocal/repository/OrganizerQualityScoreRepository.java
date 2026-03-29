@@ -18,9 +18,9 @@ import java.util.UUID;
 public interface OrganizerQualityScoreRepository extends JpaRepository<OrganizerQualityScore, UUID> {
 
     /**
-     * Find OQS by user ID.
+     * Find OQS by organizer ID.
      */
-    Optional<OrganizerQualityScore> findByUserId(UUID userId);
+    Optional<OrganizerQualityScore> findByOrganizer_OrganizerId(UUID organizerId);
 
     /**
      * Find all organizers with games hosted (for batch recalculation).
@@ -37,7 +37,7 @@ public interface OrganizerQualityScoreRepository extends JpaRepository<Organizer
     List<OrganizerQualityScore> findTopOrganizers(@Param("minGames") int minGames);
 
     /**
-     * Check if user has an OQS record.
+     * Check if organizer has an OQS record.
      */
-    boolean existsByUserId(UUID userId);
+    boolean existsByOrganizer_OrganizerId(UUID organizerId);
 }
