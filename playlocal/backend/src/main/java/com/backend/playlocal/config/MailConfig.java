@@ -14,4 +14,5 @@ public class MailConfig {
   private String fromEmail;
   private String fromName = "PlayLocal";
   private boolean enabled = true;
+  private String brevoApiKey;
 }

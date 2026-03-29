@@ -31,17 +31,8 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-    validate-on-migrate: true
+    validate-on-migrate: false
     out-of-order: true
-
-  mail:
-    host: ${MAIL_HOST:smtp-relay.brevo.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
 
 server:
   port: ${PORT:8080}
@@ -78,6 +69,7 @@ mail:
   from-email: ${MAIL_FROM_EMAIL}
   from-name: ${MAIL_FROM_NAME:PlayLocal}
   enabled: ${MAIL_ENABLED:true}
+  brevo-api-key: ${BREVO_API_KEY}   # ← add this line
 
 recaptcha:
   secret-key: ${RECAPTCHA_SECRET_KEY}

@@ -3,30 +3,37 @@ package com.backend.playlocal.service;
 import com.backend.playlocal.config.MailConfig;
 import com.backend.playlocal.model.entity.EmailLog;
 import com.backend.playlocal.repository.EmailLogRepository;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import sibApi.TransactionalEmailsApi;
+import sibModel.CreateSmtpEmail;
+import sibModel.SendSmtpEmail;
+import sibModel.SendSmtpEmailSender;
+import sibModel.SendSmtpEmailTo;
+import sendinblue.ApiClient;
+import sendinblue.Configuration;
+
+import java.util.List;
 
 @Service
-public class SmtpEmailService implements EmailService {
+public class BrevoEmailService implements EmailService {
 
   private static final Logger log =
-      LoggerFactory.getLogger(SmtpEmailService.class);
+      LoggerFactory.getLogger(BrevoEmailService.class);
 
-  private final JavaMailSender mailSender;
   private final MailConfig config;
   private final EmailLogRepository emailLogRepository;
+  private final TransactionalEmailsApi brevoApi;
 
-  public SmtpEmailService(JavaMailSender mailSender,
-                          MailConfig config,
-                          EmailLogRepository emailLogRepository) {
-    this.mailSender = mailSender;
+  public BrevoEmailService(MailConfig config,
+                           EmailLogRepository emailLogRepository) {
     this.config = config;
     this.emailLogRepository = emailLogRepository;
+
+    ApiClient apiClient = Configuration.getDefaultApiClient();
+    apiClient.setApiKey(config.getBrevoApiKey());
+    this.brevoApi = new TransactionalEmailsApi();
   }
 
   @Override
@@ -138,26 +145,30 @@ public class SmtpEmailService implements EmailService {
         .build();
 
     try {
-      MimeMessage msg = mailSender.createMimeMessage();
-      MimeMessageHelper h =
-          new MimeMessageHelper(msg, true, "UTF-8");
-      h.setFrom(config.getFromName()
-          + " <" + config.getFromEmail() + ">");
-      h.setTo(to);
-      h.setSubject(subject);
-      h.setText(htmlBody, true);
+      SendSmtpEmailSender sender = new SendSmtpEmailSender();
+      sender.setEmail(config.getFromEmail());
+      sender.setName(config.getFromName());
 
-      mailSender.send(msg);
+      SendSmtpEmailTo recipient = new SendSmtpEmailTo();
+      recipient.setEmail(to);
 
-      emailLog.setProviderMessageId(msg.getMessageID());
+      SendSmtpEmail email = new SendSmtpEmail();
+      email.setSender(sender);
+      email.setTo(List.of(recipient));
+      email.setSubject(subject);
+      email.setHtmlContent(htmlBody);
+
+      CreateSmtpEmail result = brevoApi.sendTransacEmail(email);
+
+      emailLog.setProviderMessageId(result.getMessageId());
       emailLog.setStatus(EmailLog.EmailStatus.SENT);
       emailLogRepository.save(emailLog);
 
       log.info("{} email sent to {} [messageId={}]",
-          emailType, to, msg.getMessageID());
+          emailType, to, result.getMessageId());
       return true;
 
-    } catch (MessagingException e) {
+    } catch (Exception e) {
       emailLog.setStatus(EmailLog.EmailStatus.FAILED);
       emailLog.setErrorMessage(e.getMessage());
       emailLogRepository.save(emailLog);
