@@ -46,6 +46,7 @@ import { ShowUpRateCard } from './stats/ShowUpRateCard';
 import { AttendanceRateCard } from './stats/AttendanceRateCard';
 import { SkillTrendChart } from './stats/SkillTrendChart';
 import { TimeframeToggle } from './stats/TimeframeToggle';
+import { PlayerRatingCard } from './stats/PlayerRatingCard';
 import { useStats } from '@/hooks/useStats';
 
 export function UserProfile() {
@@ -200,7 +201,7 @@ export function UserProfile() {
             gamesPlayed: otherUser?.gamesCount || 0,
             gamesHosted: 0,
             reliabilityScore: otherUser?.reliabilityScore || 0,
-            averageRating: 0,
+            averageRating: (otherUser as any)?.averageRating || 0,
           },
         };
 
@@ -1086,7 +1087,7 @@ function SportProfileCard({
 }
 
 function StatsTabContent() {
-  const { showUpRate, skillTrend, attendanceRate, timeframe, setTimeframe } = useStats();
+  const { showUpRate, skillTrend, attendanceRate, playerRating, timeframe, setTimeframe } = useStats();
 
   return (
     <div className="space-y-4">
@@ -1108,6 +1109,11 @@ function StatsTabContent() {
             data={attendanceRate.data}
             isLoading={attendanceRate.isLoading}
             error={attendanceRate.error}
+          />
+          <PlayerRatingCard
+            data={playerRating.data}
+            isLoading={playerRating.isLoading}
+            error={playerRating.error}
           />
         </div>
       </div>

@@ -4,9 +4,12 @@ import { notificationsApi, NotificationDto } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 type NotificationPayload = {
+  title?: string;
   message?: string;
   gameId?: string;
   gameTitle?: string;
+  link?: string;
+  eventAt?: string;
   [key: string]: unknown;
 };
 
@@ -40,16 +43,31 @@ function humanizeType(type: string): string {
     .join(' ');
 }
 
+const SINGLE_EVENT_TYPES = new Set([
+  'GAME_CANCELLED',
+  'GAME_REMOVED_REQUIREMENTS',
+  'WAITLIST_PROMOTED',
+  'GAME_STARTING_SOON',
+  'ATTENDANCE_PROMPT',
+  'ATTENDANCE_CONFIRMATION',
+]);
+
 function buildNotificationTitle(type: string): string {
   switch (type) {
     case 'GAME_CANCELLED':
       return 'Game cancelled';
+    case 'GAME_STARTING_SOON':
+      return 'Game starting soon';
     case 'GAME_UPDATED':
       return 'Game updated';
     case 'GAME_REMOVED_REQUIREMENTS':
       return 'Removed from game';
+    case 'WAITLIST_PROMOTED':
+      return 'Spot confirmed';
+    case 'ATTENDANCE_CONFIRMATION':
+      return 'Attendance confirmation needed';
     case 'ATTENDANCE_PROMPT':
-      return 'Attendance reminder';
+      return 'Attendance confirmation needed';
     default:
       return humanizeType(type);
   }
@@ -110,6 +128,74 @@ function toUINotification(notification: NotificationDto): UINotification {
   };
 }
 
+function notificationTimeValue(notification: UINotification): number {
+  const parsed = Date.parse(notification.createdAt);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function statusPriority(notification: UINotification): number {
+  return notification.read ? 0 : 1;
+}
+
+function buildDedupKey(notification: UINotification): string {
+  const payload = safeParsePayload(notification.payload);
+  const gameId =
+    typeof payload.gameId === 'string' && payload.gameId
+      ? payload.gameId
+      : undefined;
+
+  if (SINGLE_EVENT_TYPES.has(notification.type)) {
+    return `${notification.type}:${
+      gameId || notification.link || notification.message || notification.notificationId
+    }`;
+  }
+
+  if (notification.type === 'GAME_UPDATED') {
+    const eventAt =
+      typeof payload.eventAt === 'string' && payload.eventAt
+        ? payload.eventAt
+        : notification.message || notification.createdAt;
+    return `${notification.type}:${gameId || 'no-game'}:${eventAt}`;
+  }
+
+  return `${notification.type}:${
+    notification.link || notification.title || notification.message || notification.notificationId
+  }`;
+}
+
+function dedupeNotifications(
+  notifications: UINotification[]
+): UINotification[] {
+  const deduped = new Map<string, UINotification>();
+
+  notifications.forEach((notification) => {
+    const key = buildDedupKey(notification);
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, notification);
+      return;
+    }
+
+    const existingPriority = statusPriority(existing);
+    const candidatePriority = statusPriority(notification);
+    if (
+      candidatePriority > existingPriority ||
+      (candidatePriority === existingPriority &&
+        notificationTimeValue(notification) > notificationTimeValue(existing))
+    ) {
+      deduped.set(key, notification);
+    }
+  });
+
+  return Array.from(deduped.values()).sort(
+    (left, right) => notificationTimeValue(right) - notificationTimeValue(left)
+  );
+}
+
+function countUnreadNotifications(notifications: UINotification[]): number {
+  return notifications.filter((notification) => !notification.read).length;
+}
+
 export function useNotifications() {
   const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<UINotification[]>([]);
@@ -123,12 +209,11 @@ export function useNotifications() {
     setIsLoading(true);
     setError(null);
     try {
-      const [notifs, countData] = await Promise.all([
-        notificationsApi.getAll(),
-        notificationsApi.getUnreadCount(),
-      ]);
-      setNotifications((notifs || []).map(toUINotification));
-      setUnreadCount(countData.count);
+      const notifs = await notificationsApi.getAll();
+      const mappedNotifications = (notifs || []).map(toUINotification);
+      const dedupedNotifications = dedupeNotifications(mappedNotifications);
+      setNotifications(dedupedNotifications);
+      setUnreadCount(countUnreadNotifications(dedupedNotifications));
     } catch (err) {
       setError('Failed to load notifications');
       console.error('Error fetching notifications:', err);

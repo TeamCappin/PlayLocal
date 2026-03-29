@@ -20,3 +20,4 @@ export * from './useReportUser';
 export * from './useScoreHistory';
 export * from './useOrganizerQuality';
 export * from './useStats';
+export * from './usePlayerRatings';

@@ -397,13 +397,9 @@ class GameServiceCancelTest {
             assertThat(testGame.getMinReliabilityRequired()).isEqualTo(96.0f);
 
             // US-4.3: Removed player should receive notification
-            verify(notificationService).createInAppNotification(
-                    eq(participant1.getUserId()),
-                    eq("GAME_REMOVED_REQUIREMENTS"),
-                    argThat((Map<String, Object> p) ->
-                            "Removed from game".equals(p.get("title"))
-                                    && p.get("message").toString().contains(testGame.getTitle())
-                                    && p.get("gameId").equals(gameId.toString())));
+            verify(notificationService).notifyRemovedFromGameRequirements(
+                    eq(testGame),
+                    eq(participant1.getUserId()));
         }
 
         @Test
@@ -453,7 +449,7 @@ class GameServiceCancelTest {
             assertThat(waitlisted.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CONFIRMED);
             assertThat(waitlisted.getWaitlistPosition()).isNull();
             verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 1);
-            verify(notificationService).createInAppNotification(eq(lowScoreUser.getUserId()), eq("GAME_REMOVED_REQUIREMENTS"), any(Map.class));
+            verify(notificationService).notifyRemovedFromGameRequirements(eq(testGame), eq(lowScoreUser.getUserId()));
         }
 
         @Test
@@ -500,7 +496,7 @@ class GameServiceCancelTest {
 
             assertThat(part1.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CANCELLED);
             assertThat(part2.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CANCELLED);
-            verify(notificationService, times(2)).createInAppNotification(any(UUID.class), eq("GAME_REMOVED_REQUIREMENTS"), any(Map.class));
+            verify(notificationService, times(2)).notifyRemovedFromGameRequirements(eq(testGame), any(UUID.class));
         }
 
         @Test
@@ -539,7 +535,7 @@ class GameServiceCancelTest {
 
             assertThat(waitlistedLow.getJoinStatus()).isEqualTo(GameParticipation.JoinStatus.CANCELLED);
             verify(participationRepository).decrementWaitlistPositionsAfter(gameId, 2);
-            verify(notificationService).createInAppNotification(eq(lowScoreWaitlisted.getUserId()), eq("GAME_REMOVED_REQUIREMENTS"), any(Map.class));
+            verify(notificationService).notifyRemovedFromGameRequirements(eq(testGame), eq(lowScoreWaitlisted.getUserId()));
         }
 
         @Test

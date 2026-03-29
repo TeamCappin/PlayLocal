@@ -133,7 +133,8 @@ public class AuthDto {
         private Float reliabilityScore;
         private Integer gamesCount;
         private Integer endorsementsCount;
-        private String createdAt;
+        private Float averageRating;
+                                        private String createdAt;
         private Boolean profileRestricted;
         private Boolean mfaEnabled;
     }

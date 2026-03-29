@@ -80,4 +80,22 @@ public class StatsController {
         UUID userId = UUID.fromString(authentication.getName());
         return ResponseEntity.ok(statsService.getAttendanceRate(userId, timeframe));
     }
+
+    /**
+     * Player rating stats for the authenticated user.
+     * Analyzes player feedback ratings chronologically.
+     *
+     * <p>GET /api/v1/stats/player-rating?timeframe=30|90|all
+     *
+     * @param timeframe "30", "90", or "all" (default "30")
+     * @param authentication injected by Spring Security
+     * @return 200 with {@link StatsDto.StatsResponse}; {@code empty=true} when no ratings exist
+     */
+    @GetMapping("/player-rating")
+    public ResponseEntity<StatsDto.StatsResponse> getPlayerRatingStats(
+            @RequestParam(defaultValue = "30") String timeframe,
+            Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(statsService.getPlayerRatingStats(userId, timeframe));
+    }
 }
