@@ -31,7 +31,6 @@
 		<byte-buddy.version>1.18.4</byte-buddy.version>
 		<jjwt.version>0.12.3</jjwt.version>
 		<testcontainers.version>1.19.3</testcontainers.version>
-
 	</properties>
 
 	<dependencyManagement>
@@ -45,7 +44,6 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 
 	<dependencies>
 		<!-- Spring Boot Starters -->
@@ -81,17 +79,14 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>auth</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>regions</artifactId>
 		</dependency>
-
 
 		<!-- Database -->
 		<dependency>
@@ -133,6 +128,37 @@
 			<groupId>com.sendinblue</groupId>
 			<artifactId>sib-api-v3-sdk</artifactId>
 			<version>7.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.squareup.okhttp3</groupId>
+					<artifactId>okhttp</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okhttp3</groupId>
+					<artifactId>logging-interceptor</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.squareup.okio</groupId>
+					<artifactId>okio</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- okhttp3 / okio pinned to fix conflict with Brevo SDK -->
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>logging-interceptor</artifactId>
+			<version>4.12.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okio</groupId>
+			<artifactId>okio</artifactId>
+			<version>3.6.0</version>
 		</dependency>
 
 		<!-- Utilities -->
@@ -269,7 +295,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 	</build>
 
