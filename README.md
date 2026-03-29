@@ -9,6 +9,7 @@
 
 ![Netlify](https://img.shields.io/badge/Netlify-000000?style=for-the-badge&logo=netlify&logoColor=00C7B7)
 ![Render](https://img.shields.io/badge/Render-3B3B3B?style=for-the-badge&logo=render&logoColor=white)
+![Resend](https://img.shields.io/badge/Resend-Email_API-black?style=for-the-badge)
 ![Neon](https://img.shields.io/badge/Neon-000000?style=for-the-badge&logo=postgresql&logoColor=00E599)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
