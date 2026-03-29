@@ -76,13 +76,19 @@ describe('MatchRecap', () => {
     
     (gamesApi.getById as jest.Mock).mockResolvedValue({
        title: '5v5 Basketball Pickup',
-       status: 'COMPLETED'
+       status: 'COMPLETED',
+       sportName: 'Basketball',
+       startTime: '2024-12-18T18:00:00Z',
+       endTime: '2024-12-18T20:00:00Z',
+       location: { name: 'Downtown Rec Center' }
     });
     
-    (gamesApi.getRoster as jest.Mock).mockResolvedValue([
-      { userId: '1', name: 'Alex', attendanceStatus: 'ATTENDED' },
-      { userId: '2', name: 'Bob', attendanceStatus: 'ATTENDED' }
-    ]);
+    (gamesApi.getRoster as jest.Mock).mockResolvedValue({
+      confirmed: [
+        { userId: '1', displayName: 'Alex', attendanceStatus: 'ATTENDED' },
+        { userId: '2', displayName: 'Bob', attendanceStatus: 'ATTENDED' }
+      ]
+    });
   });
 
   it('renders match recap tabs', async () => {

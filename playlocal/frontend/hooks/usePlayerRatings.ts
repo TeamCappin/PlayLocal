@@ -56,11 +56,14 @@ export function usePlayerRatings() {
 
 export function useUserRatings(userId: string) {
   const [ratings, setRatings] = useState<PlayerRatingResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!userId);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRatings = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     setError(null);

@@ -59,10 +59,34 @@ describe('RateUserModal', () => {
       expect(mockCreateRating).toHaveBeenCalledWith({
         gameId: 'game-1',
         rateeId: 'user-2',
-        rating: 4
+        rating: 4,
+        comment: undefined,
       });
       expect(defaultProps.onSuccess).toHaveBeenCalledWith(4);
       expect(defaultProps.onClose).toHaveBeenCalled();
+    });
+  });
+
+  it('allows adding an optional comment to the rating', async () => {
+    mockCreateRating.mockResolvedValueOnce({});
+    render(<RateUserModal {...defaultProps} />);
+    
+    const stars = screen.getAllByRole('button').filter(b => !b.classList.contains('text-gray-400') && !b.textContent?.includes('Submit'));
+    fireEvent.click(stars[3]); // 4 stars
+    
+    const commentInput = screen.getByPlaceholderText(/Add an optional comment.../i);
+    fireEvent.change(commentInput, { target: { value: 'Great team player!' } });
+
+    const submitBtn = screen.getByRole('button', { name: /Submit Rating/i });
+    fireEvent.click(submitBtn);
+    
+    await waitFor(() => {
+      expect(mockCreateRating).toHaveBeenCalledWith({
+        gameId: 'game-1',
+        rateeId: 'user-2',
+        rating: 4,
+        comment: 'Great team player!',
+      });
     });
   });
 

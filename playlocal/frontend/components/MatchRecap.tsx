@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useMemo } from 'react';
 import { gamesApi } from '@/lib/api';
 import Link from 'next/link';
@@ -50,6 +52,8 @@ export function MatchRecap() {
       avatar: 'OE',
       stats: ' 15 pts, 8 rebs, 3 asts',
     },
+    summary:
+      'An intense matchup between two well-balanced teams. Team 1 took an early lead with strong shooting from Omar and Minh. Team 2 fought back in the second half with excellent defense and playmaking. The game came down to the final possessions, with Team 1 securing the victory 21-18.',
     image:
       'https://images.unsplash.com/photo-1709552899537-8f0a171aaf40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBvdXRkb29yfGVufDF8fHx8MTc2NjE2MTQzMnww&ixlib=rb-4.1.0&q=80&w=1080',
   };
@@ -299,6 +303,10 @@ export function MatchRecap() {
     return awards;
   })();
 
+  const computedSummary = realGame
+    ? `A competitive match of ${realGame.sportName || 'sports'} resulting in a final score of ${recap.score.team1} - ${recap.score.team2}. Thanks to all players for an exciting game!`
+    : recap.summary;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -448,12 +456,7 @@ export function MatchRecap() {
                         Game Summary
                       </h3>
                       <p className="text-gray-700 leading-relaxed">
-                        An intense matchup between two well-balanced teams. Team
-                        1 took an early lead with strong shooting from Omar and
-                        Minh. Team 2 fought back in the second half with
-                        excellent defense and playmaking. The game came down to
-                        the final possessions, with Team 1 securing the victory
-                        21-18.
+                        {computedSummary}
                       </p>
                     </div>
 
@@ -690,21 +693,25 @@ function PlayerStatRow({ player, rank, gameId }: Readonly<{ player: any; rank: n
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
           <span className="text-gray-900">{player.rating}</span>
         </div>
-        <button
-          onClick={() => setIsRatingModalOpen(true)}
-          className="px-4 py-1.5 text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
-        >
-          Rate
-        </button>
+        {player.id && (
+          <button
+            onClick={() => setIsRatingModalOpen(true)}
+            className="px-4 py-1.5 text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors"
+          >
+            Rate
+          </button>
+        )}
       </div>
 
-      <RateUserModal
-        gameId={gameId}
-        targetUserId={player.id || `mock-${player.name.replaceAll(/\s+/g, '-').toLowerCase()}`}
-        targetUserName={player.name}
-        isOpen={isRatingModalOpen}
-        onClose={() => setIsRatingModalOpen(false)}
-      />
+      {player.id && (
+        <RateUserModal
+          gameId={gameId}
+          targetUserId={player.id}
+          targetUserName={player.name}
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -193,6 +193,8 @@ public class UserService {
     }
 
     private AuthDto.UserDto buildRestrictedProfile(User user, int endorsementCount) {
+        Double avgRating = playerRatingRepository.getAverageRatingForUser(user.getUserId());
+
         return AuthDto.UserDto.builder()
                 .userId(user.getUserId().toString())
                 .displayName(user.getDisplayName())
@@ -200,7 +202,7 @@ public class UserService {
                 .avatarUrl(user.getAvatarUrl())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
-                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
+                .averageRating(avgRating != null ? avgRating.floatValue() : 0f)
                 .endorsementsCount(endorsementCount)
                 .defaultIntensity(user.getDefaultIntensity())
                 .profileRestricted(true)
@@ -251,6 +253,7 @@ public class UserService {
         int count = (preCalculatedCount != null)
                 ? preCalculatedCount
                 : (int) endorsementRepository.countByEndorsedUser_UserId(user.getUserId());
+        Double avgRating = playerRatingRepository.getAverageRatingForUser(user.getUserId());
 
         return AuthDto.UserDto.builder()
                 .userId(user.getUserId().toString())
@@ -264,7 +267,7 @@ public class UserService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
-                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
+                .averageRating(avgRating != null ? avgRating.floatValue() : 0f)
                 .endorsementsCount(count)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .build();

@@ -39,7 +39,7 @@ export function PlayerRatingCard({ data, isLoading, error }: Readonly<PlayerRati
   }
 
   const value = data.value as number;
-  const count = data.dataPoints?.length || 0;
+    const count = data.count ?? data.dataPoints?.length ?? 0;
 
   // Convert to full 100 percentage for the progress bar based on 5-star scale
   const percentage = (value / 5) * 100;

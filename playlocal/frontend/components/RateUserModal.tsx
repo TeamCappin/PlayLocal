@@ -21,6 +21,7 @@ export function RateUserModal({
 }: Readonly<RateUserModalProps>) {
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
   const { createRating, isLoading: isSubmitting } = usePlayerRatings();
 
   if (!isOpen) return null;
@@ -29,8 +30,15 @@ export function RateUserModal({
     if (rating < 1 || rating > 5) return;
 
     try {
-      await createRating({ gameId, rateeId: targetUserId, rating });
+      await createRating({ 
+        gameId, 
+        rateeId: targetUserId, 
+        rating,
+        comment: comment.trim() ? comment.trim() : undefined,
+      });
       onSuccess?.(rating);
+      setRating(0);
+      setComment('');
       onClose();
     } catch (err) {
       // Error is handled by the hook via toast
@@ -79,6 +87,21 @@ export function RateUserModal({
                 />
               </button>
             ))}
+          </div>
+
+          <div className="mb-6">
+            <textarea
+              className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none text-sm text-gray-900"
+              rows={3}
+              maxLength={500}
+              placeholder="Add an optional comment..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <div className="text-right mt-1 text-xs text-gray-400">
+              {comment.length}/500
+            </div>
           </div>
 
           <button

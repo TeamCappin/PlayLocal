@@ -340,6 +340,8 @@ public class AuthService {
     }
 
     private AuthDto.UserDto mapToUserDto(User user) {
+        Double avgRating = playerRatingRepository.getAverageRatingForUser(user.getUserId());
+        
         return AuthDto.UserDto.builder()
                 .userId(user.getUserId().toString())
                 .email(user.getEmail())
@@ -352,7 +354,7 @@ public class AuthService {
                 .location(user.getLocation())
                 .reliabilityScore(user.getReliabilityScore())
                 .gamesCount(user.getGamesCount())
-                .averageRating(playerRatingRepository.getAverageRatingForUser(user.getUserId()) != null ? playerRatingRepository.getAverageRatingForUser(user.getUserId()).floatValue() : 0f)
+                .averageRating(avgRating != null ? avgRating.floatValue() : 0f)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .mfaEnabled(user.getMfaEnabled())
                 .build();

@@ -136,8 +136,8 @@ describe('useUserRatings hook', () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { result } = renderHook(() => useUserRatings(''));
 
-    // Actually the hook skips fetch entirely if !userId, so isLoading will stay true initially 
-    // unless mocked otherwise, but let's check API not called:
+    // Hook sets isLoading to false if !userId
+    expect(result.current.isLoading).toBe(false);
     expect(playerRatingsApi.getRatingsForUser).not.toHaveBeenCalled();
   });
 });

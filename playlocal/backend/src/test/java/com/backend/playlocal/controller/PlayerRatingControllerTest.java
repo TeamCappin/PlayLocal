@@ -14,16 +14,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PlayerRatingController.class)
-@AutoConfigureMockMvc(addFilters = false) // Disable security filters for simple unit testing if possible, or use @WithMockUser
+@AutoConfigureMockMvc(addFilters = false) // Disable security filters for simple unit testing
 class PlayerRatingControllerTest {
 
     @Autowired
@@ -42,6 +46,7 @@ class PlayerRatingControllerTest {
     private UUID rateeId;
     private UUID gameId;
     private UUID ratingId;
+    private java.security.Principal mockPrincipal;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +54,9 @@ class PlayerRatingControllerTest {
         rateeId = UUID.randomUUID();
         gameId = UUID.randomUUID();
         ratingId = UUID.randomUUID();
+        
+        mockPrincipal = Mockito.mock(java.security.Principal.class);
+        Mockito.when(mockPrincipal.getName()).thenReturn(raterId.toString());
     }
 
     @Test
@@ -63,12 +71,11 @@ class PlayerRatingControllerTest {
         response.setRatingId(ratingId);
         response.setRating(5);
 
-        Mockito.when(jwtService.getUserIdFromToken("valid-token")).thenReturn(raterId);
         Mockito.when(playerRatingService.createRating(eq(raterId), any(PlayerRatingDto.CreateRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/api/v1/ratings")
-                        .header("Authorization", "Bearer valid-token")
+                        .principal(mockPrincipal)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -87,12 +94,11 @@ class PlayerRatingControllerTest {
         response.setRating(4);
         response.setComment("Updated");
 
-        Mockito.when(jwtService.getUserIdFromToken("valid-token")).thenReturn(raterId);
         Mockito.when(playerRatingService.updateRating(eq(raterId), eq(ratingId), any(PlayerRatingDto.UpdateRequest.class)))
                 .thenReturn(response);
 
         mockMvc.perform(put("/api/v1/ratings/" + ratingId)
-                        .header("Authorization", "Bearer valid-token")
+                        .principal(mockPrincipal)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

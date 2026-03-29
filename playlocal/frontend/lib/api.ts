@@ -1031,6 +1031,8 @@ export interface StatsResponse {
   metric: string;
   /** Aggregate value for the timeframe; null when `empty` is true. */
   value: number | null;
+  /** Optional count for metrics that compute averages over multiple entries. */
+  count?: number | null;
   /** Requested timeframe: '30' | '90' | 'all' */
   timeframe: string;
   /** Ordered data points for charting; empty array when `empty` is true. */
