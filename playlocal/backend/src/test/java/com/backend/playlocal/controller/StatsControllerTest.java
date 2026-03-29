@@ -239,4 +239,37 @@ class StatsControllerTest {
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // GET /api/v1/stats/player-rating
+    // -------------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("GET /api/v1/stats/player-rating")
+    class GetPlayerRatingStatsTests {
+
+        @Test
+        @DisplayName("Returns 200 with player rating data")
+        void getPlayerRatingStats_withData_returns200() {
+            when(statsService.getPlayerRatingStats(eq(testUserId), eq("30"))).thenReturn(dataResponse);
+
+            ResponseEntity<StatsDto.StatsResponse> result =
+                    statsController.getPlayerRatingStats("30", authentication);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody().getValue()).isEqualTo(75.0);
+        }
+
+        @Test
+        @DisplayName("Returns 200 with empty response when user has no ratings")
+        void getPlayerRatingStats_noRatings_returns200WithEmpty() {
+            when(statsService.getPlayerRatingStats(eq(testUserId), eq("30"))).thenReturn(emptyResponse);
+
+            ResponseEntity<StatsDto.StatsResponse> result =
+                    statsController.getPlayerRatingStats("30", authentication);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody().isEmpty()).isTrue();
+        }
+    }
 }

@@ -14,8 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import com.backend.playlocal.repository.PlayerRatingRepository;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +34,9 @@ class StatsServiceTest {
 
     @Mock
     private GameParticipationRepository participationRepository;
+
+    @Mock
+    private PlayerRatingRepository playerRatingRepository;
 
     @InjectMocks
     private StatsService statsService;
@@ -536,5 +542,47 @@ class StatsServiceTest {
 
     private Instant daysAgo(int days) {
         return Instant.now().minus(days, ChronoUnit.DAYS);
+    }
+
+    // -------------------------------------------------------------------------
+    // Player Rating Stats Tests
+    // -------------------------------------------------------------------------
+    @Nested
+    @DisplayName("getPlayerRatingStats()")
+    class GetPlayerRatingStatsTests {
+
+        @Test
+        @DisplayName("Returns empty state when no ratings exist")
+        void emptyState() {
+            when(playerRatingRepository.findByRateeUserIdAndCreatedAtAfter(eq(userId), any()))
+                    .thenReturn(Collections.emptyList());
+
+            StatsDto.StatsResponse res = statsService.getPlayerRatingStats(userId, "30");
+
+            assertThat(res.isEmpty()).isTrue();
+            assertThat(res.getMetric()).isEqualTo("player_rating");
+        }
+
+        @Test
+        @DisplayName("Calculates average and returns chronological points")
+        void computesAverages() {
+            com.backend.playlocal.model.entity.PlayerRating rating1 = new com.backend.playlocal.model.entity.PlayerRating();
+            rating1.setRating(3);
+            rating1.setCreatedAt(daysAgo(40));
+
+            com.backend.playlocal.model.entity.PlayerRating rating2 = new com.backend.playlocal.model.entity.PlayerRating();
+            rating2.setRating(5);
+            rating2.setCreatedAt(daysAgo(10));
+
+            when(playerRatingRepository.findByRateeUserIdAndCreatedAtAfter(eq(userId), any()))
+                    .thenReturn(List.of(rating1, rating2));
+
+            StatsDto.StatsResponse res = statsService.getPlayerRatingStats(userId, "all");
+
+            assertThat(res.isEmpty()).isFalse();
+            assertThat(res.getValue()).isEqualTo(4.0); // (3+5)/2
+            assertThat(res.getCount()).isEqualTo(2L);
+            assertThat(res.getDataPoints()).hasSizeGreaterThanOrEqualTo(1);
+        }
     }
 }

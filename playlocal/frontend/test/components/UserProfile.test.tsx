@@ -1,9 +1,15 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { UserProfile } from '../../components/UserProfile';
 import '@testing-library/jest-dom';
 import { usersApi, endorsementsApi } from '../../lib/api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
@@ -11,7 +17,7 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
-jest.mock('../../context/AuthContext', () => ({
+jest.mock('@/context/AuthContext', () => ({
   useAuth: jest.fn(),
 }));
 
@@ -110,6 +116,7 @@ jest.mock('@/hooks/useStats', () => ({
     showUpRate: { data: null, isLoading: false, error: null },
     skillTrend: { data: null, isLoading: false, error: null },
     attendanceRate: { data: null, isLoading: false, error: null },
+    playerRating: { data: null, isLoading: false, error: null },
     timeframe: '30',
     setTimeframe: jest.fn(),
   }),
@@ -137,6 +144,15 @@ jest.mock('lucide-react', () => ({
   XCircle: () => <div />,
   ChevronDown: () => <div />,
   ChevronUp: () => <div />,
+  SearchX: () => <div data-testid="icon-search-x" />,
+  Filter: () => <div />,
+  X: () => <div />,
+  CircleCheckBig: () => <div />,
+  CircleX: () => <div />,
+  CircleAlert: () => <div />,
+  CircleEllipsis: () => <div />,
+  Clock: () => <div />,
+  ChevronRight: () => <div />,
 }));
 
 describe('UserProfile Restricted Profile (US-7.12)', () => {
@@ -429,4 +445,3 @@ describe('UserProfile Tabs Navigation (US-7.6)', () => {
     });
   });
 });
-

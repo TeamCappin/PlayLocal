@@ -43,6 +43,16 @@ export function Footer() {
               </li>
               <li>
                 <a
+                  href="https://playlocalcapstone.onrender.com/swagger-ui/index.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  API Docs
+                </a>
+              </li>
+              <li>
+                <a
                   href="https://github.com/TeamCappin/PlayLocal/issues"
                   target="_blank"
                   rel="noopener noreferrer"

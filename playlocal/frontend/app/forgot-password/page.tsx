@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useGoogleReCaptcha } from '@/hooks/useGoogleReCaptcha';
 
 const ForgotPasswordPage: React.FC = () => {
   const router = useRouter();
