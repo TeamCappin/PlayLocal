@@ -29,7 +29,7 @@
 
 ## **Parsing Pipeline Updates**
 
-* Stakeholder provided a **new parsing pipeline structure** only a week before the release. [See the wiki](https://github.com/munera-intelligence/PermitParser/wiki/Montreal-Parsing-Pipeline-From-Stakeholder)
+* Stakeholder provided a **new parsing pipeline structure** only a week before the release. [See the wiki](https://github.com/TeamCappin/PlayLocal/wiki/Montreal-Parsing-Pipeline-From-Stakeholder)
 * This structure is **completely different** from what the parsing team has been building.
 * Too late to update for Release 1; review after release.
 * **David wants Minh to take parsing lead** moving forward.

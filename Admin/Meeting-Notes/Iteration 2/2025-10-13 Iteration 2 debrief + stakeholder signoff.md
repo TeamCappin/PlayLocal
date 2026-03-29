@@ -6,7 +6,7 @@
 **Absent:** 
 **Note Taker:** Minh
 
-New system architecture: https://github.com/munera-intelligence/PermitParser/wiki/System-Architecture
+New system architecture: https://github.com/TeamCappin/PlayLocal/wiki/System-Architecture
 
 Code for this release: https://github.com/munera-intelligence/PermitParser/releases/tag/v0.2.0-alpha
 

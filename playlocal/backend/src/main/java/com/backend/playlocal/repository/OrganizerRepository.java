@@ -22,6 +22,13 @@ public interface OrganizerRepository extends JpaRepository<Organizer, UUID> {
      */
     Optional<Organizer> findByUser_UserId(UUID userId);
 
+        /**
+         * Find organizer profile for a game's organizer.
+         */
+        @Query("SELECT o FROM Organizer o WHERE o.user.userId = (" +
+            "SELECT g.createdBy.userId FROM Game g WHERE g.gameId = :gameId)")
+        Optional<Organizer> findByGameId(@Param("gameId") UUID gameId);
+
     /**
      * Resolve organizer profiles for a batch of user IDs.
      */
