@@ -21,11 +21,7 @@ export function MatchHistoryFilters({
   onChange,
 }: MatchHistoryFiltersProps) {
   const sports = uniqueSportNames(games);
-  const hasActiveFilters =
-    !!value.sport ||
-    value.result !== 'all' ||
-    !!value.dateFrom ||
-    !!value.dateTo;
+  const hasActiveFilters = hasActiveMatchHistoryFilters(value);
 
   return (
     <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
