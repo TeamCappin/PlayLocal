@@ -38,7 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Validates: Concurrency P0 - No overbooking under parallel requests.
  * UserStory: US-2.5 Join/Leave + Waitlist (Concurrency-Safe)
  */
-@SpringBootTest(properties = {
+@SpringBootTest(
+    classes = com.backend.playlocal.PlayLocalApplication.class, 
+    properties = {
         "mail.from-email=test@playlocal.com",
         "mail.from-name=PlayLocal",
         "mail.enabled=false",
