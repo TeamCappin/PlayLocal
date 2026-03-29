@@ -7,6 +7,8 @@ import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { MobileBottomPadding } from '@/components/MobileBottomPadding';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/ui/sonner';
+import { GoogleAdsenseClient } from '@/components/ads/GoogleAdsenseClient';
+import Script from 'next/script';
 
 // Use system font stack so Docker build does not require network (Google Fonts fetch)
 const fontClass =
@@ -23,11 +25,27 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const adsEnabled =
+    process.env.NEXT_PUBLIC_ADS_ENABLED === 'true' ||
+    process.env.NEXT_PUBLIC_ADS_ENABLED === '1';
+  const pubId = process.env.NEXT_PUBLIC_GOOGLE_ADSENSE_PUB_ID;
+
   return (
     <html lang="en">
       <body className={`${fontClass} bg-gray-50`}>
+        {adsEnabled && pubId ? (
+          <Script
+            id="google-adsense-script"
+            async
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(
+              pubId
+            )}`}
+          />
+        ) : null}
         <Providers>
           <Navigation />
+          <GoogleAdsenseClient />
           <main>
             {children}
             <Footer />
