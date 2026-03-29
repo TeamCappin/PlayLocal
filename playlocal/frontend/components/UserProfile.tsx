@@ -17,6 +17,7 @@ import {
   UserPlus,
   Gamepad2,
   Lock,
+  SearchX,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ReportModal } from './ReportModal';
@@ -32,8 +33,10 @@ import { ActionsRequired } from './sub-components/ActionsRequired';
 import { MatchHistoryList } from './sub-components/MatchHistoryList';
 import { MatchHistoryFilters } from './sub-components/MatchHistoryFilters';
 import {
+  clearMatchHistoryFilterFields,
   defaultMatchHistoryFilters,
   filterPastGamesForMatchHistory,
+  hasActiveMatchHistoryFilters,
   sortMatchHistoryGames,
   type MatchHistoryFilterState,
 } from '@/lib/matchHistoryUtils';
@@ -866,14 +869,37 @@ export function UserProfile() {
                         onChange={setMatchHistoryFilters}
                       />
                       {filteredPastGames.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500 border border-dashed border-gray-200 rounded-xl">
-                          <p className="font-medium text-gray-700">
+                        <div
+                          role="status"
+                          aria-label="No games match the current filters"
+                          className="text-center py-12 px-4 text-gray-500 border border-dashed border-gray-200 rounded-xl bg-gray-50/50"
+                        >
+                          <SearchX
+                            className="w-12 h-12 mx-auto mb-3 text-gray-300"
+                            aria-hidden
+                          />
+                          <p className="font-medium text-gray-800">
                             No matches match your filters
                           </p>
-                          <p className="text-sm mt-1">
-                            Try changing sport, result, or date range, or clear
-                            filters.
+                          <p className="text-sm mt-2 text-gray-600 max-w-md mx-auto">
+                            Try a different sport, result, or date range, or
+                            clear filters to see all past games.
                           </p>
+                          {hasActiveMatchHistoryFilters(matchHistoryFilters) ? (
+                            <button
+                              type="button"
+                              className="mt-4 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                              onClick={() =>
+                                setMatchHistoryFilters(
+                                  clearMatchHistoryFilterFields(
+                                    matchHistoryFilters
+                                  )
+                                )
+                              }
+                            >
+                              Clear filters
+                            </button>
+                          ) : null}
                         </div>
                       ) : (
                         <div className="space-y-3">

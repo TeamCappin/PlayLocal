@@ -22,6 +22,31 @@ export const defaultMatchHistoryFilters = (): MatchHistoryFilterState => ({
   sortOrder: 'newest_first',
 });
 
+/** True when sport, result, or date filters are narrowing the list (sort ignored). US-7.5 AC4. */
+export function hasActiveMatchHistoryFilters(
+  filters: MatchHistoryFilterState
+): boolean {
+  return (
+    !!filters.sport?.trim() ||
+    filters.result !== 'all' ||
+    !!filters.dateFrom?.trim() ||
+    !!filters.dateTo?.trim()
+  );
+}
+
+/** Clears sport, result, and date range; keeps sort order. US-7.5 AC2. */
+export function clearMatchHistoryFilterFields(
+  filters: MatchHistoryFilterState
+): MatchHistoryFilterState {
+  return {
+    ...filters,
+    sport: '',
+    result: 'all',
+    dateFrom: '',
+    dateTo: '',
+  };
+}
+
 /**
  * Placeholder until the API returns per-user match result on past games.
  * Stable per `gameId` so filters and list labels stay consistent.

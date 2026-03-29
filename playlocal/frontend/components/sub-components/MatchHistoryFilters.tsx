@@ -2,7 +2,11 @@
 
 import { Filter, X } from 'lucide-react';
 import type { MatchHistoryFilterState } from '@/lib/matchHistoryUtils';
-import { uniqueSportNames } from '@/lib/matchHistoryUtils';
+import {
+  clearMatchHistoryFilterFields,
+  hasActiveMatchHistoryFilters,
+  uniqueSportNames,
+} from '@/lib/matchHistoryUtils';
 import type { GameResponse } from '@/lib/api';
 
 type MatchHistoryFiltersProps = Readonly<{
@@ -31,15 +35,7 @@ export function MatchHistoryFilters({
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() =>
-              onChange({
-                ...value,
-                sport: '',
-                result: 'all',
-                dateFrom: '',
-                dateTo: '',
-              })
-            }
+            onClick={() => onChange(clearMatchHistoryFilterFields(value))}
             className="ml-auto inline-flex items-center gap-1 text-sm text-emerald-700 hover:text-emerald-800"
           >
             <X className="w-4 h-4" />

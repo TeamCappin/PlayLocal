@@ -1,10 +1,12 @@
 import {
+  clearMatchHistoryFilterFields,
   defaultMatchHistoryFilters,
   filterPastGamesForMatchHistory,
   formatMatchHistoryDateTime,
   getMatchHistoryVenueLabel,
   getMockMatchOutcome,
   getMockMatchScoreDisplay,
+  hasActiveMatchHistoryFilters,
   sortMatchHistoryGames,
   uniqueSportNames,
 } from '@/lib/matchHistoryUtils';
@@ -33,6 +35,41 @@ function game(partial: Partial<GameResponse> & Pick<GameResponse, 'gameId'>): Ga
 }
 
 describe('matchHistoryUtils', () => {
+  it('hasActiveMatchHistoryFilters ignores sort only', () => {
+    expect(hasActiveMatchHistoryFilters(defaultMatchHistoryFilters())).toBe(
+      false
+    );
+    expect(
+      hasActiveMatchHistoryFilters({
+        ...defaultMatchHistoryFilters(),
+        sortOrder: 'oldest_first',
+      })
+    ).toBe(false);
+    expect(
+      hasActiveMatchHistoryFilters({
+        ...defaultMatchHistoryFilters(),
+        sport: 'Soccer',
+      })
+    ).toBe(true);
+  });
+
+  it('clearMatchHistoryFilterFields preserves sortOrder', () => {
+    const cleared = clearMatchHistoryFilterFields({
+      sport: 'Soccer',
+      result: 'win',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-12-31',
+      sortOrder: 'oldest_first',
+    });
+    expect(cleared).toEqual({
+      sport: '',
+      result: 'all',
+      dateFrom: '',
+      dateTo: '',
+      sortOrder: 'oldest_first',
+    });
+  });
+
   it('getMockMatchOutcome is stable per gameId', () => {
     expect(getMockMatchOutcome('abc')).toBe(getMockMatchOutcome('abc'));
     expect(['win', 'loss']).toContain(getMockMatchOutcome('x'));
