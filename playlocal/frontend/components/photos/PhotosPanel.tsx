@@ -4,15 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { PhotoItem } from '@/lib/api';
 import { toast, getActionableErrorMessage } from '@/lib/toast';
 import { Trash2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ConfirmActionDialog } from '@/components/ConfirmActionDialog';
 
 const MAX_PHOTOS = 5;
 
@@ -467,32 +459,21 @@ export function PhotosPanel({
         </div>
       )}
 
-      {/* Delete Photo Confirmation Dialog */}
-      <AlertDialog
-        open={photoToDelete !== null}
-        onOpenChange={(open) => !open && setPhotoToDelete(null)}
+      <ConfirmActionDialog
+        isOpen={photoToDelete !== null}
+        onClose={() => !isDeleting && setPhotoToDelete(null)}
+        onConfirm={handleDeletePhoto}
+        isLoading={isDeleting}
+        title="Delete Photo?"
+        titleId="delete-photo-title"
+        descriptionId="delete-photo-description"
+        overlayAriaLabel="Close delete photo dialog"
+        cancelLabel="Cancel"
+        confirmLabel="Delete Photo"
+        confirmLoadingLabel="Deleting..."
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Photo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This photo will be permanently deleted. This action cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <button
-              type="button"
-              onClick={handleDeletePhoto}
-              disabled={isDeleting}
-              className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Photo'}
-            </button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <p>This photo will be permanently deleted. This action cannot be undone.</p>
+      </ConfirmActionDialog>
     </div>
   );
 }
