@@ -1,0 +1,20 @@
+mail:
+  enabled: false
+
+s3:
+  endpoint: http://localhost:4566
+  region: us-east-2
+  accessKey: test
+  secretKey: test
+
+jwt:
+  secret: i+JVWK+i4p+Rbv1/hQJZSE8gYnEw5g44XzT63QPnmyk=
+
+recaptcha:
+  enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

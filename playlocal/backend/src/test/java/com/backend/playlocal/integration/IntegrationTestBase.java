@@ -1,6 +1,8 @@
 package com.backend.playlocal.integration;
 
+import com.backend.playlocal.service.EmailService;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -10,13 +12,35 @@ import com.backend.playlocal.testutil.DockerOrExternalDbCondition;
 /**
  * Base class for integration tests that require a real PostgreSQL database.
  * Uses Testcontainers to spin up a PostgreSQL instance for local testing.
- * In CI (GitHub Actions), uses SPRING_DATASOURCE_URL environment variable pointing to service container.
+ * In CI (GitHub Actions), uses SPRING_DATASOURCE_URL environment variable
+ * pointing to service container.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+                "mail.from-email=test@playlocal.com",
+                "mail.from-name=PlayLocal",
+                "mail.enabled=false",
+                "mail.brevo-api-key=test-key",
+                "jwt.secret=test-secret-key-that-is-long-enough-for-testing-purposes",
+                "jwt.expiration=86400000",
+                "recaptcha.secret-key=test-key",
+                "recaptcha.enabled=false",
+                "recaptcha.score-threshold=0.5",
+                "s3.bucket=test-bucket",
+                "s3.region=us-east-2",
+                "s3.accessKey=test-key",
+                "s3.secretKey=test-secret",
+                "s3.endpoint=http://localhost:4566",
+                "s3.publicEndpoint=http://localhost:4566",
+                "s3.forcePathStyle=true",
+                "s3.presignExpirySeconds=900"
+        })
 @ExtendWith(DockerOrExternalDbCondition.class)
 public abstract class IntegrationTestBase {
 
-    // Only initialize container if not in CI (Spring Boot will use SPRING_DATASOURCE_URL env var in CI)
+    @MockBean
+    private EmailService emailService;  // prevents real Brevo calls in all integration tests
+
     static PostgreSQLContainer<?> postgres;
 
     private static boolean hasExternalDatasource() {
@@ -28,8 +52,6 @@ public abstract class IntegrationTestBase {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Only configure Testcontainers properties if running locally
-        // In CI, Spring Boot automatically uses SPRING_DATASOURCE_URL environment variables
         if (!hasExternalDatasource()) {
             if (postgres == null || !postgres.isRunning()) {
                 postgres = new PostgreSQLContainer<>("postgres:15-alpine")
