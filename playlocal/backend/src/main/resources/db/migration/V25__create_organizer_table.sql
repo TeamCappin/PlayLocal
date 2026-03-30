@@ -50,12 +50,32 @@ CREATE TABLE IF NOT EXISTS organizer (
 -- ORGANIZER VERIFICATION TABLE
 -- =============================================
 
+-- V6 created organizer_verification with user_id. Drop the legacy shape so we can
+-- create the organizer-linked schema in this migration.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'organizer_verification'
+        AND column_name = 'user_id'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'organizer_verification'
+        AND column_name = 'organizer_id'
+    ) THEN
+        DROP TABLE organizer_verification CASCADE;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS organizer_verification (
     organizer_verification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organizer_id UUID NOT NULL UNIQUE REFERENCES organizer(organizer_id),
     
     -- Optional ID verification fields
     id_verification_status verification_status,
+    verification_provider VARCHAR(100),
     id_verification_verified_at TIMESTAMP,
     id_verification_notes TEXT,
     

@@ -3,6 +3,7 @@ package com.backend.playlocal.repository;
 import com.backend.playlocal.model.entity.Organizer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -24,7 +25,7 @@ public interface OrganizerRepository extends JpaRepository<Organizer, UUID> {
      * Find organizer by status.
      */
     @Query("SELECT o FROM Organizer o WHERE o.status = :status ORDER BY o.createdAt DESC")
-    java.util.List<Organizer> findByStatus(Organizer.OrganizerStatus status);
+    java.util.List<Organizer> findByStatus(@Param("status") Organizer.OrganizerStatus status);
 
     /**
      * Count provisional organizers (games completed < 2).

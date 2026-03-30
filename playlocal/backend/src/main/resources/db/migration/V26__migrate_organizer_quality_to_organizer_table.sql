@@ -59,7 +59,7 @@ DO $$
 BEGIN
     IF EXISTS (
         SELECT 1
-        FROM information_schema.tables
+        FROM information_schema.columns
         WHERE table_name = 'organizer_verification'
         AND column_name = 'user_id'
     ) THEN
@@ -70,6 +70,7 @@ BEGIN
             organizer_verification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             organizer_id UUID NOT NULL UNIQUE REFERENCES organizer(organizer_id),
             id_verification_status verification_status,
+            verification_provider VARCHAR(100) NOT NULL DEFAULT 'Persona',
             id_verification_verified_at TIMESTAMP,
             id_verification_notes TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -79,6 +80,16 @@ BEGIN
         );
     END IF;
 END $$;
+
+ALTER TABLE organizer_verification
+    ADD COLUMN IF NOT EXISTS verification_provider VARCHAR(100);
+
+UPDATE organizer_verification
+SET verification_provider = 'Persona'
+WHERE verification_provider IS NULL;
+
+ALTER TABLE organizer_verification
+    ALTER COLUMN verification_provider SET NOT NULL;
 
 -- =============================================
 -- FIX ORGANIZER_SCORE_HISTORY IN V17

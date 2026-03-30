@@ -50,7 +50,7 @@ public class OrganizerVerification {
     private VerificationStatus idVerificationStatus;
 
     @Column(nullable = false)
-    private String verfificationProvider; // e.g., "Persona"
+    private String verificationProvider; // e.g., "Persona"
 
     @Column(name = "id_verification_verified_at")
     private Instant idVerificationVerifiedAt;

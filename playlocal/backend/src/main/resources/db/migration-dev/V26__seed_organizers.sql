@@ -89,12 +89,13 @@ ON CONFLICT DO NOTHING;
 -- CREATE ORGANIZER VERIFICATION RECORDS (OPTIONAL)
 -- =============================================
 
-INSERT INTO organizer_verification (organizer_verification_id, organizer_id, id_verification_status, id_verification_verified_at, id_verification_notes, created_at, updated_at)
+INSERT INTO organizer_verification (organizer_verification_id, organizer_id, id_verification_status, verification_provider, id_verification_verified_at, id_verification_notes, created_at, updated_at)
 VALUES
     (
         'c0000000-0000-0000-0000-000000000001',
         'b0000000-0000-0000-0000-000000000001',
         'VERIFIED',
+        'Persona',
         NOW() - INTERVAL '5 months',
         'Verified via Persona on 2025-10-01',
         NOW() - INTERVAL '5 months',
@@ -104,6 +105,7 @@ VALUES
         'c0000000-0000-0000-0000-000000000002',
         'b0000000-0000-0000-0000-000000000002',
         'VERIFIED',
+        'Persona',
         NOW() - INTERVAL '4 months',
         'Verified via Persona on 2025-11-01',
         NOW() - INTERVAL '4 months',
@@ -113,6 +115,7 @@ VALUES
         'c0000000-0000-0000-0000-000000000003',
         'b0000000-0000-0000-0000-000000000003',
         'PENDING',
+        'Persona',
         NULL,
         'Pending ID verification',
         NOW() - INTERVAL '3 months',
