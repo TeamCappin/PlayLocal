@@ -25,7 +25,7 @@ everyone can find a group where they feel comfortable and respected.
 |--------------------------|----------------|-----------------------|
 | Minh Huynh               | 40210039       | @vibqetowi           |
 | Omar Elmasaoudi          | 40255123       | @Omare04             |
-| Asif Ali Khan            | 40211000       | @AsifAliKhan2001     |
+| Asif Ali Khan            | 40211000       | @AsifAliKhan2001 @haleemaK123 |
 | Melissa Rahman           | 40249231       | @mE3lissa            |
 | Younes Bouhaba           | 40205816       | @Younesbhb           |
 | Alexander El Ghaoui      | 40200062       | @Ghawi25             |
