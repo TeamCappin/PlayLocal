@@ -66,7 +66,7 @@ export function LandingPage() {
             <div className="flex items-center gap-4">
               <Link
                 href="/discover?view=map"
-                className="text-white hover:text-emerald-200 transition-colors"
+                className="hidden sm:block text-white hover:text-emerald-200 transition-colors"
               >
                 Discover Games
               </Link>
@@ -91,7 +91,7 @@ export function LandingPage() {
               backgroundPosition: 'center',
             }}
           ></div>
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center pt-10 sm:pt-0">
             <div className="max-w-3xl">
               <h1 className="text-5xl md:text-6xl text-white mb-6">
                 Find Your Game. <br />
@@ -112,7 +112,7 @@ export function LandingPage() {
                 </Link>
                 <Link
                   href="/games/create"
-                  className="px-8 py-4 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-all hover:scale-105"
+                  className="hidden sm:flex px-8 py-4 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-all hover:scale-105"
                 >
                   Create a Game
                 </Link>
