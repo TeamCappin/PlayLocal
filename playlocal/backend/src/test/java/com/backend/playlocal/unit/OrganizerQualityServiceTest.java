@@ -31,7 +31,6 @@ import static org.mockito.Mockito.*;
  * Implements: US-6.1 - Organizer Quality Score
  */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class OrganizerQualityServiceTest {
 
     @Mock
@@ -151,6 +150,33 @@ class OrganizerQualityServiceTest {
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("User not found");
         }
+
+        @Test
+        @DisplayName("Should return default OQS response when user has no organizer profile")
+        void shouldReturnDefaultOqsWhenOrganizerProfileMissing() {
+            when(userRepository.findActiveById(testOrganizer.getUserId()))
+                    .thenReturn(Optional.of(testOrganizer));
+            when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
+                    .thenReturn(Optional.empty());
+
+            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizer.getUserId());
+
+            assertThat(response.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
+            assertThat(response.getDisplayName()).isEqualTo(testOrganizer.getDisplayName());
+            assertThat(response.getOqsScore()).isEqualTo(100.0f);
+            assertThat(response.getGameCompletionRate()).isEqualTo(100.0f);
+            assertThat(response.getRepeatPlayerRate()).isEqualTo(0.0f);
+            assertThat(response.getTotalGamesHosted()).isEqualTo(0);
+            assertThat(response.getCompletedGames()).isEqualTo(0);
+            assertThat(response.getCancelledGames()).isEqualTo(0);
+            assertThat(response.getTotalUniquePlayers()).isEqualTo(0);
+            assertThat(response.getRepeatPlayers()).isEqualTo(0);
+            assertThat(response.getConfidenceLevel()).isEqualTo("LOW");
+            assertThat(response.getConfidenceDescription()).isEqualTo("Host at least 3 games to build confidence");
+            assertThat(response.getLastCalculatedAt()).isNull();
+
+            verify(oqsRepository, never()).findByOrganizer_OrganizerId(any(UUID.class));
+        }
     }
 
     @Nested
@@ -184,6 +210,23 @@ class OrganizerQualityServiceTest {
             assertThat(summary.getConfidenceLevel()).isEqualTo("LOW");
             assertThat(summary.getTotalGamesHosted()).isEqualTo(0);
         }
+
+                @Test
+                @DisplayName("Should return default summary when organizer profile is missing")
+                void shouldReturnDefaultSummaryWhenOrganizerProfileMissing() {
+                        when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
+                                        .thenReturn(Optional.empty());
+
+                        OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+
+                        assertThat(summary).isNotNull();
+                        assertThat(summary.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
+                        assertThat(summary.getOqsScore()).isEqualTo(100.0f);
+                        assertThat(summary.getConfidenceLevel()).isEqualTo("LOW");
+                        assertThat(summary.getTotalGamesHosted()).isEqualTo(0);
+
+                        verify(oqsRepository, never()).findByOrganizer_OrganizerId(any(UUID.class));
+                }
     }
 
     @Nested
@@ -420,6 +463,19 @@ class OrganizerQualityServiceTest {
             oqsService.onGameCancelled(testGame.getGameId());
 
             verify(oqsRepository).save(any(OrganizerQualityScore.class));
+        }
+
+        @Test
+        @DisplayName("Should throw when organizer profile is missing for game event")
+        void shouldThrowWhenOrganizerProfileMissingForGameEvent() {
+            when(gameRepository.findById(testGame.getGameId()))
+                    .thenReturn(Optional.of(testGame));
+            when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> oqsService.onGameCompleted(testGame.getGameId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Organizer not found");
         }
     }
 

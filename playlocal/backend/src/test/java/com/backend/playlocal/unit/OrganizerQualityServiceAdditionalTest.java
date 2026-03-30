@@ -363,6 +363,22 @@ class OrganizerQualityServiceAdditionalTest {
     @DisplayName("getOqsInfoCard Tests - New Organizer")
     class GetOqsInfoCardNewOrganizerTests {
 
+                @Test
+                @DisplayName("Should return new organizer info card when organizer profile is missing")
+                void shouldReturnNewOrganizerInfoCardWhenOrganizerMissing() {
+                        when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
+                                        .thenReturn(Optional.empty());
+
+                        OrganizerQualityDto.OqsInfoCard infoCard = oqsService.getOqsInfoCard(testOrganizer.getUserId());
+
+                        assertThat(infoCard.getOqsScore()).isEqualTo(100.0f);
+                        assertThat(infoCard.getOverallDescription()).contains("New organizer");
+                        assertThat(infoCard.getConfidenceLevel()).isEqualTo("LOW");
+                        assertThat(infoCard.getGamesForNextLevel()).isEqualTo(3);
+
+                        verify(oqsRepository, never()).findByOrganizer_OrganizerId(any(UUID.class));
+                }
+
         @Test
         @DisplayName("Should return new organizer info card when OQS is null")
         void shouldReturnNewOrganizerInfoCardWhenNull() {
