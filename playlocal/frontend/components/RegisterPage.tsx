@@ -126,10 +126,10 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="sm:min-h-screen flex items-center justify-center py-4 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full" style={{ maxWidth: '32rem' }}>
         {/* Progress indicator */}
-        <div className="flex items-center justify-center mb-8 gap-4">
+        <div className="flex items-center justify-center mb-4 sm:mb-8 gap-4">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-500'}`}
           >
@@ -145,7 +145,7 @@ export const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-8">
           {step === 1 ? (
             <>
               <div className="text-center mb-8">
@@ -345,7 +345,7 @@ export const RegisterPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Self-Rated Intensity <span className="text-red-500">*</span>
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {INTENSITY_OPTIONS.map((option) => {
                       const Icon = option.icon;
                       return (
@@ -353,7 +353,7 @@ export const RegisterPage: React.FC = () => {
                           key={option.id}
                           type="button"
                           onClick={() => setIntensity(option.id)}
-                          className={`p-4 rounded-xl border-2 transition-all text-center ${
+                          className={`px-2 py-3 sm:p-4 rounded-xl border-2 transition-all text-center ${
                             intensity === option.id
                               ? 'border-emerald-500 bg-emerald-50'
                               : 'border-gray-200 hover:border-gray-300'
@@ -363,7 +363,7 @@ export const RegisterPage: React.FC = () => {
                             className={`w-6 h-6 mx-auto mb-2 ${intensity === option.id ? 'text-emerald-600' : 'text-gray-400'}`}
                           />
                           <div
-                            className={`font-medium ${intensity === option.id ? 'text-emerald-700' : 'text-gray-700'}`}
+                            className={`text-sm sm:text-base font-medium ${intensity === option.id ? 'text-emerald-700' : 'text-gray-700'}`}
                           >
                             {option.label}
                           </div>

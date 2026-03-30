@@ -119,7 +119,7 @@ export function EditProfile() {
               <h3 className="block text-sm font-medium text-gray-700 mb-3">
                 Self-Rated Intensity <span className="text-red-500">*</span>
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 {INTENSITY_OPTIONS.map((option) => {
                   const Icon = option.icon;
                   return (
@@ -127,7 +127,7 @@ export function EditProfile() {
                       key={option.id}
                       type="button"
                       onClick={() => setIntensity(option.id)}
-                      className={`p-4 rounded-xl border-2 transition-all text-center ${
+                      className={`px-2 py-3 sm:p-4 rounded-xl border-2 transition-all text-center ${
                         intensity === option.id
                           ? 'border-emerald-500 bg-emerald-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -137,7 +137,7 @@ export function EditProfile() {
                         className={`w-8 h-8 mx-auto mb-2 ${intensity === option.id ? 'text-emerald-600' : 'text-gray-400'}`}
                       />
                       <div
-                        className={`font-medium ${intensity === option.id ? 'text-emerald-700' : 'text-gray-700'}`}
+                        className={`text-sm sm:text-base font-medium ${intensity === option.id ? 'text-emerald-700' : 'text-gray-700'}`}
                       >
                         {option.label}
                       </div>
