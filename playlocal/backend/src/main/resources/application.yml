@@ -27,15 +27,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  mail:
-    host: ${MAIL_HOST:smtp-relay.brevo.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:placeholder}
-    password: ${MAIL_PASSWORD:placeholder}
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-
 server:
   port: ${SERVER_PORT:8080}
 
@@ -82,11 +73,9 @@ recaptcha:
   enabled: ${RECAPTCHA_ENABLED:false}
   score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
 
-# Brevo SMTP
+# Resend Email
 mail:
-  from-email: ${MAIL_FROM_EMAIL:noreply@playlocal.com}
-  from-name: ${MAIL_FROM_NAME:PlayLocal}
-  enabled: ${MAIL_ENABLED:false}
+  enabled: ${RESEND_ENABLED:false}
 
 # Logging
 # %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
