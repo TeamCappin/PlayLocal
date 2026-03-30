@@ -44,8 +44,8 @@ public class EmailLog {
   @Builder.Default
   private EmailStatus status = EmailStatus.PENDING;
 
-  @Column(name = "resend_id")
-  private String resendId;
+  @Column(name = "provider_message_id")
+  private String providerMessageId;
 
   @Column(name = "error_message")
   private String errorMessage;
