@@ -10,5 +10,5 @@ export function MobileBottomPadding() {
   const hiddenRoutes = ['/', '/login', '/register'];
   if (!isMobile || hiddenRoutes.includes(pathname)) return null;
 
-  return <div style={{ height: '50px' }} aria-hidden="true" />;
+  return <div className="bg-gray-900 -mt-px" style={{ height: '50px' }} aria-hidden="true" />;
 }
