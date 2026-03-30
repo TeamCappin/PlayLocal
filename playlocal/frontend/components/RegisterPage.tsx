@@ -5,7 +5,7 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { INTENSITY_OPTIONS, AVAILABILITY_OPTIONS } from '@/lib/constants';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useGoogleReCaptcha } from '@/hooks/useGoogleReCaptcha';
 
 const PASSWORD_RULES = [
     { id: 'length',    label: 'At least 8 characters',         test: (p: string) => p.length >= 8 },

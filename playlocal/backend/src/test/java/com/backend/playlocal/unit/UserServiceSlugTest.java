@@ -46,6 +46,9 @@ class UserServiceSlugTest {
     @Mock
     private FriendshipRepository friendshipRepository;
 
+    @Mock
+    private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+
     @InjectMocks
     private UserService userService;
 

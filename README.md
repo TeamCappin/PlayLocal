@@ -3,6 +3,16 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TeamCappin_PlayLocal&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=TeamCappin_PlayLocal)
 [![codecov](https://codecov.io/gh/TeamCappin/PlayLocal/branch/dev/graph/badge.svg?token=8P22R0Z90L)](https://codecov.io/gh/TeamCappin/PlayLocal)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/9e082237-585c-4ac5-9085-c19eb58954ee/deploy-status)](https://app.netlify.com/projects/playlocal/deploys)
+![Neon Status](https://img.shields.io/badge/Neon-Connected-green)
+
+## Built with
+
+![Netlify](https://img.shields.io/badge/Netlify-000000?style=for-the-badge&logo=netlify&logoColor=00C7B7)
+![Render](https://img.shields.io/badge/Render-3B3B3B?style=for-the-badge&logo=render&logoColor=white)
+![Resend](https://img.shields.io/badge/Resend-Email_API-black?style=for-the-badge)
+![Neon](https://img.shields.io/badge/Neon-000000?style=for-the-badge&logo=postgresql&logoColor=00E599)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 
 ## Project Overview
 
@@ -25,7 +35,7 @@ everyone can find a group where they feel comfortable and respected.
 |--------------------------|----------------|-----------------------|
 | Minh Huynh               | 40210039       | @vibqetowi           |
 | Omar Elmasaoudi          | 40255123       | @Omare04             |
-| Asif Ali Khan            | 40211000       | @AsifAliKhan2001     |
+| Asif Ali Khan            | 40211000       | @AsifAliKhan2001 @haleemaK123 |
 | Melissa Rahman           | 40249231       | @mE3lissa            |
 | Younes Bouhaba           | 40205816       | @Younesbhb           |
 | Alexander El Ghaoui      | 40200062       | @Ghawi25             |
@@ -141,9 +151,33 @@ curl http://localhost:8080/api/v1/health
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
-### CI Checks
+# Testing
 
-- Docker image build on PRs: `.github/workflows/docker-build-pr.yml` builds the backend and frontend images to validate container builds before merge.
+This folder documents shared testing artifacts for PlayLocal.
+Code-based test suites live in the backend and frontend apps.
+
+## Current structure
+
+- `testing/README.md` (this file)
+
+## Where tests live today
+
+- Backend: `playlocal/backend/src/test/java`
+- Frontend: `playlocal/frontend/test`
+
+## Quick commands
+
+- Backend unit/integration: `cd playlocal/backend && ./mvnw test`
+- Frontend: `cd playlocal/frontend && npm test`
+
+Performance validation lives in `performance/` at the repo root — see `performance/README.md`.
+- Backend unit/integration: (cd playlocal/backend && ./mvnw test)
+- Backend concurrency: requires Docker (Testcontainers)
+- Frontend: (cd playlocal/frontend && npm test)
+
+CI checks
+
+- Docker image build on PRs: `.github/workflows/docker-build-pr.yml` builds the backend and frontend images to catch container regressions early.
 
 ### Manual Development
 

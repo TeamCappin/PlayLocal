@@ -52,6 +52,7 @@ const getNotificationIcon = (type: string) => {
     ),
     GAME_UPDATED: <Calendar className="w-5 h-5 text-emerald-600" />,
     GAME_STARTING: <Calendar className="w-5 h-5 text-amber-600" />,
+    GAME_STARTING_SOON: <Calendar className="w-5 h-5 text-amber-600" />,
     FRIEND_REQUEST: <UserPlus className="w-5 h-5 text-blue-600" />,
     MESSAGE: <MessageCircle className="w-5 h-5 text-amber-600" />,
     ACHIEVEMENT: <Award className="w-5 h-5 text-yellow-600" />,
@@ -146,10 +147,10 @@ export function NotificationsPage() {
   const { isAuthenticated } = useAuth();
   const {
     notifications: apiNotifications,
-    unreadCount: apiUnreadCount,
     isLoading,
     markAsRead,
     markAllAsRead,
+    refetch,
   } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [localReadState, setLocalReadState] = useState<Record<string, boolean>>(
@@ -184,6 +185,8 @@ export function NotificationsPage() {
       await markAsRead(notificationId);
     } catch (err) {
       // Already updated locally, so don't revert
+    } finally {
+      await refetch();
     }
   };
 
@@ -199,6 +202,8 @@ export function NotificationsPage() {
       await markAllAsRead();
     } catch (err) {
       // Already updated locally
+    } finally {
+      await refetch();
     }
   };
 

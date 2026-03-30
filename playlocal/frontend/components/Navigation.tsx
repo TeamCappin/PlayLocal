@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,6 +14,8 @@ import {
   LogOut,
   LogIn,
   Bot,
+  Settings,
+  ChevronDown,
 } from 'lucide-react';
 import { useAssistant } from '@/context/AssistantContext';
 import { inferAssistantRoute } from '@/lib/inferAssistantRoute';
@@ -24,6 +26,8 @@ import { performLogoutRedirect } from '@/lib/authRedirect';
 
 export function Navigation() {
   const [mounted, setMounted] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
   // Ensure hydration is complete before rendering
@@ -31,6 +35,28 @@ export function Navigation() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    }
+    if (profileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [profileMenuOpen]);
+
+  // Close menu when route changes (e.g. after navigating to Settings)
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- close dropdown on navigate; recommended UX */
+    setProfileMenuOpen(false);
+  }, [pathname]);
 
   const isLanding = pathname === '/';
   const isMobile = useIsMobile();
@@ -196,31 +222,73 @@ export function Navigation() {
                   )}
                 </Link>
 
-                <Link
-                  href="/profile"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    pathname.startsWith('/profile')
-                      ? 'text-emerald-600 bg-emerald-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  {user?.displayName ? (
-                    <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                      {user.displayName[0].toUpperCase()}
-                    </div>
-                  ) : (
-                    <User className="w-5 h-5" />
-                  )}
-                  <span>{user?.displayName || 'Profile'}</span>
-                </Link>
+                {/* Profile / avatar menu: Profile, Settings, Sign out */}
+                <div className="relative" ref={profileMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setProfileMenuOpen((open) => !open)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      pathname.startsWith('/profile') || pathname.startsWith('/settings')
+                        ? 'text-emerald-600 bg-emerald-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                    aria-expanded={profileMenuOpen}
+                    aria-haspopup="true"
+                    aria-label="Open account menu"
+                  >
+                    {user?.displayName ? (
+                      <div className="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                        {user.displayName[0].toUpperCase()}
+                      </div>
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
+                    <span>{user?.displayName || 'Profile'}</span>
+                    <ChevronDown
+                      className="w-4 h-4 shrink-0 transition-transform duration-200"
+                      style={{ transform: profileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    />
+                  </button>
 
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Sign out"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
+                  {profileMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-1 w-52 py-1 bg-white rounded-lg border border-gray-200 shadow-lg z-50"
+                      role="menu"
+                    >
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                        role="menuitem"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        <User className="w-5 h-5 text-gray-500" />
+                        <span>Profile</span>
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                        role="menuitem"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        <Settings className="w-5 h-5 text-gray-500" />
+                        <span>Settings</span>
+                      </Link>
+                      <hr className="my-1 border-gray-100" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        role="menuitem"
+                      >
+                        <LogOut className="w-5 h-5 text-gray-500" />
+                        <span>Sign out</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>

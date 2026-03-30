@@ -10,25 +10,18 @@ import {
   ChevronRight,
   Flag,
 } from 'lucide-react';
-import { format } from 'date-fns/format';
-import { gamesApi, ParticipantDto } from '@/lib/api';
+import { gamesApi, ParticipantDto, type GameResponse } from '@/lib/api';
+import {
+  formatMatchHistoryDateTime,
+  getMatchHistoryVenueLabel,
+  getMockMatchOutcome,
+  getMockMatchScoreDisplay,
+} from '@/lib/matchHistoryUtils';
 import { useEffect, useState } from 'react';
 
 type MatchHistoryListProps = {
-  game: {
-    gameId: string;
-    title: string;
-    startTime: string;
-    location: {
-      name: string;
-    } | null;
-
-    // todo: get game.score
-    // todo: get the game.team from participation table
-    // todo: get game.result- won or loss participation table or some other table
-    // todo: game.participation role from the participation table.
-    // todo: get attendance confirm/no show/confirm attendance/attendance pending from game participation table
-  } | null;
+  /** Past game from `/games/past` (includes sportName). */
+  game: GameResponse | null;
 };
 
 export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
@@ -91,9 +84,11 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
   const isParticipantUnknownAttendance =
     gameParticipation?.role !== 'ORGANIZER' &&
     gameParticipation?.attendanceStatus === 'UNKNOWN';
-  const gameDate = game
-    ? format(new Date(game.startTime), "EEEE, MMM d 'at' h:mm a")
-    : '';
+  const gameDateTime = game ? formatMatchHistoryDateTime(game) : '';
+  const venueLabel = game ? getMatchHistoryVenueLabel(game) : '';
+
+  const outcome = game ? getMockMatchOutcome(game.gameId) : null;
+  const scoreDisplay = game ? getMockMatchScoreDisplay(game.gameId) : null;
 
   return (
     <div className="block p-4 flex-col items-center bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -108,37 +103,47 @@ export function MatchHistoryList({ game }: Readonly<MatchHistoryListProps>) {
               🏀
             </div>
             <div>
-              <div className="flex mb-1 items-center gap-1">
+              <div className="flex mb-1 items-center gap-1 flex-wrap">
                 <div className="text-gray-900 text-lg">{game?.title}</div>
+                {game?.sportName ? (
+                  <div className="text-xs text-gray-600 bg-gray-100 rounded-md px-2 py-0.5">
+                    {game.sportName}
+                  </div>
+                ) : null}
                 <div className="text-xs text-emerald-600 bg-emerald-100 rounded-md px-2">
                   {gameParticipation?.role}
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <div>
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>{gameDate}</div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 gap-2 text-sm text-gray-600">
+                <div className="flex items-start gap-1 min-w-0">
+                  <Clock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  <time dateTime={game?.startTime}>{gameDateTime}</time>
                 </div>
-                <div className="flex items-center gap-1">
-                  <div>
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <div>{game?.location?.name}</div>
+                <div className="flex items-start gap-1 min-w-0">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>{venueLabel}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="text-right">
-            {/* <div className={`text-lg ${game.result === 'Win' ? 'text-emerald-600' : 'text-gray-600'} mb-1`}> */}
-            <div className="mb-1 px-2 text-lg rounded-md text-emerald-600 bg-emerald-100 inline-block">
-              Result
-            </div>
-            {/* </div> */}
-
-            <div className="text-sm text-gray-500">Team • Score</div>
+          <div className="text-right shrink-0">
+            {outcome && (
+              <div
+                className={`mb-1 px-2 text-sm font-semibold rounded-md inline-block ${
+                  outcome === 'win'
+                    ? 'text-emerald-700 bg-emerald-100'
+                    : 'text-amber-800 bg-amber-100'
+                }`}
+              >
+                {outcome === 'win' ? 'Win' : 'Loss'}
+              </div>
+            )}
+            {scoreDisplay && (
+              <div className="text-sm text-gray-700 tabular-nums font-medium">
+                Score {scoreDisplay}
+              </div>
+            )}
           </div>
         </div>
       </Link>
