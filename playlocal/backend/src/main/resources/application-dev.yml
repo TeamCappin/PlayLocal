@@ -1,20 +1,28 @@
 spring:
-  flyway:
-    locations: classpath:db/migration,classpath:db/migration-dev
+  config:
+    activate:
+      on-profile: dev
+
   datasource:
-    # When using Docker for Postgres only (docker compose up postgres -d), use host port 5439
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5439/playlocal}
+    url: jdbc:postgresql://localhost:5439/playlocal
+    username: playlocal
+    password: playlocal
+
   jpa:
     show-sql: true
+    open-in-view: true
+
+  flyway:
+    baseline-on-migrate: true
+    locations: classpath:db/migration,classpath:db/migration-dev
 
 logging:
   level:
+    root: DEBUG
     com.backend.playlocal: DEBUG
-    org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-game: 
+game:
   lifecycle:
     update-interval-ms: 60000
 
@@ -27,3 +35,9 @@ s3:
   publicEndpoint: ${publicEndpoint:http://localhost:9000}
   forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
+
+mail:
+  enabled: false
+
+recaptcha:
+  enabled: false
