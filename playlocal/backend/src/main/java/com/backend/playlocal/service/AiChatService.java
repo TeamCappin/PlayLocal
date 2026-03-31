@@ -228,9 +228,10 @@ public class AiChatService {
                 sb.append("I don't have that exact topic in the approved PlayLocal help yet, so I won't guess. "
                         + "Tell me a bit more—are you asking about **joining games**, **friends**, **blocking/reporting**, "
                         + "or **your profile settings**? You can also open **Profile → Settings** in the app.\n");
+                if (!hits.isEmpty()) {
+                    sb.append("\nIf you need step-by-step navigation, try rephrasing with words like “how do I …”.\n");
+                }
             }
-        } else if (topKb == null && toolResults.isEmpty() && !hits.isEmpty()) {
-            sb.append("\nIf you need step-by-step navigation, try rephrasing with words like “how do I …”.\n");
         }
 
         return sb.toString().trim();
