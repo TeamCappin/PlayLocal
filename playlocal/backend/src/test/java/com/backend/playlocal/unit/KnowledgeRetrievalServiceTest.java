@@ -137,4 +137,22 @@ class KnowledgeRetrievalServiceTest {
         assertThat(svcLow.search("block", 3)).isNotEmpty();
         assertThat(svcHigh.search("block", 3)).isEmpty();
     }
+
+    @Test
+    @DisplayName("single-character query tokens produce no overlap")
+    void search_SingleCharacterTokens() {
+        List<KnowledgeEntryModel> entries = List.of(
+                new KnowledgeEntryModel(
+                        "entry",
+                        "Entry",
+                        "S",
+                        List.of(),
+                        List.of("block"),
+                        List.of(),
+                        null,
+                        "block account"));
+        when(bundle.allEntries()).thenReturn(entries);
+        KnowledgeRetrievalService svc = new KnowledgeRetrievalService(bundle, 0.0, 1);
+        assertThat(svc.search("a i", 3)).isEmpty();
+    }
 }

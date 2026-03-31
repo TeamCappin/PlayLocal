@@ -330,4 +330,81 @@ class AiChatServiceTest {
                 .contains("I focus on PlayLocal help")
                 .contains("How do I block someone?");
     }
+
+    @Test
+    @DisplayName("general-knowledge phrasing with PlayLocal keywords stays in normal uncertainty path")
+    void chat_GeneralKnowledgeButPlayLocal_NotOutOfScopeMessage() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "s6",
+                List.of(new AiChatDto.ChatMessage("user", "What is PlayLocal account settings policy?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content())
+                .contains("I don't have that exact topic")
+                .doesNotContain("I focus on PlayLocal help");
+    }
+
+    @Test
+    @DisplayName("blank session id falls back to anonymous telemetry session")
+    void chat_BlankSession_UsesAnonymous() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "   ",
+                List.of(new AiChatDto.ChatMessage("user", "hi")));
+
+        aiChatService.chat(userId, request);
+
+        verify(telemetryService).recordEvent(
+                eq(AssistantTelemetryService.ASSISTANT_MESSAGE_SENT),
+                eq(userId),
+                eq("anonymous"),
+                isNull(),
+                eq(java.util.Map.of("messageCount", 1)));
+    }
+
+    @Test
+    @DisplayName("no non-empty user message falls back to default prompt")
+    void chat_NoUserMessage_FallsBackToDefaultQuestion() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "sfallback",
+                List.of(
+                        new AiChatDto.ChatMessage("assistant", "previous"),
+                        new AiChatDto.ChatMessage("user", "   ")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).contains("I don't have that exact topic");
+        verify(knowledgeRetrievalService).search(eq("your question"), anyInt());
+    }
+
+    @Test
+    @DisplayName("response is trimmed to max reply length when tool output is too long")
+    void chat_LongToolOutput_IsTrimmed() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
+        String veryLong = "x".repeat(9000);
+        when(userDataToolService.upcomingGamesThisWeek(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.UPCOMING_GAMES_THIS_WEEK,
+                        veryLong));
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "trim1",
+                List.of(new AiChatDto.ChatMessage("user", "What games am I in this week?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).hasSize(8001).endsWith("…");
+    }
 }

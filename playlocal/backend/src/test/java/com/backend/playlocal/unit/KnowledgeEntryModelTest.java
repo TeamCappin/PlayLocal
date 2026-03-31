@@ -25,4 +25,19 @@ class KnowledgeEntryModelTest {
         String s = e.searchableText();
         assertThat(s).contains("Title").contains("Section").contains("kw1").contains("Answer body");
     }
+
+    @Test
+    @DisplayName("searchableText tolerates null optional fields")
+    void searchableText_Nulls() {
+        KnowledgeEntryModel e = new KnowledgeEntryModel(
+                "id-2",
+                null,
+                null,
+                List.of(),
+                null,
+                List.of(),
+                null,
+                null);
+        assertThat(e.searchableText()).isEmpty();
+    }
 }

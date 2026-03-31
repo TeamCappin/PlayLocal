@@ -127,6 +127,26 @@ class AiControllerTest {
     }
 
     @Test
+    @DisplayName("telemetry maps lowercase known event and blank gameId")
+    void telemetry_LowercaseKnownEvent_BlankGameId() {
+        UUID userId = UUID.randomUUID();
+        when(authentication.getName()).thenReturn(userId.toString());
+
+        AiChatDto.TelemetryRequest body =
+                new AiChatDto.TelemetryRequest("session_started", "session-4", "home", "   ");
+
+        ResponseEntity<Void> response = controller.telemetry(authentication, body);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(assistantTelemetryService).recordEvent(
+                AssistantTelemetryService.ASSISTANT_SESSION_STARTED,
+                userId,
+                "session-4",
+                null,
+                Map.of("context", "home"));
+    }
+
+    @Test
     @DisplayName("knowledge search maps retrieval hits to snippets")
     void searchKnowledge_ReturnsSnippets() {
         KnowledgeEntryModel entry = new KnowledgeEntryModel(
@@ -168,5 +188,26 @@ class AiControllerTest {
         KnowledgeSearchDto.SearchResponse body = controller.searchKnowledge("key").getBody();
 
         assertThat(body.snippets().get(0).excerpt()).endsWith("…").hasSize(281);
+    }
+
+    @Test
+    @DisplayName("knowledge search uses empty excerpt when answer text is blank")
+    void searchKnowledge_BlankAnswer_EmptyExcerpt() {
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "blank",
+                "T",
+                "S",
+                List.of(),
+                List.of("key"),
+                List.of(),
+                null,
+                "   ");
+        when(knowledgeRetrievalService.search("key", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.3)));
+
+        KnowledgeSearchDto.SearchResponse body = controller.searchKnowledge("key").getBody();
+
+        assertThat(body.snippets()).hasSize(1);
+        assertThat(body.snippets().get(0).excerpt()).isEmpty();
     }
 }

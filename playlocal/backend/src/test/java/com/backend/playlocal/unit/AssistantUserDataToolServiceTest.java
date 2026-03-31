@@ -176,4 +176,38 @@ class AssistantUserDataToolServiceTest {
         assertThat(toolService.upcomingGamesThisWeek(userId).factualText()).contains("no confirmed games");
     }
 
+    @Test
+    @DisplayName("upcomingGamesThisWeek defaults title/sport when game metadata is missing")
+    void upcomingGamesThisWeek_DefaultTitleAndSport() {
+        UUID userId = UUID.randomUUID();
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        Instant weekStart = monday.atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        Game game = new Game();
+        game.setTitle(null);
+        game.setSport(null);
+        game.setStartTime(weekStart.plusSeconds(3600));
+        game.setStatus(Game.GameStatus.SCHEDULED);
+        GameParticipation gp = new GameParticipation();
+        gp.setGame(game);
+        gp.setLeftAt(null);
+        when(participationRepository.findConfirmedByUserSince(eq(userId), ArgumentMatchers.any()))
+                .thenReturn(List.of(gp));
+
+        AssistantUserDataToolService.UserDataResult r = toolService.upcomingGamesThisWeek(userId);
+        assertThat(r.factualText()).contains("- Game ()");
+    }
+
+    @Test
+    @DisplayName("myReliabilitySummary defaults null score and counters")
+    void reliability_DefaultNullFields() {
+        UUID userId = UUID.randomUUID();
+        User u = User.builder().userId(userId).reliabilityScore(null).attendedCount(null).noShowCount(null).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(u));
+
+        AssistantUserDataToolService.UserDataResult r = toolService.myReliabilitySummary(userId);
+        assertThat(r.factualText()).contains("100.0").contains("0 attended").contains("0 no-show");
+    }
+
 }
