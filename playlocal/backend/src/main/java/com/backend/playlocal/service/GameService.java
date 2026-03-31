@@ -50,6 +50,7 @@ public class GameService {
         private final LocationRepository locationRepository;
         private final PrivacySettingsService privacySettingsService;
         private final FriendshipRepository friendshipRepository;
+        private final OrganizerCompatibilityLayer organizerCompatibilityLayer;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, OrganizerRepository organizerRepository, SportRepository sportRepository,
@@ -77,6 +78,7 @@ public class GameService {
                 this.locationRepository = locationRepository;
                 this.privacySettingsService = privacySettingsService;
                 this.friendshipRepository = friendshipRepository;
+                this.organizerCompatibilityLayer = new OrganizerCompatibilityLayer(organizerRepository);
         }
 
 
@@ -230,6 +232,7 @@ public class GameService {
                 List<UUID> gameIds = games.stream()
                                 .map(Game::getGameId)
                                 .toList();
+                Map<UUID, String> organizerIdByUserId = loadOrganizerIdsByUserId(games);
                 Map<UUID, ParticipationSummary> participationSummaryByGameId = loadParticipationSummary(gameIds);
                 Map<UUID, List<GameDto.TagDto>> tagsByGameId = loadTagsByGameId(gameIds);
                 Set<UUID> confirmedGameIdsForUser = loadConfirmedGameIdsForUser(gameIds, requestingUserId);
@@ -242,8 +245,22 @@ public class GameService {
                                                                 game.getGameId(),
                                                                 ParticipationSummary.EMPTY),
                                                 tagsByGameId.getOrDefault(game.getGameId(), List.of()),
-                                                confirmedGameIdsForUser))
+                                                confirmedGameIdsForUser,
+                                                organizerIdByUserId))
                                 .collect(Collectors.toList());
+        }
+
+        private Map<UUID, String> loadOrganizerIdsByUserId(List<Game> games) {
+                List<UUID> organizerUserIds = games.stream()
+                                .map(Game::getCreatedBy)
+                                .filter(Objects::nonNull)
+                                .map(User::getUserId)
+                                .distinct()
+                                .toList();
+
+                return organizerCompatibilityLayer.resolveOrganizerIdsByUserIds(organizerUserIds)
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString()));
         }
 
         private Map<UUID, ParticipationSummary> loadParticipationSummary(List<UUID> gameIds) {
@@ -294,9 +311,8 @@ public class GameService {
          * US-2.6
          */
         public List<GameDto.GameResponse> getPastGames(UUID userId) {
-                return gameRepository.findPastGames(userId, Instant.now()).stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                List<Game> games = gameRepository.findPastGames(userId, Instant.now());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -304,9 +320,8 @@ public class GameService {
          * US-2.6
          */
         public List<GameDto.GameResponse> getPastGamesForUserNeedingAttendanceUpdate(UUID userId) {
-                return gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now()).stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                List<Game> games = gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -930,7 +945,8 @@ public class GameService {
                         UUID requestingUserId,
                         ParticipationSummary participationSummary,
                         List<GameDto.TagDto> tags,
-                        Set<UUID> confirmedGameIdsForUser) {
+                        Set<UUID> confirmedGameIdsForUser,
+                        Map<UUID, String> organizerIdByUserId) {
                 boolean showExactLocation = false;
                 if (requestingUserId != null) {
                         if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
@@ -976,7 +992,9 @@ public class GameService {
                                 .startTime(game.getStartTime())
                                 .endTime(game.getEndTime())
                                 .status(game.getStatus().name())
-                                .organizer(buildOrganizerDto(game.getCreatedBy()))
+                                .organizer(buildOrganizerDto(
+                                                game.getCreatedBy(),
+                                                organizerIdByUserId.get(game.getCreatedBy().getUserId())))
                                 .confirmedCount(participationSummary.confirmedCount())
                                 .waitlistCount(participationSummary.waitlistCount())
                                 .createdAt(game.getCreatedAt())
@@ -1023,8 +1041,8 @@ public class GameService {
 
         // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
         private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
-                String organizerId = organizerRepository.findByUser_UserId(organizer.getUserId())
-                                .map(profile -> profile.getOrganizerId().toString())
+                String organizerId = organizerCompatibilityLayer.findOrganizerIdByUserId(organizer.getUserId())
+                                .map(UUID::toString)
                                 .orElse(null);
 
                 // Delegate DTO construction to the overload that accepts a pre-resolved organizerId.

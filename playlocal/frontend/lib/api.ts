@@ -867,7 +867,7 @@ export interface OqsSummary {
 
 export interface OqsHistoryEntry {
   historyId: string;
-  organizerId: string;
+  userId: string;
   gameId?: string;
   gameTitle?: string;
   previousOqs: number;
@@ -889,7 +889,7 @@ export interface OqsHistoryEntry {
 }
 
 export interface OqsHistoryResponse {
-  organizerId: string;
+  userId: string;
   displayName: string;
   currentOqs: number;
   history: OqsHistoryEntry[];
@@ -919,6 +919,17 @@ export interface OqsWeights {
   repeatPlayerRateWeight: number;
 }
 
+export interface UserIdentityTuple {
+  organizerId: string;
+  userId: string;
+}
+
+export interface OrganizerResolveResponse {
+  requestedCount: number;
+  resolvedCount: number;
+  mappings: UserIdentityTuple[];
+}
+
 export const scoreHistoryApi = {
   getHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
@@ -938,27 +949,27 @@ export const scoreHistoryApi = {
 
 export const organizerQualityApi = {
   // Get full OQS for an organizer (v2)
-  getOqs: (organizerId: string) =>
-    apiFetch<OqsResponse>(`/api/v2/organizers/${organizerId}/oqs`),
+  getOqs: (userId: string) =>
+    apiFetch<OqsResponse>(`/api/v2/organizers/${userId}/oqs`),
 
   // Get OQS for current organizer (v2)
   getMyOqs: () => apiFetch<OqsResponse>(`/api/v2/organizers/me/oqs`),
 
   // Get OQS summary (simplified for game cards)
-  getOqsSummary: (organizerId: string) =>
-    apiFetch<OqsSummary>(`/api/v2/organizers/${organizerId}/oqs/summary`),
+  getOqsSummary: (userId: string) =>
+    apiFetch<OqsSummary>(`/api/v2/organizers/${userId}/oqs/summary`),
 
   // Get OQS info card with plain language explanations
-  getOqsInfoCard: (organizerId: string) =>
-    apiFetch<OqsInfoCard>(`/api/v2/organizers/${organizerId}/oqs/info`),
+  getOqsInfoCard: (userId: string) =>
+    apiFetch<OqsInfoCard>(`/api/v2/organizers/${userId}/oqs/info`),
 
   // Get OQS info card for current user
   getMyOqsInfoCard: () => apiFetch<OqsInfoCard>(`/api/v2/organizers/me/oqs/info`),
 
   // Get OQS change history
-  getOqsHistory: (organizerId: string, page = 0, size = 10) =>
+  getOqsHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<OqsHistoryResponse>(
-      `/api/v2/organizers/${organizerId}/oqs/history?page=${page}&size=${size}`
+      `/api/v2/organizers/${userId}/oqs/history?page=${page}&size=${size}`
     ),
 
   // Get OQS change history for current user
@@ -969,6 +980,13 @@ export const organizerQualityApi = {
 
   // Get OQS calculation weights
   getWeights: () => apiFetch<OqsWeights>(`/api/v2/organizers/oqs/weights`),
+
+  // Resolve organizer IDs from user IDs for compatibility fallbacks
+  resolveUserIdsByUserIds: (userIds: string[]) =>
+    apiFetch<OrganizerResolveResponse>(`/api/v2/organizers/resolve/by-user-ids`, {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    }),
 };
 // ============================================
 // Photos API

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 /**
  * Repository for Organizer entity.
@@ -20,6 +21,12 @@ public interface OrganizerRepository extends JpaRepository<Organizer, UUID> {
      * Find organizer by user ID.
      */
     Optional<Organizer> findByUser_UserId(UUID userId);
+
+    /**
+     * Resolve organizer profiles for a batch of user IDs.
+     */
+    @Query("SELECT o FROM Organizer o WHERE o.user.userId IN :userIds")
+    List<Organizer> findByUser_UserIdIn(@Param("userIds") List<UUID> userIds);
 
     /**
      * Find organizer by status.

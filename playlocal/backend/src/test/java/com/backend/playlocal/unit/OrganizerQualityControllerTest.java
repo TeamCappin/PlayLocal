@@ -90,7 +90,7 @@ class OrganizerQualityControllerTest {
 
         OrganizerQualityDto.OqsHistoryEntry historyEntry = OrganizerQualityDto.OqsHistoryEntry.builder()
                 .historyId(UUID.randomUUID().toString())
-                .organizerId(testUserId.toString())
+            .userId(testUserId.toString())
                 .gameId(UUID.randomUUID().toString())
                 .gameTitle("Basketball Game")
                 .previousOqs(80.0f)
@@ -106,7 +106,7 @@ class OrganizerQualityControllerTest {
                 .build();
 
         mockHistoryResponse = OrganizerQualityDto.OqsHistoryResponse.builder()
-                .organizerId(testUserId.toString())
+            .userId(testUserId.toString())
                 .displayName("Test Organizer")
                 .currentOqs(85.5f)
                 .history(List.of(historyEntry))
@@ -117,12 +117,13 @@ class OrganizerQualityControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/v2/organizers/{organizerId}/oqs")
+    @DisplayName("GET /api/v2/organizers/{userId}/oqs")
     class GetOqsTests {
 
         @Test
         @DisplayName("Should return OQS for valid user ID")
         void getOqs_ValidUserId_ReturnsOqs() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqs(testUserId)).thenReturn(mockOqsResponse);
 
             ResponseEntity<OrganizerQualityDto.OqsResponse> response = controller.getOqs(testUserId.toString());
@@ -131,6 +132,7 @@ class OrganizerQualityControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getOqsScore()).isEqualTo(85.5f);
             assertThat(response.getBody().getConfidenceLevel()).isEqualTo("HIGH");
+            verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqs(testUserId);
         }
     }
@@ -157,12 +159,13 @@ class OrganizerQualityControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/v2/organizers/{organizerId}/oqs/summary")
+    @DisplayName("GET /api/v2/organizers/{userId}/oqs/summary")
     class GetOqsSummaryTests {
 
         @Test
         @DisplayName("Should return OQS summary for valid user ID")
         void getOqsSummary_ValidUserId_ReturnsSummary() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqsSummary(testUserId)).thenReturn(mockOqsSummary);
 
             ResponseEntity<OrganizerQualityDto.OqsSummary> response = controller.getOqsSummary(testUserId.toString());
@@ -171,17 +174,19 @@ class OrganizerQualityControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getOqsScore()).isEqualTo(85.5f);
             assertThat(response.getBody().getTotalGamesHosted()).isEqualTo(10);
+            verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqsSummary(testUserId);
         }
     }
 
     @Nested
-    @DisplayName("GET /api/v2/organizers/{organizerId}/oqs/info")
+    @DisplayName("GET /api/v2/organizers/{userId}/oqs/info")
     class GetOqsInfoCardTests {
 
         @Test
         @DisplayName("Should return OQS info card for valid user ID")
         void getOqsInfoCard_ValidUserId_ReturnsInfoCard() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqsInfoCard(testUserId)).thenReturn(mockInfoCard);
 
             ResponseEntity<OrganizerQualityDto.OqsInfoCard> response = controller.getOqsInfoCard(testUserId.toString());
@@ -190,6 +195,7 @@ class OrganizerQualityControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getOqsScore()).isEqualTo(85.5f);
             assertThat(response.getBody().getOverallDescription()).isEqualTo("Great organizer!");
+            verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqsInfoCard(testUserId);
         }
     }
@@ -216,12 +222,13 @@ class OrganizerQualityControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/v2/organizers/{organizerId}/oqs/history")
+    @DisplayName("GET /api/v2/organizers/{userId}/oqs/history")
     class GetOqsHistoryTests {
 
         @Test
         @DisplayName("Should return OQS history with default pagination")
         void getOqsHistory_DefaultPagination_ReturnsHistory() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqsHistory(testUserId, 0, 10)).thenReturn(mockHistoryResponse);
 
             ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> response = 
@@ -231,33 +238,74 @@ class OrganizerQualityControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getHistory()).hasSize(1);
             assertThat(response.getBody().getTotalEntries()).isEqualTo(1L);
+            verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqsHistory(testUserId, 0, 10);
         }
 
         @Test
         @DisplayName("Should cap page size at 50")
         void getOqsHistory_LargePageSize_CapsAt50() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqsHistory(testUserId, 0, 50)).thenReturn(mockHistoryResponse);
 
             ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> response = 
                     controller.getOqsHistory(testUserId.toString(), 0, 100);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqsHistory(testUserId, 0, 50);
         }
 
         @Test
         @DisplayName("Should handle custom pagination")
         void getOqsHistory_CustomPagination_ReturnsHistory() {
+            when(oqsService.getOrganizerIdForUser(testUserId)).thenReturn(testUserId);
             when(oqsService.getOqsHistory(testUserId, 2, 20)).thenReturn(mockHistoryResponse);
 
             ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> response = 
                     controller.getOqsHistory(testUserId.toString(), 2, 20);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                verify(oqsService).getOrganizerIdForUser(testUserId);
             verify(oqsService).getOqsHistory(testUserId, 2, 20);
         }
     }
+
+            @Nested
+            @DisplayName("POST /api/v2/organizers/resolve/by-user-ids")
+            class ResolveOrganizerIdsByUserIdsTests {
+
+            @Test
+            @DisplayName("Should resolve organizer IDs for provided user IDs")
+            void resolveOrganizerIdsByUserIds_ReturnsMappings() {
+                OrganizerQualityDto.OrganizerResolveResponse resolveResponse =
+                    OrganizerQualityDto.OrganizerResolveResponse.builder()
+                        .requestedCount(2)
+                        .resolvedCount(1)
+                        .mappings(List.of(
+                            OrganizerQualityDto.OrganizerIdentityTuple.builder()
+                                .userId(testUserId.toString())
+                                .organizerId(testUserId.toString())
+                                .build()))
+                        .build();
+
+                OrganizerQualityDto.OrganizerResolveRequest request =
+                    OrganizerQualityDto.OrganizerResolveRequest.builder()
+                        .userIds(List.of(testUserId.toString(), UUID.randomUUID().toString()))
+                        .build();
+
+                when(oqsService.resolveOrganizerIdsByUserIds(any())).thenReturn(resolveResponse);
+
+                ResponseEntity<OrganizerQualityDto.OrganizerResolveResponse> response =
+                    controller.resolveOrganizerIdsByUserIds(request);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isNotNull();
+                assertThat(response.getBody().getRequestedCount()).isEqualTo(2);
+                assertThat(response.getBody().getResolvedCount()).isEqualTo(1);
+                verify(oqsService).resolveOrganizerIdsByUserIds(any());
+            }
+            }
 
     @Nested
     @DisplayName("GET /api/v2/organizers/me/oqs/history")

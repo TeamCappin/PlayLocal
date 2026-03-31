@@ -811,9 +811,6 @@ class GameServiceJoinLeaveTest {
                 void getPastGamesForUserNeedingAttendanceUpdate_WhenOrganizer_ShouldReturnGames() {
                         when(gameRepository.findPastGamesForUserNeedingAttendanceUpdate(eq(organizerId), any(Instant.class)))
                                         .thenReturn(List.of(testGame));
-                        when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
-                        when(participationRepository.findWaitlistedByGame(gameId))
-                                        .thenReturn(Collections.emptyList());
 
                         var result = gameService.getPastGamesForUserNeedingAttendanceUpdate(organizerId);
 

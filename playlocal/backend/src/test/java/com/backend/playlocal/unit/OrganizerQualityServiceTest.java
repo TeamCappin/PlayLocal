@@ -1,6 +1,7 @@
 package com.backend.playlocal.unit;
 
 import com.backend.playlocal.service.OrganizerQualityService;
+import com.backend.playlocal.service.OrganizerCompatibilityLayer;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.OrganizerQualityDto;
 import com.backend.playlocal.model.entity.*;
@@ -38,6 +39,9 @@ class OrganizerQualityServiceTest {
 
     @Mock
     private OrganizerRepository organizerRepository;
+
+        @Mock
+        private OrganizerCompatibilityLayer organizerCompatibilityLayer;
 
     @Mock
     private GameRepository gameRepository;
@@ -247,7 +251,7 @@ class OrganizerQualityServiceTest {
                     .thenAnswer(invocation -> invocation.getArgument(0));
             when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(games);
-            when(participationRepository.findByGameId(any()))
+            when(participationRepository.findByGameIdIn(anyList()))
                     .thenReturn(Collections.emptyList());
 
             OrganizerQualityDto.OqsResponse response = oqsService.calculateOqs(
@@ -297,12 +301,14 @@ class OrganizerQualityServiceTest {
                     .thenAnswer(invocation -> invocation.getArgument(0));
             when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(games);
-            when(participationRepository.findByGameId(game1.getGameId()))
-                    .thenReturn(game1Participants);
-            when(participationRepository.findByGameId(game2.getGameId()))
-                    .thenReturn(game2Participants);
-            when(participationRepository.findByGameId(game3.getGameId()))
-                    .thenReturn(game3Participants);
+            when(participationRepository.findByGameIdIn(anyList()))
+                    .thenReturn(Arrays.asList(
+                            game1Participants.get(0),
+                            game1Participants.get(1),
+                            game2Participants.get(0),
+                            game2Participants.get(1),
+                            game2Participants.get(2),
+                            game3Participants.get(0)));
 
             OrganizerQualityDto.OqsResponse response = oqsService.calculateOqs(
                     testOrganizerProfile.getOrganizerId(),
@@ -425,8 +431,8 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should recalculate OQS on game completed")
         void shouldRecalculateOqsOnGameCompleted() {
-            when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizerProfile));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenReturn(testOrganizerProfile.getOrganizerId());
             when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOrganizerProfile));
             when(gameRepository.findById(testGame.getGameId()))
@@ -448,8 +454,8 @@ class OrganizerQualityServiceTest {
         void shouldRecalculateOqsOnGameCancelled() {
             testGame.setStatus(Game.GameStatus.CANCELLED);
 
-            when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizerProfile));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenReturn(testOrganizerProfile.getOrganizerId());
             when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOrganizerProfile));
             
@@ -472,8 +478,8 @@ class OrganizerQualityServiceTest {
         void shouldThrowWhenOrganizerProfileMissingForGameEvent() {
             when(gameRepository.findById(testGame.getGameId()))
                     .thenReturn(Optional.of(testGame));
-            when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
-                    .thenReturn(Optional.empty());
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenThrow(new ResourceNotFoundException("Organizer not found"));
 
             assertThatThrownBy(() -> oqsService.onGameCompleted(testGame.getGameId()))
                     .isInstanceOf(ResourceNotFoundException.class)
@@ -488,8 +494,8 @@ class OrganizerQualityServiceTest {
                 @Test
                 @DisplayName("Should return organizer id for existing organizer profile")
                 void shouldReturnOrganizerIdForUser() {
-                        when(organizerRepository.findByUser_UserId(testOrganizer.getUserId()))
-                                        .thenReturn(Optional.of(testOrganizerProfile));
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                                        .thenReturn(testOrganizerProfile.getOrganizerId());
 
                         UUID organizerId = oqsService.getOrganizerIdForUser(testOrganizer.getUserId());
 
@@ -500,12 +506,46 @@ class OrganizerQualityServiceTest {
                 @DisplayName("Should throw when organizer profile is missing")
                 void shouldThrowWhenOrganizerProfileIsMissing() {
                         UUID missingUserId = UUID.randomUUID();
-                        when(organizerRepository.findByUser_UserId(missingUserId))
-                                        .thenReturn(Optional.empty());
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(missingUserId))
+                                        .thenThrow(new ResourceNotFoundException("Organizer not found"));
 
                         assertThatThrownBy(() -> oqsService.getOrganizerIdForUser(missingUserId))
                                         .isInstanceOf(ResourceNotFoundException.class)
                                         .hasMessageContaining("Organizer not found");
+                }
+        }
+
+        @Nested
+        @DisplayName("Compatibility Mapping Tests")
+        class CompatibilityLayerTests {
+
+                @Test
+                @DisplayName("Should resolve organizer ids in bulk from user ids")
+                void shouldResolveOrganizerIdsInBulkFromUserIds() {
+                        UUID anotherUserId = UUID.randomUUID();
+                        OrganizerQualityDto.OrganizerResolveResponse mapperResponse =
+                                        OrganizerQualityDto.OrganizerResolveResponse.builder()
+                                                        .requestedCount(2)
+                                                        .resolvedCount(2)
+                                                        .mappings(List.of(
+                                                                        OrganizerQualityDto.OrganizerIdentityTuple.builder()
+                                                                                        .userId(testOrganizer.getUserId().toString())
+                                                                                        .organizerId(testOrganizerProfile.getOrganizerId().toString())
+                                                                                        .build(),
+                                                                        OrganizerQualityDto.OrganizerIdentityTuple.builder()
+                                                                                        .userId(anotherUserId.toString())
+                                                                                        .organizerId(UUID.randomUUID().toString())
+                                                                                        .build()))
+                                                        .build();
+                        when(organizerCompatibilityLayer.resolveOrganizerIdentityTuples(anyList()))
+                                        .thenReturn(mapperResponse);
+
+                        OrganizerQualityDto.OrganizerResolveResponse response =
+                                        oqsService.resolveOrganizerIdsByUserIds(Arrays.asList(testOrganizer.getUserId(), anotherUserId));
+
+                        assertThat(response.getRequestedCount()).isEqualTo(2);
+                        assertThat(response.getResolvedCount()).isEqualTo(2);
+                        assertThat(response.getMappings()).hasSize(2);
                 }
         }
 

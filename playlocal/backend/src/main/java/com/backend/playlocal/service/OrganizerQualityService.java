@@ -35,18 +35,21 @@ public class OrganizerQualityService {
     private final OrganizerRepository organizerRepository;
     private final GameRepository gameRepository;
     private final GameParticipationRepository participationRepository;
+    private final OrganizerCompatibilityLayer organizerCompatibilityLayer;
 
     public OrganizerQualityService(
             OrganizerQualityScoreRepository oqsRepository,
             OrganizerScoreHistoryRepository historyRepository,
             OrganizerRepository organizerRepository,
             GameRepository gameRepository,
-            GameParticipationRepository participationRepository) {
+            GameParticipationRepository participationRepository,
+            OrganizerCompatibilityLayer organizerCompatibilityLayer) {
         this.oqsRepository = oqsRepository;
         this.historyRepository = historyRepository;
         this.organizerRepository = organizerRepository;
         this.gameRepository = gameRepository;
         this.participationRepository = participationRepository;
+        this.organizerCompatibilityLayer = organizerCompatibilityLayer;
     }
 
     /**
@@ -167,7 +170,7 @@ public class OrganizerQualityService {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
-        UUID organizerId = requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
+        UUID organizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
         calculateOqs(organizerId, OrganizerScoreHistory.OqsChangeReason.GAME_COMPLETED, game);
     }
 
@@ -179,7 +182,7 @@ public class OrganizerQualityService {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
-        UUID organizerId = requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
+        UUID organizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
         calculateOqs(organizerId, OrganizerScoreHistory.OqsChangeReason.GAME_CANCELLED, game);
     }
 
@@ -191,7 +194,7 @@ public class OrganizerQualityService {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
-        UUID organizerId = requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
+        UUID organizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
         calculateOqs(organizerId, OrganizerScoreHistory.OqsChangeReason.PLAYER_RETURNED, game);
     }
 
@@ -215,8 +218,8 @@ public class OrganizerQualityService {
                 .collect(Collectors.toList());
 
         return OrganizerQualityDto.OqsHistoryResponse.builder()
-                .organizerId(organizerId.toString())
-            .displayName(organizer.getUser().getDisplayName())
+                .userId(organizer.getUser().getUserId().toString())
+                .displayName(organizer.getUser().getDisplayName())
                 .currentOqs(currentOqs)
                 .history(entries)
                 .totalEntries(historyPage.getTotalElements())
@@ -315,20 +318,20 @@ public class OrganizerQualityService {
             return;
         }
 
-        // Count participations per player across all organizer's completed games
-        // A player is a "repeat player" if they've joined 2+ games by this organizer
+        // Count participations per player across all organizer's completed games.
+        // A player is a "repeat player" if they've joined 2+ games by this organizer.
         Map<UUID, Long> playerGameCounts = new HashMap<>();
 
-        for (UUID gameId : gameIds) {
-            List<GameParticipation> participations = participationRepository.findByGameId(gameId);
-            for (GameParticipation p : participations) {
-                // Only count confirmed attendees, exclude the organizer
-                if (p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED 
-                        && p.getAttendanceStatus() == GameParticipation.AttendanceStatus.ATTENDED
-                        && (organizerUserId == null || !p.getUser().getUserId().equals(organizerUserId))) {
-                    UUID playerId = p.getUser().getUserId();
-                    playerGameCounts.merge(playerId, 1L, Long::sum);
-                }
+        List<GameParticipation> participations = participationRepository.findByGameIdIn(gameIds);
+        for (GameParticipation p : participations) {
+            // Only count confirmed attendees, exclude the organizer.
+            if (p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED
+                    && p.getAttendanceStatus() == GameParticipation.AttendanceStatus.ATTENDED
+                    && p.getUser() != null
+                    && p.getUser().getUserId() != null
+                    && (organizerUserId == null || !p.getUser().getUserId().equals(organizerUserId))) {
+                UUID playerId = p.getUser().getUserId();
+                playerGameCounts.merge(playerId, 1L, Long::sum);
             }
         }
 
@@ -465,21 +468,23 @@ public class OrganizerQualityService {
                 .build();
     }
 
-    private UUID requireOrganizerIdByUserId(UUID userId) {
-        return organizerRepository.findByUser_UserId(userId)
-                .map(Organizer::getOrganizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
-    }
-
     @Transactional(readOnly = true)
     public UUID getOrganizerIdForUser(UUID userId) {
-        return requireOrganizerIdByUserId(userId);
+        return organizerCompatibilityLayer.requireOrganizerIdByUserId(userId);
+    }
+
+    /**
+     * Bulk compatibility resolver for frontend callers that still only have user IDs.
+     */
+    @Transactional(readOnly = true)
+    public OrganizerQualityDto.OrganizerResolveResponse resolveOrganizerIdsByUserIds(List<UUID> userIds) {
+        return organizerCompatibilityLayer.resolveOrganizerIdentityTuples(userIds);
     }
 
     private OrganizerQualityDto.OqsHistoryEntry toHistoryEntry(OrganizerScoreHistory history) {
         return OrganizerQualityDto.OqsHistoryEntry.builder()
                 .historyId(history.getHistoryId().toString())
-                .organizerId(history.getOrganizer().getOrganizerId().toString())
+            .userId(history.getOrganizer().getUser().getUserId().toString())
                 .gameId(history.getGame() != null ? history.getGame().getGameId().toString() : null)
                 .gameTitle(history.getGame() != null ? history.getGame().getTitle() : null)
                 .previousOqs(history.getPreviousOqs())
