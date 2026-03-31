@@ -60,8 +60,8 @@ s3:
   accessKey: ${AWS_ACCESS_KEY_ID}
   secretKey: ${AWS_SECRET_ACCESS_KEY}
   # MinIO / path-style S3-compatible stores (Docker prod): set S3_FORCE_PATH_STYLE=true
-  endpoint: ${S3_ENDPOINT:}
-  publicEndpoint: ${S3_PUBLIC_ENDPOINT:}
+  endpoint: ${endpoint:}
+  publicEndpoint: ${publicEndpoint:}
   forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
 
