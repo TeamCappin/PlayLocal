@@ -746,7 +746,10 @@ public class GameService {
 
         /**
          * Get game roster. US-2.4
+         * Must run in a transaction so lazy {@link User} on participations (and organizer on
+         * {@link Game}) can load when {@code open-in-view} is false (e.g. prod).
          */
+        @Transactional(readOnly = true)
         public GameDto.RosterResponse getRoster(UUID gameId, UUID requestingUserId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
