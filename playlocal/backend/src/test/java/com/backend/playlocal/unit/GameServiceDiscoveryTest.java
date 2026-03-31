@@ -436,7 +436,11 @@ class GameServiceDiscoveryTest {
         void getPastGames_ShouldReturnMappedGames() {
                 when(gameRepository.findPastGames(eq(userId), any(Instant.class)))
                                 .thenReturn(List.of(game));
-                mockMapToGameResponseDependencies();
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.getPastGames(userId);
 

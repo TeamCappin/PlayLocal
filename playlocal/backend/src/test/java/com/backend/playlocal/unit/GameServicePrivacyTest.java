@@ -108,6 +108,7 @@ class GameServicePrivacyTest {
                                 .endTime(Instant.now().plusSeconds(7200))
                                 .build();
 
+                when(organizerRepository.findByUser_UserId(any())).thenReturn(Optional.empty());
         }
 
         @Test

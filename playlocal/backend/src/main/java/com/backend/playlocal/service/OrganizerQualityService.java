@@ -247,7 +247,7 @@ public class OrganizerQualityService {
         UUID organizerUserId = organizerRepository.findById(organizerId)
             .map(Organizer::getUser)
             .map(User::getUserId)
-            .orElse(null);
+            .orElseThrow(() -> new ResourceNotFoundException("Organizer not found for organizerId: " + organizerId));
 
         int totalGames = 0;
         int completedGames = 0;

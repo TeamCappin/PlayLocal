@@ -1027,6 +1027,16 @@ public class GameService {
                                 .map(profile -> profile.getOrganizerId().toString())
                                 .orElse(null);
 
+                // Delegate DTO construction to the overload that accepts a pre-resolved organizerId.
+                return buildOrganizerDto(organizer, organizerId);
+        }
+
+        /**
+         * Overload that builds the organizer DTO from a pre-resolved organizerId.
+         * Callers that already have organizerId (for example, from a join/projection
+         * or a batched lookup) can use this method to avoid additional repository calls.
+         */
+        private GameDto.OrganizerDto buildOrganizerDto(User organizer, String organizerId) {
                 return GameDto.OrganizerDto.builder()
                                 .organizerId(organizerId)
                                 .userId(organizer.getUserId().toString())
