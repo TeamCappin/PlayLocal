@@ -7,7 +7,7 @@ import { Fragment } from "react";
  * We avoid a full Markdown parser: CommonMark treats indented text as code blocks,
  * which wrapped entire replies in &lt;pre&gt; and looked like a JSON "pretty print" view.
  */
-function parseInline(text: string): React.ReactNode {
+export function parseInline(text: string): React.ReactNode {
   const nodes: React.ReactNode[] = [];
   let pos = 0;
   let key = 0;

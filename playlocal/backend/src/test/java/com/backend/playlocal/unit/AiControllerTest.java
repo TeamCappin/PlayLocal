@@ -148,4 +148,25 @@ class AiControllerTest {
         assertThat(response.getBody().snippets().get(0).id()).isEqualTo("help-block-user");
         assertThat(response.getBody().snippets().get(0).excerpt()).contains("Short approved");
     }
+
+    @Test
+    @DisplayName("knowledge search excerpt truncates long answer text with ellipsis")
+    void searchKnowledge_LongAnswer_TruncatesExcerpt() {
+        String longBody = "x".repeat(400);
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "long-entry",
+                "T",
+                "S",
+                List.of(),
+                List.of("key"),
+                List.of(),
+                null,
+                longBody);
+        when(knowledgeRetrievalService.search("key", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.1)));
+
+        KnowledgeSearchDto.SearchResponse body = controller.searchKnowledge("key").getBody();
+
+        assertThat(body.snippets().get(0).excerpt()).endsWith("…").hasSize(281);
+    }
 }

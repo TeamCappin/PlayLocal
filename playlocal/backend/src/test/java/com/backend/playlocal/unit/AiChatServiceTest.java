@@ -161,6 +161,13 @@ class AiChatServiceTest {
                         eq("s2"),
                         isNull(),
                         eq(java.util.Map.of("tool", "UPCOMING_GAMES_THIS_WEEK")));
+        verify(telemetryService)
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_KB_MISS),
+                        eq(userId),
+                        eq("s2"),
+                        isNull(),
+                        eq(java.util.Map.of("reason", "narrow_user_facts")));
     }
 
     @Test
@@ -168,7 +175,6 @@ class AiChatServiceTest {
     void chat_ToolThrows_ProcessingErrorTelemetry() {
         UUID userId = UUID.randomUUID();
         when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
-        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
         doThrow(new RuntimeException("db"))
                 .when(userDataToolService)
                 .upcomingGamesThisWeek(userId);
@@ -208,6 +214,104 @@ class AiChatServiceTest {
                         eq("s3"),
                         isNull(),
                         eq(java.util.Map.of("reason", "no_matching_entry")));
+    }
+
+    @Test
+    @DisplayName("pending-friend question invokes friendship tool and suppresses KB narrative")
+    void chat_PendingFriends_UserTool() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt()))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.2)));
+        when(userDataToolService.pendingFriendRequests(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.PENDING_FRIEND_REQUESTS,
+                        "You have 0 pending requests (stub)."));
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "sf1",
+                List.of(new AiChatDto.ChatMessage("user", "Any pending friend requests for me?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content())
+                .contains("pending requests")
+                .doesNotContain("Approved answer about blocking");
+        verify(userDataToolService).pendingFriendRequests(userId);
+        verify(telemetryService, atLeastOnce())
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_DB_TOOL_USED),
+                        eq(userId),
+                        eq("sf1"),
+                        isNull(),
+                        eq(java.util.Map.of("tool", "PENDING_FRIEND_REQUESTS")));
+    }
+
+    @Test
+    @DisplayName("reliability question invokes summary tool")
+    void chat_Reliability_UserTool() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
+        when(userDataToolService.myReliabilitySummary(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.MY_RELIABILITY_SUMMARY,
+                        "Your score is 88.5 (stub)."));
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "rel1",
+                List.of(new AiChatDto.ChatMessage("user", "What's my reliability score right now?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).contains("88.5");
+        verify(userDataToolService).myReliabilitySummary(userId);
+    }
+
+    @Test
+    @DisplayName("very short user message asks for clarification without KB or tools")
+    void chat_ShortLastMessage_NoKbSearch() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+
+        AiChatDto.ChatRequest request =
+                new AiChatDto.ChatRequest("sx", List.of(new AiChatDto.ChatMessage("user", "hi")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).contains("little more detail");
+        verify(knowledgeRetrievalService, never()).search(anyString(), anyInt());
+    }
+
+    @Test
+    @DisplayName("uses the latest non-empty user line in a multi-turn thread")
+    void chat_MultiTurn_UsesLastUserMessage() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt()))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.4)));
+        when(knowledgeBaseBundle.findById("help-report-user")).thenReturn(Optional.of(
+                new KnowledgeEntryModel(
+                        "help-report-user",
+                        "Reporting",
+                        "Safety",
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        null,
+                        "x")));
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "thread1",
+                List.of(
+                        new AiChatDto.ChatMessage("user", "weather today?"),
+                        new AiChatDto.ChatMessage("assistant", "I only do PlayLocal."),
+                        new AiChatDto.ChatMessage("user", "How do I block someone?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content()).contains("Approved answer about blocking");
+        verify(knowledgeRetrievalService).search(eq("How do I block someone?"), anyInt());
     }
 
     @Test

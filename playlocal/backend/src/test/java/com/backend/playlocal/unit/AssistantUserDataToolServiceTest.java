@@ -1,6 +1,9 @@
 package com.backend.playlocal.unit;
 
 import com.backend.playlocal.model.entity.Friendship;
+import com.backend.playlocal.model.entity.Game;
+import com.backend.playlocal.model.entity.GameParticipation;
+import com.backend.playlocal.model.entity.Sport;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.GameParticipationRepository;
@@ -14,6 +17,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,6 +89,91 @@ class AssistantUserDataToolServiceTest {
 
         assertThat(r.factualText()).contains("92.5").contains("10 attended");
         verify(userRepository).findById(userId);
+    }
+
+    @Test
+    @DisplayName("myReliabilitySummary explains when the user row is missing")
+    void reliability_UserMissing() {
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        AssistantUserDataToolService.UserDataResult r = toolService.myReliabilitySummary(userId);
+
+        assertThat(r.tool()).isEqualTo(AssistantUserDataToolService.ToolName.MY_RELIABILITY_SUMMARY);
+        assertThat(r.factualText()).contains("could not be loaded");
+    }
+
+    @Test
+    @DisplayName("upcomingGamesThisWeek lists confirmed games whose start is in the current UTC ISO week")
+    void upcomingGamesThisWeek_IncludesCurrentWeekGame() {
+        UUID userId = UUID.randomUUID();
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        Instant weekStart = monday.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant startInWeek = weekStart.plusSeconds(3 * 86400L);
+
+        Sport sport = new Sport();
+        sport.setName("Soccer");
+        Game game = new Game();
+        game.setTitle("Morning pickup");
+        game.setSport(sport);
+        game.setStartTime(startInWeek);
+        game.setStatus(Game.GameStatus.SCHEDULED);
+
+        GameParticipation gp = new GameParticipation();
+        gp.setGame(game);
+        gp.setLeftAt(null);
+
+        when(participationRepository.findConfirmedByUserSince(eq(userId), ArgumentMatchers.any()))
+                .thenReturn(List.of(gp));
+
+        AssistantUserDataToolService.UserDataResult r = toolService.upcomingGamesThisWeek(userId);
+
+        assertThat(r.factualText()).contains("Morning pickup").contains("Soccer");
+    }
+
+    @Test
+    @DisplayName("upcomingGamesThisWeek skips participations the user left")
+    void upcomingGamesThisWeek_SkipsLeftParticipation() {
+        UUID userId = UUID.randomUUID();
+        Game game = new Game();
+        game.setTitle("Old");
+        game.setStartTime(Instant.parse("2099-01-01T12:00:00Z"));
+        game.setStatus(Game.GameStatus.SCHEDULED);
+        GameParticipation gp = new GameParticipation();
+        gp.setGame(game);
+        gp.setLeftAt(Instant.now());
+        when(participationRepository.findConfirmedByUserSince(eq(userId), ArgumentMatchers.any()))
+                .thenReturn(List.of(gp));
+
+        AssistantUserDataToolService.UserDataResult r = toolService.upcomingGamesThisWeek(userId);
+
+        assertThat(r.factualText()).contains("no confirmed games");
+    }
+
+    @Test
+    @DisplayName("upcomingGamesThisWeek skips cancelled games")
+    void upcomingGamesThisWeek_SkipsCancelled() {
+        UUID userId = UUID.randomUUID();
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        LocalDate monday = now.toLocalDate().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        Instant weekStart = monday.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant startInWeek = weekStart.plusSeconds(86400L);
+
+        Game game = new Game();
+        game.setTitle("Cancelled match");
+        game.setSport(new Sport());
+        game.getSport().setName("Tennis");
+        game.setStartTime(startInWeek);
+        game.setStatus(Game.GameStatus.CANCELLED);
+
+        GameParticipation gp = new GameParticipation();
+        gp.setGame(game);
+        gp.setLeftAt(null);
+        when(participationRepository.findConfirmedByUserSince(eq(userId), ArgumentMatchers.any()))
+                .thenReturn(List.of(gp));
+
+        assertThat(toolService.upcomingGamesThisWeek(userId).factualText()).contains("no confirmed games");
     }
 
 }
