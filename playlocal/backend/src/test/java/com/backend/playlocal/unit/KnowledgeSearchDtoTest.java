@@ -11,6 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class KnowledgeSearchDtoTest {
 
     @Test
+    @DisplayName("outer DTO class can be instantiated")
+    void outerClass_Instantiation() {
+        KnowledgeSearchDto dto = new KnowledgeSearchDto();
+        assertThat(dto).isNotNull();
+    }
+
+    @Test
     @DisplayName("snippet and search response records expose assigned values")
     void records_ExposeValues() {
         KnowledgeSearchDto.Snippet snippet = new KnowledgeSearchDto.Snippet(

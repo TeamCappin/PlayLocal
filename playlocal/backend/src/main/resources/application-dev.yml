@@ -40,3 +40,10 @@ mail:
 
 recaptcha:
   enabled: false
+
+# AI assistant (US 8.2): KB + permission-scoped user tools
+playlocal:
+  assistant:
+    kb:
+      min-score: 0.12
+      min-token-overlap: 1

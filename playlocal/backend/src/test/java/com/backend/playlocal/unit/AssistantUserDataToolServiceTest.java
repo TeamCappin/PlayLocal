@@ -200,6 +200,26 @@ class AssistantUserDataToolServiceTest {
     }
 
     @Test
+    @DisplayName("upcomingGamesThisWeek skips rows when game start time is missing")
+    void upcomingGamesThisWeek_SkipsNullStartTime() {
+        UUID userId = UUID.randomUUID();
+        Game game = new Game();
+        game.setTitle("No date");
+        game.setSport(new Sport());
+        game.getSport().setName("Soccer");
+        game.setStartTime(null);
+        game.setStatus(Game.GameStatus.SCHEDULED);
+        GameParticipation gp = new GameParticipation();
+        gp.setGame(game);
+        gp.setLeftAt(null);
+        when(participationRepository.findConfirmedByUserSince(eq(userId), ArgumentMatchers.any()))
+                .thenReturn(List.of(gp));
+
+        AssistantUserDataToolService.UserDataResult r = toolService.upcomingGamesThisWeek(userId);
+        assertThat(r.factualText()).contains("no confirmed games");
+    }
+
+    @Test
     @DisplayName("myReliabilitySummary defaults null score and counters")
     void reliability_DefaultNullFields() {
         UUID userId = UUID.randomUUID();

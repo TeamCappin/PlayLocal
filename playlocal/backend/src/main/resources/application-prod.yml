@@ -76,6 +76,13 @@ recaptcha:
   enabled: ${RECAPTCHA_ENABLED:true}
   score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
 
+# AI assistant (US 8.2): KB + permission-scoped user tools
+playlocal:
+  assistant:
+    kb:
+      min-score: 0.12
+      min-token-overlap: 1
+
 springdoc:
   api-docs:
     path: /v3/api-docs

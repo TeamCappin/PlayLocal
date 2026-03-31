@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -406,5 +407,77 @@ class AiChatServiceTest {
         AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
         assertThat(response.message().content()).hasSize(8001).endsWith("…");
+    }
+
+    @Test
+    @DisplayName("KB and multiple tool sections are separated by blank lines")
+    void chat_KbAndMultipleTools_FormattingBranches() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt()))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.4)));
+        when(knowledgeBaseBundle.findById("help-report-user")).thenReturn(Optional.of(
+                new KnowledgeEntryModel(
+                        "help-report-user",
+                        "Reporting",
+                        "Safety",
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        null,
+                        "x")));
+        when(userDataToolService.pendingFriendRequests(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.PENDING_FRIEND_REQUESTS,
+                        "Friends tool line"));
+        when(userDataToolService.myReliabilitySummary(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.MY_RELIABILITY_SUMMARY,
+                        "Reliability tool line"));
+
+        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
+                "s7",
+                List.of(new AiChatDto.ChatMessage(
+                        "user",
+                        "How do I check pending friend requests and my reliability score?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content())
+                .contains("### From PlayLocal Help")
+                .contains("### Your account (from your signed-in data)")
+                .contains("Friends tool line")
+                .contains("Reliability tool line");
+    }
+
+    @Test
+    @DisplayName("private composeReplyText appends rephrase hint for non-empty hits without top KB")
+    void composeReplyText_HintBranch_Covered() throws Exception {
+        Method m = AiChatService.class.getDeclaredMethod(
+                "composeReplyText",
+                String.class,
+                KnowledgeEntryModel.class,
+                List.class,
+                List.class);
+        m.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        String reply = (String) m.invoke(
+                aiChatService,
+                "block",
+                null,
+                List.of(),
+                List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.1)));
+
+        assertThat(reply).contains("If you need step-by-step navigation");
+    }
+
+    @Test
+    @DisplayName("private isOutOfScope returns false for blank input")
+    void isOutOfScope_Blank_Covered() throws Exception {
+        Method m = AiChatService.class.getDeclaredMethod("isOutOfScope", String.class);
+        m.setAccessible(true);
+        boolean result = (boolean) m.invoke(aiChatService, "   ");
+        assertThat(result).isFalse();
     }
 }
