@@ -17,3 +17,13 @@ logging:
 game: 
   lifecycle:
     update-interval-ms: 60000
+
+s3:
+  bucket: ${S3_BUCKET_NAME:uploads}
+  region: ${AWS_REGION:us-east-1}
+  accessKey: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_ACCESS_KEY}
+  endpoint: ${endpoint:http://localhost:9000}
+  publicEndpoint: ${publicEndpoint:http://localhost:9000}
+  forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
+  presignExpirySeconds: 900
