@@ -55,25 +55,33 @@ logging:
     org.hibernate.SQL: WARN
 
 s3:
-  bucket: ${S3_BUCKET_NAME}
-  region: ${AWS_REGION:us-east-2}
+  bucket: ${S3_BUCKET_NAME:uploads}
+  region: ${AWS_REGION:us-east-1}
   accessKey: ${AWS_ACCESS_KEY_ID}
   secretKey: ${AWS_SECRET_ACCESS_KEY}
-  endpoint: ${endpoint}
-  publicEndpoint: ${publicEndpoint}
-  forcePathStyle: false
+  # MinIO / path-style S3-compatible stores (Docker prod): set S3_FORCE_PATH_STYLE=true
+  endpoint: ${endpoint:}
+  publicEndpoint: ${publicEndpoint:}
+  forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
 
 mail:
   from-email: ${MAIL_FROM_EMAIL}
   from-name: ${MAIL_FROM_NAME:PlayLocal}
   enabled: ${MAIL_ENABLED:true}
-  brevo-api-key: ${BREVO_API_KEY}   # ← add this line
+  brevo-api-key: ${BREVO_API_KEY}
 
 recaptcha:
   secret-key: ${RECAPTCHA_SECRET_KEY}
   enabled: ${RECAPTCHA_ENABLED:true}
   score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
+
+# AI assistant (US 8.2): KB + permission-scoped user tools
+playlocal:
+  assistant:
+    kb:
+      min-score: 0.12
+      min-token-overlap: 1
 
 springdoc:
   api-docs:
