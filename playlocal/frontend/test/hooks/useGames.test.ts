@@ -278,9 +278,11 @@ describe('useGame', () => {
         expect(result.current.game).toEqual(mockGame);
       });
 
-      await expect(async () => {
-        await result.current.leaveGame();
-      }).rejects.toThrow('gamesApi.leave is not available');
+      await expect(
+        act(async () => {
+          await result.current.leaveGame();
+        })
+      ).rejects.toThrow('gamesApi.leave is not available');
     } finally {
       (gamesApi as any).leave = originalLeave;
     }
