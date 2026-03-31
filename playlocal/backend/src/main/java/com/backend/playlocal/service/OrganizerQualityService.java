@@ -35,63 +35,48 @@ public class OrganizerQualityService {
     private final OrganizerRepository organizerRepository;
     private final GameRepository gameRepository;
     private final GameParticipationRepository participationRepository;
-    private final UserRepository userRepository;
 
     public OrganizerQualityService(
             OrganizerQualityScoreRepository oqsRepository,
             OrganizerScoreHistoryRepository historyRepository,
             OrganizerRepository organizerRepository,
             GameRepository gameRepository,
-            GameParticipationRepository participationRepository,
-            UserRepository userRepository) {
+            GameParticipationRepository participationRepository) {
         this.oqsRepository = oqsRepository;
         this.historyRepository = historyRepository;
         this.organizerRepository = organizerRepository;
         this.gameRepository = gameRepository;
         this.participationRepository = participationRepository;
-        this.userRepository = userRepository;
     }
 
     /**
      * Get OQS for a user. Creates initial OQS if not exists.
      */
     @Transactional(readOnly = true)
-    public OrganizerQualityDto.OqsResponse getOqs(UUID userId) {
-        User user = userRepository.findActiveById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public OrganizerQualityDto.OqsResponse getOqs(UUID organizerId) {
+        Organizer organizer = organizerRepository.findById(organizerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
 
-        Optional<Organizer> organizer = organizerRepository.findByUser_UserId(userId);
-        if (organizer.isEmpty()) {
-            return toDefaultOqsResponse(user);
-        }
+        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
+            .orElse(createDefaultOqs(organizer));
 
-        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizer.get().getOrganizerId())
-            .orElse(createDefaultOqs(organizer.get()));
-
-        return toOqsResponse(oqs, user);
+        return toOqsResponse(oqs, organizer.getUser());
     }
 
     /**
      * Get OQS summary (simplified for display in game cards).
      */
     @Transactional(readOnly = true)
-    public OrganizerQualityDto.OqsSummary getOqsSummary(UUID userId) {
-        Optional<Organizer> organizer = organizerRepository.findByUser_UserId(userId);
-        if (organizer.isEmpty()) {
-            return OrganizerQualityDto.OqsSummary.builder()
-                .userId(userId.toString())
-                .oqsScore(100.0f)
-                .confidenceLevel("LOW")
-                .totalGamesHosted(0)
-                .build();
-        }
+    public OrganizerQualityDto.OqsSummary getOqsSummary(UUID organizerId) {
+        Organizer organizer = organizerRepository.findById(organizerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
 
-        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizer.get().getOrganizerId())
+        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
             .orElse(null);
 
         if (oqs == null) {
             return OrganizerQualityDto.OqsSummary.builder()
-                    .userId(userId.toString())
+                    .userId(organizer.getUser().getUserId().toString())
                     .oqsScore(100.0f)
                     .confidenceLevel("LOW")
                     .totalGamesHosted(0)
@@ -99,7 +84,7 @@ public class OrganizerQualityService {
         }
 
         return OrganizerQualityDto.OqsSummary.builder()
-                .userId(userId.toString())
+            .userId(organizer.getUser().getUserId().toString())
                 .oqsScore(oqs.getOqsScore())
                 .confidenceLevel(oqs.getConfidenceLevel().name())
                 .totalGamesHosted(oqs.getTotalGamesHosted())
@@ -110,17 +95,15 @@ public class OrganizerQualityService {
      * Get OQS info card with plain language explanations.
      */
     @Transactional(readOnly = true)
-    public OrganizerQualityDto.OqsInfoCard getOqsInfoCard(UUID userId) {
-        Optional<Organizer> organizer = organizerRepository.findByUser_UserId(userId);
-        if (organizer.isEmpty()) {
-            return buildNewOrganizerInfoCard(userId);
-        }
+    public OrganizerQualityDto.OqsInfoCard getOqsInfoCard(UUID organizerId) {
+        Organizer organizer = organizerRepository.findById(organizerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
 
-        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizer.get().getOrganizerId())
+        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
                 .orElse(null);
 
         if (oqs == null || oqs.getTotalGamesHosted() == 0) {
-            return buildNewOrganizerInfoCard(userId);
+            return buildNewOrganizerInfoCard(organizerId);
         }
 
         return buildInfoCard(oqs);
@@ -154,7 +137,7 @@ public class OrganizerQualityService {
         float previousRepeatRate = oqs.getRepeatPlayerRate();
 
         // Calculate new metrics
-        calculateMetrics(oqs, organizerUser.getUserId());
+        calculateMetrics(oqs, organizerId);
 
         // Calculate new OQS score
         float newOqs = calculateOqsScore(oqs.getGameCompletionRate(), oqs.getRepeatPlayerRate());
@@ -170,7 +153,7 @@ public class OrganizerQualityService {
                     previousCompletionRate, oqs.getGameCompletionRate(),
                     previousRepeatRate, oqs.getRepeatPlayerRate(),
                     reason, buildChangeDescription(reason, triggeringGame),
-                    organizerUser);
+                    organizer);
         }
 
         return toOqsResponse(oqs, organizerUser);
@@ -217,11 +200,10 @@ public class OrganizerQualityService {
      */
     @Transactional(readOnly = true)
     public OrganizerQualityDto.OqsHistoryResponse getOqsHistory(UUID organizerId, int page, int size) {
-        User organizer = userRepository.findActiveById(organizerId)
+        Organizer organizer = organizerRepository.findById(organizerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
 
-        OrganizerQualityScore oqs = organizerRepository.findByUser_UserId(organizerId)
-            .flatMap(o -> oqsRepository.findByOrganizer_OrganizerId(o.getOrganizerId()))
+        OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
             .orElse(null);
         float currentOqs = oqs != null ? oqs.getOqsScore() : 100.0f;
 
@@ -234,7 +216,7 @@ public class OrganizerQualityService {
 
         return OrganizerQualityDto.OqsHistoryResponse.builder()
                 .organizerId(organizerId.toString())
-                .displayName(organizer.getDisplayName())
+            .displayName(organizer.getUser().getDisplayName())
                 .currentOqs(currentOqs)
                 .history(entries)
                 .totalEntries(historyPage.getTotalElements())
@@ -261,7 +243,11 @@ public class OrganizerQualityService {
      */
     private void calculateMetrics(OrganizerQualityScore oqs, UUID organizerId) {
         // Get all games hosted by this organizer
-        List<Game> hostedGames = gameRepository.findByOrganizer(organizerId);
+        List<Game> hostedGames = gameRepository.findByOrganizerId(organizerId);
+        UUID organizerUserId = organizerRepository.findById(organizerId)
+            .map(Organizer::getUser)
+            .map(User::getUserId)
+            .orElse(null);
 
         int totalGames = 0;
         int completedGames = 0;
@@ -290,7 +276,7 @@ public class OrganizerQualityService {
         oqs.setGameCompletionRate(completionRate);
 
         // Calculate repeat player rate
-        calculateRepeatPlayerRate(oqs, organizerId, hostedGames);
+        calculateRepeatPlayerRate(oqs, organizerUserId, hostedGames);
     }
 
     /**
@@ -308,7 +294,7 @@ public class OrganizerQualityService {
      * - A "repeat player" is any unique player who attended 2+ of the organizer's completed games.
      * - Rate is computed as \(repeatPlayers / totalUniquePlayers * 100\). If there are no eligible players, rate is 0.
      */
-    private void calculateRepeatPlayerRate(OrganizerQualityScore oqs, UUID organizerId, List<Game> hostedGames) {
+    private void calculateRepeatPlayerRate(OrganizerQualityScore oqs, UUID organizerUserId, List<Game> hostedGames) {
         if (hostedGames.isEmpty()) {
             oqs.setTotalUniquePlayers(0);
             oqs.setRepeatPlayers(0);
@@ -339,7 +325,7 @@ public class OrganizerQualityService {
                 // Only count confirmed attendees, exclude the organizer
                 if (p.getJoinStatus() == GameParticipation.JoinStatus.CONFIRMED 
                         && p.getAttendanceStatus() == GameParticipation.AttendanceStatus.ATTENDED
-                        && !p.getUser().getUserId().equals(organizerId)) {
+                        && (organizerUserId == null || !p.getUser().getUserId().equals(organizerUserId))) {
                     UUID playerId = p.getUser().getUserId();
                     playerGameCounts.merge(playerId, 1L, Long::sum);
                 }
@@ -413,7 +399,7 @@ public class OrganizerQualityService {
                               float previousCompletionRate, float newCompletionRate,
                               float previousRepeatRate, float newRepeatRate,
                               OrganizerScoreHistory.OqsChangeReason reason, String description,
-                              User organizer) {
+                              Organizer organizer) {
         OrganizerScoreHistory history = OrganizerScoreHistory.builder()
                 .organizer(organizer)
                 .game(game)
@@ -485,10 +471,15 @@ public class OrganizerQualityService {
                 .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
     }
 
+    @Transactional(readOnly = true)
+    public UUID getOrganizerIdForUser(UUID userId) {
+        return requireOrganizerIdByUserId(userId);
+    }
+
     private OrganizerQualityDto.OqsHistoryEntry toHistoryEntry(OrganizerScoreHistory history) {
         return OrganizerQualityDto.OqsHistoryEntry.builder()
                 .historyId(history.getHistoryId().toString())
-                .organizerId(history.getOrganizer().getUserId().toString())
+                .organizerId(history.getOrganizer().getOrganizerId().toString())
                 .gameId(history.getGame() != null ? history.getGame().getGameId().toString() : null)
                 .gameTitle(history.getGame() != null ? history.getGame().getTitle() : null)
                 .previousOqs(history.getPreviousOqs())

@@ -17,7 +17,7 @@ import java.util.UUID;
  * Invalid timeframe returns 400 via {@link com.backend.playlocal.exception.GlobalExceptionHandler}.
  */
 @RestController
-@RequestMapping("/api/v1/stats")
+@RequestMapping({ "/api/v1/stats", "/api/v2/stats" })
 public class StatsController {
 
     private final StatsService statsService;

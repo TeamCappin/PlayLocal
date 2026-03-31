@@ -134,6 +134,7 @@ public class GameDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrganizerDto {
+        private String organizerId;
         private String userId;
         private String displayName;
         private Float reliabilityScore;

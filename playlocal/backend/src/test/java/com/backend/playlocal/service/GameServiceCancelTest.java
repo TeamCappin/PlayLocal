@@ -46,6 +46,9 @@ class GameServiceCancelTest {
     @Mock
     private UserRepository userRepository;
 
+        @Mock
+        private OrganizerRepository organizerRepository;
+
     @Mock
     private SportRepository sportRepository;
 
@@ -121,6 +124,7 @@ class GameServiceCancelTest {
                 .allowWaitlist(true)
                 .startTime(Instant.now().plusSeconds(3600))
                 .build();
+
     }
 
     // =========================================================================
@@ -247,7 +251,7 @@ class GameServiceCancelTest {
 
         private void stubMapToGameResponse() {
             when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(0);
-            lenient().when(participationRepository.findConfirmedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
+                        when(participationRepository.findConfirmedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
             when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(java.util.Collections.emptyList());
             when(tagAssignmentRepository.findAllByGame(any(Game.class))).thenReturn(java.util.Collections.emptyList());
             when(gameRepository.saveAndFlush(any(Game.class))).thenAnswer(inv -> inv.getArgument(0));

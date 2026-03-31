@@ -53,6 +53,9 @@ class GameServiceJoinLeaveTest {
         private UserRepository userRepository;
 
         @Mock
+        private OrganizerRepository organizerRepository;
+
+        @Mock
         private SportRepository sportRepository;
 
         @Mock
@@ -123,6 +126,7 @@ class GameServiceJoinLeaveTest {
                                 .allowWaitlist(true)
                                 .startTime(Instant.now().plusSeconds(3600))
                                 .build();
+
         }
 
         // =========================================================================

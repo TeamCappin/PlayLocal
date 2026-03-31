@@ -38,6 +38,7 @@ public class GameService {
         private final GameRepository gameRepository;
         private final GameParticipationRepository participationRepository;
         private final UserRepository userRepository;
+        private final OrganizerRepository organizerRepository;
         private final SportRepository sportRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
         private final EndorsementRepository endorsementRepository;
@@ -51,7 +52,7 @@ public class GameService {
         private final FriendshipRepository friendshipRepository;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
-                        UserRepository userRepository, SportRepository sportRepository,
+                        UserRepository userRepository, OrganizerRepository organizerRepository, SportRepository sportRepository,
                         GameVisibilityRepository gameVisibilityRepository,
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
@@ -64,6 +65,7 @@ public class GameService {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
+                this.organizerRepository = organizerRepository;
                 this.sportRepository = sportRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
                 this.endorsementRepository = endorsementRepository;
@@ -1021,7 +1023,12 @@ public class GameService {
 
         // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
         private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
+                String organizerId = organizerRepository.findByUser_UserId(organizer.getUserId())
+                                .map(profile -> profile.getOrganizerId().toString())
+                                .orElse(null);
+
                 return GameDto.OrganizerDto.builder()
+                                .organizerId(organizerId)
                                 .userId(organizer.getUserId().toString())
                                 .displayName(organizer.getDisplayName())
                                 .reliabilityScore(organizer.getReliabilityScore())

@@ -13,13 +13,13 @@ import java.util.UUID;
  * Implements: US-6.1 - Organizer Quality Score
  * 
  * Endpoints:
- * - GET /api/v1/users/{userId}/oqs - Get OQS for a specific user
- * - GET /api/v1/users/me/oqs - Get OQS for current user
- * - GET /api/v1/users/{userId}/oqs/info - Get OQS info card with explanations
- * - GET /api/v1/users/{userId}/oqs/history - Get OQS change history
+ * - GET /api/v2/organizers/{organizerId}/oqs - Get OQS for a specific organizer
+ * - GET /api/v2/organizers/me/oqs - Get OQS for current authenticated organizer
+ * - GET /api/v2/organizers/{organizerId}/oqs/info - Get OQS info card with explanations
+ * - GET /api/v2/organizers/{organizerId}/oqs/history - Get OQS change history
  */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v2/organizers")
 public class OrganizerQualityController {
 
     private final OrganizerQualityService oqsService;
@@ -32,30 +32,31 @@ public class OrganizerQualityController {
      * Get OQS for a specific user.
      * Visible on organizer profiles and game details pages.
      */
-    @GetMapping("/users/{userId}/oqs")
-    public ResponseEntity<OrganizerQualityDto.OqsResponse> getOqs(@PathVariable String userId) {
-        UUID userUUID = UUID.fromString(userId);
-        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userUUID);
+    @GetMapping("/{organizerId}/oqs")
+    public ResponseEntity<OrganizerQualityDto.OqsResponse> getOqs(@PathVariable String organizerId) {
+        UUID organizerUUID = UUID.fromString(organizerId);
+        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(organizerUUID);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Get OQS for the current authenticated user.
      */
-    @GetMapping("/users/me/oqs")
+    @GetMapping("/me/oqs")
     public ResponseEntity<OrganizerQualityDto.OqsResponse> getMyOqs(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(userId);
+        UUID organizerId = oqsService.getOrganizerIdForUser(userId);
+        OrganizerQualityDto.OqsResponse response = oqsService.getOqs(organizerId);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Get OQS summary (simplified for game cards).
      */
-    @GetMapping("/users/{userId}/oqs/summary")
-    public ResponseEntity<OrganizerQualityDto.OqsSummary> getOqsSummary(@PathVariable String userId) {
-        UUID userUUID = UUID.fromString(userId);
-        OrganizerQualityDto.OqsSummary response = oqsService.getOqsSummary(userUUID);
+    @GetMapping("/{organizerId}/oqs/summary")
+    public ResponseEntity<OrganizerQualityDto.OqsSummary> getOqsSummary(@PathVariable String organizerId) {
+        UUID organizerUUID = UUID.fromString(organizerId);
+        OrganizerQualityDto.OqsSummary response = oqsService.getOqsSummary(organizerUUID);
         return ResponseEntity.ok(response);
     }
 
@@ -63,20 +64,21 @@ public class OrganizerQualityController {
      * Get OQS info card with plain language explanations.
      * Used for the UI "info card" explaining OQS components.
      */
-    @GetMapping("/users/{userId}/oqs/info")
-    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getOqsInfoCard(@PathVariable String userId) {
-        UUID userUUID = UUID.fromString(userId);
-        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userUUID);
+    @GetMapping("/{organizerId}/oqs/info")
+    public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getOqsInfoCard(@PathVariable String organizerId) {
+        UUID organizerUUID = UUID.fromString(organizerId);
+        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(organizerUUID);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Get OQS info card for the current user.
      */
-    @GetMapping("/users/me/oqs/info")
+    @GetMapping("/me/oqs/info")
     public ResponseEntity<OrganizerQualityDto.OqsInfoCard> getMyOqsInfoCard(Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(userId);
+        UUID organizerId = oqsService.getOrganizerIdForUser(userId);
+        OrganizerQualityDto.OqsInfoCard response = oqsService.getOqsInfoCard(organizerId);
         return ResponseEntity.ok(response);
     }
 
@@ -84,26 +86,27 @@ public class OrganizerQualityController {
      * Get OQS change history for an organizer.
      * Audit trail showing score changes over time.
      */
-    @GetMapping("/users/{userId}/oqs/history")
+    @GetMapping("/{organizerId}/oqs/history")
     public ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> getOqsHistory(
-            @PathVariable String userId,
+            @PathVariable String organizerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        UUID userUUID = UUID.fromString(userId);
-        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userUUID, page, Math.min(size, 50));
+        UUID organizerUUID = UUID.fromString(organizerId);
+        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(organizerUUID, page, Math.min(size, 50));
         return ResponseEntity.ok(response);
     }
 
     /**
      * Get OQS change history for the current user.
      */
-    @GetMapping("/users/me/oqs/history")
+    @GetMapping("/me/oqs/history")
     public ResponseEntity<OrganizerQualityDto.OqsHistoryResponse> getMyOqsHistory(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         UUID userId = UUID.fromString(authentication.getName());
-        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(userId, page, Math.min(size, 50));
+        UUID organizerId = oqsService.getOrganizerIdForUser(userId);
+        OrganizerQualityDto.OqsHistoryResponse response = oqsService.getOqsHistory(organizerId, page, Math.min(size, 50));
         return ResponseEntity.ok(response);
     }
 

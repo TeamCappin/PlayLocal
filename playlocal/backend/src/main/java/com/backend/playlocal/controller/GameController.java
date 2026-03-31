@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/games")
+@RequestMapping({ "/api/v1/games", "/api/v2/games" })
 public class GameController {
 
     private final GameService gameService;

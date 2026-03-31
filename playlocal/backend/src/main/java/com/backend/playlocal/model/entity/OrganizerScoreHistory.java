@@ -28,7 +28,7 @@ public class OrganizerScoreHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
-    private User organizer;
+    private Organizer organizer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_id")

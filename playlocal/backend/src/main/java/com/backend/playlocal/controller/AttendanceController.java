@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/games/{gameId}/attendance")
+@RequestMapping({ "/api/v1/games/{gameId}/attendance", "/api/v2/games/{gameId}/attendance" })
 public class AttendanceController {
 
     private final ReliabilityService reliabilityService;

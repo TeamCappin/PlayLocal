@@ -13,7 +13,7 @@ import java.util.UUID;
  * Implements: US 2.7 - Users can view Score History on their profile
  */
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping({ "/api/v1/users", "/api/v2/users" })
 public class ScoreHistoryController {
 
     private final ReliabilityService reliabilityService;

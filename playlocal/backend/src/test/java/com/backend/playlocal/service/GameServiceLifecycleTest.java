@@ -13,6 +13,7 @@ import com.backend.playlocal.repository.GameTagConfirmationRepository;
 import com.backend.playlocal.repository.GameTagRepository;
 import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.LocationRepository;
+import com.backend.playlocal.repository.OrganizerRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
@@ -51,6 +52,8 @@ class GameServiceLifecycleTest {
     private GameParticipationRepository participationRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private OrganizerRepository organizerRepository;
     @Mock
     private SportRepository sportRepository;
     @Mock
@@ -393,6 +396,7 @@ class GameServiceLifecycleTest {
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,
@@ -423,6 +427,7 @@ class GameServiceLifecycleTest {
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,
