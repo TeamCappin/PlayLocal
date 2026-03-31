@@ -26,6 +26,11 @@ public class AssistantTelemetryService {
     public static final String ASSISTANT_SESSION_STARTED = "assistant_session_started";
     public static final String ASSISTANT_MESSAGE_SENT = "assistant_message_sent";
     public static final String ASSISTANT_RESPONSE_ERROR = "assistant_response_error";
+    public static final String ASSISTANT_KB_HIT = "assistant_kb_hit";
+    public static final String ASSISTANT_KB_MISS = "assistant_kb_miss";
+    public static final String ASSISTANT_DB_TOOL_USED = "assistant_db_tool_used";
+    public static final String ASSISTANT_REFUSAL = "assistant_refusal";
+    public static final String ASSISTANT_PROCESSING_ERROR = "assistant_processing_error";
 
     private final AnalyticsEventRepository analyticsEventRepository;
     private final UserRepository userRepository;
@@ -51,8 +56,14 @@ public class AssistantTelemetryService {
             UUID gameId,
             Map<String, Object> properties) {
         Map<String, Object> props = properties != null ? new HashMap<>(properties) : new HashMap<>();
-        log.info("{} event={} userId={} sessionId={} gameId={} props={}",
-                TELEMETRY_MARKER, eventName, userId, sessionId, gameId, props);
+        if (eventName != null && eventName.startsWith("assistant_")) {
+            log.info("{} event={} userId={} sessionId={} gameId={}",
+                    TELEMETRY_MARKER, eventName, userId, sessionId, gameId);
+            log.debug("{} assistant props={}", TELEMETRY_MARKER, props);
+        } else {
+            log.info("{} event={} userId={} sessionId={} gameId={} props={}",
+                    TELEMETRY_MARKER, eventName, userId, sessionId, gameId, props);
+        }
 
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
         Game game = gameId != null ? gameRepository.findById(gameId).orElse(null) : null;

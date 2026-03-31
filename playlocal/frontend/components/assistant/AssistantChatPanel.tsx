@@ -10,6 +10,7 @@ import {
   getOrCreateAssistantSessionId,
   sessionStartedTelemetryKey,
 } from "@/lib/assistantSession";
+import { AssistantMarkdown } from "@/components/assistant/AssistantMarkdown";
 
 const DISCLAIMER =
   "AI responses may be inaccurate; verify before acting.";
@@ -376,7 +377,13 @@ export function AssistantChatPanel({
                           : "border border-gray-200/80 bg-white text-gray-900"
                       }`}
                     >
-                      <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                      {m.role === "user" ? (
+                        <span className="whitespace-pre-wrap break-words">
+                          {m.content}
+                        </span>
+                      ) : (
+                        <AssistantMarkdown text={m.content} />
+                      )}
                     </div>
                   </li>
                 ))}
