@@ -57,7 +57,7 @@ export function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Navigation */}
-        <nav className="absolute top-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 py-6">
+        <nav className="absolute top-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MapPin className="w-8 h-8 text-emerald-600" />
@@ -91,7 +91,7 @@ export function LandingPage() {
               backgroundPosition: 'center',
             }}
           ></div>
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center pt-10 sm:pt-0">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center pt-24 sm:pt-28">
             <div className="max-w-3xl">
               <h1 className="text-5xl md:text-6xl text-white mb-6">
                 Find Your Game. <br />
