@@ -2,8 +2,11 @@ package com.backend.playlocal.unit;
 
 import com.backend.playlocal.controller.AiController;
 import com.backend.playlocal.model.dto.AiChatDto;
+import com.backend.playlocal.model.dto.KnowledgeSearchDto;
 import com.backend.playlocal.service.AiChatService;
 import com.backend.playlocal.service.AssistantTelemetryService;
+import com.backend.playlocal.service.knowledge.KnowledgeEntryModel;
+import com.backend.playlocal.service.knowledge.KnowledgeRetrievalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,13 +34,15 @@ class AiControllerTest {
     @Mock
     private AssistantTelemetryService assistantTelemetryService;
     @Mock
+    private KnowledgeRetrievalService knowledgeRetrievalService;
+    @Mock
     private Authentication authentication;
 
     private AiController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AiController(aiChatService, assistantTelemetryService);
+        controller = new AiController(aiChatService, assistantTelemetryService, knowledgeRetrievalService);
     }
 
     @Test
@@ -119,5 +124,28 @@ class AiControllerTest {
                 "session-3",
                 null,
                 Map.of("context", "game"));
+    }
+
+    @Test
+    @DisplayName("knowledge search maps retrieval hits to snippets")
+    void searchKnowledge_ReturnsSnippets() {
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "help-block-user",
+                "Blocking someone",
+                "Safety",
+                List.of("Profile", "Settings"),
+                List.of("block"),
+                List.of(),
+                "/help/safety#block",
+                "Short approved text about blocking users on the platform.");
+        when(knowledgeRetrievalService.search("block", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.42)));
+
+        ResponseEntity<KnowledgeSearchDto.SearchResponse> response = controller.searchKnowledge("block");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().snippets()).hasSize(1);
+        assertThat(response.getBody().snippets().get(0).id()).isEqualTo("help-block-user");
+        assertThat(response.getBody().snippets().get(0).excerpt()).contains("Short approved");
     }
 }

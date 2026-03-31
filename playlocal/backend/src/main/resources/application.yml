@@ -80,6 +80,13 @@ resend:
   from-name: ${RESEND_FROM_NAME:PlayLocal}
   enabled: ${RESEND_ENABLED:false}
 
+# AI assistant (US 8.2): KB + permission-scoped user tools
+playlocal:
+  assistant:
+    kb:
+      min-score: 0.12
+      min-token-overlap: 1
+
 # Logging
 # %X{correlationId} injects the request Correlation ID from MDC into every log line, and no-id is shown if no correlation ID is present.
 logging:

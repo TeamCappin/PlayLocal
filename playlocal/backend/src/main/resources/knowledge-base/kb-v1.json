@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "help-block-user",
+      "title": "Blocking someone",
+      "section": "Safety & community",
+      "navPath": ["Profile", "Settings", "Privacy & safety"],
+      "keywords": ["block", "blocked", "blocking", "ignore", "mute", "harassment", "unwanted"],
+      "relatedIds": ["help-report-user", "help-friend-requests"],
+      "docLink": "/help/safety#block",
+      "answerText": "To block someone on PlayLocal, open your profile, go to Settings, then Privacy & safety. Open the other member's profile (from a game, chat, or friends list), use the safety options, and choose Block. Blocked members cannot message you or see certain profile details depending on your privacy settings. You can manage blocked accounts from the same Privacy & safety area."
+    },
+    {
+      "id": "help-report-user",
+      "title": "Reporting inappropriate behavior",
+      "section": "Safety & community",
+      "navPath": ["Game or chat", "Member profile", "Report"],
+      "keywords": ["report", "reporting", "abuse", "moderation", "inappropriate", "harassment"],
+      "relatedIds": ["help-block-user", "help-community-guidelines"],
+      "docLink": "/help/safety#report",
+      "answerText": "If someone breaks community guidelines, open their profile from the game or conversation context and use Report. Describe what happened; moderators review reports. For urgent safety concerns, also consider blocking the member and leaving the game chat if needed."
+    },
+    {
+      "id": "help-join-game",
+      "title": "Joining a game",
+      "section": "Games",
+      "navPath": ["Discover", "Game details", "Join"],
+      "keywords": ["join", "sign up", "register", "rsvp", "participate", "game", "discover"],
+      "relatedIds": ["help-waitlist", "help-leave-game"],
+      "docLink": "/help/games#join",
+      "answerText": "Use Discover to browse upcoming games. Open a game to see time, location, skill level, and spots. Tap Join to request a spot. If the game is full, you may join the waitlist when the organizer allows it. You will see your status as confirmed or waitlisted on the game page."
+    },
+    {
+      "id": "help-waitlist",
+      "title": "Waitlist",
+      "section": "Games",
+      "navPath": ["Discover", "Game details", "Join", "Waitlist"],
+      "keywords": ["waitlist", "waiting list", "full", "spot"],
+      "relatedIds": ["help-join-game", "help-leave-game"],
+      "docLink": "/help/games#waitlist",
+      "answerText": "When a game is full and the organizer enabled a waitlist, Join adds you in order. If a confirmed player leaves, the next waitlisted player may be promoted automatically according to game rules. Check the game page for your waitlist position when shown."
+    },
+    {
+      "id": "help-leave-game",
+      "title": "Leaving or canceling participation",
+      "section": "Games",
+      "navPath": ["My games", "Game details", "Leave"],
+      "keywords": ["leave", "cancel", "drop out", "withdraw"],
+      "relatedIds": ["help-join-game", "help-reliability"],
+      "docLink": "/help/games#leave",
+      "answerText": "Open the game you joined and choose Leave or cancel participation before start time when available. Late cancellations can affect your reliability score if the game uses attendance tracking. Organizers may set minimum notice expectations in the game description."
+    },
+    {
+      "id": "help-reliability",
+      "title": "Reliability score",
+      "section": "Profile & trust",
+      "navPath": ["Profile", "Stats", "Reliability"],
+      "keywords": ["reliability", "score", "trust", "no-show", "attendance", "show up"],
+      "relatedIds": ["help-leave-game", "help-profile"],
+      "docLink": "/help/trust#reliability",
+      "answerText": "Your reliability score reflects how often you attend games you committed to, after organizers confirm attendance. No-shows and patterns of late drops can lower it; showing up as expected helps keep it high. Some games may require a minimum reliability to join."
+    },
+    {
+      "id": "help-friend-requests",
+      "title": "Friend requests",
+      "section": "Friends",
+      "navPath": ["Profile", "Friends", "Requests"],
+      "keywords": ["friend", "friends", "request", "add friend", "pending"],
+      "relatedIds": ["help-block-user", "help-profile"],
+      "docLink": "/help/friends#requests",
+      "answerText": "Send a friend request from another member's profile. They accept or decline from their Friends area. Pending requests you sent or received appear in the Friends section. Accepted friends may see more profile detail depending on privacy settings."
+    },
+    {
+      "id": "help-profile",
+      "title": "Profile and settings overview",
+      "section": "Account",
+      "navPath": ["Profile", "Settings"],
+      "keywords": ["profile", "settings", "account", "edit profile", "avatar", "bio"],
+      "relatedIds": ["help-friend-requests", "help-reliability"],
+      "docLink": "/help/account#profile",
+      "answerText": "Your profile shows display name, avatar, bio, and optional location. Open Profile then Settings to update visibility, notifications, and safety options. Slug-based profile links are public only to the extent you allow in privacy settings."
+    },
+    {
+      "id": "help-community-guidelines",
+      "title": "Community expectations",
+      "section": "Safety & community",
+      "navPath": ["Help", "Community guidelines"],
+      "keywords": ["rules", "guidelines", "community", "behavior", "respect"],
+      "relatedIds": ["help-report-user", "help-block-user"],
+      "docLink": "/help/community",
+      "answerText": "PlayLocal works best when members are respectful, show up on time, communicate clearly about attendance, and follow local facility rules. Harassment, discrimination, and unsafe conduct are not allowed. Use report and block tools when needed."
+    },
+    {
+      "id": "help-login",
+      "title": "Sign in to your account",
+      "section": "Account",
+      "navPath": ["Login"],
+      "keywords": ["login", "log in", "sign in", "password", "account access"],
+      "relatedIds": ["help-reset-password", "help-profile"],
+      "docLink": "/help/account#login",
+      "answerText": "Open the Login page and enter your email and password. If multi-factor authentication is enabled, complete the verification prompt. If login fails, check email spelling and reset your password if needed."
+    },
+    {
+      "id": "help-reset-password",
+      "title": "Resetting your password",
+      "section": "Account",
+      "navPath": ["Login", "Forgot password"],
+      "keywords": ["forgot password", "reset password", "recovery", "reset code"],
+      "relatedIds": ["help-login", "help-profile"],
+      "docLink": "/help/account#password-reset",
+      "answerText": "From Login, choose Forgot password and request a reset code. Enter the verification code, then set a new password. Use a strong unique password and avoid reusing old credentials."
+    },
+    {
+      "id": "help-discover-filters",
+      "title": "Finding games with filters",
+      "section": "Discover",
+      "navPath": ["Discover", "Filters"],
+      "keywords": ["discover", "filters", "sport", "skill", "intensity", "distance", "nearby"],
+      "relatedIds": ["help-join-game", "help-waitlist"],
+      "docLink": "/help/discover#filters",
+      "answerText": "Use Discover filters to narrow games by sport, skill, intensity, and location radius. Adjust filters, then open a game card for full details before joining. If no matches appear, broaden distance or remove one filter at a time."
+    },
+    {
+      "id": "help-notifications",
+      "title": "Notification settings",
+      "section": "Account",
+      "navPath": ["Profile", "Settings", "Notifications"],
+      "keywords": ["notifications", "alerts", "push", "email notifications", "mute"],
+      "relatedIds": ["help-profile", "help-friend-requests"],
+      "docLink": "/help/account#notifications",
+      "answerText": "Go to Profile, then Settings, then Notifications to control game, friend request, and account alerts. You can enable or disable channels depending on available options in your account."
+    },
+    {
+      "id": "help-game-chat",
+      "title": "Using game chat",
+      "section": "Games",
+      "navPath": ["Game details", "Chat"],
+      "keywords": ["chat", "game chat", "message", "send message", "conversation"],
+      "relatedIds": ["help-report-user", "help-block-user"],
+      "docLink": "/help/games#chat",
+      "answerText": "Open a game and use the Chat area to coordinate arrival time and logistics. Keep messages respectful and on-topic. If someone behaves inappropriately, use report or block options from their profile."
+    },
+    {
+      "id": "help-roster",
+      "title": "Viewing game roster",
+      "section": "Games",
+      "navPath": ["Game details", "Roster"],
+      "keywords": ["roster", "participants", "confirmed players", "waitlisted players"],
+      "relatedIds": ["help-join-game", "help-waitlist"],
+      "docLink": "/help/games#roster",
+      "answerText": "Open a game and check the roster section to see confirmed participants and, when available, waitlist details. Organizer and participant statuses are shown based on your access level."
+    }
+  ]
+}

@@ -47,13 +47,14 @@ logging:
     org.hibernate.SQL: WARN
 
 s3:
-  bucket: ${S3_BUCKET_NAME}              
-  region: ${AWS_REGION:us-east-2}
+  bucket: ${S3_BUCKET_NAME:uploads}
+  region: ${AWS_REGION:us-east-1}
   accessKey: ${AWS_ACCESS_KEY_ID}
   secretKey: ${AWS_SECRET_ACCESS_KEY}
-  endpoint: ${endpoint}
-  publicEndpoint: ${publicEndpoint}
-  forcePathStyle: false
+  # MinIO / path-style S3-compatible stores (Docker prod): set S3_FORCE_PATH_STYLE=true
+  endpoint: ${S3_ENDPOINT:}
+  publicEndpoint: ${S3_PUBLIC_ENDPOINT:}
+  forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
 
 resend:

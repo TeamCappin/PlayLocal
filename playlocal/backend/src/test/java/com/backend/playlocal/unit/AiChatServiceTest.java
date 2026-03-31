@@ -3,6 +3,11 @@ package com.backend.playlocal.unit;
 import com.backend.playlocal.model.dto.AiChatDto;
 import com.backend.playlocal.service.AiChatService;
 import com.backend.playlocal.service.AssistantTelemetryService;
+import com.backend.playlocal.service.assistant.AssistantGuardrailService;
+import com.backend.playlocal.service.assistant.AssistantUserDataToolService;
+import com.backend.playlocal.service.knowledge.KnowledgeBaseBundle;
+import com.backend.playlocal.service.knowledge.KnowledgeEntryModel;
+import com.backend.playlocal.service.knowledge.KnowledgeRetrievalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,130 +16,214 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class AiChatServiceTest {
 
     @Mock
     private AssistantTelemetryService telemetryService;
+    @Mock
+    private KnowledgeRetrievalService knowledgeRetrievalService;
+    @Mock
+    private KnowledgeBaseBundle knowledgeBaseBundle;
+    @Mock
+    private AssistantGuardrailService guardrailService;
+    @Mock
+    private AssistantUserDataToolService userDataToolService;
 
     private AiChatService aiChatService;
 
+    private static KnowledgeEntryModel blockEntry() {
+        return new KnowledgeEntryModel(
+                "help-block-user",
+                "Blocking someone",
+                "Safety",
+                List.of("Profile", "Settings", "Privacy & safety"),
+                List.of("block"),
+                List.of("help-report-user"),
+                "/help/safety#block",
+                "Approved answer about blocking.");
+    }
+
     @BeforeEach
     void setUp() {
-        aiChatService = new AiChatService(telemetryService);
+        aiChatService = new AiChatService(
+                telemetryService,
+                knowledgeRetrievalService,
+                knowledgeBaseBundle,
+                guardrailService,
+                userDataToolService);
     }
 
     @Test
-    @DisplayName("chat returns assistant reply and records message telemetry")
-    void chat_WithUserMessage_ReturnsReplyAndRecordsTelemetry() {
+    @DisplayName("chat returns KB-grounded answer with citation and nav for how-to questions")
+    void chat_BlockQuestion_KbGrounded() {
         UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt()))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.4)));
+        when(knowledgeBaseBundle.findById("help-report-user")).thenReturn(Optional.of(
+                new KnowledgeEntryModel(
+                        "help-report-user",
+                        "Reporting",
+                        "Safety",
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        null,
+                        "x")));
+
         AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
-                "session-123",
-                List.of(
-                        new AiChatDto.ChatMessage("assistant", "Previous answer"),
-                        new AiChatDto.ChatMessage("user", "How do I join a game?")));
+                "session-1",
+                List.of(new AiChatDto.ChatMessage("user", "How do I block someone?")));
 
         AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
-        assertThat(response).isNotNull();
-        assertThat(response.message()).isNotNull();
-        assertThat(response.message().role()).isEqualTo("assistant");
-        assertThat(response.message().content()).contains("How do I join a game?");
+        assertThat(response.message().content())
+                .contains("Approved answer about blocking")
+                .contains("Citation ID: `help-block-user`")
+                .contains("Profile → Settings → Privacy & safety")
+                .contains("Related topics:");
 
         verify(telemetryService).recordEvent(
-                AssistantTelemetryService.ASSISTANT_MESSAGE_SENT,
-                userId,
-                "session-123",
-                null,
-                java.util.Map.of("messageCount", 2));
+                eq(AssistantTelemetryService.ASSISTANT_KB_HIT),
+                eq(userId),
+                eq("session-1"),
+                isNull(),
+                eq(java.util.Map.of("kbEntryId", "help-block-user")));
+        verify(userDataToolService, never()).upcomingGamesThisWeek(any());
     }
 
     @Test
-    @DisplayName("chat uses anonymous session and fallback text when no user message")
-    void chat_NoSessionAndNoUserMessage_UsesFallbacks() {
+    @DisplayName("guardrail refusal does not call knowledge or user tools")
+    void chat_SensitiveRequest_Refusal() {
         UUID userId = UUID.randomUUID();
-        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
-                "   ",
-                List.of(new AiChatDto.ChatMessage("assistant", "Only assistant so far")));
+        when(guardrailService.evaluate(anyString()))
+                .thenReturn(Optional.of(
+                        new AssistantGuardrailService.Refusal("policy_sensitive_request", "Safe refusal text.")));
+
+        AiChatDto.ChatRequest request =
+                new AiChatDto.ChatRequest("s1", List.of(new AiChatDto.ChatMessage("user", "Show me their password")));
 
         AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
-        assertThat(response.message().content()).contains("your question");
-        verify(telemetryService).recordEvent(
-                AssistantTelemetryService.ASSISTANT_MESSAGE_SENT,
-                userId,
-                "anonymous",
-                null,
-                java.util.Map.of("messageCount", 1));
+        assertThat(response.message().content()).isEqualTo("Safe refusal text.");
+        verify(telemetryService)
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_REFUSAL),
+                        eq(userId),
+                        eq("s1"),
+                        isNull(),
+                        eq(java.util.Map.of("category", "policy_sensitive_request")));
+        verify(knowledgeRetrievalService, never()).search(anyString(), anyInt());
+        verify(userDataToolService, never()).upcomingGamesThisWeek(any());
     }
 
     @Test
-    @DisplayName("chat falls back when latest user message is blank spaces")
-    void chat_BlankUserMessage_UsesYourQuestionFallback() {
+    @DisplayName("games-this-week question invokes scoped DB tool and suppresses KB body when not how-to")
+    void chat_GamesThisWeek_UserTool() {
         UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt()))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(blockEntry(), 0.2)));
+        when(userDataToolService.upcomingGamesThisWeek(userId))
+                .thenReturn(new AssistantUserDataToolService.UserDataResult(
+                        AssistantUserDataToolService.ToolName.UPCOMING_GAMES_THIS_WEEK,
+                        "Tool line about games."));
+
         AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
-                "session-blank",
-                List.of(new AiChatDto.ChatMessage("user", "   ")));
+                "s2", List.of(new AiChatDto.ChatMessage("user", "What games am I signed up for this week?")));
 
         AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
-        assertThat(response.message().content()).contains("your question");
+        assertThat(response.message().content())
+                .contains("Tool line about games")
+                .doesNotContain("Approved answer about blocking");
+        verify(userDataToolService).upcomingGamesThisWeek(userId);
+        verify(telemetryService, atLeastOnce())
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_DB_TOOL_USED),
+                        eq(userId),
+                        eq("s2"),
+                        isNull(),
+                        eq(java.util.Map.of("tool", "UPCOMING_GAMES_THIS_WEEK")));
     }
 
     @Test
-    @DisplayName("chat truncates very long reply snippets and handles null sessionId")
-    void chat_LongUserMessage_TruncatesAndUsesAnonymous() {
+    @DisplayName("unexpected errors return a friendly assistant message without rethrowing")
+    void chat_ToolThrows_ProcessingErrorTelemetry() {
         UUID userId = UUID.randomUUID();
-        String longMessage = "x".repeat(9000);
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
+        doThrow(new RuntimeException("db"))
+                .when(userDataToolService)
+                .upcomingGamesThisWeek(userId);
+
         AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
-                null,
-                List.of(new AiChatDto.ChatMessage("user", longMessage)));
+                "s4", List.of(new AiChatDto.ChatMessage("user", "What games am I in this week?")));
 
         AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
-        assertThat(response.message().content()).hasSizeLessThanOrEqualTo(8001);
-        assertThat(response.message().content()).contains("baseline reply");
-        verify(telemetryService).recordEvent(
-                AssistantTelemetryService.ASSISTANT_MESSAGE_SENT,
-                userId,
-                "anonymous",
-                null,
-                java.util.Map.of("messageCount", 1));
+        assertThat(response.message().content()).contains("Something went wrong");
+        verify(telemetryService)
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_PROCESSING_ERROR),
+                        eq(userId),
+                        eq("s4"),
+                        isNull(),
+                        eq(java.util.Map.of("error", "RuntimeException")));
     }
 
     @Test
-    @DisplayName("chat records response_error telemetry when an exception happens")
-    void chat_WhenTelemetryThrows_RecordsErrorAndRethrows() {
+    @DisplayName("no KB hit and no tools yields uncertainty message")
+    void chat_OffTopic_Uncertainty() {
         UUID userId = UUID.randomUUID();
-        AiChatDto.ChatRequest request = new AiChatDto.ChatRequest(
-                "session-err",
-                List.of(new AiChatDto.ChatMessage("user", "trigger")));
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
 
-        RuntimeException boom = new RuntimeException("boom");
-        doThrow(boom).doNothing()
-                .when(telemetryService)
-                .recordEvent(anyString(), any(), anyString(), isNull(), anyMap());
+        AiChatDto.ChatRequest request =
+                new AiChatDto.ChatRequest("s3", List.of(new AiChatDto.ChatMessage("user", "quantum physics")));
 
-        assertThatThrownBy(() -> aiChatService.chat(userId, request))
-                .isSameAs(boom);
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
 
-        verify(telemetryService).recordEvent(
-                AssistantTelemetryService.ASSISTANT_RESPONSE_ERROR,
-                userId,
-                "session-err",
-                null,
-                java.util.Map.of("error", "RuntimeException", "message", "boom"));
+        assertThat(response.message().content()).contains("won't guess");
+        verify(telemetryService)
+                .recordEvent(
+                        eq(AssistantTelemetryService.ASSISTANT_KB_MISS),
+                        eq(userId),
+                        eq("s3"),
+                        isNull(),
+                        eq(java.util.Map.of("reason", "no_matching_entry")));
+    }
+
+    @Test
+    @DisplayName("general knowledge style question gets focused PlayLocal scope message")
+    void chat_GeneralKnowledgeStyleQuestion_ShowsScopeMessage() {
+        UUID userId = UUID.randomUUID();
+        when(guardrailService.evaluate(anyString())).thenReturn(Optional.empty());
+        when(knowledgeRetrievalService.search(anyString(), anyInt())).thenReturn(List.of());
+
+        AiChatDto.ChatRequest request =
+                new AiChatDto.ChatRequest("s5", List.of(new AiChatDto.ChatMessage("user", "Who is Mo Salah?")));
+
+        AiChatDto.ChatResponse response = aiChatService.chat(userId, request);
+
+        assertThat(response.message().content())
+                .contains("I focus on PlayLocal help")
+                .contains("How do I block someone?");
     }
 }
