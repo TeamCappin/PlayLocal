@@ -28,8 +28,8 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceDto.AttendanceEntry>> getPendingAttendance(
             @PathVariable UUID gameId,
             Authentication authentication) {
-        UUID organizerId = UUID.fromString(authentication.getName());
-        List<AttendanceDto.AttendanceEntry> pending = reliabilityService.getPendingAttendance(gameId, organizerId);
+        UUID requesterUserId = UUID.fromString(authentication.getName());
+        List<AttendanceDto.AttendanceEntry> pending = reliabilityService.getPendingAttendance(gameId, requesterUserId);
         return ResponseEntity.ok(pending);
     }
 
@@ -43,8 +43,8 @@ public class AttendanceController {
             @PathVariable UUID gameId,
             @Valid @RequestBody AttendanceDto.ConfirmRequest request,
             Authentication authentication) {
-        UUID organizerId = UUID.fromString(authentication.getName());
-        AttendanceDto.AttendanceResponse response = reliabilityService.confirmAttendance(gameId, organizerId, request);
+        UUID requesterUserId = UUID.fromString(authentication.getName());
+        AttendanceDto.AttendanceResponse response = reliabilityService.confirmAttendance(gameId, requesterUserId, request);
         return ResponseEntity.ok(response);
     }
 }

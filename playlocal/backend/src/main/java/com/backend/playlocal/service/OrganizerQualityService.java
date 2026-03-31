@@ -30,6 +30,8 @@ public class OrganizerQualityService {
     private static final float COMPLETION_RATE_WEIGHT = 0.6f;
     private static final float REPEAT_PLAYER_RATE_WEIGHT = 0.4f;
 
+    private static final String ORGANIZER_NOT_FOUND_MSG = "Organizer not found";
+
     private final OrganizerQualityScoreRepository oqsRepository;
     private final OrganizerScoreHistoryRepository historyRepository;
     private final OrganizerRepository organizerRepository;
@@ -58,7 +60,7 @@ public class OrganizerQualityService {
     @Transactional(readOnly = true)
     public OrganizerQualityDto.OqsResponse getOqs(UUID organizerId) {
         Organizer organizer = organizerRepository.findById(organizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG));
 
         OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
             .orElse(createDefaultOqs(organizer));
@@ -72,7 +74,7 @@ public class OrganizerQualityService {
     @Transactional(readOnly = true)
     public OrganizerQualityDto.OqsSummary getOqsSummary(UUID organizerId) {
         Organizer organizer = organizerRepository.findById(organizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG));
 
         OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
             .orElse(null);
@@ -99,8 +101,8 @@ public class OrganizerQualityService {
      */
     @Transactional(readOnly = true)
     public OrganizerQualityDto.OqsInfoCard getOqsInfoCard(UUID organizerId) {
-        Organizer organizer = organizerRepository.findById(organizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
+        organizerRepository.findById(organizerId)
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG));
 
         OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
                 .orElse(null);
@@ -128,7 +130,7 @@ public class OrganizerQualityService {
     @Transactional
     public OrganizerQualityDto.OqsResponse calculateOqs(UUID organizerId, OrganizerScoreHistory.OqsChangeReason reason, Game triggeringGame) {
         Organizer organizer = organizerRepository.findById(organizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG));
         User organizerUser = organizer.getUser();
 
         OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
@@ -204,7 +206,7 @@ public class OrganizerQualityService {
     @Transactional(readOnly = true)
     public OrganizerQualityDto.OqsHistoryResponse getOqsHistory(UUID organizerId, int page, int size) {
         Organizer organizer = organizerRepository.findById(organizerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizer not found"));
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG));
 
         OrganizerQualityScore oqs = oqsRepository.findByOrganizer_OrganizerId(organizerId)
             .orElse(null);
@@ -250,7 +252,7 @@ public class OrganizerQualityService {
         UUID organizerUserId = organizerRepository.findById(organizerId)
             .map(Organizer::getUser)
             .map(User::getUserId)
-            .orElseThrow(() -> new ResourceNotFoundException("Organizer not found for organizerId: " + organizerId));
+            .orElseThrow(() -> new ResourceNotFoundException(ORGANIZER_NOT_FOUND_MSG + " for organizerId: " + organizerId));
 
         int totalGames = 0;
         int completedGames = 0;
