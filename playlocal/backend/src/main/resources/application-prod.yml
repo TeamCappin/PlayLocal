@@ -1,47 +1,55 @@
 spring:
+  config:
+    activate:
+      on-profile: prod
   application:
     name: playlocal-backend
+
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      max-lifetime: 1800000
+
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
-    open-in-view: true
+
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
-    validate-on-migrate: false
-    out-of-order: true
+    validate-on-migrate: true
+    out-of-order: false
 
 server:
-  port: ${PORT:8080}           # Render automatically sets $PORT
+  port: ${PORT:8080}
+  connection-timeout: 5s
 
-# SECURITY: JWT_SECRET must be set to a strong, unique value whose UTF-8 encoding
-# is at least 32 bytes (required for HMAC-SHA256) before deploying.
-# Do not reuse any default or placeholder value.
-# Startup will be rejected by JwtSecretValidator if this value is blank,
-# matches a known default placeholder, or is shorter than 32 bytes.
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health         # Only expose /actuator/health to reduce overhead
+        include: health
 
 logging:
   level:
+    root: INFO
     com.backend.playlocal: INFO
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
@@ -57,11 +65,11 @@ s3:
   forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
 
-resend:
-  api-key: ${RESEND_API_KEY}
-  from-email: ${RESEND_FROM_EMAIL}
-  from-name: ${RESEND_FROM_NAME:PlayLocal}
-  enabled: ${RESEND_ENABLED:true}
+mail:
+  from-email: ${MAIL_FROM_EMAIL}
+  from-name: ${MAIL_FROM_NAME:PlayLocal}
+  enabled: ${MAIL_ENABLED:true}
+  brevo-api-key: ${BREVO_API_KEY}
 
 recaptcha:
   secret-key: ${RECAPTCHA_SECRET_KEY}
