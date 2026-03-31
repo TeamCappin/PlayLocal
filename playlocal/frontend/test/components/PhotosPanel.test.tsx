@@ -73,6 +73,18 @@ describe('PhotosPanel Component', () => {
   });
 
   describe('Initial load / empty state', () => {
+    it('defaults canUpload to false when the prop is omitted', async () => {
+      mockListByGame.mockResolvedValueOnce([]);
+
+      render(<PhotosPanel gameId={gameId} />);
+
+      await waitFor(() => expect(mockListByGame).toHaveBeenCalledWith(gameId));
+      expect(screen.getByText(/Anyone can view photos/i)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Upload photo/i })
+      ).not.toBeInTheDocument();
+    });
+
     it("shows 'No photos yet.' when list is empty", async () => {
       mockListByGame.mockResolvedValueOnce([]);
 
@@ -93,6 +105,16 @@ describe('PhotosPanel Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Boom')).toBeInTheDocument();
+      });
+    });
+
+    it('shows generic message when list fails without an error message', async () => {
+      mockListByGame.mockRejectedValueOnce({});
+
+      render(<PhotosPanel gameId={gameId} canUpload={false} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to load photos')).toBeInTheDocument();
       });
     });
   });
@@ -345,6 +367,69 @@ describe('PhotosPanel Component', () => {
         expect(slot1!).toHaveClass('border-emerald-500');
       });
     });
+
+    it('empty slots use muted styling when uploads are not allowed', async () => {
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+
+      render(<PhotosPanel gameId={gameId} canUpload={false} />);
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+
+      const slot1 = document.getElementById('thumb-1');
+      expect(slot1).toBeInTheDocument();
+      expect(slot1).toHaveClass('opacity-60');
+      expect(slot1).toHaveClass('cursor-not-allowed');
+    });
+
+    it('shows Uploading... on the upload button while an upload is in progress', async () => {
+      let resolveSlot!: (value: unknown) => void;
+      const pendingSlot = new Promise((resolve) => {
+        resolveSlot = resolve as (value: unknown) => void;
+      });
+
+      mockListByGame.mockResolvedValueOnce([]);
+      mockRequestUploadSlot.mockReturnValueOnce(pendingSlot);
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: /Upload photo/i })
+        ).toBeInTheDocument()
+      );
+
+      const file = new File(['x'], 'photo.png', { type: 'image/png' });
+
+      await act(async () => {
+        fireEvent.change(getFileInput(), { target: { files: [file] } });
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: /Uploading/i })
+        ).toBeInTheDocument()
+      );
+
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => '',
+      });
+      mockFinalizeUpload.mockResolvedValueOnce(undefined);
+
+      await act(async () => {
+        resolveSlot({
+          mediaId: 'm1',
+          uploadUrl: 'https://s3.test/put',
+          objectKey: 'x',
+        });
+      });
+
+      await waitFor(() => {
+        expect(mockFinalizeUpload).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Upload flow: success + failures', () => {
@@ -433,6 +518,119 @@ describe('PhotosPanel Component', () => {
       expect(mockRequestUploadSlot).not.toHaveBeenCalled();
       expect(mockFinalizeUpload).not.toHaveBeenCalled();
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['photo.jpg', 'image/jpeg'],
+      ['photo.jpeg', 'image/jpeg'],
+      ['photo.JPG', 'image/jpeg'],
+      ['photo.png', 'image/png'],
+      ['photo.gif', 'image/gif'],
+      ['photo.webp', 'image/webp'],
+      ['photo.heic', 'image/heic'],
+      ['photo.heif', 'image/heif'],
+    ])(
+      'infers %s as %s when the File has an empty type (browser MIME gap)',
+      async (fileName, expectedMime) => {
+        mockListByGame.mockResolvedValueOnce([]);
+        mockListByGame.mockResolvedValueOnce([makePhoto('new')]);
+
+        mockRequestUploadSlot.mockResolvedValueOnce({
+          mediaId: 'new',
+          uploadUrl: 'https://s3.test/put',
+          objectKey: 'x',
+        });
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: true,
+          text: async () => '',
+        });
+        mockFinalizeUpload.mockResolvedValueOnce(undefined);
+
+        render(<PhotosPanel gameId={gameId} canUpload={true} />);
+
+        await waitFor(() => expect(mockListByGame).toHaveBeenCalled());
+
+        const file = new File(['bytes'], fileName, { type: '' });
+
+        await act(async () => {
+          fireEvent.change(getFileInput(), { target: { files: [file] } });
+        });
+
+        await waitFor(() => {
+          expect(mockRequestUploadSlot).toHaveBeenCalledWith(gameId, {
+            fileName,
+            contentType: expectedMime,
+            sizeBytes: file.size,
+          });
+        });
+      }
+    );
+
+    it('falls back to inferred MIME when file.type is only whitespace', async () => {
+      mockListByGame.mockResolvedValueOnce([]);
+      mockListByGame.mockResolvedValueOnce([makePhoto('n')]);
+
+      mockRequestUploadSlot.mockResolvedValueOnce({
+        mediaId: 'n',
+        uploadUrl: 'https://s3.test/put',
+        objectKey: 'x',
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => '',
+      });
+      mockFinalizeUpload.mockResolvedValueOnce(undefined);
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+      await waitFor(() => expect(mockListByGame).toHaveBeenCalled());
+
+      const file = new File(['x'], 'pic.png', { type: '   ' });
+
+      await act(async () => {
+        fireEvent.change(getFileInput(), { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(mockRequestUploadSlot).toHaveBeenCalledWith(
+          gameId,
+          expect.objectContaining({ contentType: 'image/png' })
+        );
+      });
+    });
+
+    it('rejects upload when type is empty and filename has no known image extension', async () => {
+      mockListByGame.mockResolvedValueOnce([]);
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+      await waitFor(() => expect(mockListByGame).toHaveBeenCalled());
+
+      const file = new File(['x'], 'notes.pdf', { type: '' });
+
+      await act(async () => {
+        fireEvent.change(getFileInput(), { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Please upload an image file/i)
+        ).toBeInTheDocument();
+      });
+      expect(mockRequestUploadSlot).not.toHaveBeenCalled();
+    });
+
+    it('does not start upload when file input changes with no file selected', async () => {
+      mockListByGame.mockResolvedValueOnce([]);
+
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+      await waitFor(() => expect(mockListByGame).toHaveBeenCalled());
+
+      await act(async () => {
+        fireEvent.change(getFileInput(), {
+          target: { files: [] as unknown as FileList },
+        });
+      });
+
+      expect(mockRequestUploadSlot).not.toHaveBeenCalled();
     });
 
     it('shows error when requestUploadSlot fails', async () => {
@@ -598,6 +796,54 @@ describe('PhotosPanel Component', () => {
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalled();
       });
+    });
+
+    it('closes delete dialog when backdrop is clicked without deleting', async () => {
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+      fireEvent.click(screen.getByTitle('Delete this photo'));
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Close delete photo dialog' })
+      );
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      expect(mockDeletePhoto).not.toHaveBeenCalled();
+    });
+
+    it('does not close delete dialog from backdrop while delete is in progress', async () => {
+      let resolveDelete!: (value: unknown) => void;
+      const pendingDelete = new Promise((resolve) => {
+        resolveDelete = resolve;
+      });
+      mockListByGame.mockResolvedValueOnce([makePhoto('m1')]);
+      mockListByGame.mockResolvedValueOnce([]); // refresh() after delete completes
+      mockDeletePhoto.mockReturnValueOnce(pendingDelete);
+      render(<PhotosPanel gameId={gameId} canUpload={true} />);
+      await waitFor(() =>
+        expect(screen.getByAltText('Game photo')).toBeInTheDocument()
+      );
+      fireEvent.click(screen.getByTitle('Delete this photo'));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Photo' }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: 'Deleting...' })
+        ).toBeInTheDocument()
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Close delete photo dialog' })
+      );
+      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+      resolveDelete(undefined);
+      await waitFor(() => {
+        expect(mockDeletePhoto).toHaveBeenCalledWith(gameId, 'm1');
+      });
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      expect(toast.success).toHaveBeenCalledWith('Photo deleted');
     });
 
     it('hides delete control when canUpload is false', async () => {

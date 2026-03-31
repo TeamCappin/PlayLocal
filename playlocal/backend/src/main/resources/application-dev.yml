@@ -35,7 +35,6 @@ s3:
   publicEndpoint: ${publicEndpoint:http://localhost:9000}
   forcePathStyle: ${S3_FORCE_PATH_STYLE:true}
   presignExpirySeconds: 900
-
 mail:
   enabled: false
 

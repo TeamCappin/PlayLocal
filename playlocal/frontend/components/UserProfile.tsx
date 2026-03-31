@@ -346,52 +346,61 @@ export function UserProfile() {
     <div className="min-h-screen bg-gray-50">
       {/* Profile Header */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-start gap-6">
-              <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-emerald-600 text-3xl shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6 gap-4">
+            <div className="flex items-start gap-4 sm:gap-6 w-full sm:w-auto">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white rounded-2xl flex items-center justify-center text-emerald-600 text-2xl sm:text-3xl shadow-lg shrink-0">
                 {user.avatar}
               </div>
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl text-white">{user.name}</h1>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                  <h1 className="text-xl sm:text-3xl text-white truncate">{user.name}</h1>
                   {user.verified && (
-                    <CheckCircle className="w-6 h-6 text-white" />
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white shrink-0" />
                   )}
                 </div>
-                <p className="text-emerald-100 mb-3">@{user.username}</p>
+                <p className="text-emerald-100 text-sm sm:text-base mb-2 sm:mb-3">@{user.username}</p>
                 {!user.profileRestricted && (
                   <>
-                    {user.bio && <p className="text-white max-w-2xl mb-3">{user.bio}</p>}
-                    <div className="flex items-center gap-4 text-emerald-100">
+                    {user.bio && <p className="text-white text-sm sm:text-base max-w-2xl mb-2 sm:mb-3">{user.bio}</p>}
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-emerald-100 text-sm sm:text-base">
                       {user.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           <span>{user.location}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span>Member since {user.memberSince}</span>
                       </div>
                     </div>
                   </>
                 )}
               </div>
+              {/* Settings gear — top right on mobile */}
+              {isOwnProfile && (
+                <Link
+                  href="/settings"
+                  className="sm:hidden ml-auto p-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors self-start shrink-0"
+                >
+                  <Settings className="w-5 h-5" />
+                </Link>
+              )}
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               {isOwnProfile ? (
                 <>
                   <Link
                     href="/profile/edit"
-                    className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
                   >
                     <Edit className="w-5 h-5" />
                     <span>Edit Profile</span>
                   </Link>
                   <Link
                     href="/settings"
-                    className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors flex items-center"
+                    className="hidden sm:flex px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-colors items-center"
                   >
                     <Settings className="w-5 h-5" />
                   </Link>
@@ -399,7 +408,7 @@ export function UserProfile() {
               ) : (
                 <button
                   onClick={() => setShowReportModal(true)}
-                  className="px-4 py-2 bg-red-500/20 backdrop-blur-sm text-red-200 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-red-500/20 backdrop-blur-sm text-red-200 rounded-lg hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
                 >
                   <Flag className="w-5 h-5" />
                   <span>Report</span>
@@ -409,7 +418,7 @@ export function UserProfile() {
           </div>
 
           {/* Stats Grid — always visible (community trust metrics) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
             <StatCard label="Games Played" value={user.stats.gamesPlayed} />
             <StatCard label="Games Hosted" value={user.stats.gamesHosted} />
             <StatCard
@@ -510,8 +519,8 @@ export function UserProfile() {
 
       {/* Content Tabs — hidden for private profiles */}
       {!isOwnProfile && user.profileRestricted ? null : <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="border-b border-gray-200 bg-white -mt-px">
-          <div className="flex gap-8">
+        <div className="border-b border-gray-200 bg-white -mt-px overflow-x-auto">
+          <div className="flex gap-4 sm:gap-8 min-w-max">
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-4 py-4 border-b-2 transition-colors ${

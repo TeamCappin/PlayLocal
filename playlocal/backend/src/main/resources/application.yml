@@ -74,10 +74,7 @@ recaptcha:
   score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
 
 # Resend Email
-resend:
-  api-key: ${RESEND_API_KEY:re_test_placeholder}
-  from-email: ${RESEND_FROM_EMAIL:onboarding@resend.dev}
-  from-name: ${RESEND_FROM_NAME:PlayLocal}
+mail:
   enabled: ${RESEND_ENABLED:false}
 
 # AI assistant (US 8.2): KB + permission-scoped user tools

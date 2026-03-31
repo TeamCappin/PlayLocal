@@ -659,23 +659,20 @@ export function GameRoom() {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl text-white mb-2">{game.title}</h1>
-            <div className="flex items-center gap-4 text-white/90">
+            <h1 className="text-2xl sm:text-4xl text-white mb-2">{game.title}</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white/90">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 <span>
                   {formattedDate} at {formattedTime}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                <span>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-5 h-5 shrink-0 mt-0.5" />
+                <span className="line-clamp-1 sm:line-clamp-none">
                   {game.hasExactLocationAccess && game.location
                     ? game.location.name
-                    : "Location Hidden"}
-                  {game.location?.name ||
-                    game.approximateLocation ||
-                    'Location Hidden'}
+                    : game.approximateLocation || 'Location Hidden'}
                 </span>
               </div>
             </div>
