@@ -1149,32 +1149,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// Helper for step validation
-function isValidStep(step: number, formData: any): boolean {
-  if (step === 1) {
-    return !!(
-      formData.title &&
-      formData.sport &&
-      formData.location &&
-      formData.date &&
-      formData.indoor &&
-      formData.startTime &&
-      formData.endTime
-    );
-  }
-  if (step === 2) {
-    return !!(
-      formData.minPlayers &&
-      formData.maxPlayers &&
-      Number.parseInt(formData.maxPlayers, 10) >=
-        Number.parseInt(formData.minPlayers, 10) &&
-      formData.skillLevel &&
-      formData.intensity
-    );
-  }
-  return true;
-}
-
 // Time Select Component
 function TimeSelect({
   value,

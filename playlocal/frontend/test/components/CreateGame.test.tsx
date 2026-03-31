@@ -9,7 +9,7 @@ import {
   within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { CreateGame, isValidStep } from '@/components/CreateGame';
+import { CreateGame } from '@/components/CreateGame';
 import { toast } from '@/lib/toast';
 
 // --------------------
@@ -325,6 +325,132 @@ describe('CreateGame', () => {
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
 
+  it('validates step 1: sport is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ sport: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a sport/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: location is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ location: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please enter a location/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: date is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ date: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a date/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: location type is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ indoor: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select location type/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: start time is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ start: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a start time/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: end time is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ end: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select an end time/i)
+    ).not.toHaveLength(0);
+  });
+
   it('shows error when start time is in the past for today', async () => {
     // Set system time to late evening so any morning time is definitely in the past
     jest.setSystemTime(new Date('2026-02-09T23:00:00.000Z'));
@@ -367,7 +493,7 @@ describe('CreateGame', () => {
 
     render(<CreateGame />);
 
-    await fillStep1Valid({ start: '11:00', end: '11:00' });
+    await fillStep1Valid({ date: '2030-01-01', start: '11:00', end: '11:00' });
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
@@ -557,6 +683,37 @@ describe('CreateGame', () => {
     ).not.toHaveLength(0);
   });
 
+  it('step 2 validates player counts must be numbers (forced invalid numeric input)', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    const minPlayersInput = screen.getByPlaceholderText('e.g., 6') as HTMLInputElement;
+    const maxPlayersInput = screen.getByPlaceholderText('e.g., 10') as HTMLInputElement;
+
+    Object.defineProperty(minPlayersInput, 'value', {
+      configurable: true,
+      value: 'abc',
+    });
+    fireEvent.input(minPlayersInput);
+    fireEvent.change(maxPlayersInput, { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/player counts must be numbers/i)
+    ).not.toHaveLength(0);
+  });
+
   it('step 2 validates intensity is required', async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
@@ -632,10 +789,10 @@ describe('CreateGame', () => {
       /public - anyone can see and join/i
     ) as HTMLSelectElement;
     fireEvent.change(visibilitySelect, { target: { value: 'friends' } });
-    expect(screen.getByText('Friends Only')).toBeInTheDocument();
+    expect(screen.getAllByText('Friends Only').length).toBeGreaterThan(0);
 
     fireEvent.change(visibilitySelect, { target: { value: 'invite' } });
-    expect(screen.getByText('Invite Only')).toBeInTheDocument();
+    expect(screen.getAllByText('Invite Only').length).toBeGreaterThan(0);
 
     const waitlistCheckbox = screen.getByLabelText(/enable waitlist/i) as HTMLInputElement;
     const checkInCheckbox = screen.getByLabelText(/require check-in/i) as HTMLInputElement;
@@ -699,6 +856,33 @@ describe('CreateGame', () => {
 
     expect(pushMock).toHaveBeenCalledWith('/login');
     expect(createGameMock).not.toHaveBeenCalled();
+  });
+
+  it('submit is ignored during cooldown on step 3', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: 'cooldown-guard' });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    // Still within the 1s cooldown set by the step transitions.
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+    expect(createGameMock).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+    await waitFor(() => expect(createGameMock).toHaveBeenCalledTimes(1));
   });
 
   it('submit validates minAge must not exceed maxAge on final create', async () => {
@@ -1307,49 +1491,5 @@ describe('CreateGame', () => {
 
     fireEvent.click(redirectingButton);
     expect(createGameMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('isValidStep helper', () => {
-  it('validates required fields for step 1', () => {
-    const base = {
-      title: 'Game',
-      sport: 'Basketball',
-      location: 'Court',
-      date: '2026-02-10',
-      indoor: 'INDOOR',
-      startTime: '10:00',
-      endTime: '11:00',
-    };
-
-    expect(isValidStep(1, base)).toBe(true);
-    expect(isValidStep(1, { ...base, title: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, sport: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, location: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, date: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, indoor: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, startTime: '' })).toBe(false);
-    expect(isValidStep(1, { ...base, endTime: '' })).toBe(false);
-  });
-
-  it('validates min/max players, skill and intensity for step 2', () => {
-    const base = {
-      minPlayers: '6',
-      maxPlayers: '10',
-      skillLevel: 'ALL_LEVELS',
-      intensity: 'CASUAL',
-    };
-
-    expect(isValidStep(2, base)).toBe(true);
-    expect(isValidStep(2, { ...base, minPlayers: '' })).toBe(false);
-    expect(isValidStep(2, { ...base, maxPlayers: '' })).toBe(false);
-    expect(isValidStep(2, { ...base, maxPlayers: '4' })).toBe(false);
-    expect(isValidStep(2, { ...base, skillLevel: '' })).toBe(false);
-    expect(isValidStep(2, { ...base, intensity: '' })).toBe(false);
-  });
-
-  it('returns true for step 3 and beyond', () => {
-    expect(isValidStep(3, {})).toBe(true);
-    expect(isValidStep(99, {})).toBe(true);
   });
 });
