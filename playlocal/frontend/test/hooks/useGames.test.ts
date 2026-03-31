@@ -197,6 +197,27 @@ describe('useGame', () => {
     expect(mockJoin).not.toHaveBeenCalled();
   });
 
+  it('joinGame throws when gamesApi.join is unavailable', async () => {
+    const originalJoin = (gamesApi as any).join;
+    (gamesApi as any).join = undefined;
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+
+    try {
+      const { result } = renderHook(() => useGame('game-123'));
+
+      await waitFor(() => {
+        expect(result.current.game).toEqual(mockGame);
+      });
+
+      await expect(async () => {
+        await result.current.joinGame();
+      }).rejects.toThrow('gamesApi.join is not available');
+    } finally {
+      (gamesApi as any).join = originalJoin;
+    }
+  });
+
   it('leaveGame calls API and refetches game', async () => {
     mockGetById.mockResolvedValue(mockGame);
     mockGetRoster.mockResolvedValue(mockRoster);
@@ -242,6 +263,29 @@ describe('useGame', () => {
       'Game ID required'
     );
     expect(mockLeave).not.toHaveBeenCalled();
+  });
+
+  it('leaveGame throws when gamesApi.leave is unavailable', async () => {
+    const originalLeave = (gamesApi as any).leave;
+    (gamesApi as any).leave = undefined;
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+
+    try {
+      const { result } = renderHook(() => useGame('game-123'));
+
+      await waitFor(() => {
+        expect(result.current.game).toEqual(mockGame);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.leaveGame();
+        })
+      ).rejects.toThrow('gamesApi.leave is not available');
+    } finally {
+      (gamesApi as any).leave = originalLeave;
+    }
   });
 });
 
@@ -543,6 +587,54 @@ describe('useCreateGame', () => {
     expect(result.current.error).toBe('Failed to create game');
     await waitFor(() => expect(result.current.isCreating).toBe(false));
   });
+
+  it('deduplicates concurrent create requests', async () => {
+    const gameData = { title: 'New Game', sportName: 'Basketball' } as any;
+
+    let resolveCreate: ((value: any) => void) | undefined;
+    mockCreate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }) as any
+    );
+
+    const { result } = renderHook(() => require(hooksPath).useCreateGame());
+
+    let firstPromise: Promise<any>;
+    let secondPromise: Promise<any>;
+
+    await act(async () => {
+      firstPromise = result.current.createGame(gameData);
+      secondPromise = result.current.createGame(gameData);
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveCreate?.(mockGame);
+      await Promise.all([firstPromise!, secondPromise!]);
+    });
+
+    await waitFor(() => expect(result.current.isCreating).toBe(false));
+  });
+
+  it('throws when gamesApi.create is unavailable', async () => {
+    const originalCreate = (gamesApi as any).create;
+    (gamesApi as any).create = undefined;
+
+    try {
+      const { result } = renderHook(() => require(hooksPath).useCreateGame());
+
+      await act(async () => {
+        await expect(
+          result.current.createGame({ title: 'Bad', sportName: 'Basketball' } as any)
+        ).rejects.toThrow('gamesApi.create is not available');
+      });
+    } finally {
+      (gamesApi as any).create = originalCreate;
+    }
+  });
 });
 
 describe('useGame - cancelGame', () => {
@@ -621,6 +713,27 @@ describe('useGame - cancelGame', () => {
     await expect(async () => {
       await result.current.cancelGame();
     }).rejects.toThrow('Game ID required');
+  });
+
+  it('throws error when gamesApi.cancel is unavailable', async () => {
+    const originalCancel = (gamesApi as any).cancel;
+    (gamesApi as any).cancel = undefined;
+    mockGetById.mockResolvedValue(mockGame);
+    mockGetRoster.mockResolvedValue(mockRoster);
+
+    try {
+      const { result } = renderHook(() => useGame('game-123'));
+
+      await waitFor(() => {
+        expect(result.current.game).toBeDefined();
+      });
+
+      await expect(async () => {
+        await result.current.cancelGame();
+      }).rejects.toThrow('gamesApi.cancel is not available');
+    } finally {
+      (gamesApi as any).cancel = originalCancel;
+    }
   });
 
   it('handles cancel failure gracefully', async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -78,6 +78,9 @@ export function CreateGame() {
   ];
 
   const [isSubmittingCooldown, setIsSubmittingCooldown] = useState(false);
+  const createRequestInFlightRef = useRef(false);
+  const createSucceededRef = useRef(false);
+  const [hasCreateSucceeded, setHasCreateSucceeded] = useState(false);
 
   // US-4.2: Fetch available tags on mount
   useEffect(() => {
@@ -265,6 +268,15 @@ export function CreateGame() {
       return;
     }
 
+    // Ignore duplicate submits while a create request is already in flight.
+    if (
+      createRequestInFlightRef.current ||
+      createSucceededRef.current ||
+      isCreating
+    ) {
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate.push('/login');
       return;
@@ -281,6 +293,8 @@ export function CreateGame() {
     }
 
     try {
+      createRequestInFlightRef.current = true;
+
       // Combine date and time into ISO string
       const startDateTime = `${formData.date}T${formData.startTime}:00`;
       const endDateTime = formData.endTime
@@ -318,12 +332,16 @@ export function CreateGame() {
           : undefined,
       });
 
+      createSucceededRef.current = true;
+      setHasCreateSucceeded(true);
       toast.success('Game created');
       navigate.push(`/games/${game.gameId}`);
     } catch (err: any) {
       const errorMessage = getActionableErrorMessage(err, 'create game');
       setError(errorMessage);
       toast.error(errorMessage);
+    } finally {
+      createRequestInFlightRef.current = false;
     }
   };
 
@@ -1069,9 +1087,14 @@ export function CreateGame() {
               ) : (
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  disabled={isCreating || hasCreateSucceeded}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed transition-colors"
                 >
-                  Create Game
+                  {hasCreateSucceeded
+                    ? 'Redirecting...'
+                    : isCreating
+                    ? 'Creating...'
+                    : 'Create Game'}
                 </button>
               )}
             </div>
@@ -1124,32 +1147,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <span className="text-gray-900">{value}</span>
     </div>
   );
-}
-
-// Helper for step validation
-function isValidStep(step: number, formData: any): boolean {
-  if (step === 1) {
-    return !!(
-      formData.title &&
-      formData.sport &&
-      formData.location &&
-      formData.date &&
-      formData.indoor &&
-      formData.startTime &&
-      formData.endTime
-    );
-  }
-  if (step === 2) {
-    return !!(
-      formData.minPlayers &&
-      formData.maxPlayers &&
-      Number.parseInt(formData.maxPlayers, 10) >=
-        Number.parseInt(formData.minPlayers, 10) &&
-      formData.skillLevel &&
-      formData.intensity
-    );
-  }
-  return true;
 }
 
 // Time Select Component

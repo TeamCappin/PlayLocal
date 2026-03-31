@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   gamesApi,
   GameResponse,
@@ -220,22 +220,35 @@ export function useGame(gameId: string | undefined) {
 export function useCreateGame() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inFlightCreateRef = useRef<
+    ReturnType<typeof gamesApi.create> | null
+  >(null);
 
   const createGame = async (data: Parameters<typeof gamesApi.create>[0]) => {
+    if (inFlightCreateRef.current) {
+      return inFlightCreateRef.current;
+    }
+
     setIsCreating(true);
     setError(null);
-    try {
-      if (!gamesApi || typeof gamesApi.create !== 'function') {
-        throw new Error('gamesApi.create is not available');
+    const createPromise = (async () => {
+      try {
+        if (!gamesApi || typeof gamesApi.create !== 'function') {
+          throw new Error('gamesApi.create is not available');
+        }
+        const game = await gamesApi.create(data);
+        return game;
+      } catch (err: any) {
+        setError(err.message || 'Failed to create game');
+        throw err;
+      } finally {
+        inFlightCreateRef.current = null;
+        setIsCreating(false);
       }
-      const game = await gamesApi.create(data);
-      return game;
-    } catch (err: any) {
-      setError(err.message || 'Failed to create game');
-      throw err;
-    } finally {
-      setIsCreating(false);
-    }
+    })();
+
+    inFlightCreateRef.current = createPromise;
+    return createPromise;
   };
 
   return { createGame, isCreating, error };

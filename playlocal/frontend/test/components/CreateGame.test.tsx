@@ -325,6 +325,132 @@ describe('CreateGame', () => {
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
 
+  it('validates step 1: sport is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ sport: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a sport/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: location is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ location: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please enter a location/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: date is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ date: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a date/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: location type is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ indoor: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select location type/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: start time is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ start: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a start time/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('validates step 1: end time is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await fillStep1Valid({ end: '' });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select an end time/i)
+    ).not.toHaveLength(0);
+  });
+
   it('shows error when start time is in the past for today', async () => {
     // Set system time to late evening so any morning time is definitely in the past
     jest.setSystemTime(new Date('2026-02-09T23:00:00.000Z'));
@@ -367,7 +493,7 @@ describe('CreateGame', () => {
 
     render(<CreateGame />);
 
-    await fillStep1Valid({ start: '11:00', end: '11:00' });
+    await fillStep1Valid({ date: '2030-01-01', start: '11:00', end: '11:00' });
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
     expect(screen.getByText(/basic information/i)).toBeInTheDocument();
   });
@@ -448,6 +574,182 @@ describe('CreateGame', () => {
     ).not.toHaveLength(0);
   });
 
+  it('step 2 validates required fields: max players required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    fireEvent.change(screen.getByPlaceholderText('e.g., 6'), {
+      target: { value: '6' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please enter maximum players/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('step 2 validates minimum players must be at least 2', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    fireEvent.change(screen.getByPlaceholderText('e.g., 6'), {
+      target: { value: '1' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g., 10'), {
+      target: { value: '4' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/minimum players must be at least 2/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('step 2 validates maximum players cannot be less than minimum', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    fireEvent.change(screen.getByPlaceholderText('e.g., 6'), {
+      target: { value: '8' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g., 10'), {
+      target: { value: '6' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/maximum players cannot be less than minimum players/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('step 2 validates skill level is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    fireEvent.change(screen.getByPlaceholderText('e.g., 6'), {
+      target: { value: '6' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g., 10'), {
+      target: { value: '10' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select a skill level/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('step 2 validates player counts must be numbers (forced invalid numeric input)', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    const minPlayersInput = screen.getByPlaceholderText('e.g., 6') as HTMLInputElement;
+    const maxPlayersInput = screen.getByPlaceholderText('e.g., 10') as HTMLInputElement;
+
+    Object.defineProperty(minPlayersInput, 'value', {
+      configurable: true,
+      value: 'abc',
+    });
+    fireEvent.input(minPlayersInput);
+    fireEvent.change(maxPlayersInput, { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/player counts must be numbers/i)
+    ).not.toHaveLength(0);
+  });
+
+  it('step 2 validates intensity is required', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+
+    await goToStep2();
+    fireEvent.change(screen.getByPlaceholderText('e.g., 6'), {
+      target: { value: '6' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g., 10'), {
+      target: { value: '10' },
+    });
+
+    const selects = screen.getAllByRole('combobox') as HTMLSelectElement[];
+    const skill = selects.find((s) =>
+      Array.from(s.options).some((o) => o.textContent?.match(/select skill level/i))
+    );
+    if (!skill) throw new Error('Skill select not found');
+
+    fireEvent.change(skill, { target: { value: 'ALL_LEVELS' } });
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(
+      await screen.findAllByText(/please select an intensity level/i)
+    ).not.toHaveLength(0);
+  });
+
   it('back button returns from step 2 to step 1', async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
@@ -466,6 +768,200 @@ describe('CreateGame', () => {
     fireEvent.click(screen.getByRole('button', { name: /back/i }));
 
     expect(await screen.findByText(/basic information/i)).toBeInTheDocument();
+  });
+
+  it('step 3 settings update summary visibility and toggles', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 88 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    const visibilitySelect = screen.getByDisplayValue(
+      /public - anyone can see and join/i
+    ) as HTMLSelectElement;
+    fireEvent.change(visibilitySelect, { target: { value: 'friends' } });
+    expect(screen.getAllByText('Friends Only').length).toBeGreaterThan(0);
+
+    fireEvent.change(visibilitySelect, { target: { value: 'invite' } });
+    expect(screen.getAllByText('Invite Only').length).toBeGreaterThan(0);
+
+    const waitlistCheckbox = screen.getByLabelText(/enable waitlist/i) as HTMLInputElement;
+    const checkInCheckbox = screen.getByLabelText(/require check-in/i) as HTMLInputElement;
+
+    expect(waitlistCheckbox.checked).toBe(true);
+    expect(checkInCheckbox.checked).toBe(true);
+
+    fireEvent.click(waitlistCheckbox);
+    fireEvent.click(checkInCheckbox);
+
+    expect(waitlistCheckbox.checked).toBe(false);
+    expect(checkInCheckbox.checked).toBe(false);
+  });
+
+  it('step 3 reliability clear resets value and summary label', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 88 },
+    });
+    mockUseCreateGame.mockReturnValue({
+      createGame: jest.fn(),
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    const reliabilityInput = screen.getByLabelText(
+      /minimum reliability score/i
+    ) as HTMLInputElement;
+
+    fireEvent.change(reliabilityInput, { target: { value: '85' } });
+    expect(screen.getByText('85%')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /clear/i }));
+    expect(reliabilityInput.value).toBe('');
+    expect(screen.getByText(/none \(open to all\)/i)).toBeInTheDocument();
+  });
+
+  it('submitting on step 3 while unauthenticated redirects to login without creating', async () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, user: null });
+
+    const createGameMock = jest.fn();
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+
+    expect(pushMock).toHaveBeenCalledWith('/login');
+    expect(createGameMock).not.toHaveBeenCalled();
+  });
+
+  it('submit is ignored during cooldown on step 3', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: 'cooldown-guard' });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    // Still within the 1s cooldown set by the step transitions.
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+    expect(createGameMock).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+    await waitFor(() => expect(createGameMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('submit validates minAge must not exceed maxAge on final create', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: 'should-not-create' });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep2();
+
+    fireEvent.change(screen.getByPlaceholderText(/minimum age/i), {
+      target: { value: '30' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/maximum age/i), {
+      target: { value: '18' },
+    });
+
+    await fillStep2Valid();
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+    await screen.findByText(/game settings/i);
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+
+    expect(
+      await screen.findAllByText(/minimum age cannot be greater than maximum age/i)
+    ).not.toHaveLength(0);
+    expect(createGameMock).not.toHaveBeenCalled();
+  });
+
+  it('includes description in payload when user fills it on step 2', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: 'with-description' });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep2();
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/add any additional details about the game/i),
+      { target: { value: 'Bring a light jersey and water bottle.' } }
+    );
+
+    await fillStep2Valid();
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+    await screen.findByText(/game settings/i);
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+
+    await waitFor(() => {
+      expect(createGameMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Bring a light jersey and water bottle.',
+        })
+      );
+    });
   });
 
   it('community tags: selecting and unselecting checkboxes updates checked state', async () => {
@@ -910,5 +1406,90 @@ describe('CreateGame', () => {
     expect(toast.error).toHaveBeenCalled();
     const banners = await screen.findAllByText(/nope\. Please try again\./i);
     expect(banners.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('submits only once when Create Game is clicked rapidly twice', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+
+    let resolveCreate: ((value: { gameId: string }) => void) | undefined;
+    const createGameMock = jest
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise<{ gameId: string }>((resolve) => {
+            resolveCreate = resolve;
+          })
+      );
+
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const createButton = screen.getByRole('button', { name: /create game/i });
+    fireEvent.click(createButton);
+    fireEvent.click(createButton);
+
+    expect(createGameMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveCreate?.({ gameId: 'single-submit-game' });
+    });
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/games/single-submit-game');
+    });
+  });
+
+  it('does not submit again after success while redirect is pending', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+
+    const createGameMock = jest
+      .fn()
+      .mockResolvedValue({ gameId: 'already-created-game' });
+
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const createButton = screen.getByRole('button', { name: /create game/i });
+    fireEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/games/already-created-game');
+    });
+
+    const redirectingButton = screen.getByRole('button', {
+      name: /redirecting/i,
+    });
+    expect(redirectingButton).toBeDisabled();
+
+    fireEvent.click(redirectingButton);
+    expect(createGameMock).toHaveBeenCalledTimes(1);
   });
 });
