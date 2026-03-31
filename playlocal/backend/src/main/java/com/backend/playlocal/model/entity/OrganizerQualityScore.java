@@ -26,10 +26,13 @@ import java.util.UUID;
 public class OrganizerQualityScore {
 
     @Id
-    @Column(name = "user_id")
-    private UUID userId;
+    @Column(name = "organizer_id", nullable = false, unique = true)
+    private UUID organizerId;
 
-
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "organizer_id", nullable = false, unique = true)
+    private Organizer organizer;
     @Column(name = "oqs_score", nullable = false)
     @Builder.Default
     private Float oqsScore = 100.0f;

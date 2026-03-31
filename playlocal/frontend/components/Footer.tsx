@@ -76,6 +76,11 @@ export function Footer() {
                   Terms of Service
                 </Link>
               </li>
+                <li>
+                <Link href="/organizer-agreement" className="hover:text-emerald-400 transition-colors">
+                  Organizer Agreement
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

@@ -13,6 +13,7 @@ import com.backend.playlocal.repository.GameTagConfirmationRepository;
 import com.backend.playlocal.repository.GameTagRepository;
 import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.LocationRepository;
+import com.backend.playlocal.repository.OrganizerRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
@@ -36,7 +37,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,6 +51,8 @@ class GameServiceLifecycleTest {
     private GameParticipationRepository participationRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private OrganizerRepository organizerRepository;
     @Mock
     private SportRepository sportRepository;
     @Mock
@@ -111,15 +113,26 @@ class GameServiceLifecycleTest {
                 .status(Game.GameStatus.SCHEDULED)
                 .startTime(Instant.now().plusSeconds(3600))
                 .build();
-
-        lenient().when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        lenient().when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
-        lenient().when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
-        lenient().when(tagAssignmentRepository.findAllByGame(game)).thenReturn(List.of());
     }
+
+        private void stubGameResponseDependencies() {
+                when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
+                when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame(game)).thenReturn(List.of());
+        }
+
+        private void stubGameResponseDependenciesWithSave() {
+                stubGameResponseDependencies();
+                when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
+
+        private void stubGameSave() {
+                when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
 
     @Test
     void cancelGame_AsOrganizer_CancelsAndNotifiesParticipants() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerParticipation = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -166,6 +179,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_AsOrganizer_SetsCompleted() {
+                stubGameResponseDependenciesWithSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
         gameService.completeGame(gameId, organizer.getUserId());
@@ -178,6 +192,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_WhenAlreadyCompleted_DoesNotSaveAgain() {
+                stubGameResponseDependencies();
         game.setStatus(Game.GameStatus.COMPLETED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -189,6 +204,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGameByScheduler_CompletesAndNotifiesOrganizer() {
+                stubGameSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
         gameService.completeGameByScheduler(gameId);
@@ -256,6 +272,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void archiveGame_WhenCompleted_Archives() {
+                stubGameResponseDependenciesWithSave();
         game.setStatus(Game.GameStatus.COMPLETED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -268,6 +285,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void archiveGame_WhenAlreadyArchived_DoesNotSave() {
+                stubGameResponseDependencies();
         game.setStatus(Game.GameStatus.ARCHIVED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -335,6 +353,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenParticipantAppearsInBothLists_NotifiesOnlyOnce() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerParticipation = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -365,6 +384,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenOrganizerAppearsOnlyInWaitlist_DoesNotNotifyOrganizer() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerWaitlisted = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -383,6 +403,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenNotificationServiceIsNull_StillCancels() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation confirmedParticipation = GameParticipation.builder()
                 .game(game)
                 .user(confirmedUser)
@@ -393,6 +414,7 @@ class GameServiceLifecycleTest {
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,
@@ -419,10 +441,12 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGameByScheduler_WhenNotificationServiceIsNull_CompletesWithoutReminder() {
+                stubGameSave();
         GameService gameServiceWithoutNotifications = new GameService(
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,

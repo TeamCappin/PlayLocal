@@ -1,6 +1,7 @@
 package com.backend.playlocal.unit;
 
 import com.backend.playlocal.service.OrganizerQualityService;
+import com.backend.playlocal.service.OrganizerCompatibilityLayer;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.OrganizerQualityDto;
 import com.backend.playlocal.model.entity.*;
@@ -30,7 +31,6 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class OrganizerQualityServiceTest {
-
     @Mock
     private OrganizerQualityScoreRepository oqsRepository;
 
@@ -38,18 +38,22 @@ class OrganizerQualityServiceTest {
     private OrganizerScoreHistoryRepository historyRepository;
 
     @Mock
+    private OrganizerRepository organizerRepository;
+
+        @Mock
+        private OrganizerCompatibilityLayer organizerCompatibilityLayer;
+
+    @Mock
     private GameRepository gameRepository;
 
     @Mock
     private GameParticipationRepository participationRepository;
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
-    private OrganizerQualityService oqsService;
+        private OrganizerQualityService oqsService;
 
-    private User testOrganizer;
+        private User testOrganizer;
+        private Organizer testOrganizerProfile;
     private Game testGame;
     private OrganizerQualityScore testOqs;
 
@@ -62,6 +66,12 @@ class OrganizerQualityServiceTest {
                 .status(User.UserStatus.ACTIVE)
                 .build();
 
+        testOrganizerProfile = Organizer.builder()
+                .organizerId(UUID.randomUUID())
+                .user(testOrganizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .build();
+
         testGame = Game.builder()
                 .gameId(UUID.randomUUID())
                 .createdBy(testOrganizer)
@@ -70,7 +80,7 @@ class OrganizerQualityServiceTest {
                 .build();
 
         testOqs = OrganizerQualityScore.builder()
-                .userId(testOrganizer.getUserId())
+                .organizer(testOrganizerProfile)
                 .oqsScore(85.0f)
                 .gameCompletionRate(90.0f)
                 .repeatPlayerRate(75.0f)
@@ -90,12 +100,12 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should return OQS for existing organizer")
         void shouldReturnOqsForExistingOrganizer() {
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.of(testOrganizerProfile));
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
 
-            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizerProfile.getOrganizerId());
 
             assertThat(response).isNotNull();
             assertThat(response.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
@@ -109,12 +119,12 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should return default OQS for new organizer")
         void shouldReturnDefaultOqsForNewOrganizer() {
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.of(testOrganizerProfile));
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.empty());
 
-            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizerProfile.getOrganizerId());
 
             assertThat(response).isNotNull();
             assertThat(response.getOqsScore()).isEqualTo(100.0f);
@@ -126,12 +136,37 @@ class OrganizerQualityServiceTest {
         @DisplayName("Should throw exception for non-existent user")
         void shouldThrowExceptionForNonExistentUser() {
             UUID nonExistentId = UUID.randomUUID();
-            when(userRepository.findActiveById(nonExistentId))
+            when(organizerRepository.findById(nonExistentId))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> oqsService.getOqs(nonExistentId))
                     .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("User not found");
+                    .hasMessageContaining("Organizer not found");
+        }
+
+        @Test
+        @DisplayName("Should return default OQS response when organizer has no OQS record")
+        void shouldReturnDefaultOqsWhenOrganizerProfileMissing() {
+            when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.of(testOrganizerProfile));
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.empty());
+
+            OrganizerQualityDto.OqsResponse response = oqsService.getOqs(testOrganizerProfile.getOrganizerId());
+
+            assertThat(response.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
+            assertThat(response.getDisplayName()).isEqualTo(testOrganizer.getDisplayName());
+            assertThat(response.getOqsScore()).isEqualTo(100.0f);
+            assertThat(response.getGameCompletionRate()).isEqualTo(100.0f);
+            assertThat(response.getRepeatPlayerRate()).isEqualTo(0.0f);
+            assertThat(response.getTotalGamesHosted()).isEqualTo(0);
+            assertThat(response.getCompletedGames()).isEqualTo(0);
+            assertThat(response.getCancelledGames()).isEqualTo(0);
+            assertThat(response.getTotalUniquePlayers()).isEqualTo(0);
+            assertThat(response.getRepeatPlayers()).isEqualTo(0);
+            assertThat(response.getConfidenceLevel()).isEqualTo("LOW");
+                        assertThat(response.getConfidenceDescription()).isEqualTo("Based on 0 games - score may change significantly");
+                        assertThat(response.getLastCalculatedAt()).isNotNull();
         }
     }
 
@@ -139,13 +174,19 @@ class OrganizerQualityServiceTest {
     @DisplayName("getOqsSummary Tests")
     class GetOqsSummaryTests {
 
+                @BeforeEach
+                void stubOrganizerLookupById() {
+                        when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                                        .thenReturn(Optional.of(testOrganizerProfile));
+                }
+
         @Test
         @DisplayName("Should return OQS summary for existing organizer")
         void shouldReturnOqsSummaryForExistingOrganizer() {
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
 
-            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
 
             assertThat(summary).isNotNull();
             assertThat(summary.getOqsScore()).isEqualTo(85.0f);
@@ -156,21 +197,42 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should return default summary for new organizer")
         void shouldReturnDefaultSummaryForNewOrganizer() {
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.empty());
 
-            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
 
             assertThat(summary).isNotNull();
             assertThat(summary.getOqsScore()).isEqualTo(100.0f);
             assertThat(summary.getConfidenceLevel()).isEqualTo("LOW");
             assertThat(summary.getTotalGamesHosted()).isEqualTo(0);
         }
+
+                @Test
+                @DisplayName("Should return default summary when organizer has no OQS record")
+                void shouldReturnDefaultSummaryWhenOrganizerProfileMissing() {
+                        when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
+                                        .thenReturn(Optional.empty());
+
+                        OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
+
+                        assertThat(summary).isNotNull();
+                        assertThat(summary.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
+                        assertThat(summary.getOqsScore()).isEqualTo(100.0f);
+                        assertThat(summary.getConfidenceLevel()).isEqualTo("LOW");
+                        assertThat(summary.getTotalGamesHosted()).isEqualTo(0);
+                }
     }
 
     @Nested
     @DisplayName("calculateOqs Tests")
     class CalculateOqsTests {
+
+                @BeforeEach
+                void stubOrganizerLookupById() {
+                        when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                                        .thenReturn(Optional.of(testOrganizerProfile));
+                }
 
         @Test
         @DisplayName("Should calculate OQS correctly with completed games")
@@ -183,20 +245,17 @@ class OrganizerQualityServiceTest {
             for (int i = 0; i < 2; i++) {
                 games.add(createGame(Game.GameStatus.CANCELLED));
             }
-
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.empty());
             when(oqsRepository.save(any(OrganizerQualityScore.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(gameRepository.findByOrganizer(testOrganizer.getUserId()))
+            when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(games);
-            when(participationRepository.findByGameId(any()))
+            when(participationRepository.findByGameIdIn(anyList()))
                     .thenReturn(Collections.emptyList());
 
             OrganizerQualityDto.OqsResponse response = oqsService.calculateOqs(
-                    testOrganizer.getUserId(),
+                    testOrganizerProfile.getOrganizerId(),
                     OrganizerScoreHistory.OqsChangeReason.INITIAL_CALCULATION,
                     null
             );
@@ -236,24 +295,23 @@ class OrganizerQualityServiceTest {
             List<GameParticipation> game3Participants = Arrays.asList(
                     createParticipation(player1, game3)
             );
-
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.empty());
             when(oqsRepository.save(any(OrganizerQualityScore.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(gameRepository.findByOrganizer(testOrganizer.getUserId()))
+            when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(games);
-            when(participationRepository.findByGameId(game1.getGameId()))
-                    .thenReturn(game1Participants);
-            when(participationRepository.findByGameId(game2.getGameId()))
-                    .thenReturn(game2Participants);
-            when(participationRepository.findByGameId(game3.getGameId()))
-                    .thenReturn(game3Participants);
+            when(participationRepository.findByGameIdIn(anyList()))
+                    .thenReturn(Arrays.asList(
+                            game1Participants.get(0),
+                            game1Participants.get(1),
+                            game2Participants.get(0),
+                            game2Participants.get(1),
+                            game2Participants.get(2),
+                            game3Participants.get(0)));
 
             OrganizerQualityDto.OqsResponse response = oqsService.calculateOqs(
-                    testOrganizer.getUserId(),
+                    testOrganizerProfile.getOrganizerId(),
                     OrganizerScoreHistory.OqsChangeReason.INITIAL_CALCULATION,
                     null
             );
@@ -268,17 +326,15 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should log OQS change to history")
         void shouldLogOqsChangeToHistory() {
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
             when(oqsRepository.save(any(OrganizerQualityScore.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(gameRepository.findByOrganizer(testOrganizer.getUserId()))
+            when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Collections.emptyList());
 
             oqsService.calculateOqs(
-                    testOrganizer.getUserId(),
+                    testOrganizerProfile.getOrganizerId(),
                     OrganizerScoreHistory.OqsChangeReason.GAME_COMPLETED,
                     testGame
             );
@@ -291,14 +347,20 @@ class OrganizerQualityServiceTest {
     @DisplayName("Confidence Level Tests")
     class ConfidenceLevelTests {
 
+                @BeforeEach
+                void stubOrganizerLookupById() {
+                        when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                                        .thenReturn(Optional.of(testOrganizerProfile));
+                }
+
         @Test
         @DisplayName("Should return LOW confidence for < 3 games")
         void shouldReturnLowConfidenceForLessThan3Games() {
             testOqs.setTotalGamesHosted(2);
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
 
-            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
 
             assertThat(summary.getConfidenceLevel()).isEqualTo("LOW");
         }
@@ -307,10 +369,10 @@ class OrganizerQualityServiceTest {
         @DisplayName("Should return MEDIUM confidence for 3-9 games")
         void shouldReturnMediumConfidenceFor3To9Games() {
             testOqs.setTotalGamesHosted(5);
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
 
-            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
 
             assertThat(summary.getConfidenceLevel()).isEqualTo("MEDIUM");
         }
@@ -319,10 +381,10 @@ class OrganizerQualityServiceTest {
         @DisplayName("Should return HIGH confidence for 10+ games")
         void shouldReturnHighConfidenceFor10PlusGames() {
             testOqs.setTotalGamesHosted(10);
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
 
-            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizer.getUserId());
+            OrganizerQualityDto.OqsSummary summary = oqsService.getOqsSummary(testOrganizerProfile.getOrganizerId());
 
             assertThat(summary.getConfidenceLevel()).isEqualTo("HIGH");
         }
@@ -331,6 +393,12 @@ class OrganizerQualityServiceTest {
     @Nested
     @DisplayName("getOqsHistory Tests")
     class GetOqsHistoryTests {
+
+                @BeforeEach
+                void stubOrganizerLookupById() {
+                        when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                                        .thenReturn(Optional.of(testOrganizerProfile));
+                }
 
         @Test
         @DisplayName("Should return paginated OQS history")
@@ -342,17 +410,13 @@ class OrganizerQualityServiceTest {
             Page<OrganizerScoreHistory> historyPage = new PageImpl<>(
                     historyList, PageRequest.of(0, 10), 2
             );
-
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
-            when(historyRepository.findByOrganizerIdOrderByCreatedAtDesc(
-                    eq(testOrganizer.getUserId()), any(PageRequest.class)))
+            when(historyRepository.findByOrganizerIdOrderByCreatedAtDesc(eq(testOrganizerProfile.getOrganizerId()), any(PageRequest.class)))
                     .thenReturn(historyPage);
 
             OrganizerQualityDto.OqsHistoryResponse response = 
-                    oqsService.getOqsHistory(testOrganizer.getUserId(), 0, 10);
+                    oqsService.getOqsHistory(testOrganizerProfile.getOrganizerId(), 0, 10);
 
             assertThat(response.getHistory()).hasSize(2);
             assertThat(response.getTotalEntries()).isEqualTo(2);
@@ -367,15 +431,17 @@ class OrganizerQualityServiceTest {
         @Test
         @DisplayName("Should recalculate OQS on game completed")
         void shouldRecalculateOqsOnGameCompleted() {
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenReturn(testOrganizerProfile.getOrganizerId());
+            when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.of(testOrganizerProfile));
             when(gameRepository.findById(testGame.getGameId()))
                     .thenReturn(Optional.of(testGame));
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
             when(oqsRepository.save(any(OrganizerQualityScore.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(gameRepository.findByOrganizer(testOrganizer.getUserId()))
+            when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Collections.singletonList(testGame));
 
             oqsService.onGameCompleted(testGame.getGameId());
@@ -387,23 +453,131 @@ class OrganizerQualityServiceTest {
         @DisplayName("Should recalculate OQS on game cancelled")
         void shouldRecalculateOqsOnGameCancelled() {
             testGame.setStatus(Game.GameStatus.CANCELLED);
+
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenReturn(testOrganizerProfile.getOrganizerId());
+            when(organizerRepository.findById(testOrganizerProfile.getOrganizerId()))
+                    .thenReturn(Optional.of(testOrganizerProfile));
             
             when(gameRepository.findById(testGame.getGameId()))
                     .thenReturn(Optional.of(testGame));
-            when(userRepository.findActiveById(testOrganizer.getUserId()))
-                    .thenReturn(Optional.of(testOrganizer));
-            when(oqsRepository.findByUserId(testOrganizer.getUserId()))
+            when(oqsRepository.findByOrganizer_OrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Optional.of(testOqs));
             when(oqsRepository.save(any(OrganizerQualityScore.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
-            when(gameRepository.findByOrganizer(testOrganizer.getUserId()))
+            when(gameRepository.findByOrganizerId(testOrganizerProfile.getOrganizerId()))
                     .thenReturn(Collections.singletonList(testGame));
 
             oqsService.onGameCancelled(testGame.getGameId());
 
             verify(oqsRepository).save(any(OrganizerQualityScore.class));
         }
+
+        @Test
+        @DisplayName("Should throw when organizer profile is missing for game event")
+        void shouldThrowWhenOrganizerProfileMissingForGameEvent() {
+            when(gameRepository.findById(testGame.getGameId()))
+                    .thenReturn(Optional.of(testGame));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                    .thenThrow(new ResourceNotFoundException("Organizer not found"));
+
+            assertThatThrownBy(() -> oqsService.onGameCompleted(testGame.getGameId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Organizer not found");
+        }
     }
+
+        @Nested
+        @DisplayName("getOrganizerIdForUser Tests")
+        class GetOrganizerIdForUserTests {
+
+                @Test
+                @DisplayName("Should return organizer id for existing organizer profile")
+                void shouldReturnOrganizerIdForUser() {
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(testOrganizer.getUserId()))
+                                        .thenReturn(testOrganizerProfile.getOrganizerId());
+
+                        UUID organizerId = oqsService.getOrganizerIdForUser(testOrganizer.getUserId());
+
+                        assertThat(organizerId).isEqualTo(testOrganizerProfile.getOrganizerId());
+                }
+
+                @Test
+                @DisplayName("Should throw when organizer profile is missing")
+                void shouldThrowWhenOrganizerProfileIsMissing() {
+                        UUID missingUserId = UUID.randomUUID();
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(missingUserId))
+                                        .thenThrow(new ResourceNotFoundException("Organizer not found"));
+
+                        assertThatThrownBy(() -> oqsService.getOrganizerIdForUser(missingUserId))
+                                        .isInstanceOf(ResourceNotFoundException.class)
+                                        .hasMessageContaining("Organizer not found");
+                }
+        }
+
+        @Nested
+        @DisplayName("Compatibility Mapping Tests")
+        class CompatibilityLayerTests {
+
+                @Test
+                @DisplayName("Should resolve organizer ids in bulk from user ids")
+                void shouldResolveOrganizerIdsInBulkFromUserIds() {
+                        UUID anotherUserId = UUID.randomUUID();
+                        OrganizerQualityDto.OrganizerResolveResponse mapperResponse =
+                                        OrganizerQualityDto.OrganizerResolveResponse.builder()
+                                                        .requestedCount(2)
+                                                        .resolvedCount(2)
+                                                        .mappings(List.of(
+                                                                        OrganizerQualityDto.OrganizerIdentityTuple.builder()
+                                                                                        .userId(testOrganizer.getUserId().toString())
+                                                                                        .organizerId(testOrganizerProfile.getOrganizerId().toString())
+                                                                                        .build(),
+                                                                        OrganizerQualityDto.OrganizerIdentityTuple.builder()
+                                                                                        .userId(anotherUserId.toString())
+                                                                                        .organizerId(UUID.randomUUID().toString())
+                                                                                        .build()))
+                                                        .build();
+                        when(organizerCompatibilityLayer.resolveOrganizerIdentityTuples(anyList()))
+                                        .thenReturn(mapperResponse);
+
+                        OrganizerQualityDto.OrganizerResolveResponse response =
+                                        oqsService.resolveOrganizerIdsByUserIds(Arrays.asList(testOrganizer.getUserId(), anotherUserId));
+
+                        assertThat(response.getRequestedCount()).isEqualTo(2);
+                        assertThat(response.getResolvedCount()).isEqualTo(2);
+                        assertThat(response.getMappings()).hasSize(2);
+                }
+        }
+
+        @Nested
+        @DisplayName("Default OQS Builder Tests")
+        class DefaultOqsBuilderTests {
+
+                @Test
+                @DisplayName("Should build default OQS response values")
+                void shouldBuildDefaultOqsResponseValues() throws Exception {
+                        java.lang.reflect.Method method = OrganizerQualityService.class
+                                        .getDeclaredMethod("toDefaultOqsResponse", User.class);
+                        method.setAccessible(true);
+
+                        OrganizerQualityDto.OqsResponse response =
+                                        (OrganizerQualityDto.OqsResponse) method.invoke(oqsService, testOrganizer);
+
+                        assertThat(response.getUserId()).isEqualTo(testOrganizer.getUserId().toString());
+                        assertThat(response.getDisplayName()).isEqualTo(testOrganizer.getDisplayName());
+                        assertThat(response.getOqsScore()).isEqualTo(100.0f);
+                        assertThat(response.getGameCompletionRate()).isEqualTo(100.0f);
+                        assertThat(response.getRepeatPlayerRate()).isEqualTo(0.0f);
+                        assertThat(response.getTotalGamesHosted()).isEqualTo(0);
+                        assertThat(response.getCompletedGames()).isEqualTo(0);
+                        assertThat(response.getCancelledGames()).isEqualTo(0);
+                        assertThat(response.getTotalUniquePlayers()).isEqualTo(0);
+                        assertThat(response.getRepeatPlayers()).isEqualTo(0);
+                        assertThat(response.getConfidenceLevel()).isEqualTo("LOW");
+                        assertThat(response.getConfidenceDescription()).isEqualTo("Host at least 3 games to build confidence");
+                        assertThat(response.getLastCalculatedAt()).isNull();
+                }
+        }
 
     // Helper methods
     private Game createGame(Game.GameStatus status) {
@@ -434,7 +608,7 @@ class OrganizerQualityServiceTest {
     private OrganizerScoreHistory createHistoryEntry(OrganizerScoreHistory.OqsChangeReason reason) {
         return OrganizerScoreHistory.builder()
                 .historyId(UUID.randomUUID())
-                .organizer(testOrganizer)
+                .organizer(testOrganizerProfile)
                 .game(testGame)
                 .previousOqs(80.0f)
                 .newOqs(85.0f)

@@ -11,7 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping({ "/api/v1/auth", "/api/v2/auth" })
 public class AuthController {
 
     private final AuthService authService;

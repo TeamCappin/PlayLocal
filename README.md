@@ -199,7 +199,7 @@ then go to `http://localhost:3000`
 
 ### Testing 
 ```sh
-mvn test
+./mvnw test
 
 npm test
 ```

@@ -96,6 +96,13 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId = :gameId")
     List<GameParticipation> findByGameId(@Param("gameId") UUID gameId);
 
+        /**
+         * Find all participations for a list of games.
+         * Used for batched OQS repeat-player calculation.
+         */
+        @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId IN :gameIds")
+        List<GameParticipation> findByGameIdIn(@Param("gameIds") List<UUID> gameIds);
+
     /**
      * US-32: (userId, gameId) for completed games in the last 60 days where user attended.
      * Used to compute co-play count between viewer and targets.

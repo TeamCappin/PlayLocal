@@ -4,7 +4,7 @@
 import { ChangePasswordRequest, ForgotPasswordRequest, ResetPasswordRequest, VerifyResetCodeRequest } from "./constants";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v2';
 
 // Token management
 let authToken: string | null =
@@ -40,7 +40,11 @@ async function apiFetch<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const requestUrl = endpoint.startsWith('/api/')
+      ? `${API_BASE_URL.replace(/\/api\/v\d+\/?$/, '')}${endpoint}`
+      : `${API_BASE_URL}${endpoint}`;
+
+    response = await fetch(requestUrl, {
       ...options,
       headers,
     });
@@ -53,7 +57,7 @@ async function apiFetch<T>(
       );
     }
     // Handle network errors (no connection, CORS, etc.)
-    const base = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+    const base = API_BASE_URL.replace(/\/api\/v\d+\/?$/, '');
     throw new ApiError(
       0,
       'Unable to connect to server. Ensure the backend is running (e.g. at ' +
@@ -490,6 +494,7 @@ export interface LocationDto {
 }
 
 export interface OrganizerDto {
+  organizerId?: string;
   userId: string;
   displayName: string;
   reliabilityScore?: number;
@@ -862,7 +867,7 @@ export interface OqsSummary {
 
 export interface OqsHistoryEntry {
   historyId: string;
-  organizerId: string;
+  userId: string;
   gameId?: string;
   gameTitle?: string;
   previousOqs: number;
@@ -884,7 +889,7 @@ export interface OqsHistoryEntry {
 }
 
 export interface OqsHistoryResponse {
-  organizerId: string;
+  userId: string;
   displayName: string;
   currentOqs: number;
   history: OqsHistoryEntry[];
@@ -914,6 +919,17 @@ export interface OqsWeights {
   repeatPlayerRateWeight: number;
 }
 
+export interface UserIdentityTuple {
+  organizerId: string;
+  userId: string;
+}
+
+export interface OrganizerResolveResponse {
+  requestedCount: number;
+  resolvedCount: number;
+  mappings: UserIdentityTuple[];
+}
+
 export const scoreHistoryApi = {
   getHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<ScoreHistoryResponse>(
@@ -932,37 +948,45 @@ export const scoreHistoryApi = {
 };
 
 export const organizerQualityApi = {
-  // Get full OQS for a user
-  getOqs: (userId: string) => apiFetch<OqsResponse>(`/users/${userId}/oqs`),
+  // Get full OQS for an organizer (v2)
+  getOqs: (userId: string) =>
+    apiFetch<OqsResponse>(`/api/v2/organizers/${userId}/oqs`),
 
-  // Get OQS for current user
-  getMyOqs: () => apiFetch<OqsResponse>(`/users/me/oqs`),
+  // Get OQS for current organizer (v2)
+  getMyOqs: () => apiFetch<OqsResponse>(`/api/v2/organizers/me/oqs`),
 
   // Get OQS summary (simplified for game cards)
   getOqsSummary: (userId: string) =>
-    apiFetch<OqsSummary>(`/users/${userId}/oqs/summary`),
+    apiFetch<OqsSummary>(`/api/v2/organizers/${userId}/oqs/summary`),
 
   // Get OQS info card with plain language explanations
   getOqsInfoCard: (userId: string) =>
-    apiFetch<OqsInfoCard>(`/users/${userId}/oqs/info`),
+    apiFetch<OqsInfoCard>(`/api/v2/organizers/${userId}/oqs/info`),
 
   // Get OQS info card for current user
-  getMyOqsInfoCard: () => apiFetch<OqsInfoCard>(`/users/me/oqs/info`),
+  getMyOqsInfoCard: () => apiFetch<OqsInfoCard>(`/api/v2/organizers/me/oqs/info`),
 
   // Get OQS change history
   getOqsHistory: (userId: string, page = 0, size = 10) =>
     apiFetch<OqsHistoryResponse>(
-      `/users/${userId}/oqs/history?page=${page}&size=${size}`
+      `/api/v2/organizers/${userId}/oqs/history?page=${page}&size=${size}`
     ),
 
   // Get OQS change history for current user
   getMyOqsHistory: (page = 0, size = 10) =>
     apiFetch<OqsHistoryResponse>(
-      `/users/me/oqs/history?page=${page}&size=${size}`
+      `/api/v2/organizers/me/oqs/history?page=${page}&size=${size}`
     ),
 
   // Get OQS calculation weights
-  getWeights: () => apiFetch<OqsWeights>(`/oqs/weights`),
+  getWeights: () => apiFetch<OqsWeights>(`/api/v2/organizers/oqs/weights`),
+
+  // Resolve organizer IDs from user IDs for compatibility fallbacks
+  resolveUserIdsByUserIds: (userIds: string[]) =>
+    apiFetch<OrganizerResolveResponse>(`/api/v2/organizers/resolve/by-user-ids`, {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    }),
 };
 // ============================================
 // Photos API

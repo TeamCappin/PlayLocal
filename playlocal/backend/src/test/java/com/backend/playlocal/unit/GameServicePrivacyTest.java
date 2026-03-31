@@ -33,6 +33,8 @@ class GameServicePrivacyTest {
         @Mock
         private UserRepository userRepository;
         @Mock
+        private OrganizerRepository organizerRepository;
+        @Mock
         private SportRepository sportRepository;
         @Mock
         private GameVisibilityRepository gameVisibilityRepository;
@@ -106,9 +108,7 @@ class GameServicePrivacyTest {
                                 .endTime(Instant.now().plusSeconds(7200))
                                 .build();
 
-                // US-7.12: Default organizer profile to public for these tests
-                lenient().when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean()))
-                                .thenReturn(true);
+                when(organizerRepository.findByUser_UserId(any())).thenReturn(Optional.empty());
         }
 
         @Test

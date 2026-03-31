@@ -16,12 +16,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +38,8 @@ class GameServiceDiscoveryTest {
         private GameParticipationRepository participationRepository;
         @Mock
         private UserRepository userRepository;
+        @Mock
+        private OrganizerRepository organizerRepository;
         @Mock
         private SportRepository sportRepository;
         @Mock
@@ -95,11 +97,16 @@ class GameServiceDiscoveryTest {
         }
 
     private void mockMapToGameResponseDependencies() {
-        lenient().when(participationRepository.countParticipationSummaryByGameIds(any()))
+        when(participationRepository.countParticipationSummaryByGameIds(any()))
                 .thenReturn(Collections.singletonList(new Object[] { game.getGameId(), 1L, 0L }));
-        lenient().when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
-        lenient().when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
+        when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+        when(participationRepository.findConfirmedGameIdsForUser(eq(userId), any()))
                 .thenReturn(List.of(game.getGameId()));
+        when(organizerRepository.findByUser_UserId(any()))
+                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                        .organizerId(UUID.randomUUID())
+                        .user(organizer)
+                        .build()));
     }
 
         @Test
@@ -236,6 +243,11 @@ class GameServiceDiscoveryTest {
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
                 when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
                                 .thenReturn(List.of(game.getGameId()));
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(
                                 null, null, null, null, confirmedUserId);
@@ -329,6 +341,11 @@ class GameServiceDiscoveryTest {
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
                 when(participationRepository.findConfirmedGameIdsForUser(eq(confirmedUserId), any()))
                                 .thenReturn(List.of(game.getGameId()));
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.findNearbyGames(
                                 45.5f, -73.5f, 10.0, null, null, null, null, confirmedUserId);
@@ -399,6 +416,11 @@ class GameServiceDiscoveryTest {
                 when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
                 when(participationRepository.findConfirmedGameIdsForUser(eq(requesterId), any())).thenReturn(List.of());
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(
                                 null, null, null, null, requesterId);
@@ -414,7 +436,11 @@ class GameServiceDiscoveryTest {
         void getPastGames_ShouldReturnMappedGames() {
                 when(gameRepository.findPastGames(eq(userId), any(Instant.class)))
                                 .thenReturn(List.of(game));
-                mockMapToGameResponseDependencies();
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.getPastGames(userId);
 
@@ -432,6 +458,11 @@ class GameServiceDiscoveryTest {
                                 .thenReturn(List.of(game));
                 when(participationRepository.countParticipationSummaryByGameIds(any())).thenReturn(List.of());
                 when(tagAssignmentRepository.findAllByGame_GameIdIn(any())).thenReturn(List.of());
+                when(organizerRepository.findByUser_UserId(any()))
+                                .thenAnswer(invocation -> Optional.of(Organizer.builder()
+                                                .organizerId(UUID.randomUUID())
+                                                .user(organizer)
+                                                .build()));
 
                 List<GameDto.GameResponse> result = gameService.getUpcomingGames(null, null, null, null, null);
 

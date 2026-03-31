@@ -12,7 +12,7 @@ import com.backend.playlocal.model.dto.RequestUploadSlotResponse;
 import com.backend.playlocal.service.MediaService;
 
 @RestController
-@RequestMapping("/api/v1/games/{gameId}/media")
+@RequestMapping({ "/api/v1/games/{gameId}/media", "/api/v2/games/{gameId}/media" })
 public class MediaController {
 
     private final MediaService mediaService;

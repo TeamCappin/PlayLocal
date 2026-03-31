@@ -56,7 +56,7 @@ public class OrganizerQualityDto {
     @AllArgsConstructor
     public static class OqsHistoryEntry {
         private String historyId;
-        private String organizerId;
+        private String userId;
         private String gameId;
         private String gameTitle;
         private Float previousOqs;
@@ -79,7 +79,7 @@ public class OrganizerQualityDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OqsHistoryResponse {
-        private String organizerId;
+        private String userId;
         private String displayName;
         private Float currentOqs;
         private List<OqsHistoryEntry> history;
@@ -127,5 +127,41 @@ public class OrganizerQualityDto {
     public static class OqsWeights {
         private Float completionRateWeight;
         private Float repeatPlayerRateWeight;
+    }
+
+    /**
+     * Request payload for bulk organizer ID resolution from user IDs.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizerResolveRequest {
+        private List<String> userIds;
+    }
+
+    /**
+     * A single resolved user/organizer pair.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizerIdentityTuple {
+        private String userId;
+        private String organizerId;
+    }
+
+    /**
+     * Response payload for bulk organizer ID resolution.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizerResolveResponse {
+        private Integer requestedCount;
+        private Integer resolvedCount;
+        private List<OrganizerIdentityTuple> mappings;
     }
 }

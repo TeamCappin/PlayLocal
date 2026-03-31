@@ -36,6 +36,8 @@ class GameServiceCreateTest {
     @Mock
     private UserRepository userRepository;
     @Mock
+    private OrganizerRepository organizerRepository;
+    @Mock
     private SportRepository sportRepository;
     @Mock
     private GameVisibilityRepository gameVisibilityRepository;
@@ -74,6 +76,7 @@ class GameServiceCreateTest {
         visibility = GameVisibility.builder()
                 .code("public")
                 .build();
+
     }
 
     @Test
