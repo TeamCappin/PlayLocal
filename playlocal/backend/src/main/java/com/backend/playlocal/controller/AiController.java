@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping({ "/api/v1/ai", "/api/v2/ai" })
+@Validated
 public class AiController {
 
     private final AiChatService aiChatService;
