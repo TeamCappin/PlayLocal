@@ -97,4 +97,28 @@ class AssistantTelemetryServiceTest {
         assertThat(saved.getPropertiesJson()).isEqualTo("{}");
         assertThat(saved.getEventName()).isEqualTo("assistant_custom_event");
     }
+
+    @Test
+    @DisplayName("recordEvent supports non-assistant events and unresolved user/game IDs")
+    void recordEvent_NonAssistant_UnresolvedRefs() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID gameId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+        when(objectMapper.writeValueAsString(Map.of("origin", "web"))).thenReturn("{\"origin\":\"web\"}");
+        when(analyticsEventRepository.save(any(AnalyticsEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.recordEvent("page_view", userId, "session-web", gameId, Map.of("origin", "web"));
+
+        ArgumentCaptor<AnalyticsEvent> captor = ArgumentCaptor.forClass(AnalyticsEvent.class);
+        verify(analyticsEventRepository).save(captor.capture());
+        AnalyticsEvent saved = captor.getValue();
+
+        assertThat(saved.getEventName()).isEqualTo("page_view");
+        assertThat(saved.getSessionId()).isEqualTo("session-web");
+        assertThat(saved.getUser()).isNull();
+        assertThat(saved.getGame()).isNull();
+        assertThat(saved.getPropertiesJson()).isEqualTo("{\"origin\":\"web\"}");
+    }
 }

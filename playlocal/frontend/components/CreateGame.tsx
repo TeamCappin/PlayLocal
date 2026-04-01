@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -78,6 +78,9 @@ export function CreateGame() {
   ];
 
   const [isSubmittingCooldown, setIsSubmittingCooldown] = useState(false);
+  const createRequestInFlightRef = useRef(false);
+  const createSucceededRef = useRef(false);
+  const [hasCreateSucceeded, setHasCreateSucceeded] = useState(false);
 
   // US-4.2: Fetch available tags on mount
   useEffect(() => {
@@ -133,6 +136,19 @@ export function CreateGame() {
     }
     if (!formData.location) {
       setError('Please enter a location');
+      return false;
+    }
+    const lat = formData.latitude;
+    const lon = formData.longitude;
+    if (
+      lat == null ||
+      lon == null ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon)
+    ) {
+      setError(
+        'Please select a valid location from the suggestions list'
+      );
       return false;
     }
     if (!formData.date) {
@@ -265,8 +281,31 @@ export function CreateGame() {
       return;
     }
 
+    // Ignore duplicate submits while a create request is already in flight.
+    if (
+      createRequestInFlightRef.current ||
+      createSucceededRef.current ||
+      isCreating
+    ) {
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate.push('/login');
+      return;
+    }
+
+    const latSubmit = formData.latitude;
+    const lonSubmit = formData.longitude;
+    if (
+      latSubmit == null ||
+      lonSubmit == null ||
+      !Number.isFinite(latSubmit) ||
+      !Number.isFinite(lonSubmit)
+    ) {
+      setError(
+        'Please go back to step 1 and choose a location from the suggestions list'
+      );
       return;
     }
 
@@ -281,6 +320,8 @@ export function CreateGame() {
     }
 
     try {
+      createRequestInFlightRef.current = true;
+
       // Combine date and time into ISO string
       const startDateTime = `${formData.date}T${formData.startTime}:00`;
       const endDateTime = formData.endTime
@@ -318,12 +359,16 @@ export function CreateGame() {
           : undefined,
       });
 
+      createSucceededRef.current = true;
+      setHasCreateSucceeded(true);
       toast.success('Game created');
       navigate.push(`/games/${game.gameId}`);
     } catch (err: any) {
       const errorMessage = getActionableErrorMessage(err, 'create game');
       setError(errorMessage);
       toast.error(errorMessage);
+    } finally {
+      createRequestInFlightRef.current = false;
     }
   };
 
@@ -337,14 +382,6 @@ export function CreateGame() {
             Set up your pickup game and invite players
           </p>
         </div>
-
-        {/* Error Alert */}
-        {(error || createError) && (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <span className="text-red-700 font-medium">{error || createError}</span>
-          </div>
-        )}
 
         {/* Progress Steps */}
         <div className="mb-8">
@@ -508,7 +545,7 @@ export function CreateGame() {
                     )}
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">
+                    <span className="hidden text-gray-500 sm:block">
                       Enter precise location for players
                     </span>
                     <a
@@ -1039,7 +1076,7 @@ export function CreateGame() {
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-3 sm:px-6 sm:py-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Back
               </button>
@@ -1051,7 +1088,7 @@ export function CreateGame() {
               {step < 3 && (
                 <button
                   type="button"
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  className="px-3 py-3 sm:px-6 sm:py-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
                   <Save className="w-5 h-5" />
                   <span>Save Draft</span>
@@ -1062,16 +1099,21 @@ export function CreateGame() {
                 <button
                   type="button"
                   onClick={handleContinue}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="px-3 py-3 sm:px-6 sm:py-6 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Continue
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  disabled={isCreating || hasCreateSucceeded}
+                  className="px-3 py-3 sm:px-6 sm:py-6 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed transition-colors"
                 >
-                  Create Game
+                  {hasCreateSucceeded
+                    ? 'Redirecting...'
+                    : isCreating
+                    ? 'Creating...'
+                    : 'Create Game'}
                 </button>
               )}
             </div>
@@ -1124,32 +1166,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <span className="text-gray-900">{value}</span>
     </div>
   );
-}
-
-// Helper for step validation
-function isValidStep(step: number, formData: any): boolean {
-  if (step === 1) {
-    return !!(
-      formData.title &&
-      formData.sport &&
-      formData.location &&
-      formData.date &&
-      formData.indoor &&
-      formData.startTime &&
-      formData.endTime
-    );
-  }
-  if (step === 2) {
-    return !!(
-      formData.minPlayers &&
-      formData.maxPlayers &&
-      Number.parseInt(formData.maxPlayers, 10) >=
-        Number.parseInt(formData.minPlayers, 10) &&
-      formData.skillLevel &&
-      formData.intensity
-    );
-  }
-  return true;
 }
 
 // Time Select Component

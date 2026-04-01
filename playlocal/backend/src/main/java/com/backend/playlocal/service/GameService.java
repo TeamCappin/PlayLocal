@@ -90,6 +90,20 @@ public class GameService {
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Sport not found: " + request.getSportName()));
 
+                if (request.getLatitude() == null || request.getLongitude() == null) {
+                        throw new IllegalArgumentException(
+                                        "A map location is required. Choose a place from the location suggestions.");
+                }
+
+                float latitude = request.getLatitude();
+                float longitude = request.getLongitude();
+                if (!Float.isFinite(latitude) || latitude < -90.0f || latitude > 90.0f
+                                || !Float.isFinite(longitude) || longitude < -180.0f
+                                || longitude > 180.0f) {
+                        throw new IllegalArgumentException(
+                                        "Invalid map location. Latitude must be between -90 and 90, and longitude between -180 and 180.");
+                }
+
                 // Get default visibility (public)
                 GameVisibility visibility = gameVisibilityRepository.findByCode("public")
                                 .orElseThrow(() -> new ResourceNotFoundException("Default visibility not found"));
@@ -746,7 +760,10 @@ public class GameService {
 
         /**
          * Get game roster. US-2.4
+         * Must run in a transaction so lazy {@link User} on participations (and organizer on
+         * {@link Game}) can load when {@code open-in-view} is false (e.g. prod).
          */
+        @Transactional(readOnly = true)
         public GameDto.RosterResponse getRoster(UUID gameId, UUID requestingUserId) {
                 Game game = gameRepository.findById(gameId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));

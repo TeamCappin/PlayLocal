@@ -95,6 +95,8 @@ class GameServiceCreateTest {
                 .minReliabilityRequired(85.0f)
                 .minAge(18)
                 .maxAge(65)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -135,6 +137,280 @@ class GameServiceCreateTest {
     }
 
     @Test
+    @DisplayName("createGame throws when latitude or longitude is null")
+    void createGame_MissingCoordinates_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("No Coords")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when longitude is null and latitude is present")
+    void createGame_MissingLongitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Missing Longitude")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(null)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when latitude is out of range")
+    void createGame_LatitudeOutOfRange_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Bad Lat")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(91.0f)
+                .longitude(-73.56f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location")
+                .hasMessageContaining("Latitude");
+    }
+
+    @Test
+    @DisplayName("createGame throws when longitude is out of range")
+    void createGame_LongitudeOutOfRange_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Bad Lon")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(181.0f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when latitude is NaN")
+    void createGame_NaNCoordinates_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("NaN Coords")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(Float.NaN)
+                .longitude(-73.56f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when latitude is null and longitude is present")
+    void createGame_MissingLatitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Missing Latitude")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(null)
+                .longitude(-73.56f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when latitude is below -90")
+    void createGame_LatitudeTooLow_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Lat too low")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(-91.0f)
+                .longitude(-73.56f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when longitude is below -180")
+    void createGame_LongitudeTooLow_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Lon too low")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(-181.0f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when longitude is NaN")
+    void createGame_NaNLongitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("NaN lon")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(Float.NaN)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when latitude is infinite")
+    void createGame_InfiniteLatitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Inf lat")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(Float.POSITIVE_INFINITY)
+                .longitude(-73.56f)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
+    @DisplayName("createGame throws when longitude is infinite")
+    void createGame_InfiniteLongitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Inf lon")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(Float.NEGATIVE_INFINITY)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid map location");
+    }
+
+    @Test
     @DisplayName("createGame with null minPlayers uses default 2")
     void createGame_WithNullMinPlayers_UsesDefaultTwo() {
         Instant start = Instant.now().plusSeconds(3600);
@@ -149,6 +425,8 @@ class GameServiceCreateTest {
                 .minPlayers(null)
                 .maxPlayers(20)
                 .allowWaitlist(true)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -204,6 +482,8 @@ class GameServiceCreateTest {
                 .city("Montreal")
                 .minPlayers(4)
                 .maxPlayers(null)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -244,6 +524,8 @@ class GameServiceCreateTest {
                 .minPlayers(4)
                 .maxPlayers(10)
                 .allowWaitlist(null)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -283,6 +565,8 @@ class GameServiceCreateTest {
                 .sportName("Basketball")
                 .locationName("Park")
                 .city("Montreal")
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .tagNames(java.util.List.of("women"))
                 .build();
