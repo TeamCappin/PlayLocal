@@ -419,7 +419,7 @@ describe('CalendarView', () => {
       user: { userId: 'u1' },
       isAuthenticated: true,
     });
-    mockUseGames.mockReturnValue({ games: undefined as unknown as [], isLoading: false });
+    mockUseGames.mockReturnValue({ games: undefined, isLoading: false });
 
     const { rerender } = render(<CalendarView />);
     expect(screen.queryByRole('link', { name: /gym/i })).not.toBeInTheDocument();
