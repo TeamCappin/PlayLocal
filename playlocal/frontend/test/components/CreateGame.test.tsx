@@ -148,25 +148,63 @@ async function fillStep1Valid(
     end: string;
   }>
 ) {
+  const title = overrides?.title ?? '5v5 Basketball Pickup';
+  const sport = overrides?.sport ?? 'Basketball';
+  const loc = overrides?.location ?? 'My Gym';
+  const date = overrides?.date ?? '2026-02-10';
+  const indoor = overrides?.indoor ?? 'INDOOR';
+  const startVal = overrides?.start ?? '10:00';
+  const endVal = overrides?.end ?? '11:00';
+
   fireEvent.change(getTitleInput(), {
-    target: { value: overrides?.title ?? '5v5 Basketball Pickup' },
+    target: { value: title },
   });
   fireEvent.change(getSportSelect(), {
-    target: { value: overrides?.sport ?? 'Basketball' },
+    target: { value: sport },
   });
-  fireEvent.change(getLocationInput(), {
-    target: { value: overrides?.location ?? 'My Gym' },
-  });
+
+  if (loc === '') {
+    fireEvent.change(getLocationInput(), {
+      target: { value: '' },
+    });
+  } else {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      json: async () => [
+        {
+          display_name: loc,
+          lat: '45.5',
+          lon: '-73.5673',
+        },
+      ],
+    });
+    const locationInput = getLocationInput();
+    fireEvent.focus(locationInput);
+    const query =
+      loc.length >= 3 ? loc.slice(0, 3) : `${loc}xx`.slice(0, 3);
+    fireEvent.change(locationInput, { target: { value: query } });
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+    await flushPromises();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(loc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+      })
+    );
+  }
+
   fireEvent.change(getDateInput(), {
-    target: { value: overrides?.date ?? '2026-02-10' },
+    target: { value: date },
   });
   fireEvent.change(getIndoorSelect(), {
-    target: { value: overrides?.indoor ?? 'INDOOR' },
+    target: { value: indoor },
   });
 
   const { start, end } = getTimeSelects();
-  fireEvent.change(start, { target: { value: overrides?.start ?? '10:00' } });
-  fireEvent.change(end, { target: { value: overrides?.end ?? '11:00' } });
+  fireEvent.change(start, { target: { value: startVal } });
+  fireEvent.change(end, { target: { value: endVal } });
 }
 
 async function goToStep2() {
@@ -1225,28 +1263,14 @@ describe('CreateGame', () => {
     fireEvent.change(start, { target: { value: '10:00' } });
     fireEvent.change(end, { target: { value: '11:00' } });
 
-    // Step 1 → 2
+    // Step 1 → 2 blocked until a suggestion is chosen again
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await screen.findByText(/game details/i);
-
-    // Step 2 → 3
-    await fillStep2Valid();
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await screen.findByText(/game settings/i);
-
-    // Advance past the 1-second submit cooldown
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    // Submit
-    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
-
-    await waitFor(() => {
-      expect(createGameMock).toHaveBeenCalledWith(
-        expect.objectContaining({ latitude: undefined, longitude: undefined })
-      );
-    });
+    const locationErrors = await screen.findAllByText(
+      /choose a location from the suggestions list/i
+    );
+    expect(locationErrors.length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/game details/i)).not.toBeInTheDocument();
+    expect(createGameMock).not.toHaveBeenCalled();
   });
 
   it('address onChange: typing the same text that is already in the input preserves existing lat/lon (locationChanged=false)', async () => {

@@ -95,6 +95,8 @@ class GameServiceCreateTest {
                 .minReliabilityRequired(85.0f)
                 .minAge(18)
                 .maxAge(65)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -135,6 +137,29 @@ class GameServiceCreateTest {
     }
 
     @Test
+    @DisplayName("createGame throws when latitude or longitude is null")
+    void createGame_MissingCoordinates_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("No Coords")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map location");
+    }
+
+    @Test
     @DisplayName("createGame with null minPlayers uses default 2")
     void createGame_WithNullMinPlayers_UsesDefaultTwo() {
         Instant start = Instant.now().plusSeconds(3600);
@@ -149,6 +174,8 @@ class GameServiceCreateTest {
                 .minPlayers(null)
                 .maxPlayers(20)
                 .allowWaitlist(true)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -204,6 +231,8 @@ class GameServiceCreateTest {
                 .city("Montreal")
                 .minPlayers(4)
                 .maxPlayers(null)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -244,6 +273,8 @@ class GameServiceCreateTest {
                 .minPlayers(4)
                 .maxPlayers(10)
                 .allowWaitlist(null)
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .build();
 
@@ -283,6 +314,8 @@ class GameServiceCreateTest {
                 .sportName("Basketball")
                 .locationName("Park")
                 .city("Montreal")
+                .latitude(45.5f)
+                .longitude(-73.56f)
                 .startTime(start)
                 .tagNames(java.util.List.of("women"))
                 .build();

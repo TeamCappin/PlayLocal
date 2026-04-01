@@ -138,6 +138,19 @@ export function CreateGame() {
       setError('Please enter a location');
       return false;
     }
+    const lat = formData.latitude;
+    const lon = formData.longitude;
+    if (
+      lat == null ||
+      lon == null ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon)
+    ) {
+      setError(
+        'Please select a valid location from the suggestions list'
+      );
+      return false;
+    }
     if (!formData.date) {
       setError('Please select a date');
       return false;
@@ -279,6 +292,20 @@ export function CreateGame() {
 
     if (!isAuthenticated) {
       navigate.push('/login');
+      return;
+    }
+
+    const latSubmit = formData.latitude;
+    const lonSubmit = formData.longitude;
+    if (
+      latSubmit == null ||
+      lonSubmit == null ||
+      !Number.isFinite(latSubmit) ||
+      !Number.isFinite(lonSubmit)
+    ) {
+      setError(
+        'Please go back to step 1 and choose a location from the suggestions list'
+      );
       return;
     }
 
@@ -526,7 +553,7 @@ export function CreateGame() {
                     )}
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">
+                    <span className="hidden text-gray-500 sm:block">
                       Enter precise location for players
                     </span>
                     <a

@@ -90,6 +90,11 @@ public class GameService {
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Sport not found: " + request.getSportName()));
 
+                if (request.getLatitude() == null || request.getLongitude() == null) {
+                        throw new IllegalArgumentException(
+                                        "A map location is required. Choose a place from the location suggestions.");
+                }
+
                 // Get default visibility (public)
                 GameVisibility visibility = gameVisibilityRepository.findByCode("public")
                                 .orElseThrow(() -> new ResourceNotFoundException("Default visibility not found"));
