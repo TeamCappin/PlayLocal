@@ -245,15 +245,17 @@ export default function MapView({
               ...approxCacheRef.current,
               [key]: { lat, lng },
             };
-            setApproxTick((t) => t + 1);
+            if (!cancelled) {
+              setApproxTick((t) => t + 1);
+            }
           } catch {
             /* ignore */
           }
           await new Promise((r) => setTimeout(r, 400));
         }
       } finally {
-        setApproxGeocodeBusy(false);
         if (!cancelled) {
+          setApproxGeocodeBusy(false);
           setApproxGeocodePassComplete(true);
         }
       }
