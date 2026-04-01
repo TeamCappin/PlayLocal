@@ -29,7 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestToUriTemplate;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -40,6 +40,12 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  */
 @ExtendWith(MockitoExtension.class)
 class WeatherServiceTest {
+
+    private static final String OPEN_METEO_URL =
+            "https://api.open-meteo.com/v1/forecast"
+            + "?latitude=%s&longitude=%s"
+            + "&hourly=temperature_2m,precipitation_probability,windspeed_10m,weathercode"
+            + "&timezone=auto&forecast_days=16";
 
     @Mock
     private GameRepository gameRepository;
@@ -172,8 +178,7 @@ class WeatherServiceTest {
         Game game = buildGame("outdoor", gameStart, withLocation(45.5f, -73.5f));
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withSuccess(openMeteoJson(timeSlot, 14.5, 20, 12.3, 2),
                         MediaType.APPLICATION_JSON));
 
@@ -201,8 +206,7 @@ class WeatherServiceTest {
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(participationRepository.findByGameAndUser(any(), any())).thenReturn(Optional.empty());
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withSuccess(openMeteoJson(timeSlot, 10.0, 50, 20.0, 61),
                         MediaType.APPLICATION_JSON));
 
@@ -231,8 +235,7 @@ class WeatherServiceTest {
         when(participationRepository.findByGameAndUser(any(), any()))
                 .thenReturn(Optional.of(confirmedP));
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withSuccess(openMeteoJson(timeSlot, 10.0, 5, 8.0, 0),
                         MediaType.APPLICATION_JSON));
 
@@ -255,8 +258,7 @@ class WeatherServiceTest {
         Game game = buildGame("outdoor", gameStart, withLocation(45.5f, -73.5f));
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withServerError());
 
         WeatherDto.WeatherForecast result = weatherService.getForecast(gameId, null);
@@ -272,8 +274,7 @@ class WeatherServiceTest {
         Game game = buildGame("outdoor", gameStart, withLocation(45.5f, -73.5f));
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withSuccess("{\"hourly\":{\"time\":[],\"temperature_2m\":[],\"precipitation_probability\":[],\"windspeed_10m\":[],\"weathercode\":[]}}",
                         MediaType.APPLICATION_JSON));
 
@@ -290,8 +291,7 @@ class WeatherServiceTest {
         Game game = buildGame("outdoor", gameStart, withLocation(45.5f, -73.5f));
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
-        mockServer.expect(requestToUriTemplate(
-                        "https://api.open-meteo.com/v1/forecast{?latitude,longitude,hourly,timezone,forecast_days}"))
+        mockServer.expect(requestTo(String.format(OPEN_METEO_URL, 45.5, -73.5)))
                 .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
         WeatherDto.WeatherForecast result = weatherService.getForecast(gameId, null);
