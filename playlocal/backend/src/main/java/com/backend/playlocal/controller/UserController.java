@@ -74,7 +74,7 @@ public class UserController {
     }
 
     /**
-     * Get a user's public profile by slug (URL-friendly display name).
+     * Get a user's public profile by slug (URL-friendly username/handle).
      * GET /api/v1/users/slug/{slug}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]
      * US-7.12: Enforces privacy visibility toggles.

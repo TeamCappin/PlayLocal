@@ -133,7 +133,7 @@ export class ApiError extends Error {
 export interface RegisterRequest {
   email: string;
   password: string;
-  displayName?: string;
+  displayName: string;
   ageConfirmed: boolean;
   eulaAccepted: boolean;
   captchaToken?: string;
@@ -157,7 +157,7 @@ export interface UserDto {
   userId: string;
   email: string;
   displayName: string;
-  slug?: string; // URL-friendly identifier (e.g., "john-doe")
+  slug?: string; // URL-friendly username/handle (e.g., "john-doe")
   avatarUrl?: string;
   defaultIntensity?: string;
   availability?: string;

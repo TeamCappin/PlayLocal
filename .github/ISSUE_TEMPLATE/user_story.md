@@ -19,14 +19,14 @@ milestone: 'Iteration X'
 
 ## Requirements Reference [Mandatory]
 
-View all requirements in the [Project Requirements](https://github.com/munera-intelligence/PermitParser/wiki/Project-Requirements)
+View all requirements in the [Project Requirements](https://github.com/TeamCappin/PlayLocal/wiki/Project-Requirements)
 
 **Requirement Reference:** [REQ-F-001, REQ-N-002, etc.]
 
 **Justification:** [How this story addresses the referenced requirements]
 
 ## Risk Assessment [Mandatory]
-View all identified risks in the [Risk Register](https://github.com/munera-intelligence/PermitParser/wiki/Risks-and-Mitigation)
+View all identified risks in the [Risk Register](https://github.com/TeamCappin/PlayLocal/wiki/Risks-and-Mitigation)
 
 **Risk Reference:** [R01, R02, etc.]
 

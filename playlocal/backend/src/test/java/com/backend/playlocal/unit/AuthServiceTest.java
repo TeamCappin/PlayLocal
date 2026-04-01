@@ -171,6 +171,39 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("US-1.1: Register should allow duplicate display names")
+    void register_DuplicateDisplayName_AllowsRegistration() {
+        AuthDto.RegisterRequest secondRequest = AuthDto.RegisterRequest.builder()
+                .email("second@example.com")
+                .password("password")
+                .displayName(registerRequest.getDisplayName())
+                .ageConfirmed(true)
+                .eulaAccepted(true)
+                .build();
+
+        when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        when(userRepository.existsBySlug(any())).thenReturn(false, true, false);
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            if (saved.getUserId() == null) {
+                saved.setUserId(UUID.randomUUID());
+            }
+            return saved;
+        });
+        when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
+        when(jwtService.generateToken(any(), any(), any())).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.AuthResponse firstResponse = authService.register(registerRequest);
+        AuthDto.AuthResponse secondResponse = authService.register(secondRequest);
+
+        assertThat(firstResponse.getUser().getDisplayName()).isEqualTo("Test User");
+        assertThat(secondResponse.getUser().getDisplayName()).isEqualTo("Test User");
+        verify(userRepository, times(2)).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Legal P1: Register should throw IllegalArgumentException if age not confirmed")
     void register_AgeNotConfirmed_ThrowsException() {
         registerRequest.setAgeConfirmed(false);

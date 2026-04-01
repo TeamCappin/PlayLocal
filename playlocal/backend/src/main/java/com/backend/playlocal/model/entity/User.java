@@ -39,11 +39,11 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
 
-    @Column(name = "display_name")
+    @Column(name = "display_name", nullable = false)
     private String displayName;
 
-    // URL-friendly slug derived from displayName (e.g., "john-doe")
-    @Column(nullable = false)
+    // Public username/handle used in profile URLs (e.g., "john-doe")
+    @Column(nullable = false, unique = true)
     private String slug;
 
     @Column(name = "avatar_url")

@@ -37,7 +37,7 @@ milestone: 'Iteration X'
 
 ## Documentation
 
-**Test Results:** [Link to test documentation in wiki](https://github.com/MuneraCappin/PermitParser/wiki/QA-Test-Results)
+**Test Results:** [Link to test documentation in wiki](https://github.com/TeamCappin/PlayLocal/wiki/QA-Test-Results)
 
 ## Related Links
 
