@@ -78,8 +78,6 @@ class GameServiceLifecycleTest {
     @Mock
     private FriendshipRepository friendshipRepository;
         @Mock
-        private OrganizerRepository organizerRepository;
-        @Mock
         private PlayerHistoryService playerHistoryService;
 
     @InjectMocks
@@ -204,25 +202,31 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ProvisionalOrganizer_WithTwoEligiblePlayers_IncrementsCounter() {
+                stubGameResponseDependenciesWithSave();
+        UUID organizerId = UUID.randomUUID();
         Organizer organizerProfile = Organizer.builder()
+                .organizerId(organizerId)
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)
                 .provisionalGamesCompleted(0)
                 .build();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(organizerRepository.findByIdWithLock(organizerId)).thenReturn(Optional.of(organizerProfile));
         when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
                 .thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
 
         gameService.completeGame(gameId, organizer.getUserId());
 
         verify(organizerRepository).save(organizerProfile);
+                verify(organizerRepository).findByIdWithLock(organizerId);
         assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(1);
         assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.PROVISIONAL);
     }
 
         @Test
         void completeGame_ProvisionalOrganizer_IneligibleGame_DoesNotIncrement() {
+                stubGameResponseDependenciesWithSave();
                 Organizer organizerProfile = Organizer.builder()
                                 .user(organizer)
                                 .status(Organizer.OrganizerStatus.PROVISIONAL)
@@ -242,6 +246,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ProvisionalOrganizer_ReachingTwoPromotesToFull() {
+                stubGameResponseDependenciesWithSave();
         Organizer organizerProfile = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)
@@ -261,6 +266,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ResponseIncludesOrganizerProgress() {
+                stubGameResponseDependenciesWithSave();
         Organizer organizerProfile = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)
@@ -514,7 +520,6 @@ class GameServiceLifecycleTest {
                 locationRepository,
                 privacySettingsService,
                 friendshipRepository,
-                organizerRepository,
                 playerHistoryService);
 
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
@@ -548,7 +553,6 @@ class GameServiceLifecycleTest {
                 locationRepository,
                 privacySettingsService,
                 friendshipRepository,
-                organizerRepository,
                 playerHistoryService);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -568,6 +572,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_FullStatusOrganizer_SkipsPromotionLogic() {
+                stubGameResponseDependenciesWithSave();
         Organizer fullOrganizer = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.FULL)
@@ -585,6 +590,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ProvisionalOrganizer_NoOrganizerRecord_DoesNotError() {
+                stubGameResponseDependenciesWithSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.empty());
 
@@ -598,6 +604,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ProvisionalOrganizer_BoundaryExactlyTwoEligiblePlayers_Increments() {
+                stubGameResponseDependenciesWithSave();
         Organizer organizerProfile = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)
@@ -619,6 +626,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ProvisionalOrganizer_BoundaryExactlyTwoEligibleGames_TransitionsToFull() {
+                stubGameResponseDependenciesWithSave();
         Organizer organizerProfile = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)
@@ -679,6 +687,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_ResponseWithNullOrganizerDto_DoesNotThrow() {
+                stubGameResponseDependenciesWithSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.empty());
 
@@ -690,6 +699,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_OrganizerWithNullProvisionalGamesCompleted_DefaultsToZero() {
+                stubGameResponseDependenciesWithSave();
         Organizer organizerProfile = Organizer.builder()
                 .user(organizer)
                 .status(Organizer.OrganizerStatus.PROVISIONAL)

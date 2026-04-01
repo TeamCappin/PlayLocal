@@ -64,7 +64,6 @@ public class GameService {
                         LocationRepository locationRepository,
                         PrivacySettingsService privacySettingsService,
                         FriendshipRepository friendshipRepository,
-                        OrganizerRepository organizerRepository,
                         PlayerHistoryService playerHistoryService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
@@ -82,7 +81,6 @@ public class GameService {
                 this.privacySettingsService = privacySettingsService;
                 this.friendshipRepository = friendshipRepository;
                 this.organizerCompatibilityLayer = new OrganizerCompatibilityLayer(organizerRepository);
-                this.organizerRepository = organizerRepository;
                 this.playerHistoryService = playerHistoryService;
         }
 
@@ -1262,7 +1260,15 @@ public class GameService {
 
         private void maybePromoteProvisionalOrganizer(Game game) {
                 UUID organizerUserId = game.getCreatedBy().getUserId();
-                Optional<Organizer> organizerOptional = organizerRepository.findByUser_UserId(organizerUserId);
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findByIdWithLock);
+
+                // Backward-compatible fallback for data that may not yet have organizerId populated.
+                if (organizerOptional.isEmpty()) {
+                        organizerOptional = organizerRepository.findByUser_UserId(organizerUserId);
+                }
+
                 if (organizerOptional.isEmpty()) {
                         return;
                 }
@@ -1292,7 +1298,12 @@ public class GameService {
                         return;
                 }
 
-                organizerRepository.findByUser_UserId(organizerUserId).ifPresent(organizer -> {
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findById)
+                                .or(() -> organizerRepository.findByUser_UserId(organizerUserId));
+
+                organizerOptional.ifPresent(organizer -> {
                         response.getOrganizer().setStatus(
                                         organizer.getStatus() != null ? organizer.getStatus().name() : Organizer.OrganizerStatus.NONE.name());
                         response.getOrganizer().setEligibleGamesCompleted(

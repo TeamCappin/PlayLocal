@@ -142,7 +142,7 @@ public class OrganizerQualityService {
         float previousRepeatRate = oqs.getRepeatPlayerRate();
 
         // Calculate new metrics
-        calculateMetrics(oqs, organizerUser.getUserId());
+        calculateMetrics(oqs, organizerId);
 
         // Calculate new OQS score
         float newOqs = calculateOqsScore(oqs.getGameCompletionRate(), oqs.getRepeatPlayerRate());
@@ -158,7 +158,7 @@ public class OrganizerQualityService {
                     previousCompletionRate, oqs.getGameCompletionRate(),
                     previousRepeatRate, oqs.getRepeatPlayerRate(),
                     reason, buildChangeDescription(reason, triggeringGame),
-                    organizerUser);
+                    organizer);
         }
 
         return toOqsResponse(oqs, organizerUser);
@@ -213,7 +213,7 @@ public class OrganizerQualityService {
         float currentOqs = oqs != null ? oqs.getOqsScore() : 100.0f;
 
         Page<OrganizerScoreHistory> historyPage = historyRepository
-                .findByOrganizerIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+            .findByOrganizerIdOrderByCreatedAtDesc(organizerId, PageRequest.of(page, size));
 
         List<OrganizerQualityDto.OqsHistoryEntry> entries = historyPage.getContent().stream()
                 .map(this::toHistoryEntry)

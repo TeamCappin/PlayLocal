@@ -1,7 +1,9 @@
 package com.backend.playlocal.repository;
 
 import com.backend.playlocal.model.entity.Organizer;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,10 @@ import java.util.List;
  */
 @Repository
 public interface OrganizerRepository extends JpaRepository<Organizer, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Organizer o WHERE o.organizerId = :organizerId")
+    Optional<Organizer> findByIdWithLock(@Param("organizerId") UUID organizerId);
 
     /**
      * Find organizer by user ID.
