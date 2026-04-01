@@ -3,12 +3,9 @@ import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar as CalendarIcon,
   MapPin,
-  Users,
   Clock,
   Plus,
-  Loader2,
   X,
 } from 'lucide-react';
 import { useGames } from '@/hooks/useGames';
@@ -38,8 +35,53 @@ interface CalendarGame {
   time: string;
   location: string;
   sport: string;
-  status: string;
   role: string;
+  /** Confirmed participant (not host); matches API hasExactLocationAccess for RSVP’d members. */
+  isConfirmedMember: boolean;
+}
+
+type CalendarGameStyleInput = Pick<CalendarGame, 'role' | 'isConfirmedMember'>;
+
+/**
+ * Card colors aligned with MapView pins: emerald = exact/joined, amber = approximate / not joined.
+ */
+function calendarGameCardSurfaceClass(game: CalendarGameStyleInput): string {
+  if (game.role === 'host') {
+    return 'border-purple-200/60 bg-purple-50/60 hover:bg-purple-100/60';
+  }
+  if (game.isConfirmedMember) {
+    return 'border-emerald-200/60 bg-emerald-50/60 hover:bg-emerald-100/60';
+  }
+  return 'border-amber-200/65 bg-amber-50/35 hover:bg-amber-50/55';
+}
+
+/** Small month-cell chips. */
+function calendarGameChipClass(game: CalendarGameStyleInput): string {
+  if (game.role === 'host') {
+    return 'bg-purple-100 text-purple-700 hover:bg-purple-200';
+  }
+  if (game.isConfirmedMember) {
+    return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+  }
+  return 'bg-amber-50 text-amber-800 hover:bg-amber-100/80';
+}
+
+const goingBadgeClassName =
+  'px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded';
+
+function CalendarGameRoleBadges({ game }: { game: CalendarGame }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {game.role === 'host' && (
+        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+          Host
+        </span>
+      )}
+      {game.isConfirmedMember && (
+        <span className={goingBadgeClassName}>Going</span>
+      )}
+    </div>
+  );
 }
 
 export function CalendarView() {
@@ -47,26 +89,34 @@ export function CalendarView() {
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
-  const { games: apiGames, isLoading } = useGames();
-  const { user, isAuthenticated } = useAuth();
+  const { games: apiGames } = useGames();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   // Transform API games to calendar format
   const games: CalendarGame[] = useMemo(() => {
     if (apiGames && apiGames.length > 0) {
-      return apiGames.map((game) => ({
-        id: game.gameId,
-        title: game.title,
-        date: new Date(game.startTime),
-        time: new Date(game.startTime).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-        location: game.location?.name || 'TBD',
-        sport: game.sportName,
-        status: 'confirmed',
-        role: game.organizer?.userId === user?.userId ? 'host' : 'participant',
-      }));
+      return apiGames.map((game) => {
+        const isHost = game.organizer?.userId === user?.userId;
+        const isConfirmedMember = Boolean(
+          user?.userId &&
+            game.hasExactLocationAccess &&
+            !isHost
+        );
+        return {
+          id: game.gameId,
+          title: game.title,
+          date: new Date(game.startTime),
+          time: new Date(game.startTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+          location: game.location?.name || 'TBD',
+          sport: game.sportName,
+          role: isHost ? 'host' : 'participant',
+          isConfirmedMember,
+        };
+      });
     }
     return [];
   }, [apiGames, user]);
@@ -299,13 +349,9 @@ export function CalendarView() {
                                 <Link
                                   key={game.id}
                                   href={`/games/${game.id}`}
-                                  className={`block px-2 py-1 text-xs rounded truncate ${
-                                    game.role === 'host'
-                                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                                      : game.status === 'tentative'
-                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                  } transition-colors`}
+                                  className={`block px-2 py-1 text-xs rounded truncate ${calendarGameChipClass(
+                                    game
+                                  )} transition-colors`}
                                 >
                                   {game.time} {game.sport}
                                 </Link>
@@ -340,15 +386,13 @@ export function CalendarView() {
                     <Link
                       key={game.id}
                       href={`/games/${game.id}`}
-                      className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className={`block p-3 rounded-lg border transition-colors ${calendarGameCardSurfaceClass(
+                        game
+                      )}`}
                     >
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="text-gray-900">{game.sport}</div>
-                        {game.role === 'host' && (
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
-                            Host
-                          </span>
-                        )}
+                        <CalendarGameRoleBadges game={game} />
                       </div>
                       <div className="text-sm text-gray-600 mb-1">
                         {game.title}
@@ -377,16 +421,20 @@ export function CalendarView() {
               <h3 className="text-lg text-gray-900 mb-4">Legend</h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-emerald-100 rounded"></div>
-                  <span className="text-sm text-gray-700">Confirmed</span>
+                  <div className="w-4 h-4 rounded border border-amber-200/75 bg-amber-50/90" />
+                  <span className="text-sm text-gray-700">
+                    Not joined or waitlist (orange pins on map)
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-amber-100 rounded"></div>
-                  <span className="text-sm text-gray-700">Waitlist</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 bg-purple-100 rounded"></div>
+                  <div className="w-4 h-4 bg-purple-100 rounded border border-purple-200" />
                   <span className="text-sm text-gray-700">Hosting</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-emerald-100 rounded border border-emerald-200" />
+                  <span className="text-sm text-gray-700">
+                    Going / joined (green pins on map)
+                  </span>
                 </div>
               </div>
             </div>
@@ -461,21 +509,13 @@ export function CalendarView() {
                     <Link
                       key={game.id}
                       href={`/games/${game.id}`}
-                      className={`block p-3 rounded-xl border transition-colors ${
-                        game.role === 'host'
-                          ? 'border-purple-200/60 bg-purple-50/60 hover:bg-purple-100/60'
-                          : game.status === 'tentative'
-                            ? 'border-amber-200/60 bg-amber-50/60 hover:bg-amber-100/60'
-                            : 'border-emerald-200/60 bg-emerald-50/60 hover:bg-emerald-100/60'
-                      }`}
+                      className={`block p-3 rounded-xl border transition-colors ${calendarGameCardSurfaceClass(
+                        game
+                      )}`}
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between gap-2 mb-1">
                         <span className="font-medium text-gray-900">{game.sport}</span>
-                        {game.role === 'host' && (
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
-                            Host
-                          </span>
-                        )}
+                        <CalendarGameRoleBadges game={game} />
                       </div>
                       <div className="text-sm text-gray-600 mb-2">{game.title}</div>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
