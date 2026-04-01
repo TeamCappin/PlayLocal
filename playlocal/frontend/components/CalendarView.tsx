@@ -112,7 +112,7 @@ export function CalendarView() {
             hour: 'numeric',
             minute: '2-digit',
           }),
-          location: game.location?.name || 'TBD',
+          location: game.location?.name ?? game.approximateLocation ?? 'TBD',
           sport: game.sportName,
           role: isHost ? 'host' : 'participant',
           isConfirmedMember,
