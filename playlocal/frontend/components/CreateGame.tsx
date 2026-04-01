@@ -138,6 +138,19 @@ export function CreateGame() {
       setError('Please enter a location');
       return false;
     }
+    const lat = formData.latitude;
+    const lon = formData.longitude;
+    if (
+      lat == null ||
+      lon == null ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon)
+    ) {
+      setError(
+        'Please select a valid location from the suggestions list'
+      );
+      return false;
+    }
     if (!formData.date) {
       setError('Please select a date');
       return false;
@@ -282,6 +295,20 @@ export function CreateGame() {
       return;
     }
 
+    const latSubmit = formData.latitude;
+    const lonSubmit = formData.longitude;
+    if (
+      latSubmit == null ||
+      lonSubmit == null ||
+      !Number.isFinite(latSubmit) ||
+      !Number.isFinite(lonSubmit)
+    ) {
+      setError(
+        'Please go back to step 1 and choose a location from the suggestions list'
+      );
+      return;
+    }
+
     // Validate age requirements if both are provided
     if (formData.minAge && formData.maxAge) {
       const min = Number.parseInt(formData.minAge, 10);
@@ -355,14 +382,6 @@ export function CreateGame() {
             Set up your pickup game and invite players
           </p>
         </div>
-
-        {/* Error Alert */}
-        {(error || createError) && (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-500 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <span className="text-red-700 font-medium">{error || createError}</span>
-          </div>
-        )}
 
         {/* Progress Steps */}
         <div className="mb-8">
@@ -526,7 +545,7 @@ export function CreateGame() {
                     )}
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">
+                    <span className="hidden text-gray-500 sm:block">
                       Enter precise location for players
                     </span>
                     <a
@@ -1057,7 +1076,7 @@ export function CreateGame() {
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-3 sm:px-6 sm:py-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Back
               </button>
@@ -1069,7 +1088,7 @@ export function CreateGame() {
               {step < 3 && (
                 <button
                   type="button"
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  className="px-3 py-3 sm:px-6 sm:py-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
                 >
                   <Save className="w-5 h-5" />
                   <span>Save Draft</span>
@@ -1080,7 +1099,7 @@ export function CreateGame() {
                 <button
                   type="button"
                   onClick={handleContinue}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="px-3 py-3 sm:px-6 sm:py-6 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Continue
                 </button>
@@ -1088,7 +1107,7 @@ export function CreateGame() {
                 <button
                   type="submit"
                   disabled={isCreating || hasCreateSucceeded}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-3 sm:px-6 sm:py-6 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-emerald-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {hasCreateSucceeded
                     ? 'Redirecting...'

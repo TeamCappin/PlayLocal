@@ -10,7 +10,7 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  testPathIgnorePatterns: ['/node_modules/', 'MapView\\.test\\.tsx'],
+  testPathIgnorePatterns: ['/node_modules/'],
 
   collectCoverage: true,
   coverageDirectory: 'coverage',
