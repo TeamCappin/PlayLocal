@@ -426,7 +426,8 @@ describe('CalendarView', () => {
 
     mockUseGames.mockReturnValue({ games: [], isLoading: false });
     rerender(<CalendarView />);
-    expect(screen.getByText('Upcoming Games')).toBeInTheDocument();
+    // Still no upcoming game links when the API returns an explicit empty array
+    expect(screen.queryByRole('link', { name: /gym/i })).not.toBeInTheDocument();
   });
 
   it('on mobile, shows single-letter weekday headers and opens day overlay with games', () => {
