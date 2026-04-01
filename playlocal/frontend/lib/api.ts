@@ -97,9 +97,12 @@ async function apiFetch<T>(
     return undefined as T;
   }
 
-  const ct = response.headers.get('content-type') || '';
-  if (!ct.includes('application/json')) {
-    // Some endpoints return empty string even with 200
+  const ct = (response.headers.get('content-type') || '').toLowerCase();
+  // Spring ProblemDetail uses application/problem+json; hypermedia APIs often use *+json
+  const isJson =
+    ct.includes('application/json') || ct.includes('+json');
+  if (!isJson) {
+    // Some endpoints return empty body even with 200
     return undefined as T;
   }
 

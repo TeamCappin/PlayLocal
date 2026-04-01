@@ -78,6 +78,14 @@ function transformApiGame(game: GameResponse) {
       game.hasExactLocationAccess && game.location?.longitude != null
         ? game.location.longitude
         : undefined,
+    // City/region for Nominatim when exact coords are hidden (same idea as the list card)
+    approximateMapQuery: (() => {
+      if (game.hasExactLocationAccess) return undefined;
+      const approx = game.approximateLocation?.trim();
+      if (!approx || approx === 'Location unavailable') return undefined;
+      const place = approx.replace(/^Near\s+/i, '').trim();
+      return place || undefined;
+    })(),
   };
 }
 
@@ -299,6 +307,23 @@ export function GameDiscovery() {
     }
     return transformed;
   }, [apiGames, todayOnly, sortBy, searchQuery]);
+
+  const mapViewGames = useMemo(
+    () =>
+      displayGames.map((g) => ({
+        id: g.id,
+        title: g.title,
+        sport: g.sport,
+        locationArea: g.distance,
+        location: g.location,
+        date: g.date,
+        time: g.time,
+        lat: g.lat,
+        lng: g.lng,
+        approximateMapQuery: g.approximateMapQuery,
+      })),
+    [displayGames]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -688,21 +713,7 @@ export function GameDiscovery() {
             )}
           </>
         ) : (
-          <MapView
-            games={displayGames.map((g) => ({
-              id: g.id,
-              title: g.title,
-              sport: g.sport,
-              locationArea: g.distance,
-              location: g.location,
-              date: g.date,
-              time: g.time,
-              players: g.players,
-              skillLevel: g.skillLevel,
-              lat: g.lat,
-              lng: g.lng,
-            }))}
-          />
+          <MapView games={mapViewGames} />
         )}
       </div>
     </div>
@@ -729,6 +740,7 @@ interface GameDisplay {
   minReliabilityRequired?: number; // US-4.1: Reputation-gated games
   lat?: number;
   lng?: number;
+  approximateMapQuery?: string;
 }
 
 function GameCard({ game }: { game: GameDisplay }) {

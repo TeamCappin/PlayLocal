@@ -2,8 +2,11 @@ package com.backend.playlocal.unit;
 
 import com.backend.playlocal.controller.AiController;
 import com.backend.playlocal.model.dto.AiChatDto;
+import com.backend.playlocal.model.dto.KnowledgeSearchDto;
 import com.backend.playlocal.service.AiChatService;
 import com.backend.playlocal.service.AssistantTelemetryService;
+import com.backend.playlocal.service.knowledge.KnowledgeEntryModel;
+import com.backend.playlocal.service.knowledge.KnowledgeRetrievalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,13 +34,15 @@ class AiControllerTest {
     @Mock
     private AssistantTelemetryService assistantTelemetryService;
     @Mock
+    private KnowledgeRetrievalService knowledgeRetrievalService;
+    @Mock
     private Authentication authentication;
 
     private AiController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new AiController(aiChatService, assistantTelemetryService);
+        controller = new AiController(aiChatService, assistantTelemetryService, knowledgeRetrievalService);
     }
 
     @Test
@@ -119,5 +124,90 @@ class AiControllerTest {
                 "session-3",
                 null,
                 Map.of("context", "game"));
+    }
+
+    @Test
+    @DisplayName("telemetry maps lowercase known event and blank gameId")
+    void telemetry_LowercaseKnownEvent_BlankGameId() {
+        UUID userId = UUID.randomUUID();
+        when(authentication.getName()).thenReturn(userId.toString());
+
+        AiChatDto.TelemetryRequest body =
+                new AiChatDto.TelemetryRequest("session_started", "session-4", "home", "   ");
+
+        ResponseEntity<Void> response = controller.telemetry(authentication, body);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(assistantTelemetryService).recordEvent(
+                AssistantTelemetryService.ASSISTANT_SESSION_STARTED,
+                userId,
+                "session-4",
+                null,
+                Map.of("context", "home"));
+    }
+
+    @Test
+    @DisplayName("knowledge search maps retrieval hits to snippets")
+    void searchKnowledge_ReturnsSnippets() {
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "help-block-user",
+                "Blocking someone",
+                "Safety",
+                List.of("Profile", "Settings"),
+                List.of("block"),
+                List.of(),
+                "/help/safety#block",
+                "Short approved text about blocking users on the platform.");
+        when(knowledgeRetrievalService.search("block", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.42)));
+
+        ResponseEntity<KnowledgeSearchDto.SearchResponse> response = controller.searchKnowledge("block");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().snippets()).hasSize(1);
+        assertThat(response.getBody().snippets().get(0).id()).isEqualTo("help-block-user");
+        assertThat(response.getBody().snippets().get(0).excerpt()).contains("Short approved");
+    }
+
+    @Test
+    @DisplayName("knowledge search excerpt truncates long answer text with ellipsis")
+    void searchKnowledge_LongAnswer_TruncatesExcerpt() {
+        String longBody = "x".repeat(400);
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "long-entry",
+                "T",
+                "S",
+                List.of(),
+                List.of("key"),
+                List.of(),
+                null,
+                longBody);
+        when(knowledgeRetrievalService.search("key", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.1)));
+
+        KnowledgeSearchDto.SearchResponse body = controller.searchKnowledge("key").getBody();
+
+        assertThat(body.snippets().get(0).excerpt()).endsWith("…").hasSize(281);
+    }
+
+    @Test
+    @DisplayName("knowledge search uses empty excerpt when answer text is blank")
+    void searchKnowledge_BlankAnswer_EmptyExcerpt() {
+        KnowledgeEntryModel entry = new KnowledgeEntryModel(
+                "blank",
+                "T",
+                "S",
+                List.of(),
+                List.of("key"),
+                List.of(),
+                null,
+                "   ");
+        when(knowledgeRetrievalService.search("key", 8))
+                .thenReturn(List.of(new KnowledgeRetrievalService.KnowledgeHit(entry, 0.3)));
+
+        KnowledgeSearchDto.SearchResponse body = controller.searchKnowledge("key").getBody();
+
+        assertThat(body.snippets()).hasSize(1);
+        assertThat(body.snippets().get(0).excerpt()).isEmpty();
     }
 }

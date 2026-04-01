@@ -1,4 +1,4 @@
--- V20: Historical games spread across 6 months for Stats & Analytics skill evolution chart.
+-- Dev seed (V24): Historical games spread across 6 months for Stats & Analytics skill evolution chart.
 -- Each game has a different skill_band / intensity_band combination so the chart shows
 -- a progression over time.  Eight demo users are added as confirmed participants.
 
