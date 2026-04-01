@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MapView from '../../components/MapView';
 
@@ -154,7 +154,7 @@ describe('MapView', () => {
         />
       );
       expect(
-        screen.getByText(/none have a map location yet/i)
+        screen.getByText(/none could be placed on the map/i)
       ).toBeInTheDocument();
       expect(screen.getByText(/2 games found/i)).toBeInTheDocument();
     });
@@ -171,6 +171,34 @@ describe('MapView', () => {
       setApiKey('test-key');
       render(<MapView games={[gameWithoutLocation]} />);
       expect(screen.queryByTestId('map-marker')).not.toBeInTheDocument();
+    });
+
+    it('geocodes approximateMapQuery and renders a marker (approximate area)', async () => {
+      setApiKey('test-key');
+      (global as any).fetch = jest.fn().mockResolvedValue({
+        json: async () => [{ lat: '37.7749', lon: '-122.4194' }],
+      });
+
+      render(
+        <MapView
+          games={[
+            {
+              ...gameWithoutLocation,
+              approximateMapQuery: 'San Francisco',
+            },
+          ]}
+        />
+      );
+
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('map-marker')).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+      expect(
+        screen.queryByText(/none could be placed on the map/i)
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -201,7 +229,7 @@ describe('MapView', () => {
       setApiKey('test-key');
       render(<MapView games={[gameWithLocation]} />);
       expect(
-        screen.queryByText(/none have a map location yet/i)
+        screen.queryByText(/none could be placed on the map/i)
       ).not.toBeInTheDocument();
     });
 
@@ -212,7 +240,7 @@ describe('MapView', () => {
       expect(screen.getAllByTestId('map-marker')).toHaveLength(1);
       // Amber banner does NOT show — mappableGames.length is 1 (not 0)
       expect(
-        screen.queryByText(/none have a map location yet/i)
+        screen.queryByText(/none could be placed on the map/i)
       ).not.toBeInTheDocument();
     });
   });
