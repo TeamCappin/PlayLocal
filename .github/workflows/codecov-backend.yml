@@ -2,9 +2,9 @@ name: CodeCov (Backend)
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["dev","dev_minh"]
   pull_request:
-    branches: ["dev"]
+    branches: ["dev","dev_minh"]
 
 jobs:
   test_backend:
