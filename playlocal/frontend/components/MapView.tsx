@@ -164,6 +164,7 @@ export default function MapView({
   games = [],
 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const apiKeyValid = Boolean(apiKey && apiKey !== 'YOUR_API_KEY_HERE');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Smoothed zoom (eased toward camera) so pin spread doesn’t snap/bounce each event. */
   const [spreadZoom, setSpreadZoom] = useState(zoom);
@@ -192,6 +193,7 @@ export default function MapView({
   );
 
   useEffect(() => {
+    if (!apiKeyValid) return;
     setApproxGeocodePassComplete(false);
 
     const pairs: Array<{ key: string; query: string }> = [];
@@ -267,7 +269,7 @@ export default function MapView({
   // gamesStableKey encodes every field read in this effect, so depending on the
   // stable key avoids reruns from parent array identity churn.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamesStableKey]);
+  }, [gamesStableKey, apiKeyValid]);
 
   useEffect(() => {
     targetZoomRef.current = zoom;
@@ -345,7 +347,7 @@ export default function MapView({
     }
   };
 
-  if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+  if (!apiKeyValid) {
     return (
       <div className="h-[600px] bg-gray-200 rounded-xl flex items-center justify-center">
         <div className="text-center">
