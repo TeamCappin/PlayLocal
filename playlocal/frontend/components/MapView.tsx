@@ -253,7 +253,7 @@ export default function MapView({
     setSpreadZoom(zoom);
   }, [zoom]);
 
-  const stepSpreadZoom = useCallback(() => {
+  const stepSpreadZoom = useCallback(function stepSpreadZoomImpl() {
     const target = targetZoomRef.current;
     let s = smoothedZoomRef.current;
     const SMOOTH = 0.12;
@@ -262,7 +262,7 @@ export default function MapView({
     smoothedZoomRef.current = s;
     setSpreadZoom(s);
     if (Math.abs(target - s) > 0.002) {
-      spreadRafRef.current = requestAnimationFrame(stepSpreadZoom);
+      spreadRafRef.current = requestAnimationFrame(stepSpreadZoomImpl);
     } else {
       spreadRafRef.current = null;
     }

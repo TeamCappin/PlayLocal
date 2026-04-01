@@ -160,6 +160,31 @@ class GameServiceCreateTest {
     }
 
     @Test
+    @DisplayName("createGame throws when longitude is null and latitude is present")
+    void createGame_MissingLongitude_ShouldThrow() {
+        Instant start = Instant.now().plusSeconds(3600);
+        GameDto.CreateRequest request = GameDto.CreateRequest.builder()
+                .title("Missing Longitude")
+                .sportName("Basketball")
+                .locationName("Park")
+                .city("Montreal")
+                .indoorOutdoor("OUTDOOR")
+                .intensityBand("CASUAL")
+                .skillBand("ALL_LEVELS")
+                .latitude(45.5f)
+                .longitude(null)
+                .startTime(start)
+                .build();
+
+        when(userRepository.findActiveById(organizerId)).thenReturn(Optional.of(organizer));
+        when(sportRepository.findByNameIgnoreCase("Basketball")).thenReturn(Optional.of(sport));
+
+        assertThatThrownBy(() -> gameService.createGame(request, organizerId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map location");
+    }
+
+    @Test
     @DisplayName("createGame with null minPlayers uses default 2")
     void createGame_WithNullMinPlayers_UsesDefaultTwo() {
         Instant start = Instant.now().plusSeconds(3600);

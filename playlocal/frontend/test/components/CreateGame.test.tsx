@@ -1345,6 +1345,45 @@ describe('CreateGame', () => {
     });
   });
 
+  it('submit shows defensive location error when coordinates are invalid at submit time', async () => {
+    mockUseAuth.mockReturnValue({
+      isAuthenticated: true,
+      user: { reliabilityScore: 80 },
+    });
+    const createGameMock = jest.fn().mockResolvedValue({ gameId: 'should-not-create' });
+    mockUseCreateGame.mockReturnValue({
+      createGame: createGameMock,
+      isCreating: false,
+      error: null,
+    });
+    getTagsMock.mockResolvedValue([]);
+
+    render(<CreateGame />);
+    await goToStep3();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const originalIsFinite = Number.isFinite;
+    const isFiniteSpy = jest
+      .spyOn(Number, 'isFinite')
+      .mockImplementation((value: unknown) =>
+        typeof value === 'number' ? false : originalIsFinite(value as number)
+      );
+
+    fireEvent.click(screen.getByRole('button', { name: /create game/i }));
+
+    expect(
+      await screen.findAllByText(
+        /please go back to step 1 and choose a location from the suggestions list/i
+      )
+    ).not.toHaveLength(0);
+    expect(createGameMock).not.toHaveBeenCalled();
+
+    isFiniteSpy.mockRestore();
+  });
+
   it('location input is capped at 255 chars (typing beyond is trimmed)', async () => {
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
