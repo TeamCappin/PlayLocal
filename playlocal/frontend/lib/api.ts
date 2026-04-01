@@ -1106,6 +1106,33 @@ export const playerRatingsApi = {
     }),
 };
 
+// ============================================
+// WEATHER API — US-7.3
+// ============================================
+
+export interface WeatherForecast {
+  forecastAvailable: boolean;
+  /**
+   * Present only when forecastAvailable is false.
+   * INDOOR_GAME | PAST_GAME | TOO_FAR_AHEAD | NO_LOCATION | FORECAST_ERROR
+   */
+  unavailableReason?: string;
+  temperatureCelsius?: number;
+  precipitationProbability?: number;
+  windspeedKmh?: number;
+  /** Human-readable label e.g. "Partly Cloudy". */
+  condition?: string;
+  /** WMO weather code (0–99). */
+  conditionCode?: number;
+  /** True when forecast is ~10 km approximate (user not yet confirmed). */
+  locationHidden?: boolean;
+}
+
+export const weatherApi = {
+  getForecast: (gameId: string) =>
+    apiFetch<WeatherForecast>(`/games/${gameId}/weather`),
+};
+
 export default {
   auth: authApi,
   games: gamesApi,
@@ -1121,4 +1148,5 @@ export default {
   stats: statsApi,
   privacy: privacyApi,
   playerRatings: playerRatingsApi,
+  weather: weatherApi,
 };
