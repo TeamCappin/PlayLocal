@@ -1266,7 +1266,7 @@ describe('CreateGame', () => {
     // Step 1 → 2 blocked until a suggestion is chosen again
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
     const locationErrors = await screen.findAllByText(
-      /choose a location from the suggestions list/i
+      /select a valid location from the suggestions list/i
     );
     expect(locationErrors.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/game details/i)).not.toBeInTheDocument();
