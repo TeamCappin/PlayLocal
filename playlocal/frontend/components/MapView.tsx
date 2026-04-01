@@ -176,6 +176,9 @@ export default function MapView({
   );
   const [approxTick, setApproxTick] = useState(0);
   const [approxGeocodeBusy, setApproxGeocodeBusy] = useState(false);
+  /** After false: user saw we attempted / skipped approximate geocoding (avoids amber flash before first run). */
+  const [approxGeocodePassComplete, setApproxGeocodePassComplete] =
+    useState(false);
 
   const gamesStableKey = useMemo(
     () =>
@@ -189,6 +192,8 @@ export default function MapView({
   );
 
   useEffect(() => {
+    setApproxGeocodePassComplete(false);
+
     const pairs: Array<{ key: string; query: string }> = [];
     const seen = new Set<string>();
     for (const g of games) {
@@ -209,6 +214,7 @@ export default function MapView({
     const missing = pairs.filter((p) => approxCacheRef.current[p.key] == null);
     if (missing.length === 0) {
       setApproxGeocodeBusy(false);
+      setApproxGeocodePassComplete(true);
       return;
     }
 
@@ -216,35 +222,41 @@ export default function MapView({
     setApproxGeocodeBusy(true);
 
     void (async () => {
-      for (const { key, query } of missing) {
-        if (cancelled) break;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
-          );
-          const data = await res.json();
-          if (
-            cancelled ||
-            !data?.[0]?.lat ||
-            data[0].lon == null ||
-            data[0].lon === ''
-          ) {
-            continue;
+      try {
+        for (const { key, query } of missing) {
+          if (cancelled) break;
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
+            );
+            const data = await res.json();
+            if (
+              cancelled ||
+              !data?.[0]?.lat ||
+              data[0].lon == null ||
+              data[0].lon === ''
+            ) {
+              continue;
+            }
+            const lat = parseFloat(String(data[0].lat));
+            const lng = parseFloat(String(data[0].lon));
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+            approxCacheRef.current = {
+              ...approxCacheRef.current,
+              [key]: { lat, lng },
+            };
+            setApproxTick((t) => t + 1);
+          } catch {
+            /* ignore */
           }
-          const lat = parseFloat(String(data[0].lat));
-          const lng = parseFloat(String(data[0].lon));
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-          approxCacheRef.current = {
-            ...approxCacheRef.current,
-            [key]: { lat, lng },
-          };
-          setApproxTick((t) => t + 1);
-        } catch {
-          /* ignore */
+          await new Promise((r) => setTimeout(r, 400));
         }
-        await new Promise((r) => setTimeout(r, 400));
+      } finally {
+        setApproxGeocodeBusy(false);
+        if (!cancelled) {
+          setApproxGeocodePassComplete(true);
+        }
       }
-      if (!cancelled) setApproxGeocodeBusy(false);
     })();
 
     return () => {
@@ -380,7 +392,8 @@ export default function MapView({
         )}
       {games.length > 0 &&
         pinsOnMap.length === 0 &&
-        !approxGeocodeBusy && (
+        !approxGeocodeBusy &&
+        (approxGeocodePassComplete || !couldApproxGeocode) && (
           <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
             <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
             <span className="text-amber-800">
