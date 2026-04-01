@@ -103,11 +103,12 @@ export function CalendarView() {
             game.hasExactLocationAccess &&
             !isHost
         );
+        const startTime = new Date(game.startTime);
         return {
           id: game.gameId,
           title: game.title,
-          date: new Date(game.startTime),
-          time: new Date(game.startTime).toLocaleTimeString('en-US', {
+          date: startTime,
+          time: startTime.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
           }),
