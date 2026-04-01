@@ -16,11 +16,13 @@ jest.mock('lucide-react', () => ({
   MapPin: () => <svg data-testid="icon-mappin" />,
   Clock: () => <svg data-testid="icon-clock" />,
   ChevronRight: () => <svg data-testid="icon-chevron" />,
+  X: () => <svg data-testid="icon-close" />,
 }));
 
 // Mock @vis.gl/react-google-maps so we can test the component logic without
 // a real Google Maps SDK. Each mock element forwards the callbacks used by MapView.
 jest.mock('@vis.gl/react-google-maps', () => ({
+  CollisionBehavior: { REQUIRED: 'REQUIRED' },
   APIProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="api-provider">{children}</div>
   ),

@@ -192,7 +192,12 @@ export default function MapView({
     const pairs: Array<{ key: string; query: string }> = [];
     const seen = new Set<string>();
     for (const g of games) {
-      if (g.lat != null && g.lng != null) continue;
+      const hasFiniteCoords =
+        typeof g.lat === 'number' &&
+        Number.isFinite(g.lat) &&
+        typeof g.lng === 'number' &&
+        Number.isFinite(g.lng);
+      if (hasFiniteCoords) continue;
       const raw = g.approximateMapQuery?.trim();
       if (!raw) continue;
       const key = raw.toLowerCase();
@@ -245,7 +250,10 @@ export default function MapView({
     return () => {
       cancelled = true;
     };
-  }, [gamesStableKey, games]);
+  // gamesStableKey encodes every field read in this effect, so depending on the
+  // stable key avoids reruns from parent array identity churn.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamesStableKey]);
 
   useEffect(() => {
     targetZoomRef.current = zoom;
