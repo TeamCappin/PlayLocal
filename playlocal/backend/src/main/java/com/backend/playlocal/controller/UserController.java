@@ -5,6 +5,7 @@ import com.backend.playlocal.model.dto.PrivacySettingsDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.service.UsernameService;
 import com.backend.playlocal.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +21,15 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final UsernameService usernameService;
     private final ConnectionSignalsService connectionSignalsService;
     private final PrivacySettingsService privacySettingsService;
 
-    public UserController(UserService userService, ConnectionSignalsService connectionSignalsService,
+    public UserController(UserService userService, UsernameService usernameService,
+            ConnectionSignalsService connectionSignalsService,
             PrivacySettingsService privacySettingsService) {
         this.userService = userService;
+        this.usernameService = usernameService;
         this.connectionSignalsService = connectionSignalsService;
         this.privacySettingsService = privacySettingsService;
     }
@@ -67,7 +71,8 @@ public class UserController {
             Authentication authentication,
             @Valid @RequestBody UserDto.UpdateUsernameRequest request) {
         String userId = authentication.getName();
-        AuthDto.UserDto updatedUser = userService.changeSlug(userId, request.getUsername());
+        UUID userUuid = UUID.fromString(userId);
+        AuthDto.UserDto updatedUser = usernameService.changeSlug(userUuid, request.getUsername());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -78,7 +83,7 @@ public class UserController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDto.UsernameLookupResponse> findUserIdByUsername(
             @PathVariable String username) {
-        String userId = userService.findUserIdByUsername(username);
+        String userId = usernameService.findUserIdByUsername(username);
         return ResponseEntity.ok(UserDto.UsernameLookupResponse.builder().userId(userId).build());
     }
 

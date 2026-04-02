@@ -34,19 +34,16 @@ public class UserService {
     private final FriendshipRepository friendshipRepository;
     private final GameParticipationRepository gameParticipationRepository;
     private final PlayerRatingRepository playerRatingRepository;
-    private final UsernameService usernameService;
 
     public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository,
             PrivacySettingsService privacySettingsService, FriendshipRepository friendshipRepository,
-            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository,
-            UsernameService usernameService) {
+            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository) {
         this.userRepository = userRepository;
         this.endorsementRepository = endorsementRepository;
         this.privacySettingsService = privacySettingsService;
         this.friendshipRepository = friendshipRepository;
         this.gameParticipationRepository = gameParticipationRepository;
         this.playerRatingRepository = playerRatingRepository;
-        this.usernameService = usernameService;
     }
 
     /**
@@ -114,29 +111,6 @@ public class UserService {
 
         user = userRepository.save(user);
         return mapToUserDto(user);
-    }
-
-    /**
-     * Update user's username/slug.
-     * Uses UsernameService for validation and uniqueness checking.
-     * Sequence: changeSlug → toUrlFriendly → truncate → findActiveById → check uniqueness → save
-     */
-    @Transactional
-    public AuthDto.UserDto changeSlug(String userId, String username) {
-        UUID userUuid = UUID.fromString(userId);
-        String normalizedSlug = usernameService.changeSlug(userUuid, username);
-        
-        User user = userRepository.findActiveById(userUuid)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return mapToUserDto(user);
-    }
-
-    /**
-     * Resolve active userId from username/slug.
-     * Uses UsernameService for lookup.
-     */
-    public String findUserIdByUsername(String username) {
-        return usernameService.findUserIdByUsername(username);
     }
 
     /**
@@ -263,7 +237,10 @@ public class UserService {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username is required");
         }
-        String normalized = User.generateSlug(username);
+        String normalized = username.toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-)|(-$)", "")
+                .replaceAll("-+", "-");
         if (normalized == null || normalized.isBlank()) {
             throw new IllegalArgumentException("Username must contain at least one letter or number");
         }

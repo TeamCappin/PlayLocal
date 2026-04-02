@@ -120,35 +120,10 @@ public class User {
             this.createdAt = Instant.now();
         }
         this.updatedAt = Instant.now();
-        updateSlugIfNeeded();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
-        updateSlugIfNeeded();
-    }
-
-    private void updateSlugIfNeeded() {
-        if (this.slug == null && this.displayName != null) {
-            this.slug = generateSlug(this.displayName);
-        }
-    }
-
-    public static String generateSlug(String displayName) {
-        if (displayName == null)
-            return null;
-        String normalized = displayName.toLowerCase()
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-)|(-$)", "")
-                .replaceAll("-+", "-");
-
-        if (normalized.length() <= MAX_SLUG_LENGTH) {
-            return normalized;
-        }
-
-        String truncated = normalized.substring(0, MAX_SLUG_LENGTH)
-                .replaceAll("-+$", "");
-        return truncated;
     }
 }

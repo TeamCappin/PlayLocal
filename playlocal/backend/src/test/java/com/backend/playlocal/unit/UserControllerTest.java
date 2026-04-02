@@ -6,6 +6,7 @@ import com.backend.playlocal.model.dto.PrivacySettingsDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.service.UsernameService;
 import com.backend.playlocal.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class UserControllerTest {
 
         @Mock
         private UserService userService;
+
+        @Mock
+        private UsernameService usernameService;
 
         @Mock
         private ConnectionSignalsService connectionSignalsService;

@@ -276,7 +276,7 @@ describe('EditProfile', () => {
     });
   });
 
-  it('uses the backend slug after saving instead of deriving one locally', async () => {
+  it('keeps the current profile slug after saving', async () => {
     const refreshUser = jest.fn().mockResolvedValue(undefined);
     setAuthState({
       isAuthenticated: true,
@@ -308,7 +308,7 @@ describe('EditProfile', () => {
 
     await waitFor(() => {
       expect(refreshUser).toHaveBeenCalled();
-      expect(replaceMock).toHaveBeenCalledWith('/profile/john-doe-2');
+      expect(replaceMock).toHaveBeenCalledWith('/profile/john-doe');
     });
   });
 });

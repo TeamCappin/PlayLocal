@@ -186,7 +186,6 @@ class ProfileIntensityTest {
                 .bio("Bio")
                 .location("Montreal")
                 .availability("weekends")
-                .phone("+1234567890")
                 .build();
 
         // Verify we can build the request without a reliabilityScore field

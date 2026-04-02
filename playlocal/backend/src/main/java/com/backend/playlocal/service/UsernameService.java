@@ -2,6 +2,7 @@ package com.backend.playlocal.service;
 
 import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
+import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,6 @@ public class UsernameService {
     private final UserRepository userRepository;
     private static final int NONCE_START = 0;
     private static final int SLICE_LENGTH = 8;
-    private static final String SLUG_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz";
 
     public UsernameService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -57,9 +57,9 @@ public class UsernameService {
         }
 
         // Step 1: Convert displayName to URL-friendly format
-        String urlFriendlyName = toUrlFriendly(displayName);
-        if (urlFriendlyName == null || urlFriendlyName.isBlank()) {
-            urlFriendlyName = "user"; // Fallback for names with no alphanumeric chars
+        String normalizedDisplayName = toUrlFriendly(displayName);
+        if (normalizedDisplayName == null || normalizedDisplayName.isBlank()) {
+            throw new IllegalArgumentException("Display name must contain at least one letter or number");
         }
 
         // Step 2: Try nonces until we find a unique slug
@@ -105,7 +105,7 @@ public class UsernameService {
      * @throws DuplicateResourceException if slug is already in use by another user
      */
     @Transactional
-    public String changeSlug(UUID userId, String newSlug) {
+    public AuthDto.UserDto changeSlug(UUID userId, String newSlug) {
         if (newSlug == null || newSlug.trim().isEmpty()) {
             throw new IllegalArgumentException("Slug is required");
         }
@@ -127,8 +127,21 @@ public class UsernameService {
         }
 
         user.setSlug(normalizedSlug);
-        userRepository.save(user);
-        return normalizedSlug;
+        User updatedUser = userRepository.save(user);
+        return AuthDto.UserDto.builder()
+            .userId(updatedUser.getUserId().toString())
+            .email(updatedUser.getEmail())
+            .displayName(updatedUser.getDisplayName())
+            .slug(updatedUser.getSlug())
+            .avatarUrl(updatedUser.getAvatarUrl())
+            .defaultIntensity(updatedUser.getDefaultIntensity())
+            .availability(updatedUser.getAvailability())
+            .bio(updatedUser.getBio())
+            .location(updatedUser.getLocation())
+            .reliabilityScore(updatedUser.getReliabilityScore())
+            .gamesCount(updatedUser.getGamesCount())
+            .createdAt(updatedUser.getCreatedAt() != null ? updatedUser.getCreatedAt().toString() : null)
+            .build();
     }
 
     /**

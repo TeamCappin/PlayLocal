@@ -7,6 +7,7 @@ import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.service.ConnectionSignalsService;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.service.UsernameService;
 import com.backend.playlocal.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,9 @@ class UserControllerSlugTest {
     private UserService userService;
 
     @Mock
+    private UsernameService usernameService;
+
+    @Mock
     private ConnectionSignalsService connectionSignalsService;
 
     @Mock
@@ -49,7 +53,7 @@ class UserControllerSlugTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(userService, connectionSignalsService, privacySettingsService);
+        userController = new UserController(userService, usernameService, connectionSignalsService, privacySettingsService);
         viewerId = UUID.randomUUID();
 
         mockUser = AuthDto.UserDto.builder()
@@ -94,13 +98,13 @@ class UserControllerSlugTest {
         UserDto.UpdateUsernameRequest request = UserDto.UpdateUsernameRequest.builder()
                 .username("new-handle")
                 .build();
-        when(userService.changeSlug(viewerId.toString(), "new-handle")).thenReturn(mockUser);
+        when(usernameService.changeSlug(viewerId, "new-handle")).thenReturn(mockUser);
 
         ResponseEntity<AuthDto.UserDto> response = userController.updateUsername(authentication, request);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isEqualTo(mockUser);
-        verify(userService).changeSlug(viewerId.toString(), "new-handle");
+        verify(usernameService).changeSlug(viewerId, "new-handle");
     }
 
     @Test
@@ -110,7 +114,7 @@ class UserControllerSlugTest {
         UserDto.UpdateUsernameRequest request = UserDto.UpdateUsernameRequest.builder()
                 .username("taken-slug")
                 .build();
-        when(userService.changeSlug(viewerId.toString(), "taken-slug"))
+        when(usernameService.changeSlug(viewerId, "taken-slug"))
                 .thenThrow(new DuplicateResourceException("Username already in use"));
 
         assertThatThrownBy(() -> userController.updateUsername(authentication, request))
@@ -122,20 +126,20 @@ class UserControllerSlugTest {
     @DisplayName("findUserIdByUsername returns user id for existing username")
     void findUserIdByUsername_ValidUsername_ReturnsUserId() {
         String targetUserId = UUID.randomUUID().toString();
-        when(userService.findUserIdByUsername("john-doe")).thenReturn(targetUserId);
+        when(usernameService.findUserIdByUsername("john-doe")).thenReturn(targetUserId);
 
         ResponseEntity<UserDto.UsernameLookupResponse> response = userController.findUserIdByUsername("john-doe");
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getUserId()).isEqualTo(targetUserId);
-        verify(userService).findUserIdByUsername("john-doe");
+        verify(usernameService).findUserIdByUsername("john-doe");
     }
 
     @Test
     @DisplayName("findUserIdByUsername propagates not found")
     void findUserIdByUsername_UnknownUsername_ThrowsNotFound() {
-        when(userService.findUserIdByUsername("missing-user"))
+        when(usernameService.findUserIdByUsername("missing-user"))
                 .thenThrow(new ResourceNotFoundException("User not found"));
 
         assertThatThrownBy(() -> userController.findUserIdByUsername("missing-user"))

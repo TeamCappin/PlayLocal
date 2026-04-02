@@ -2,6 +2,7 @@ package com.backend.playlocal.unit;
 
 import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
+import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.service.UsernameService;
@@ -150,10 +151,10 @@ class UsernameServiceTest {
                 .thenReturn(false);
         when(userRepository.save(user)).thenReturn(user);
 
-        String result = usernameService.changeSlug(userId, newSlug);
+        AuthDto.UserDto result = usernameService.changeSlug(userId, newSlug);
 
         assertNotNull(result);
-        assertTrue(result.length() <= User.MAX_SLUG_LENGTH);
+        assertEquals("new-username", result.getSlug());
         verify(userRepository).findActiveById(userId);
         verify(userRepository).existsBySlugAndUserIdNotAndDeletedAtIsNull(anyString(), eq(userId));
         verify(userRepository).save(user);
@@ -176,12 +177,12 @@ class UsernameServiceTest {
                 .thenReturn(false);
         when(userRepository.save(user)).thenReturn(user);
 
-        String result = usernameService.changeSlug(userId, newSlug);
+        AuthDto.UserDto result = usernameService.changeSlug(userId, newSlug);
 
         // Result should be URL-friendly (lowercase, hyphens)
-        assertFalse(result.contains("@"));
-        assertFalse(result.contains("!"));
-        assertTrue(result.matches("[a-z0-9-]*"));
+        assertFalse(result.getSlug().contains("@"));
+        assertFalse(result.getSlug().contains("!"));
+        assertTrue(result.getSlug().matches("[a-z0-9-]*"));
     }
 
     @Test

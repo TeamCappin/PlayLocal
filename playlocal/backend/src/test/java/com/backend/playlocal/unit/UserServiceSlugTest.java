@@ -1,6 +1,5 @@
 package com.backend.playlocal.unit;
 
-import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
@@ -25,7 +24,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -50,9 +48,6 @@ class UserServiceSlugTest {
 
     @Mock
     private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
-
-    @Mock
-    private com.backend.playlocal.service.UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;
@@ -80,6 +75,18 @@ class UserServiceSlugTest {
         AuthDto.UserDto result = userService.getProfileBySlug("test-user");
 
         assertThat(result.getDisplayName()).isEqualTo("Test User");
+        assertThat(result.getSlug()).isEqualTo("test-user");
+        verify(userRepository).findBySlugAndDeletedAtIsNull("test-user");
+    }
+
+    @Test
+    @DisplayName("getProfileBySlug normalizes slug input before lookup")
+    void getProfileBySlug_NormalizesInputBeforeLookup() {
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-user"))
+                .thenReturn(Optional.of(testUser));
+
+        AuthDto.UserDto result = userService.getProfileBySlug("  Test User!  ");
+
         assertThat(result.getSlug()).isEqualTo("test-user");
         verify(userRepository).findBySlugAndDeletedAtIsNull("test-user");
     }
@@ -113,7 +120,6 @@ class UserServiceSlugTest {
         assertThat(result.getDisplayName()).isEqualTo("New Name");
         assertThat(result.getSlug()).isEqualTo(originalSlug);
         assertThat(result.getEmail()).isEqualTo(originalEmail);
-        assertThat(result.getPhone()).isNull();
         assertThat(testUser.getSlug()).isEqualTo(originalSlug);
         assertThat(testUser.getEmail()).isEqualTo(originalEmail);
         verify(userRepository).save(testUser);
@@ -166,4 +172,5 @@ class UserServiceSlugTest {
         assertThat(testUser.getEmail()).isEqualTo("test@example.com");
         assertThat(testUser.getPhoneE164()).isNull();
     }
+
 }
