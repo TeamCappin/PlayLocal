@@ -592,6 +592,72 @@ describe('gamesApi lifecycle endpoints', () => {
       );
     });
 
+    it('updateProfile body excludes slug, email, and phone fields', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          userId: 'u-1',
+          displayName: 'Updated Name',
+          bio: 'New bio',
+        })
+      );
+      (globalThis as any).fetch = fetchMock;
+
+      await usersApi.updateProfile({
+        displayName: 'Updated Name',
+        bio: 'New bio',
+        location: 'Montreal',
+        defaultIntensity: 'High',
+        availability: 'Weekends',
+      });
+
+      const [, options] = fetchMock.mock.calls[0];
+      const body = JSON.parse((options as RequestInit).body as string);
+
+      expect(body).toEqual({
+        displayName: 'Updated Name',
+        bio: 'New bio',
+        location: 'Montreal',
+        defaultIntensity: 'High',
+        availability: 'Weekends',
+      });
+      expect(body.slug).toBeUndefined();
+      expect(body.email).toBeUndefined();
+      expect(body.phone).toBeUndefined();
+    });
+
+    it('updateUsername calls PUT /users/username with body', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({
+          userId: 'u-1',
+          displayName: 'Updated Name',
+          slug: 'updated-name',
+        })
+      );
+      (globalThis as any).fetch = fetchMock;
+
+      await usersApi.updateUsername({ username: 'updated-name' });
+
+      const [url, options] = fetchMock.mock.calls[0];
+      expect(url).toContain('/users/username');
+      expect((options as RequestInit).method).toBe('PUT');
+      expect((options as RequestInit).body).toBe(
+        JSON.stringify({ username: 'updated-name' })
+      );
+    });
+
+    it('findUserIdByUsername calls GET /users/username/:username', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(
+        jsonResponse({ userId: 'u-1' })
+      );
+      (globalThis as any).fetch = fetchMock;
+
+      const res = await usersApi.findUserIdByUsername('John Doe');
+
+      expect(res.userId).toBe('u-1');
+      const [url] = fetchMock.mock.calls[0];
+      expect(url).toContain('/users/username/John%20Doe');
+    });
+
     it('search calls GET /users/search with query params', async () => {
       const fetchMock = jest.fn().mockResolvedValue(
         jsonResponse({

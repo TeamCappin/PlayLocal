@@ -367,6 +367,7 @@ export function ProfileSettings({
           </button>
           <button
             type="button"
+            onClick={() => toast.error('Phone edit is not available at this time.')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Save Changes

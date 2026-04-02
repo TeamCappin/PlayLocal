@@ -86,6 +86,12 @@ class UserServiceTest {
 
         assertThat(result.getDisplayName()).isEqualTo("Updated Name");
         assertThat(result.getBio()).isEqualTo("New Bio");
+        assertThat(result.getSlug()).isEqualTo(user.getSlug());
+        assertThat(result.getEmail()).isEqualTo(user.getEmail());
+        assertThat(result.getPhone()).isEqualTo(user.getPhoneE164());
+        assertThat(user.getSlug()).isEqualTo("test-user");
+        assertThat(user.getEmail()).isEqualTo("test@example.com");
+        assertThat(user.getPhoneE164()).isNull();
         verify(userRepository).save(user);
     }
 
@@ -336,41 +342,20 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("US-1.4: updateProfile should regenerate slug when display name changes")
-    void updateProfile_RegeneratesSlug() {
+        @DisplayName("US-1.4: updateProfile should update display name without changing slug")
+        void updateProfile_DisplayNameChanged_KeepsSlug() {
         when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(anyString(), any(UUID.class))).thenReturn(false);
+
+        String originalSlug = user.getSlug();
 
         UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("New Display Name")
-                .build();
+            .displayName("New Display Name")
+            .build();
 
         AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
 
         assertThat(result.getDisplayName()).isEqualTo("New Display Name");
-        assertThat(result.getSlug()).isEqualTo("new-display-name");
-    }
-
-    @Test
-    @DisplayName("US-1.4: updateProfile handles slug collision by appending counter")
-    void updateProfile_HandlesSlugCollision() {
-        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Mock collision for base slug "collision-user"
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user", user.getUserId()))
-                .thenReturn(true);
-        // Mock no collision for "collision-user-1"
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user-1", user.getUserId()))
-                .thenReturn(false);
-
-        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("Collision User")
-                .build();
-
-        AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
-
-        assertThat(result.getSlug()).isEqualTo("collision-user-1");
-    }
+        assertThat(result.getSlug()).isEqualTo(originalSlug);
+        }
 }

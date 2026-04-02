@@ -249,7 +249,14 @@ export interface UpdateProfileRequest {
   location?: string;
   defaultIntensity?: string;
   availability?: string;
-  phone?: string;
+}
+
+export interface UpdateUsernameRequest {
+  username: string;
+}
+
+export interface UsernameLookupResponse {
+  userId: string;
 }
 
 export interface SearchUsersResponse {
@@ -265,6 +272,15 @@ export const usersApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  updateUsername: (data: UpdateUsernameRequest) =>
+    apiFetch<UserDto>('/users/username', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  findUserIdByUsername: (username: string) =>
+    apiFetch<UsernameLookupResponse>(`/users/username/${encodeURIComponent(username)}`),
 
   getProfile: (userId: string) => apiFetch<UserDto>(`/users/${userId}/profile`),
 

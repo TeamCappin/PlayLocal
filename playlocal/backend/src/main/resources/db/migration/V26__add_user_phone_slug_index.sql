@@ -1,6 +1,5 @@
--- Add a partial index for user phone lookups.
--- Phone numbers remain non-unique; this only supports faster queries on active users.
-CREATE INDEX idx_user_phone_e164_active
+-- Enforce unique phone numbers for active users and keep lookups fast.
+CREATE UNIQUE INDEX idx_user_phone_e164_active
     ON "user" (phone_e164)
     WHERE deleted_at IS NULL AND phone_e164 IS NOT NULL;
 

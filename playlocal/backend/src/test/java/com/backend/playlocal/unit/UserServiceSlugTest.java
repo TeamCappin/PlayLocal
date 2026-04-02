@@ -30,8 +30,8 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for UserService slug and profile methods.
- * Covers: getProfileBySlug, ensureUniqueSlug, updateProfile with slug
- * regeneration
+ * Covers: getProfileBySlug, ensureUniqueSlug, updateProfile without slug
+ * mutation
  */
 @ExtendWith(MockitoExtension.class)
 class UserServiceSlugTest {
@@ -96,11 +96,12 @@ class UserServiceSlugTest {
     }
 
     @Test
-    @DisplayName("updateProfile regenerates slug when displayName changes")
-    void updateProfile_DisplayNameChanged_RegeneratesSlug() {
+    @DisplayName("updateProfile updates display name without changing slug")
+    void updateProfile_DisplayNameChanged_SlugUnchanged() {
         UUID userId = testUser.getUserId();
+        String originalSlug = testUser.getSlug();
+        String originalEmail = testUser.getEmail();
         when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(any(), any())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
@@ -109,51 +110,13 @@ class UserServiceSlugTest {
 
         AuthDto.UserDto result = userService.updateProfile(userId.toString(), request);
 
-        assertThat(testUser.getSlug()).isEqualTo("new-name");
+        assertThat(result.getDisplayName()).isEqualTo("New Name");
+        assertThat(result.getSlug()).isEqualTo(originalSlug);
+        assertThat(result.getEmail()).isEqualTo(originalEmail);
+        assertThat(result.getPhone()).isNull();
+        assertThat(testUser.getSlug()).isEqualTo(originalSlug);
+        assertThat(testUser.getEmail()).isEqualTo(originalEmail);
         verify(userRepository).save(testUser);
-    }
-
-    @Test
-    @DisplayName("updateProfile ensures unique slug by appending counter")
-    void updateProfile_SlugConflict_AppendsCounter() {
-        UUID userId = testUser.getUserId();
-        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-        // First call returns true (conflict), second returns false
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq("new-name"), any()))
-                .thenReturn(true);
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq("new-name-1"), any()))
-                .thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("New Name")
-                .build();
-
-        userService.updateProfile(userId.toString(), request);
-
-        assertThat(testUser.getSlug()).isEqualTo("new-name-1");
-    }
-
-    @Test
-    @DisplayName("updateProfile handles multiple slug conflicts")
-    void updateProfile_MultipleConflicts_AppendsHigherCounter() {
-        UUID userId = testUser.getUserId();
-        when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq("john-doe"), any()))
-                .thenReturn(true);
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq("john-doe-1"), any()))
-                .thenReturn(true);
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq("john-doe-2"), any()))
-                .thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("John Doe")
-                .build();
-
-        userService.updateProfile(userId.toString(), request);
-
-        assertThat(testUser.getSlug()).isEqualTo("john-doe-2");
     }
 
     @Test
@@ -161,6 +124,7 @@ class UserServiceSlugTest {
     void updateProfile_OnlyBioChanged_SlugUnchanged() {
         UUID userId = testUser.getUserId();
         String originalSlug = testUser.getSlug();
+        String originalEmail = testUser.getEmail();
         when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -171,6 +135,8 @@ class UserServiceSlugTest {
         userService.updateProfile(userId.toString(), request);
 
         assertThat(testUser.getSlug()).isEqualTo(originalSlug);
+        assertThat(testUser.getEmail()).isEqualTo(originalEmail);
+        assertThat(testUser.getPhoneE164()).isNull();
         assertThat(testUser.getBio()).isEqualTo("New bio");
     }
 
@@ -179,7 +145,6 @@ class UserServiceSlugTest {
     void updateProfile_AllFieldsProvided_UpdatesAll() {
         UUID userId = testUser.getUserId();
         when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(any(), any())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
@@ -187,8 +152,7 @@ class UserServiceSlugTest {
                 .bio("Updated bio")
                 .location("Montreal")
                 .defaultIntensity("High")
-                .availability("Weekends")
-                .phone("+15141234567")
+            .availability("Weekends")
                 .build();
 
         userService.updateProfile(userId.toString(), request);
@@ -198,136 +162,8 @@ class UserServiceSlugTest {
         assertThat(testUser.getLocation()).isEqualTo("Montreal");
         assertThat(testUser.getDefaultIntensity()).isEqualTo("High");
         assertThat(testUser.getAvailability()).isEqualTo("Weekends");
-        assertThat(testUser.getPhoneE164()).isEqualTo("+15141234567");
+        assertThat(testUser.getSlug()).isEqualTo("test-user");
+        assertThat(testUser.getEmail()).isEqualTo("test@example.com");
+        assertThat(testUser.getPhoneE164()).isNull();
     }
-
-        @Test
-        @DisplayName("changeSlug normalizes URL-friendly username before save")
-        void changeSlug_NormalizesAndSaves() {
-                UUID userId = testUser.getUserId();
-                when(usernameService.changeSlug(userId, " John   Doe!!! 2026 ")).thenReturn("john-doe-2026");
-                when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-                        // Removed unnecessary userRepository.save() stubbing
-
-                AuthDto.UserDto result = userService.changeSlug(userId.toString(), " John   Doe!!! 2026 ");
-
-                assertThat(result.getSlug()).isEqualTo("test-user");  // testUser still has original slug
-                verify(usernameService).changeSlug(userId, " John   Doe!!! 2026 ");
-        }
-
-        @Test
-        @DisplayName("changeSlug truncates normalized username to 32 characters")
-        void changeSlug_LongInput_TruncatesTo32() {
-                UUID userId = testUser.getUserId();
-                String longInput = "this username is way too long and should be cut down aggressively";
-                String expected = "this-username-is-way-too-long";  // Truncated to 32 chars
-
-                when(usernameService.changeSlug(userId, longInput)).thenReturn(expected);
-                when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-                        // Removed unnecessary userRepository.save() stubbing
-
-                AuthDto.UserDto result = userService.changeSlug(userId.toString(), longInput);
-
-                assertThat(result.getSlug()).isEqualTo("test-user");  // testUser still has original slug
-                verify(usernameService).changeSlug(userId, longInput);
-        }
-
-        @Test
-        @DisplayName("changeSlug with same normalized username returns without save")
-        void changeSlug_SameNormalized_NoSave() {
-                UUID userId = testUser.getUserId();
-                when(usernameService.changeSlug(userId, " Test   User!!! ")).thenReturn("test-user");
-                when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-
-                AuthDto.UserDto result = userService.changeSlug(userId.toString(), " Test   User!!! ");
-
-                assertThat(result.getSlug()).isEqualTo("test-user");
-                verify(usernameService).changeSlug(userId, " Test   User!!! ");
-        }
-
-        @Test
-        @DisplayName("changeSlug throws conflict when username already in use")
-        void changeSlug_Duplicate_ThrowsConflict() {
-                UUID userId = testUser.getUserId();
-                when(usernameService.changeSlug(userId, "taken name"))
-                        .thenThrow(new DuplicateResourceException("Username already in use"));
-
-                assertThatThrownBy(() -> userService.changeSlug(userId.toString(), "taken name"))
-                                .isInstanceOf(DuplicateResourceException.class)
-                                .hasMessage("Username already in use");
-
-                verify(usernameService).changeSlug(userId, "taken name");
-        }
-
-        @Test
-        @DisplayName("changeSlug rejects username without letters or numbers")
-        void changeSlug_NoAlphanumeric_ThrowsValidation() {
-                UUID userId = testUser.getUserId();
-                when(usernameService.changeSlug(userId, "!!!"))
-                        .thenThrow(new IllegalArgumentException("Username must contain at least one letter or number"));
-
-                assertThatThrownBy(() -> userService.changeSlug(userId.toString(), "!!!"))
-                                .isInstanceOf(IllegalArgumentException.class)
-                                .hasMessage("Username must contain at least one letter or number");
-
-                verify(usernameService).changeSlug(userId, "!!!");
-        }
-
-        @Test
-        @DisplayName("changeSlug throws not found when user is missing")
-        void changeSlug_UserMissing_ThrowsNotFound() {
-                UUID userId = testUser.getUserId();
-                when(usernameService.changeSlug(userId, "valid-name")).thenReturn("valid-name");
-                when(userRepository.findActiveById(userId)).thenReturn(Optional.empty());
-
-                assertThatThrownBy(() -> userService.changeSlug(userId.toString(), "valid-name"))
-                                .isInstanceOf(ResourceNotFoundException.class)
-                                .hasMessage("User not found");
-
-                verify(usernameService).changeSlug(userId, "valid-name");
-        }
-
-        @Test
-        @DisplayName("findUserIdByUsername normalizes input before lookup")
-        void findUserIdByUsername_NormalizesInput() {
-                UUID expectedUserId = testUser.getUserId();
-                when(usernameService.findUserIdByUsername("  John   Doe!! ")).thenReturn(expectedUserId.toString());
-
-                String result = userService.findUserIdByUsername("  John   Doe!! ");
-
-                assertThat(result).isEqualTo(expectedUserId.toString());
-                verify(usernameService).findUserIdByUsername("  John   Doe!! ");
-        }
-
-        @Test
-        @DisplayName("findUserIdByUsername rejects non-alphanumeric input")
-        void findUserIdByUsername_OnlySymbols_ThrowsValidation() {
-                when(usernameService.findUserIdByUsername("@@@!!!"))
-                        .thenThrow(new IllegalArgumentException("Username must contain at least one letter or number"));
-
-                assertThatThrownBy(() -> userService.findUserIdByUsername("@@@!!!"))
-                                .isInstanceOf(IllegalArgumentException.class)
-                                .hasMessage("Username must contain at least one letter or number");
-
-                verify(usernameService).findUserIdByUsername("@@@!!!");
-        }
-
-        @Test
-        @DisplayName("updateProfile slug conflict keeps generated slugs within 32 characters")
-        void updateProfile_LongSlugConflict_KeepsWithinLimit() {
-                UUID userId = testUser.getUserId();
-                String longName = "This display name keeps going and going and must be truncated";
-                String baseSlug = User.generateSlug(longName);
-                String nextSlug = baseSlug.substring(0, Math.max(1, User.MAX_SLUG_LENGTH - 2)).replaceAll("-+$", "") + "-1";
-
-                when(userRepository.findActiveById(userId)).thenReturn(Optional.of(testUser));
-                when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq(baseSlug), eq(userId))).thenReturn(true);
-                when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(eq(nextSlug), eq(userId))).thenReturn(false);
-                when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-                userService.updateProfile(userId.toString(), UserDto.UpdateProfileRequest.builder().displayName(longName).build());
-
-                assertThat(testUser.getSlug()).isEqualTo(nextSlug);
-                assertThat(testUser.getSlug().length()).isLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
-        }
 }

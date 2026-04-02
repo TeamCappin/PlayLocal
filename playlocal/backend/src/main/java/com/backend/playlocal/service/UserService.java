@@ -98,8 +98,6 @@ public class UserService {
 
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
-            String newSlug = User.generateSlug(request.getDisplayName());
-            user.setSlug(ensureUniqueSlug(newSlug, user.getUserId()));
         }
         if (request.getBio() != null) {
             user.setBio(request.getBio());
@@ -112,9 +110,6 @@ public class UserService {
         }
         if (request.getAvailability() != null) {
             user.setAvailability(request.getAvailability());
-        }
-        if (request.getPhone() != null) {
-            user.setPhoneE164(request.getPhone());
         }
 
         user = userRepository.save(user);
@@ -262,25 +257,6 @@ public class UserService {
             return buildRestrictedProfile(user, count);
         }
         return mapToUserDto(user, count);
-    }
-
-    private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {
-        String normalizedBase = normalizeUsername(baseSlug);
-        String slug = normalizedBase;
-        int counter = 1;
-        while (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(slug, excludeUserId)) {
-            String suffix = "-" + counter;
-            int maxBaseLength = Math.max(1, User.MAX_SLUG_LENGTH - suffix.length());
-            String compactBase = normalizedBase.length() > maxBaseLength
-                    ? normalizedBase.substring(0, maxBaseLength).replaceAll("-+$", "")
-                    : normalizedBase;
-            if (compactBase.isEmpty()) {
-                compactBase = "user";
-            }
-            slug = compactBase + suffix;
-            counter++;
-        }
-        return slug;
     }
 
     private String normalizeUsername(String username) {

@@ -33,9 +33,6 @@ public class UserDto {
         private String defaultIntensity;
 
         private String availability;
-
-        @Size(max = 20, message = "Phone number must be at most 20 characters")
-        private String phone;
     }
 
     @Data
