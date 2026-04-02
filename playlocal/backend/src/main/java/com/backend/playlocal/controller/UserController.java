@@ -59,6 +59,30 @@ public class UserController {
     }
 
     /**
+     * Update the authenticated user's username/slug.
+     * PUT /api/v1/users/username
+     */
+    @PutMapping("/username")
+    public ResponseEntity<AuthDto.UserDto> updateUsername(
+            Authentication authentication,
+            @Valid @RequestBody UserDto.UpdateUsernameRequest request) {
+        String userId = authentication.getName();
+        AuthDto.UserDto updatedUser = userService.changeSlug(userId, request.getUsername());
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    /**
+     * Resolve a userId by username/slug.
+     * GET /api/v1/users/username/{username}
+     */
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserDto.UsernameLookupResponse> findUserIdByUsername(
+            @PathVariable String username) {
+        String userId = userService.findUserIdByUsername(username);
+        return ResponseEntity.ok(UserDto.UsernameLookupResponse.builder().userId(userId).build());
+    }
+
+    /**
      * Get a user's public profile by ID.
      * GET /api/v1/users/{userId}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]

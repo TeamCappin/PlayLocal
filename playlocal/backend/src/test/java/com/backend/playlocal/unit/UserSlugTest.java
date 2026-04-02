@@ -50,6 +50,15 @@ class UserSlugTest {
     }
 
     @Test
+    @DisplayName("generateSlug should truncate to 32 characters")
+    void generateSlug_LongDisplayName_TruncatesTo32() {
+        String slug = User.generateSlug("This Display Name Is Extremely Long And Keeps Going Forever");
+
+        assertThat(slug.length()).isLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+        assertThat(slug).doesNotEndWith("-");
+    }
+
+    @Test
     @DisplayName("onCreate should populate slug from displayName")
     void onCreate_DisplayNameSet_PopulatesSlug() throws Exception {
         User user = User.builder()

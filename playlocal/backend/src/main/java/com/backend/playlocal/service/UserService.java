@@ -1,5 +1,6 @@
 package com.backend.playlocal.service;
 
+import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
@@ -33,16 +34,19 @@ public class UserService {
     private final FriendshipRepository friendshipRepository;
     private final GameParticipationRepository gameParticipationRepository;
     private final PlayerRatingRepository playerRatingRepository;
+    private final UsernameService usernameService;
 
     public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository,
             PrivacySettingsService privacySettingsService, FriendshipRepository friendshipRepository,
-            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository) {
+            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository,
+            UsernameService usernameService) {
         this.userRepository = userRepository;
         this.endorsementRepository = endorsementRepository;
         this.privacySettingsService = privacySettingsService;
         this.friendshipRepository = friendshipRepository;
         this.gameParticipationRepository = gameParticipationRepository;
         this.playerRatingRepository = playerRatingRepository;
+        this.usernameService = usernameService;
     }
 
     /**
@@ -118,6 +122,29 @@ public class UserService {
     }
 
     /**
+     * Update user's username/slug.
+     * Uses UsernameService for validation and uniqueness checking.
+     * Sequence: changeSlug → toUrlFriendly → truncate → findActiveById → check uniqueness → save
+     */
+    @Transactional
+    public AuthDto.UserDto changeSlug(String userId, String username) {
+        UUID userUuid = UUID.fromString(userId);
+        String normalizedSlug = usernameService.changeSlug(userUuid, username);
+        
+        User user = userRepository.findActiveById(userUuid)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return mapToUserDto(user);
+    }
+
+    /**
+     * Resolve active userId from username/slug.
+     * Uses UsernameService for lookup.
+     */
+    public String findUserIdByUsername(String username) {
+        return usernameService.findUserIdByUsername(username);
+    }
+
+    /**
      * Get user profile by ID (no privacy enforcement — for internal/own profile use).
      */
     public AuthDto.UserDto getUserProfile(String userId) {
@@ -153,7 +180,8 @@ public class UserService {
      * Get user profile by slug (no privacy enforcement).
      */
     public AuthDto.UserDto getProfileBySlug(String slug) {
-        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+        String normalizedSlug = normalizeUsername(slug);
+        User user = userRepository.findBySlugAndDeletedAtIsNull(normalizedSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return mapToUserDto(user);
     }
@@ -163,7 +191,8 @@ public class UserService {
      * US-7.12: Restricts profile fields based on privacy toggles.
      */
     public AuthDto.UserDto getProfileBySlug(String slug, UUID viewerId) {
-        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+        String normalizedSlug = normalizeUsername(slug);
+        User user = userRepository.findBySlugAndDeletedAtIsNull(normalizedSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         UUID targetId = user.getUserId();
@@ -236,13 +265,33 @@ public class UserService {
     }
 
     private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {
-        String slug = baseSlug;
+        String normalizedBase = normalizeUsername(baseSlug);
+        String slug = normalizedBase;
         int counter = 1;
         while (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(slug, excludeUserId)) {
-            slug = baseSlug + "-" + counter;
+            String suffix = "-" + counter;
+            int maxBaseLength = Math.max(1, User.MAX_SLUG_LENGTH - suffix.length());
+            String compactBase = normalizedBase.length() > maxBaseLength
+                    ? normalizedBase.substring(0, maxBaseLength).replaceAll("-+$", "")
+                    : normalizedBase;
+            if (compactBase.isEmpty()) {
+                compactBase = "user";
+            }
+            slug = compactBase + suffix;
             counter++;
         }
         return slug;
+    }
+
+    private String normalizeUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+        String normalized = User.generateSlug(username);
+        if (normalized == null || normalized.isBlank()) {
+            throw new IllegalArgumentException("Username must contain at least one letter or number");
+        }
+        return normalized;
     }
 
     private AuthDto.UserDto mapToUserDto(User user) {

@@ -158,6 +158,14 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
 
                 assertThat(userRepository.existsByEmailIgnoreCase("display-one@example.com")).isTrue();
                 assertThat(userRepository.existsByEmailIgnoreCase("display-two@example.com")).isTrue();
+
+                User firstUser = userRepository.findByEmailIgnoreCase("display-one@example.com").orElseThrow();
+                User secondUser = userRepository.findByEmailIgnoreCase("display-two@example.com").orElseThrow();
+                assertThat(firstUser.getSlug()).isNotEqualTo(secondUser.getSlug());
+                assertThat(firstUser.getSlug()).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+                assertThat(secondUser.getSlug()).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+                assertThat(firstUser.getSlug()).matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
+                assertThat(secondUser.getSlug()).matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
         }
 
         @Test

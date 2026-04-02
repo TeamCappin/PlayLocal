@@ -34,6 +34,7 @@ public class AuthService {
     private final PrivacySettingsService privacySettingsService;
     private final EmailService emailService;
     private final PlayerRatingRepository playerRatingRepository;
+    private final UsernameService usernameService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -52,7 +53,8 @@ public class AuthService {
                        JwtService jwtService,
                        PrivacySettingsService privacySettingsService,
                        EmailService emailService,
-                       PlayerRatingRepository playerRatingRepository) {
+                       PlayerRatingRepository playerRatingRepository,
+                       UsernameService usernameService) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -60,11 +62,13 @@ public class AuthService {
         this.privacySettingsService = privacySettingsService;
         this.emailService = emailService;
         this.playerRatingRepository = playerRatingRepository;
+        this.usernameService = usernameService;
     }
 
     /**
      * Register a new user.
      * Requires age confirmation and EULA acceptance.
+     * Uses UsernameService for deterministic slug generation with SHA-256 hashing.
      */
     @Transactional
     public AuthDto.AuthResponse register(AuthDto.RegisterRequest request) {
@@ -80,11 +84,8 @@ public class AuthService {
             throw new IllegalArgumentException("You must accept the EULA and Terms of Service");
         }
 
-        String baseSlug = User.generateSlug(request.getDisplayName());
-        String slug = baseSlug;
-        while (userRepository.existsBySlug(slug)) {
-            slug = baseSlug + "-" + secureRandom.nextInt(1000, 9999);
-        }
+        // Use UsernameService to generate slug with SHA-256 hashing
+        String slug = usernameService.generateSlug(request.getDisplayName(), request.getEmail());
 
         User user = User.builder()
                 .email(request.getEmail().toLowerCase())

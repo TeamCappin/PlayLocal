@@ -28,6 +28,8 @@ import lombok.Setter;
 @Builder
 public class User {
 
+    public static final int MAX_SLUG_LENGTH = 32;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
@@ -136,9 +138,17 @@ public class User {
     public static String generateSlug(String displayName) {
         if (displayName == null)
             return null;
-        return displayName.toLowerCase()
+        String normalized = displayName.toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("(^-)|(-$)", "")
                 .replaceAll("-+", "-");
+
+        if (normalized.length() <= MAX_SLUG_LENGTH) {
+            return normalized;
+        }
+
+        String truncated = normalized.substring(0, MAX_SLUG_LENGTH)
+                .replaceAll("-+$", "");
+        return truncated;
     }
 }

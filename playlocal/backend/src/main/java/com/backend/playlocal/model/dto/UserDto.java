@@ -1,6 +1,7 @@
 package com.backend.playlocal.model.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +36,23 @@ public class UserDto {
 
         @Size(max = 20, message = "Phone number must be at most 20 characters")
         private String phone;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UpdateUsernameRequest {
+        @NotBlank(message = "Username is required")
+        private String username;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsernameLookupResponse {
+        private String userId;
     }
 
     @Data
