@@ -57,7 +57,7 @@ public class UsernameService {
         }
 
         // Step 1: Convert displayName to URL-friendly format
-        String normalizedDisplayName = toUrlFriendly(displayName);
+        String normalizedDisplayName = normalizeToUrlFriendly(displayName);
         if (normalizedDisplayName == null || normalizedDisplayName.isBlank()) {
             throw new IllegalArgumentException("Display name must contain at least one letter or number");
         }
@@ -81,10 +81,11 @@ public class UsernameService {
             String slice = sliceWithWraparound(digest, offset, SLICE_LENGTH);
 
             // Truncate to 32 characters
-            String slug = truncate(slice, User.MAX_SLUG_LENGTH);
+            String slug = truncate(normalizedDisplayName + "-" + slice, User.MAX_SLUG_LENGTH);
+            slug = slug.replaceAll("-+$", "");
 
             // Check uniqueness
-            if (!userRepository.existsBySlug(slug)) {
+            if (!userRepository.existsBySlugAndDeletedAtIsNull(slug)) {
                 return slug;
             }
 
@@ -113,13 +114,14 @@ public class UsernameService {
         User user = userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String normalizedSlug = toUrlFriendly(newSlug);
+        String normalizedSlug = normalizeToUrlFriendly(newSlug);
         if (normalizedSlug == null || normalizedSlug.isBlank()) {
             throw new IllegalArgumentException("Slug must contain at least one letter or number");
         }
 
         // Truncate to max length
         normalizedSlug = truncate(normalizedSlug, User.MAX_SLUG_LENGTH);
+        normalizedSlug = normalizedSlug.replaceAll("-+$", "");
 
         // Check if the slug is already in use by another user
         if (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(normalizedSlug, userId)) {
@@ -152,14 +154,7 @@ public class UsernameService {
      * @throws ResourceNotFoundException if user not found
      */
     public String findUserIdByUsername(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username is required");
-        }
-
-        String normalizedUsername = toUrlFriendly(username);
-        if (normalizedUsername == null || normalizedUsername.isBlank()) {
-            throw new IllegalArgumentException("Username must contain at least one letter or number");
-        }
+        String normalizedUsername = normalizeUsernameOrThrow(username);
 
         User user = userRepository.findBySlugAndDeletedAtIsNull(normalizedUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -167,10 +162,41 @@ public class UsernameService {
         return user.getUserId().toString();
     }
 
+    public String normalizeUsernameOrThrow(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        String normalizedUsername = normalizeToUrlFriendly(username);
+        if (normalizedUsername == null || normalizedUsername.isBlank()) {
+            throw new IllegalArgumentException("Username must contain at least one letter or number");
+        }
+        return normalizedUsername;
+    }
+
+    /**
+     * Build a deactivated slug for tombstoning a user so their old slug is released.
+     * Format: "deleted-<normalized-display-name>-<slice>" truncated to User.MAX_SLUG_LENGTH.
+     */
+    public String buildDeactivatedSlug(UUID userId, String displayName) {
+        String normalized = normalizeToUrlFriendly(displayName != null ? displayName : "");
+        if (normalized == null || normalized.isBlank()) {
+            // Fallback to userId-derived token as before
+            return "deleted-" + userId.toString().replace("-", "").substring(0, 24);
+        }
+
+        // Use a deterministic digest based on userId to avoid leaking email
+        String digest = computeSha256Digest(userId.toString(), 0);
+        String slice = sliceWithWraparound(digest, 0, SLICE_LENGTH);
+        String candidate = truncate("deleted-" + normalized + "-" + slice, User.MAX_SLUG_LENGTH);
+        candidate = candidate.replaceAll("-+$", "");
+        return candidate;
+    }
+
     /**
      * Convert a string to URL-friendly format (lowercase, hyphens, no special chars).
      */
-    private String toUrlFriendly(String input) {
+    static String normalizeToUrlFriendly(String input) {
         if (input == null) return null;
         return input.toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")

@@ -10,6 +10,7 @@ import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.repository.PlayerRatingRepository;
 import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
+import com.backend.playlocal.service.UsernameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,9 @@ class UserServiceTest {
 
     @Mock
     private PlayerRatingRepository playerRatingRepository;
+
+    @Mock
+    private UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;
@@ -163,6 +167,7 @@ class UserServiceTest {
     @Test
     @DisplayName("US-1.4: getProfileBySlug should return profile when found")
     void getProfileBySlug_Success() {
+        when(usernameService.normalizeUsernameOrThrow("test-user-slug")).thenReturn("test-user-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-user-slug")).thenReturn(Optional.of(user));
 
         AuthDto.UserDto result = userService.getProfileBySlug("test-user-slug");
@@ -173,11 +178,24 @@ class UserServiceTest {
     @Test
     @DisplayName("US-1.4: getProfileBySlug should throw exception when not found")
     void getProfileBySlug_NotFound() {
+        when(usernameService.normalizeUsernameOrThrow("unknown")).thenReturn("unknown");
         when(userRepository.findBySlugAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.getProfileBySlug("unknown"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("User not found");
+    }
+
+    @Test
+    @DisplayName("US-1.4: getProfileBySlug should normalize slug via UsernameService")
+    void getProfileBySlug_NormalizesViaUsernameService() {
+        when(usernameService.normalizeUsernameOrThrow("  Test User!  ")).thenReturn("test-user");
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-user")).thenReturn(Optional.of(user));
+
+        userService.getProfileBySlug("  Test User!  ");
+
+        verify(usernameService).normalizeUsernameOrThrow("  Test User!  ");
+        verify(userRepository).findBySlugAndDeletedAtIsNull("test-user");
     }
 
     // ── US-7.12 Privacy: searchUsers ──────────────────────────────────────
@@ -322,6 +340,7 @@ class UserServiceTest {
     @DisplayName("US-7.12: getProfileBySlug returns restricted profile for non-friend")
     void getProfileBySlug_PrivateProfile_ReturnsRestricted() {
         user.setBio("Secret bio");
+        when(usernameService.normalizeUsernameOrThrow("test-slug")).thenReturn("test-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
 
         UUID viewerId = UUID.randomUUID();
@@ -340,6 +359,7 @@ class UserServiceTest {
     @DisplayName("US-7.12: getProfileBySlug returns full profile for own profile")
     void getProfileBySlug_OwnProfile_ReturnsFull() {
         user.setBio("My bio");
+        when(usernameService.normalizeUsernameOrThrow("test-slug")).thenReturn("test-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
         when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 

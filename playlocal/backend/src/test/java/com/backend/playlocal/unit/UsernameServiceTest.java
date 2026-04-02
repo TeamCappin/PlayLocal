@@ -49,15 +49,16 @@ class UsernameServiceTest {
         String displayName = "John Doe";
         String email = "john@example.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug = usernameService.generateSlug(displayName, email);
 
         assertNotNull(slug);
         assertFalse(slug.isBlank());
         assertTrue(slug.length() <= User.MAX_SLUG_LENGTH);
+        assertTrue(slug.startsWith("john-doe-"));
         // Verify it's deterministic - same inputs produce same slug
-        when(userRepository.existsBySlug(slug)).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(slug)).thenReturn(false);
         String slug2 = usernameService.generateSlug(displayName, email);
         assertEquals(slug, slug2);
     }
@@ -68,7 +69,7 @@ class UsernameServiceTest {
         String displayName = "Alice Smith";
         String email = "alice@test.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug1 = usernameService.generateSlug(displayName, email);
         assertNotNull(slug1);
@@ -82,7 +83,7 @@ class UsernameServiceTest {
         String email = "bob@collision.com";
 
         // First call returns true (collision), second returns false (available)
-        when(userRepository.existsBySlug(anyString()))
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString()))
                 .thenReturn(true)  // First attempt collides
                 .thenReturn(false); // Second attempt succeeds
 
@@ -91,7 +92,7 @@ class UsernameServiceTest {
         assertNotNull(slug);
         assertTrue(slug.length() <= User.MAX_SLUG_LENGTH);
         // Verify existsBySlug was called at least twice
-        verify(userRepository, atLeast(2)).existsBySlug(anyString());
+        verify(userRepository, atLeast(2)).existsBySlugAndDeletedAtIsNull(anyString());
     }
 
     @Test
@@ -100,7 +101,7 @@ class UsernameServiceTest {
         String displayName = "ThisIsAVeryLongDisplayNameThatShouldBeTruncatedTo32CharacterLimit";
         String email = "long@example.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug = usernameService.generateSlug(displayName, email);
 
@@ -302,7 +303,7 @@ class UsernameServiceTest {
         String displayName = "Test User";
         String email = "test+tag@sub.example.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug = usernameService.generateSlug(displayName, email);
 
@@ -316,7 +317,7 @@ class UsernameServiceTest {
         String displayName = "Consistent User";
         String email = "consistent@example.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug1 = usernameService.generateSlug(displayName, email);
         String slug2 = usernameService.generateSlug(displayName, email);
@@ -331,11 +332,37 @@ class UsernameServiceTest {
         String email1 = "user1@example.com";
         String email2 = "user2@example.com";
 
-        when(userRepository.existsBySlug(anyString())).thenReturn(false);
+        when(userRepository.existsBySlugAndDeletedAtIsNull(anyString())).thenReturn(false);
 
         String slug1 = usernameService.generateSlug(displayName, email1);
         String slug2 = usernameService.generateSlug(displayName, email2);
 
         assertNotEquals(slug1, slug2, "Different emails should produce different slugs");
+    }
+
+    @Test
+    @DisplayName("buildDeactivatedSlug includes normalized display name and is max 32 chars")
+    void buildDeactivatedSlug_WithDisplayName_FormatsCorrectly() {
+        UUID userId = UUID.randomUUID();
+        String displayName = "John Deleted";
+
+        String slug = usernameService.buildDeactivatedSlug(userId, displayName);
+
+        assertNotNull(slug);
+        assertTrue(slug.startsWith("deleted-"));
+        assertTrue(slug.length() <= User.MAX_SLUG_LENGTH);
+        assertTrue(slug.contains("john-deleted") || slug.contains("john-delet"));
+    }
+
+    @Test
+    @DisplayName("buildDeactivatedSlug falls back to id when displayName empty")
+    void buildDeactivatedSlug_NoDisplayName_FallbacksToId() {
+        UUID userId = UUID.randomUUID();
+
+        String slug = usernameService.buildDeactivatedSlug(userId, "   ");
+
+        assertNotNull(slug);
+        assertTrue(slug.startsWith("deleted-"));
+        assertEquals(32, slug.length());
     }
 }

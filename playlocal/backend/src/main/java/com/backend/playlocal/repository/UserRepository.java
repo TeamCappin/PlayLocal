@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsBySlug(String slug);
 
+    boolean existsBySlugAndDeletedAtIsNull(String slug);
+
     @Query("SELECT u FROM User u WHERE u.userId = :userId AND u.deletedAt IS NULL")
     Optional<User> findActiveById(UUID userId);
 

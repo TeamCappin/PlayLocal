@@ -174,7 +174,7 @@ public class UserController {
     /**
      * US-7.15: Deactivate the authenticated user's account.
      * POST /api/v1/users/deactivate
-     * Account can be reactivated by logging in within 30 days.
+     * The account is tombstoned and the old slug is released.
      */
     @PostMapping("/deactivate")
     public ResponseEntity<Void> deactivateAccount(Authentication authentication) {

@@ -65,6 +65,35 @@ class UserTest {
     }
 
     @Test
+    @DisplayName("US-1.1: onCreate should set createdAt and updatedAt")
+    void onCreate_SetsTimestamps() throws Exception {
+        User user = User.builder()
+                .displayName("Test User")
+                .build();
+
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getCreatedAt()).isNotNull();
+        assertThat(user.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("US-1.1: onCreate should not auto-generate slug")
+    void onCreate_DoesNotGenerateSlug() throws Exception {
+        User user = User.builder()
+                .displayName("Test User")
+                .build();
+
+        java.lang.reflect.Method onCreate = User.class.getDeclaredMethod("onCreate");
+        onCreate.setAccessible(true);
+        onCreate.invoke(user);
+
+        assertThat(user.getSlug()).isNull();
+    }
+
+    @Test
     @DisplayName("US-1.1: User all args constructor should work")
     void allArgsConstructor_Works() {
         UUID userId = UUID.randomUUID();

@@ -152,6 +152,40 @@ class UserControllerTest {
                                 .andExpect(jsonPath("$.slug").value("slug-user"));
         }
 
+        @Test
+        @DisplayName("US-1.4: PUT /username should update username via UsernameService")
+        void updateUsername_ReturnsUpdatedProfile() throws Exception {
+                UUID userId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+                UserDto.UpdateUsernameRequest request = UserDto.UpdateUsernameRequest.builder()
+                                .username("new-handle")
+                                .build();
+
+                AuthDto.UserDto response = AuthDto.UserDto.builder()
+                                .displayName("Updated User")
+                                .slug("new-handle")
+                                .build();
+
+                when(usernameService.changeSlug(eq(userId), eq("new-handle"))).thenReturn(response);
+
+                mockMvc.perform(put("/api/v1/users/username")
+                                .principal(new UsernamePasswordAuthenticationToken(userId.toString(), "pw"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.slug").value("new-handle"));
+        }
+
+        @Test
+        @DisplayName("US-1.4: GET /username/{username} should resolve userId")
+        void findUserIdByUsername_ReturnsUserId() throws Exception {
+                String targetUserId = UUID.randomUUID().toString();
+                when(usernameService.findUserIdByUsername("john-doe")).thenReturn(targetUserId);
+
+                mockMvc.perform(get("/api/v1/users/username/john-doe"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.userId").value(targetUserId));
+        }
+
         // ── US-7.12 Privacy: restricted profile responses ──────────────────
 
         @Test
