@@ -33,7 +33,7 @@ jest.mock('@/lib/api', () => ({
 
 jest.mock('react-google-recaptcha-v3', () => ({
   useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
-}));
+}), { virtual: true });
 
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {

@@ -98,6 +98,9 @@ jest.mock('../../lib/api', () => {
         Promise.resolve({ signalsByUserId: {} })
       ),
     },
+    weatherApi: {
+      getForecast: createMockObjectFn(),
+    },
   };
 });
 
@@ -129,6 +132,10 @@ jest.mock('lucide-react', () => ({
 // Mock ChatPanel to avoid complex sub-component rendering
 jest.mock('../../components/chat/ChatPanel', () => ({
   ChatPanel: () => <div data-testid="chat-panel" />,
+}));
+
+jest.mock('../../components/WeatherForecast', () => ({
+  WeatherForecast: () => <div data-testid="weather-forecast" />,
 }));
 
 import { useAuth } from '../../context/AuthContext';
