@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import type { ChatInbound, ChatMessage, ChatUser } from '@/lib/chat/types';
+import { getAuthToken } from '@/lib/api';
 
 function safeText(v: any) {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
@@ -185,19 +186,19 @@ export function useGameChat({
 
   // Runtime-safe WS base: env override, then localhost, then production
   const wsEndpoint = useMemo(() => {
-    const toWs = (u: string) =>
-      u.replace(/^https/, 'wss').replace(/^http/, 'ws');
+    const toHttp = (u: string) =>
+      u.replace(/^wss/, 'https').replace(/^ws/, 'http');
     const env = process.env.NEXT_PUBLIC_WS_URL;
-    if (env) return env.endsWith('/ws') ? toWs(env) : `${toWs(env)}/ws`;
+    if (env) return env.endsWith('/ws') ? toHttp(env) : `${toHttp(env)}/ws`;
 
     if (typeof window !== 'undefined') {
       const isLocalhost =
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1';
-      if (isLocalhost) return 'ws://localhost:8080/ws';
+      if (isLocalhost) return 'http://localhost:8080/ws';
     }
 
-    return 'wss://playlocalcapstone.onrender.com/ws';
+    return 'https://playlocalcapstone.onrender.com/ws';
   }, []);
 
   const historyBase = useMemo(() => {
@@ -216,10 +217,16 @@ export function useGameChat({
     return url.toString();
   }, [historyBaseUrl]);
 
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     try {
       const url = `${historyBase}/games/${gameId}/messages`;
-      const res = await fetch(url, { credentials: 'include' });
+      const token = getAuthToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        (headers as Record<string, string>).Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch(url, { headers });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -241,7 +248,7 @@ export function useGameChat({
     } catch {
       // ignore history failures
     }
-  }
+  }, [gameId, historyBase]);
 
   useEffect(() => {
     if (!enabled || !gameId) return;
@@ -324,7 +331,7 @@ export function useGameChat({
       setConnected(false);
       connectedRef.current = false;
     };
-  }, [enabled, gameId, wsEndpoint]);
+  }, [enabled, gameId, loadHistory, me.id, wsEndpoint]);
 
   function sendMessage(content: string) {
     const text = content.trim();
