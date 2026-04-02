@@ -1,31 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { weatherApi, WeatherForecast } from '@/lib/api';
 
+type WeatherState = {
+  forecast: WeatherForecast | null;
+  isLoading: boolean;
+  error: string | null;
+};
+
 export function useWeather(gameId: string | undefined) {
-  const [forecast, setForecast] = useState<WeatherForecast | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<WeatherState>({
+    forecast: null,
+    isLoading: Boolean(gameId),
+    error: null,
+  });
 
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId) {
+      setState({
+        forecast: null,
+        isLoading: false,
+        error: null,
+      });
+      return;
+    }
 
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    setState((current) => ({
+      forecast: current.forecast,
+      isLoading: true,
+      error: null,
+    }));
 
     weatherApi
       .getForecast(gameId)
       .then((data) => {
-        if (!cancelled) setForecast(data);
+        if (!cancelled) {
+          setState({
+            forecast: data,
+            isLoading: false,
+            error: null,
+          });
+        }
       })
       .catch((err) => {
         if (!cancelled) {
           console.error('Weather fetch failed:', err);
-          setError('Unable to load forecast');
+          setState({
+            forecast: null,
+            isLoading: false,
+            error: 'Unable to load forecast',
+          });
         }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
       });
 
     return () => {
@@ -33,5 +58,5 @@ export function useWeather(gameId: string | undefined) {
     };
   }, [gameId]);
 
-  return { forecast, isLoading, error };
+  return state;
 }
