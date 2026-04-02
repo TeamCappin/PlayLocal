@@ -54,9 +54,6 @@ class UserServiceTest {
     @Mock
     private PlayerRatingRepository playerRatingRepository;
 
-    @Mock
-    private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
-
     @InjectMocks
     private UserService userService;
 
