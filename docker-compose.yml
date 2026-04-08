@@ -107,8 +107,10 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # Host 3001 avoids clashing with a local `next dev` on 3000 (wrong process would
+    # answer localhost:3000 and can return broken JSON like {"root":true}).
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - playlocal-net
 

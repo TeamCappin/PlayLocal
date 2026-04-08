@@ -1,6 +1,6 @@
 // __tests__/components/CalendarView.test.tsx
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CalendarView } from '@/components/CalendarView';
 
@@ -13,6 +13,11 @@ jest.mock('@/hooks/useGames', () => ({
 const mockUseAuth = jest.fn();
 jest.mock('@/context/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
+}));
+
+const mockUseIsMobile = jest.fn(() => false);
+jest.mock('@/components/ui/use-mobile', () => ({
+  useIsMobile: () => mockUseIsMobile(),
 }));
 
 // next/link -> render as <a> so we can assert href/text
@@ -29,12 +34,10 @@ jest.mock('next/link', () => {
 jest.mock('lucide-react', () => ({
   ChevronLeft: (props: any) => <svg data-testid="ChevronLeft" {...props} />,
   ChevronRight: (props: any) => <svg data-testid="ChevronRight" {...props} />,
-  Calendar: (props: any) => <svg data-testid="Calendar" {...props} />,
   MapPin: (props: any) => <svg data-testid="MapPin" {...props} />,
-  Users: (props: any) => <svg data-testid="Users" {...props} />,
   Clock: (props: any) => <svg data-testid="Clock" {...props} />,
   Plus: (props: any) => <svg data-testid="Plus" {...props} />,
-  Loader2: (props: any) => <svg data-testid="Loader2" {...props} />,
+  X: (props: any) => <svg data-testid="X" {...props} />,
 }));
 
 // Helper: build a local date string reliably
@@ -50,14 +53,24 @@ function isoLocal(
 }
 
 describe('CalendarView', () => {
+  let rafSpy: jest.SpyInstance<number, [FrameRequestCallback]>;
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2026, 1, 9, 12, 0, 0)); // Feb 9, 2026 @ 12:00
     mockUseGames.mockReset();
     mockUseAuth.mockReset();
+    mockUseIsMobile.mockReturnValue(false);
+    rafSpy = jest
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((cb: FrameRequestCallback) => {
+        cb(0);
+        return 0;
+      });
   });
 
   afterEach(() => {
+    rafSpy.mockRestore();
     jest.useRealTimers();
   });
 
@@ -160,6 +173,10 @@ describe('CalendarView', () => {
     fireEvent.click(dayBtn);
     expect(dayBtn.className).toMatch(/bg-emerald-100/);
     expect(weekBtn.className).not.toMatch(/bg-emerald-100/);
+
+    fireEvent.click(monthBtn);
+    expect(monthBtn.className).toMatch(/bg-emerald-100/);
+    expect(dayBtn.className).not.toMatch(/bg-emerald-100/);
   });
 
   it('maps API games into calendar games and shows them in Upcoming Games (sorted, future only, limit 5)', () => {
@@ -358,5 +375,202 @@ describe('CalendarView', () => {
         el.className.includes('rounded-full')
     );
     expect(todayBadge).toBeTruthy();
+  });
+
+  it('shows Going badge for confirmed participants (hasExactLocationAccess, not host)', () => {
+    mockUseAuth.mockReturnValue({
+      user: { userId: 'player-1' },
+      isAuthenticated: true,
+    });
+    mockUseGames.mockReturnValue({
+      games: [
+        {
+          gameId: 'joined-1',
+          title: 'Pickup Run',
+          startTime: isoLocal(2026, 1, 15, 10, 0),
+          sportName: 'Basketball',
+          organizer: { userId: 'organizer-1' },
+          location: { name: 'Court 1' },
+          hasExactLocationAccess: true,
+        },
+        {
+          gameId: 'browse-1',
+          title: 'Open Run',
+          startTime: isoLocal(2026, 1, 16, 10, 0),
+          sportName: 'Soccer',
+          organizer: { userId: 'organizer-2' },
+          location: { name: 'Field A' },
+          hasExactLocationAccess: false,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<CalendarView />);
+
+    const going = screen.getAllByText('Going');
+    expect(going.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Pickup Run')).toBeInTheDocument();
+    expect(screen.getByText('Open Run')).toBeInTheDocument();
+  });
+
+  it('treats missing or empty API games as an empty calendar game list', () => {
+    mockUseAuth.mockReturnValue({
+      user: { userId: 'u1' },
+      isAuthenticated: true,
+    });
+    mockUseGames.mockReturnValue({ games: undefined, isLoading: false });
+
+    const { rerender } = render(<CalendarView />);
+    expect(screen.queryByRole('link', { name: /gym/i })).not.toBeInTheDocument();
+
+    mockUseGames.mockReturnValue({ games: [], isLoading: false });
+    rerender(<CalendarView />);
+    // Still no upcoming game links when the API returns an explicit empty array
+    expect(screen.queryByRole('link', { name: /gym/i })).not.toBeInTheDocument();
+  });
+
+  it('on mobile, shows single-letter weekday headers and opens day overlay with games', () => {
+    mockUseIsMobile.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      user: { userId: 'u1' },
+      isAuthenticated: true,
+    });
+    mockUseGames.mockReturnValue({
+      games: [
+        {
+          gameId: 'mob-1',
+          title: 'Morning Run',
+          startTime: isoLocal(2026, 1, 10, 9, 0),
+          sportName: 'Running',
+          organizer: { userId: 'other' },
+          location: { name: 'Park' },
+          hasExactLocationAccess: false,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<CalendarView />);
+
+    // Compact mobile headers: single-letter abbreviations (e.g. Mon → M)
+    expect(screen.getByText('M')).toBeInTheDocument();
+    expect(screen.getByText('F')).toBeInTheDocument();
+
+    const dayButton = screen.getByRole('button', { name: /10 1 game/i });
+    fireEvent.click(dayButton);
+
+    const title = screen.getByRole('heading', { name: /Tuesday, February 10/i });
+    expect(title).toBeInTheDocument();
+    const modalShell = title.closest('.overflow-hidden');
+    expect(modalShell).toBeTruthy();
+    expect(within(modalShell!).getByText('Morning Run')).toBeInTheDocument();
+    expect(within(modalShell!).getByText('Running')).toBeInTheDocument();
+  });
+
+  it('on mobile, closes day overlay via close button, backdrop, and Escape', () => {
+    mockUseIsMobile.mockReturnValue(true);
+    mockUseAuth.mockReturnValue({
+      user: { userId: 'u1' },
+      isAuthenticated: true,
+    });
+    mockUseGames.mockReturnValue({
+      games: [
+        {
+          gameId: 'close-test',
+          title: 'Soccer Pickup',
+          startTime: isoLocal(2026, 1, 11, 15, 0),
+          sportName: 'Soccer',
+          organizer: { userId: 'x' },
+          location: { name: 'Field' },
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<CalendarView />);
+
+    const openModal = () =>
+      fireEvent.click(screen.getByRole('button', { name: /11 1 game/i }));
+
+    openModal();
+    const dayTitle = screen.getByRole('heading', {
+      name: /Wednesday, February 11/i,
+    });
+    const modalShell = dayTitle.closest('.overflow-hidden');
+    expect(modalShell).toBeTruthy();
+    expect(within(modalShell!).getByText('Soccer Pickup')).toBeInTheDocument();
+
+    fireEvent.click(within(modalShell!).getByTestId('X').closest('button')!);
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(
+      screen.queryByRole('heading', { name: /Wednesday, February 11/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Soccer Pickup')).toHaveLength(1);
+
+    openModal();
+    expect(
+      screen.getByRole('heading', { name: /Wednesday, February 11/i })
+    ).toBeInTheDocument();
+    const overlayRoot = screen
+      .getByRole('heading', { name: /Wednesday, February 11/i })
+      .closest('.fixed');
+    expect(overlayRoot).toBeTruthy();
+    fireEvent.click(overlayRoot!);
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(
+      screen.queryByRole('heading', { name: /Wednesday, February 11/i })
+    ).not.toBeInTheDocument();
+
+    openModal();
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(
+      screen.queryByRole('heading', { name: /Wednesday, February 11/i })
+    ).not.toBeInTheDocument();
+
+    openModal();
+    const presentation = screen
+      .getByRole('heading', { name: /Wednesday, February 11/i })
+      .closest('[role="presentation"]')!;
+    fireEvent.keyDown(presentation, { key: 'Escape', code: 'Escape' });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(
+      screen.queryByRole('heading', { name: /Wednesday, February 11/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show Going badge for host games (Host badge only)', () => {
+    mockUseAuth.mockReturnValue({
+      user: { userId: 'organizer-1' },
+      isAuthenticated: true,
+    });
+    mockUseGames.mockReturnValue({
+      games: [
+        {
+          gameId: 'mine',
+          title: 'My Game',
+          startTime: isoLocal(2026, 1, 15, 10, 0),
+          sportName: 'Tennis',
+          organizer: { userId: 'organizer-1' },
+          location: { name: 'Club' },
+          hasExactLocationAccess: true,
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<CalendarView />);
+
+    expect(screen.getByText('Host')).toBeInTheDocument();
+    expect(screen.queryByText('Going')).not.toBeInTheDocument();
   });
 });

@@ -107,6 +107,9 @@ jest.mock('@/lib/api', () => {
       getSkillTrend: createMockObjectFn(),
       getAttendanceRate: createMockObjectFn(),
     },
+    weatherApi: {
+      getForecast: createMockObjectFn(),
+    },
     // Export default object
     __esModule: true,
     default: {

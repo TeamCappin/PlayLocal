@@ -36,6 +36,7 @@ import {
   ConnectionSignals,
   TagDto,
 } from '@/lib/api';
+import { WeatherForecast } from './WeatherForecast';
 import { ReportModal } from './ReportModal';
 import { JoinConfirmationModal } from './JoinConfirmationModal';
 import { ConfirmLeaveGameDialog } from './ConfirmLeaveGameDialog';
@@ -784,11 +785,16 @@ export function GameRoom() {
                         label="Location Type"
                         value={isOutdoor ? 'Outdoor' : 'Indoor'}
                       />
-                      <InfoCard
-                        icon={<Sun />}
-                        label="Weather"
-                        value={isOutdoor ? 'Check forecast' : 'N/A'}
-                      />
+                      {/*Weather Forecast */}
+                      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 col-span-full">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sun className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            Weather Forecast
+                          </span>
+                        </div>
+                        <WeatherForecast gameId={game.gameId} />
+                      </div>
                     </div>
 
                     <div>

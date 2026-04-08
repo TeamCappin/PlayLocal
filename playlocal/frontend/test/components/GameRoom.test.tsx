@@ -123,6 +123,9 @@ jest.mock('../../lib/api', () => {
         Promise.resolve({ signalsByUserId: {} })
       ),
     },
+    weatherApi: {
+      getForecast: createMockObjectFn(),
+    },
   };
 });
 
@@ -152,6 +155,14 @@ jest.mock('lucide-react', () => ({
   Info: () => <div data-testid="icon-info" />,
   ChevronDown: () => <div data-testid="icon-chevrondown" />,
   ChevronUp: () => <div data-testid="icon-chevronup" />,
+  Cloud: () => <span data-testid="icon-cloud" />,
+  CloudRain: () => <span data-testid="icon-cloud-rain" />,
+  CloudSnow: () => <span data-testid="icon-cloud-snow" />,
+  CloudDrizzle: () => <span data-testid="icon-cloud-drizzle" />,
+  Wind: () => <span data-testid="icon-wind" />,
+  Droplets: () => <span data-testid="icon-droplets" />,
+  Zap: () => <span data-testid="icon-zap" />,
+  Eye: () => <span data-testid="icon-eye" />,
 }));
 
 jest.mock('../../components/chat/ChatPanel', () => ({
@@ -186,6 +197,10 @@ jest.mock('../../components/JoinConfirmationModal', () => ({
 
 jest.mock('../../components/OrganizerQualityBadge', () => ({
   OrganizerQualityBadge: () => <div data-testid="organizer-quality-badge" />,
+}));
+
+jest.mock('../../components/WeatherForecast', () => ({
+  WeatherForecast: () => <div data-testid="weather-forecast" />,
 }));
 
 jest.mock('../../components/photos/PhotosPanel', () => ({
