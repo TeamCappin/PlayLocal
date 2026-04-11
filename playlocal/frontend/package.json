@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
-    "build": "NEXT_DISABLE_TURBOPACK=1 next build",
+    "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:errors": "eslint . --ext .js,.jsx,.ts,.tsx --quiet",

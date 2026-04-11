@@ -32,8 +32,9 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('react-google-recaptcha-v3', () => ({
+  GoogleReCaptchaProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
-}), { virtual: true });
+}));
 
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
