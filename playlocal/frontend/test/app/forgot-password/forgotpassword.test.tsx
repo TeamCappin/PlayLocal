@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import ForgotPasswordPage from  '../../../app/forgot-password/page';
+import ForgotPasswordPage from '../../../app/forgot-password/page';
 import { authApi } from '@/lib/api';
+import { useGoogleReCaptcha } from '@/hooks/useGoogleReCaptcha';
 
 const mockPush = jest.fn();
 
@@ -33,22 +34,26 @@ jest.mock('@/lib/api', () => ({
 
 jest.mock('react-google-recaptcha-v3', () => ({
   GoogleReCaptchaProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
 }));
+
+jest.mock('@/hooks/useGoogleReCaptcha', () => ({
+  useGoogleReCaptcha: jest.fn(),
+}));
+
+const mockedUseGoogleReCaptcha = jest.mocked(useGoogleReCaptcha);
 
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedUseGoogleReCaptcha.mockReturnValue({
+      executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token'),
+    });
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  /**
-   * Sync submit in `act`, then drain microtasks (executeRecaptcha → handler → API).
-   * Uses only microtasks so it still works when a test uses `jest.useFakeTimers()` (no pending macrotask from this helper).
-   */
   async function enterEmailAndClickContinue(email: string) {
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Email'), {
@@ -57,7 +62,7 @@ describe('ForgotPasswordPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     });
     await act(async () => {
-      for (let i = 0; i < 20; i += 1) {
+      for (let i = 0; i < 30; i += 1) {
         await Promise.resolve();
       }
     });
@@ -94,15 +99,12 @@ describe('ForgotPasswordPage', () => {
 
     await enterEmailAndClickContinue('user@example.com');
 
-    await waitFor(
-      () => {
-        expect(authApi.forgotPassword).toHaveBeenCalledWith({
-          email: 'user@example.com',
-          captchaToken: 'mock-captcha-token',
-        });
-      },
-      { timeout: 10_000 }
-    );
+    await waitFor(() => {
+      expect(authApi.forgotPassword).toHaveBeenCalledWith({
+        email: 'user@example.com',
+        captchaToken: 'mock-captcha-token',
+      });
+    });
   });
 
   it('shows sending state while request is in progress', async () => {
@@ -118,22 +120,20 @@ describe('ForgotPasswordPage', () => {
 
     await enterEmailAndClickContinue('user@example.com');
 
-    expect(
-      await screen.findByRole('button', { name: 'Sending...' }, { timeout: 10_000 })
-    ).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Sending...' })).toBeDisabled();
 
     await act(async () => {
       resolvePromise();
-      for (let i = 0; i < 20; i += 1) {
+      for (let i = 0; i < 30; i += 1) {
         await Promise.resolve();
       }
     });
 
-    expect(
-      await screen.findByText('If an account exists, a reset link/code has been sent.', {}, {
-        timeout: 10_000,
-      })
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText('If an account exists, a reset link/code has been sent.')
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows success message after successful submit', async () => {
@@ -179,7 +179,7 @@ describe('ForgotPasswordPage', () => {
               screen.getByText('If an account exists, a reset link/code has been sent.')
             ).toBeInTheDocument();
           },
-          { advanceTimers: jest.advanceTimersByTime, timeout: 10_000 }
+          { advanceTimers: jest.advanceTimersByTime }
         );
 
         act(() => {
@@ -194,7 +194,7 @@ describe('ForgotPasswordPage', () => {
         jest.useRealTimers();
       }
     },
-    15_000
+    20_000
   );
 
   it('renders navigation links', () => {
