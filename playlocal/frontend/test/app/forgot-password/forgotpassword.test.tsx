@@ -41,6 +41,17 @@ describe('ForgotPasswordPage', () => {
     jest.clearAllMocks();
   });
 
+  /** Submit flow awaits `executeRecaptcha` microtasks before assertions (avoids CI flake). */
+  async function enterEmailAndClickContinue(email: string) {
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: email },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      await Promise.resolve();
+    });
+  }
+
   it('renders forgot password form', () => {
     render(<ForgotPasswordPage />);
 
@@ -70,11 +81,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('user@example.com');
 
     await waitFor(() => {
       expect(authApi.forgotPassword).toHaveBeenCalledWith({
@@ -95,11 +102,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('user@example.com');
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
@@ -118,11 +121,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('user@example.com');
 
     expect(
       await screen.findByText('If an account exists, a reset link/code has been sent.')
@@ -136,11 +135,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'unknown@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('unknown@example.com');
 
     expect(
       await screen.findByText('If an account exists, a reset link/code has been sent.')
@@ -154,11 +149,7 @@ describe('ForgotPasswordPage', () => {
 
       render(<ForgotPasswordPage />);
 
-      fireEvent.change(screen.getByLabelText('Email'), {
-        target: { value: 'user@example.com' },
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      await enterEmailAndClickContinue('user@example.com');
 
       await waitFor(
         () => {
