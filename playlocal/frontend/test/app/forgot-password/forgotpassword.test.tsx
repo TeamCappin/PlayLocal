@@ -39,12 +39,6 @@ jest.mock('react-google-recaptcha-v3', () => ({
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
   });
 
   it('renders forgot password form', () => {
@@ -154,25 +148,38 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('redirects to validate page after timeout', async () => {
-    (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
+    jest.useFakeTimers();
+    try {
+      (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
 
-    render(<ForgotPasswordPage />);
+      render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'user@example.com' },
+      });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    await screen.findByText('If an account exists, a reset link/code has been sent.');
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText('If an account exists, a reset link/code has been sent.')
+          ).toBeInTheDocument();
+        },
+        { advanceTimers: jest.advanceTimersByTime }
+      );
 
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
 
-    expect(mockPush).toHaveBeenCalledWith(
-      '/reset-password/validate?email=user%40example.com'
-    );
+      expect(mockPush).toHaveBeenCalledWith(
+        '/reset-password/validate?email=user%40example.com'
+      );
+    } finally {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    }
   });
 
   it('renders navigation links', () => {
