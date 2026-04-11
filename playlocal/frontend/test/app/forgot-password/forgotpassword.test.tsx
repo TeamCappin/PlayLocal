@@ -122,7 +122,12 @@ describe('ForgotPasswordPage', () => {
       await screen.findByRole('button', { name: 'Sending...' }, { timeout: 10_000 })
     ).toBeDisabled();
 
-    resolvePromise();
+    await act(async () => {
+      resolvePromise();
+      for (let i = 0; i < 20; i += 1) {
+        await Promise.resolve();
+      }
+    });
 
     expect(
       await screen.findByText('If an account exists, a reset link/code has been sent.', {}, {
