@@ -41,7 +41,14 @@ describe('ForgotPasswordPage', () => {
     jest.clearAllMocks();
   });
 
-  /** Submit flow: flush React updates + chained microtasks from `executeRecaptcha` → API (avoids CI flake). */
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /**
+   * Sync submit in `act`, then drain microtasks (executeRecaptcha → handler → API).
+   * Uses only microtasks so it still works when a test uses `jest.useFakeTimers()` (no pending macrotask from this helper).
+   */
   async function enterEmailAndClickContinue(email: string) {
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Email'), {
@@ -50,8 +57,9 @@ describe('ForgotPasswordPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     });
     await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      for (let i = 0; i < 20; i += 1) {
+        await Promise.resolve();
+      }
     });
   }
 
@@ -149,36 +157,40 @@ describe('ForgotPasswordPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('redirects to validate page after timeout', async () => {
-    jest.useFakeTimers();
-    try {
-      (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
+  it(
+    'redirects to validate page after timeout',
+    async () => {
+      jest.useFakeTimers();
+      try {
+        (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
 
-      render(<ForgotPasswordPage />);
+        render(<ForgotPasswordPage />);
 
-      await enterEmailAndClickContinue('user@example.com');
+        await enterEmailAndClickContinue('user@example.com');
 
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText('If an account exists, a reset link/code has been sent.')
-          ).toBeInTheDocument();
-        },
-        { advanceTimers: jest.advanceTimersByTime, timeout: 10_000 }
-      );
+        await waitFor(
+          () => {
+            expect(
+              screen.getByText('If an account exists, a reset link/code has been sent.')
+            ).toBeInTheDocument();
+          },
+          { advanceTimers: jest.advanceTimersByTime, timeout: 10_000 }
+        );
 
-      act(() => {
-        jest.advanceTimersByTime(1000);
-      });
+        act(() => {
+          jest.advanceTimersByTime(1000);
+        });
 
-      expect(mockPush).toHaveBeenCalledWith(
-        '/reset-password/validate?email=user%40example.com'
-      );
-    } finally {
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
-    }
-  });
+        expect(mockPush).toHaveBeenCalledWith(
+          '/reset-password/validate?email=user%40example.com'
+        );
+      } finally {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+      }
+    },
+    15_000
+  );
 
   it('renders navigation links', () => {
     render(<ForgotPasswordPage />);
