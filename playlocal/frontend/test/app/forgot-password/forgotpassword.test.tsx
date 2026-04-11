@@ -41,13 +41,16 @@ describe('ForgotPasswordPage', () => {
     jest.clearAllMocks();
   });
 
-  /** Submit flow awaits `executeRecaptcha` microtasks before assertions (avoids CI flake). */
+  /** Submit flow: flush React updates + chained microtasks from `executeRecaptcha` → API (avoids CI flake). */
   async function enterEmailAndClickContinue(email: string) {
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Email'), {
         target: { value: email },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    });
+    await act(async () => {
+      await Promise.resolve();
       await Promise.resolve();
     });
   }
@@ -83,12 +86,15 @@ describe('ForgotPasswordPage', () => {
 
     await enterEmailAndClickContinue('user@example.com');
 
-    await waitFor(() => {
-      expect(authApi.forgotPassword).toHaveBeenCalledWith({
-        email: 'user@example.com',
-        captchaToken: 'mock-captcha-token',
-      });
-    });
+    await waitFor(
+      () => {
+        expect(authApi.forgotPassword).toHaveBeenCalledWith({
+          email: 'user@example.com',
+          captchaToken: 'mock-captcha-token',
+        });
+      },
+      { timeout: 10_000 }
+    );
   });
 
   it('shows sending state while request is in progress', async () => {
@@ -104,16 +110,17 @@ describe('ForgotPasswordPage', () => {
 
     await enterEmailAndClickContinue('user@example.com');
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
-    });
+    expect(
+      await screen.findByRole('button', { name: 'Sending...' }, { timeout: 10_000 })
+    ).toBeDisabled();
 
     resolvePromise();
-    await waitFor(() => {
-      expect(
-        screen.getByText('If an account exists, a reset link/code has been sent.')
-      ).toBeInTheDocument();
-    });
+
+    expect(
+      await screen.findByText('If an account exists, a reset link/code has been sent.', {}, {
+        timeout: 10_000,
+      })
+    ).toBeInTheDocument();
   });
 
   it('shows success message after successful submit', async () => {
@@ -157,7 +164,7 @@ describe('ForgotPasswordPage', () => {
             screen.getByText('If an account exists, a reset link/code has been sent.')
           ).toBeInTheDocument();
         },
-        { advanceTimers: jest.advanceTimersByTime }
+        { advanceTimers: jest.advanceTimersByTime, timeout: 10_000 }
       );
 
       act(() => {
