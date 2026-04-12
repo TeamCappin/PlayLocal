@@ -65,7 +65,7 @@ Release 3 Presentation video:
 
 Release 3 Product-Demo:
 
-Release 3 Presentation: 
+Release 3 Presentation Slides: https://docs.google.com/presentation/d/1nrnqzFSEBBAfjynYyA1WOSujuJm-vrWE6KtBWEiaP50/edit?usp=sharing
 
 ## Developer Manual
 
