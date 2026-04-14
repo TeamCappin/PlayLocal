@@ -208,6 +208,15 @@ public class GameController {
     }
 
     /**
+     * Get organizer progression (provisional/full and eligible completed games) for a game.
+     */
+    @GetMapping("/{gameId}/organizer-progress")
+    public ResponseEntity<GameDto.OrganizerProgressResponse> getOrganizerProgress(@PathVariable UUID gameId) {
+        GameDto.OrganizerProgressResponse response = gameService.getOrganizerProgress(gameId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Archive a game (organizer only).
      */
     @PostMapping("/{gameId}/archive")

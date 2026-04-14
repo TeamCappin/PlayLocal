@@ -34,7 +34,7 @@ Closes #issue
 
 ## Requirements Reference [Mandatory for User Stories]
 
-View all requirements in the [Project Requirements](https://github.com/munera-intelligence/PermitParser/wiki/Project-Requirements)
+View all requirements in the [Project Requirements](https://github.com/TeamCappin/PlayLocal/wiki/Project-Requirements)
 
 **Requirement Reference:** [REQ-F-001, REQ-N-002, etc.]
 
@@ -42,7 +42,7 @@ View all requirements in the [Project Requirements](https://github.com/munera-in
 
 ## Risk Mitigation [Mandatory for User Stories]
 
-**Associated Risks:** [List risks from the User Story, and associated risks](https://github.com/munera-intelligence/PermitParser/wiki/Risks-and-Mitigation)
+**Associated Risks:** [List risks from the User Story, and associated risks](https://github.com/TeamCappin/PlayLocal/wiki/Risks-and-Mitigation)
 
 **Mitigation Strategy:** [Accept risk, Fix now, Fix later, etc.]
 

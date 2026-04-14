@@ -213,7 +213,7 @@ public class OrganizerQualityService {
         float currentOqs = oqs != null ? oqs.getOqsScore() : 100.0f;
 
         Page<OrganizerScoreHistory> historyPage = historyRepository
-                .findByOrganizerIdOrderByCreatedAtDesc(organizerId, PageRequest.of(page, size));
+            .findByOrganizerIdOrderByCreatedAtDesc(organizerId, PageRequest.of(page, size));
 
         List<OrganizerQualityDto.OqsHistoryEntry> entries = historyPage.getContent().stream()
                 .map(this::toHistoryEntry)

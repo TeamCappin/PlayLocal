@@ -51,6 +51,7 @@ public class GameService {
         private final PrivacySettingsService privacySettingsService;
         private final FriendshipRepository friendshipRepository;
         private final OrganizerCompatibilityLayer organizerCompatibilityLayer;
+        private final PlayerHistoryService playerHistoryService;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
                         UserRepository userRepository, OrganizerRepository organizerRepository, SportRepository sportRepository,
@@ -62,7 +63,8 @@ public class GameService {
                         OrganizerQualityService oqsService,
                         LocationRepository locationRepository,
                         PrivacySettingsService privacySettingsService,
-                        FriendshipRepository friendshipRepository) {
+                        FriendshipRepository friendshipRepository,
+                        PlayerHistoryService playerHistoryService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
@@ -79,6 +81,7 @@ public class GameService {
                 this.privacySettingsService = privacySettingsService;
                 this.friendshipRepository = friendshipRepository;
                 this.organizerCompatibilityLayer = new OrganizerCompatibilityLayer(organizerRepository);
+                this.playerHistoryService = playerHistoryService;
         }
 
 
@@ -835,7 +838,42 @@ public class GameService {
 
                 assertOrganizer(game, userId);
                 game = completeGameInternal(game);
-                return mapToGameResponse(game, userId);
+                GameDto.GameResponse response = mapToGameResponse(game, userId);
+                enrichOrganizerProgress(response, game.getCreatedBy().getUserId());
+                return response;
+        }
+
+        /**
+         * Get organizer provisional/full progression for a game.
+         */
+        @Transactional(readOnly = true)
+        public GameDto.OrganizerProgressResponse getOrganizerProgress(UUID gameId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                UUID organizerUserId = game.getCreatedBy().getUserId();
+                Optional<Organizer> organizerOptional = organizerRepository != null
+                                ? organizerRepository.findByGameId(gameId)
+                                : Optional.empty();
+
+                String status = Organizer.OrganizerStatus.NONE.name();
+                int eligibleGamesCompleted = 0;
+                if (organizerOptional.isPresent()) {
+                        Organizer organizer = organizerOptional.get();
+                        status = organizer.getStatus() != null
+                                        ? organizer.getStatus().name()
+                                        : Organizer.OrganizerStatus.NONE.name();
+                        eligibleGamesCompleted = organizer.getProvisionalGamesCompleted() != null
+                                        ? organizer.getProvisionalGamesCompleted()
+                                        : 0;
+                }
+
+                return GameDto.OrganizerProgressResponse.builder()
+                                .gameId(gameId.toString())
+                                .organizerUserId(organizerUserId.toString())
+                                .organizerStatus(status)
+                                .eligibleGamesCompleted(eligibleGamesCompleted)
+                                .build();
         }
 
         /**
@@ -1210,11 +1248,68 @@ public class GameService {
                         return game;
                 }
 
+                maybePromoteProvisionalOrganizer(game);
+
                 game.setStatus(Game.GameStatus.COMPLETED);
                 Game saved = gameRepository.save(game);
                 if (notificationService != null) {
                         notificationService.notifyAttendanceConfirmationNeeded(saved);
                 }
                 return saved;
+        }
+
+        private void maybePromoteProvisionalOrganizer(Game game) {
+                UUID organizerUserId = game.getCreatedBy().getUserId();
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findByIdWithLock);
+
+                // Backward-compatible fallback for data that may not yet have organizerId populated.
+                if (organizerOptional.isEmpty()) {
+                        organizerOptional = organizerRepository.findByUser_UserId(organizerUserId);
+                }
+
+                if (organizerOptional.isEmpty()) {
+                        return;
+                }
+
+                Organizer organizer = organizerOptional.get();
+                if (organizer.getStatus() != Organizer.OrganizerStatus.PROVISIONAL) {
+                        return;
+                }
+
+                List<UUID> eligiblePlayers = playerHistoryService.getNonFirstTimePlayers(game.getGameId(), organizerUserId);
+                if (eligiblePlayers.size() < 2) {
+                        return;
+                }
+
+                int completed = organizer.getProvisionalGamesCompleted() != null
+                                ? organizer.getProvisionalGamesCompleted()
+                                : 0;
+                organizer.setProvisionalGamesCompleted(completed + 1);
+                if (organizer.getProvisionalGamesCompleted() >= 2) {
+                        organizer.setStatus(Organizer.OrganizerStatus.FULL);
+                }
+                organizerRepository.save(organizer);
+        }
+
+        private void enrichOrganizerProgress(GameDto.GameResponse response, UUID organizerUserId) {
+                if (response == null || response.getOrganizer() == null || organizerRepository == null) {
+                        return;
+                }
+
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findById)
+                                .or(() -> organizerRepository.findByUser_UserId(organizerUserId));
+
+                organizerOptional.ifPresent(organizer -> {
+                        response.getOrganizer().setStatus(
+                                        organizer.getStatus() != null ? organizer.getStatus().name() : Organizer.OrganizerStatus.NONE.name());
+                        response.getOrganizer().setEligibleGamesCompleted(
+                                        organizer.getProvisionalGamesCompleted() != null
+                                                        ? organizer.getProvisionalGamesCompleted()
+                                                        : 0);
+                });
         }
 }

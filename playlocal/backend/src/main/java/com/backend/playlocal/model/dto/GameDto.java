@@ -139,6 +139,19 @@ public class GameDto {
         private String displayName;
         private Float reliabilityScore;
         private Boolean profileRestricted; // US-7.12
+        private String status;
+        private Integer eligibleGamesCompleted;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizerProgressResponse {
+        private String gameId;
+        private String organizerUserId;
+        private String organizerStatus;
+        private Integer eligibleGamesCompleted;
     }
 
     @Data

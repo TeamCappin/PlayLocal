@@ -199,8 +199,10 @@ then go to `http://localhost:3000`
 
 ### Testing 
 ```sh
-./mvnw test
+# backend
+./mvnw clean test
 
+# frontend
 npm test
 ```
 
