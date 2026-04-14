@@ -30,7 +30,7 @@ Brief description of what needs to be done.
 
 - List any specific technical requirements
 - Note any architectural considerations
-- Code must follow project standards [see wiki](https://github.com/MuneraCappin/PermitParser/wiki/Code-Standards)
+- Code must follow project standards [see wiki](https://github.com/TeamCappin/PlayLocal/wiki/Code-Standards)
 
 ## Related Links
 

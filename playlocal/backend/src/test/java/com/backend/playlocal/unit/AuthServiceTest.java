@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,6 +64,9 @@ class AuthServiceTest {
 
     @Mock
     private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+
+    @Mock
+    private com.backend.playlocal.service.UsernameService usernameService;
 
     @InjectMocks
     private AuthService authService;
@@ -143,7 +147,8 @@ class AuthServiceTest {
     @DisplayName("US-1.1: Register should succeed with valid data")
     void register_Success() {
         when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
-        when(userRepository.existsBySlug(any())).thenReturn(false);
+        when(usernameService.generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail()))
+                .thenReturn("test-user");
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
@@ -154,6 +159,7 @@ class AuthServiceTest {
 
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getUser().getEmail()).isEqualTo("test@example.com");
+        verify(usernameService).generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail());
         verify(userRepository).save(any(User.class));
         verify(emailService).sendWelcomeEmail(eq("test@example.com"), eq("Test User"));
     }
@@ -168,6 +174,53 @@ class AuthServiceTest {
                 .hasMessageContaining("Email already registered");
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("US-1.1: Register should allow duplicate display names")
+    void register_DuplicateDisplayName_AllowsRegistration() {
+        AuthDto.RegisterRequest secondRequest = AuthDto.RegisterRequest.builder()
+                .email("second@example.com")
+                .password("password")
+                .displayName(registerRequest.getDisplayName())
+                .ageConfirmed(true)
+                .eulaAccepted(true)
+                .build();
+
+        when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
+        when(usernameService.generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail()))
+                .thenReturn("test-user-1");
+        when(usernameService.generateSlug(secondRequest.getDisplayName(), secondRequest.getEmail()))
+                .thenReturn("test-user-2");
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            if (saved.getUserId() == null) {
+                saved.setUserId(UUID.randomUUID());
+            }
+            return saved;
+        });
+        when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
+        when(jwtService.generateToken(any(), any(), any())).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(3600000L);
+
+        AuthDto.AuthResponse firstResponse = authService.register(registerRequest);
+        AuthDto.AuthResponse secondResponse = authService.register(secondRequest);
+
+        assertThat(firstResponse.getUser().getDisplayName()).isEqualTo("Test User");
+        assertThat(secondResponse.getUser().getDisplayName()).isEqualTo("Test User");
+
+        ArgumentCaptor<User> savedUsers = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(2)).save(savedUsers.capture());
+
+        List<User> captured = savedUsers.getAllValues();
+        String firstSlug = captured.get(0).getSlug();
+        String secondSlug = captured.get(1).getSlug();
+        assertThat(firstSlug).isNotBlank();
+        assertThat(secondSlug).isNotBlank();
+        assertThat(firstSlug).isNotEqualTo(secondSlug);
+        assertThat(firstSlug).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+        assertThat(secondSlug).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
     }
 
     @Test
@@ -194,8 +247,8 @@ class AuthServiceTest {
     @DisplayName("Register should generate unique slug when collision exists")
     void register_SlugCollision_GeneratesUniqueSlug() {
         when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
-        // First slug check returns true (collision), second returns false
-        when(userRepository.existsBySlug(any())).thenReturn(true, false);
+        when(usernameService.generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail()))
+                .thenReturn("unique-test-slug-with-collision-handling");
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of("user"));
@@ -205,8 +258,8 @@ class AuthServiceTest {
         AuthDto.AuthResponse response = authService.register(registerRequest);
 
         assertThat(response.getToken()).isEqualTo("jwt-token");
-        // existsBySlug called at least twice due to collision
-        verify(userRepository, atLeast(2)).existsBySlug(any());
+        // UsernameService handles collisions internally and returns a unique slug
+        verify(usernameService).generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail());
     }
 
     // ==========================================
@@ -642,7 +695,8 @@ class AuthServiceTest {
     @DisplayName("Register should default to 'user' role when no roles found")
     void register_EmptyRoles_DefaultsToUser() {
         when(userRepository.existsByEmailIgnoreCase(any())).thenReturn(false);
-        when(userRepository.existsBySlug(any())).thenReturn(false);
+        when(usernameService.generateSlug(registerRequest.getDisplayName(), registerRequest.getEmail()))
+            .thenReturn("test-user");
         when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(userRoleRepository.findRoleNamesByUserId(any())).thenReturn(List.of());

@@ -42,6 +42,7 @@ class UserRoleRepositoryAuthTest {
                 .email("role@example.com")
                 .passwordHash("hashed")
                 .displayName("RoleUser")
+            .slug("role-user")
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();
@@ -83,6 +84,7 @@ class UserRoleRepositoryAuthTest {
                 .email("revoked@example.com")
                 .passwordHash("hashed")
                 .displayName("RevokedUser")
+            .slug("revoked-user")
                 .status(User.UserStatus.ACTIVE)
                 .ageConfirmedAt(Instant.now())
                 .build();

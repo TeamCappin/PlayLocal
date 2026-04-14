@@ -24,6 +24,7 @@ public class AuthDto {
         @Size(min = 8, message = "Password must be at least 8 characters")
         private String password;
 
+        @NotBlank(message = "Display name is required")
         @Size(max = 100, message = "Display name must be at most 100 characters")
         private String displayName;
 

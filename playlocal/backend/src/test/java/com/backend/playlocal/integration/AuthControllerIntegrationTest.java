@@ -53,6 +53,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 // Clean up test users (keep seeded demo users)
                 cleanupUser("integration-test@example.com");
                 cleanupUser("newuser@example.com");
+                cleanupUser("display-one@example.com");
+                cleanupUser("display-two@example.com");
         }
 
         private void cleanupUser(String email) {
@@ -123,6 +125,47 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isConflict());
+        }
+
+        @Test
+        @DisplayName("US-1.1: POST /register - Duplicate display name is allowed")
+        void register_DuplicateDisplayName() throws Exception {
+                AuthDto.RegisterRequest firstRequest = AuthDto.RegisterRequest.builder()
+                                .email("display-one@example.com")
+                                .password("password123")
+                                .displayName("Shared Name")
+                                .ageConfirmed(true)
+                                .eulaAccepted(true)
+                                .build();
+
+                AuthDto.RegisterRequest secondRequest = AuthDto.RegisterRequest.builder()
+                                .email("display-two@example.com")
+                                .password("password123")
+                                .displayName("Shared Name")
+                                .ageConfirmed(true)
+                                .eulaAccepted(true)
+                                .build();
+
+                mockMvc.perform(post(BASE_URL + "/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(firstRequest)))
+                                .andExpect(status().isCreated());
+
+                mockMvc.perform(post(BASE_URL + "/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(secondRequest)))
+                                .andExpect(status().isCreated());
+
+                assertThat(userRepository.existsByEmailIgnoreCase("display-one@example.com")).isTrue();
+                assertThat(userRepository.existsByEmailIgnoreCase("display-two@example.com")).isTrue();
+
+                User firstUser = userRepository.findByEmailIgnoreCase("display-one@example.com").orElseThrow();
+                User secondUser = userRepository.findByEmailIgnoreCase("display-two@example.com").orElseThrow();
+                assertThat(firstUser.getSlug()).isNotEqualTo(secondUser.getSlug());
+                assertThat(firstUser.getSlug()).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+                assertThat(secondUser.getSlug()).hasSizeLessThanOrEqualTo(User.MAX_SLUG_LENGTH);
+                assertThat(firstUser.getSlug()).matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
+                assertThat(secondUser.getSlug()).matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
         }
 
         @Test

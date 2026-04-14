@@ -457,6 +457,20 @@ describe('Settings hub UI', () => {
         screen.getByRole('heading', { name: 'Profile Information' })
       ).toBeInTheDocument();
     });
+
+    it('shows an error toast when Save Changes is clicked', () => {
+      render(
+        <ProfileSettings
+          user={{ displayName: 'Test User', email: 'test@example.com' }}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'Phone edit is not available at this time.'
+      );
+    });
   });
 });
 

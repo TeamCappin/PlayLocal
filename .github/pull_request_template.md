@@ -50,14 +50,14 @@ View all requirements in the [Project Requirements](https://github.com/TeamCappi
 
 ## Technical Requirements
 
-- Code must follow project standards and guidelines [see wiki](https://github.com/MuneraCappin/PermitParser/wiki/Code-Standards)
-- Architecture diagrams must be updated if needed [see wiki](https://github.com/MuneraCappin/PermitParser/wiki/System-Diagrams)
+- Code must follow project standards and guidelines [see wiki](https://github.com/TeamCappin/PlayLocal/wiki/Code-Standards)
+- Architecture diagrams must be updated if needed [see wiki](https://github.com/TeamCappin/PlayLocal/wiki/System-Architecture)
 
 ## Unit Tests
 
 **Unit Test Status:** [Not Started/In Progress/Completed]
 
-**Test Documentation:** [Link to test documentation in wiki](https://github.com/MuneraCappin/PermitParser/wiki/QA-Test-Results)
+**Test Documentation:** [Link to test documentation in wiki](https://github.com/TeamCappin/PlayLocal/wiki/QA-Test-Results)
 
 - [ ] Unit tests written
 - [ ] Code coverage >80%

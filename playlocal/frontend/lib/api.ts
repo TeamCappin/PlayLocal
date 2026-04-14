@@ -137,7 +137,7 @@ export class ApiError extends Error {
 export interface RegisterRequest {
   email: string;
   password: string;
-  displayName?: string;
+  displayName: string;
   ageConfirmed: boolean;
   eulaAccepted: boolean;
   captchaToken?: string;
@@ -161,7 +161,7 @@ export interface UserDto {
   userId: string;
   email: string;
   displayName: string;
-  slug?: string; // URL-friendly identifier (e.g., "john-doe")
+  slug?: string; // URL-friendly username/handle (e.g., "john-doe")
   avatarUrl?: string;
   defaultIntensity?: string;
   availability?: string;
@@ -253,7 +253,14 @@ export interface UpdateProfileRequest {
   location?: string;
   defaultIntensity?: string;
   availability?: string;
-  phone?: string;
+}
+
+export interface UpdateUsernameRequest {
+  username: string;
+}
+
+export interface UsernameLookupResponse {
+  userId: string;
 }
 
 export interface SearchUsersResponse {
@@ -269,6 +276,15 @@ export const usersApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+
+  updateUsername: (data: UpdateUsernameRequest) =>
+    apiFetch<UserDto>('/users/username', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  findUserIdByUsername: (username: string) =>
+    apiFetch<UsernameLookupResponse>(`/users/username/${encodeURIComponent(username)}`),
 
   getProfile: (userId: string) => apiFetch<UserDto>(`/users/${userId}/profile`),
 

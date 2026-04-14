@@ -6,6 +6,7 @@ import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.service.UsernameService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,9 @@ class UserServiceAdditionalTest {
 
     @Mock
     private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+
+    @Mock
+    private UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;

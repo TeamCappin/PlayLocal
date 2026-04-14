@@ -1,5 +1,6 @@
 package com.backend.playlocal.service;
 
+import com.backend.playlocal.exception.DuplicateResourceException;
 import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.dto.AuthDto;
 import com.backend.playlocal.model.dto.UserDto;
@@ -33,16 +34,19 @@ public class UserService {
     private final FriendshipRepository friendshipRepository;
     private final GameParticipationRepository gameParticipationRepository;
     private final PlayerRatingRepository playerRatingRepository;
+    private final UsernameService usernameService;
 
     public UserService(UserRepository userRepository, EndorsementRepository endorsementRepository,
             PrivacySettingsService privacySettingsService, FriendshipRepository friendshipRepository,
-            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository) {
+            GameParticipationRepository gameParticipationRepository, PlayerRatingRepository playerRatingRepository,
+            UsernameService usernameService) {
         this.userRepository = userRepository;
         this.endorsementRepository = endorsementRepository;
         this.privacySettingsService = privacySettingsService;
         this.friendshipRepository = friendshipRepository;
         this.gameParticipationRepository = gameParticipationRepository;
         this.playerRatingRepository = playerRatingRepository;
+        this.usernameService = usernameService;
     }
 
     /**
@@ -94,8 +98,6 @@ public class UserService {
 
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
-            String newSlug = User.generateSlug(request.getDisplayName());
-            user.setSlug(ensureUniqueSlug(newSlug, user.getUserId()));
         }
         if (request.getBio() != null) {
             user.setBio(request.getBio());
@@ -108,9 +110,6 @@ public class UserService {
         }
         if (request.getAvailability() != null) {
             user.setAvailability(request.getAvailability());
-        }
-        if (request.getPhone() != null) {
-            user.setPhoneE164(request.getPhone());
         }
 
         user = userRepository.save(user);
@@ -153,7 +152,8 @@ public class UserService {
      * Get user profile by slug (no privacy enforcement).
      */
     public AuthDto.UserDto getProfileBySlug(String slug) {
-        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+        String normalizedSlug = usernameService.normalizeUsernameOrThrow(slug);
+        User user = userRepository.findBySlugAndDeletedAtIsNull(normalizedSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return mapToUserDto(user);
     }
@@ -163,7 +163,8 @@ public class UserService {
      * US-7.12: Restricts profile fields based on privacy toggles.
      */
     public AuthDto.UserDto getProfileBySlug(String slug, UUID viewerId) {
-        User user = userRepository.findBySlugAndDeletedAtIsNull(slug)
+        String normalizedSlug = usernameService.normalizeUsernameOrThrow(slug);
+        User user = userRepository.findBySlugAndDeletedAtIsNull(normalizedSlug)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         UUID targetId = user.getUserId();
@@ -235,16 +236,6 @@ public class UserService {
         return mapToUserDto(user, count);
     }
 
-    private String ensureUniqueSlug(String baseSlug, UUID excludeUserId) {
-        String slug = baseSlug;
-        int counter = 1;
-        while (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(slug, excludeUserId)) {
-            slug = baseSlug + "-" + counter;
-            counter++;
-        }
-        return slug;
-    }
-
     private AuthDto.UserDto mapToUserDto(User user) {
         return mapToUserDto(user, null);
     }
@@ -274,17 +265,19 @@ public class UserService {
     }
 
     /**
-     * US-7.15: Deactivate user account (soft delete with 30-day grace period).
-     * User can reactivate by logging in within 30 days.
+     * US-7.15: Deactivate user account and tombstone the slug.
+     * The account leaves active use immediately, but historical references remain.
+     * Recovery paths do not currently exist
      */
     @Transactional
     public void deactivateAccount(UUID userId) {
         User user = userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Set deletion timestamp (30 days from now for grace period)
+        // Mark the account inactive and release the old slug.
         Instant deactivateTime = Instant.now();
         user.setDeletedAt(deactivateTime);
+        user.setSlug(usernameService.buildDeactivatedSlug(userId, user.getDisplayName()));
 
         // Remove from all future games
         List<GameParticipation> futureParticipations = gameParticipationRepository
@@ -299,17 +292,18 @@ public class UserService {
     }
 
     /**
-     * US-7.15: Permanently delete user account (irreversible).
-     * Deletes all user data and removes from all games.
+     * US-7.15: Permanently delete user account from active use.
+     * The account is tombstoned for history, not reactivated.
      */
     @Transactional
     public void deleteAccount(UUID userId) {
         User user = userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Set immediate deletion (no grace period)
+        // Mark the account deleted and release the slug.
         Instant now = Instant.now();
         user.setDeletedAt(now);
+        user.setSlug(usernameService.buildDeactivatedSlug(userId, user.getDisplayName()));
 
         // Remove from all future games
         List<GameParticipation> futureParticipations = gameParticipationRepository
@@ -320,19 +314,8 @@ public class UserService {
             gameParticipationRepository.save(participation);
         }
 
-        // Hard delete by setting deletedAt to the past (immediate purge)
-        // This signals to the system that this should be permanently removed
-        // Note: In production, you might want a separate "purge" job to handle
-        // cascading deletes (endorsements, friendships, media, etc.)
+        // Keep the tombstone for historical references.
         user.setDeletedAt(now.minus(1, ChronoUnit.DAYS)); // Mark as old deletion
-
         userRepository.save(user);
-
-        // Additional cleanup can be added here:
-        // - Delete friendships
-        // - Delete endorsements
-        // - Delete media assets
-        // - Delete privacy settings
-        // - etc.
     }
 }

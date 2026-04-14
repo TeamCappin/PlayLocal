@@ -148,6 +148,7 @@ class GameJoinConcurrencyTest {
                 .email("organizer-" + organizerUuid + "@test.com")
                 .passwordHash("hash")
                 .displayName("Organizer-" + organizerUuid)
+            .slug("organizer-" + organizerUuid)
                 .status(User.UserStatus.ACTIVE)
                 .build();
         organizer = userRepository.save(organizer);
@@ -181,6 +182,7 @@ class GameJoinConcurrencyTest {
                     .email("user" + i + "-" + userUuid + "@test.com")
                     .passwordHash("hash")
                     .displayName("User-" + i + "-" + userUuid) // Unique displayName for unique slug
+                    .slug("user-" + i + "-" + userUuid)
                     .status(User.UserStatus.ACTIVE)
                     .reliabilityScore(100.0f)
                     .build();
