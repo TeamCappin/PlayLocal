@@ -62,10 +62,13 @@ Release 2 Presentation: [PlayLocal - 490 Release 2 Presentation.pdf](https://git
 ### Release 3
 
 Release 3 Presentation video: 
+https://drive.google.com/file/d/1aWjmvHtUVAjDPk6fCBIBTwpT40Bs3ugP/view?usp=drive_link
 
 Release 3 Product-Demo:
+https://drive.google.com/file/d/1cyZWm81DQQtvDxtmd5R5FcQTYgaLSeg-/view?usp=drive_link
 
-Release 3 Presentation Slides: https://docs.google.com/presentation/d/1nrnqzFSEBBAfjynYyA1WOSujuJm-vrWE6KtBWEiaP50/edit?usp=sharing
+Release 3 Presentation Slides: [PlayLocal - 490 Release 3 Presentation.pdf](https://github.com/user-attachments/files/26695027/PlayLocal.-.490.Release.3.Presentation.pdf)
+https://docs.google.com/presentation/d/1nrnqzFSEBBAfjynYyA1WOSujuJm-vrWE6KtBWEiaP50/edit?usp=sharing
 
 ## Developer Manual
 
