@@ -33,13 +33,9 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       PORT: ${BACKEND_PORT:-8080}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-uploads}
-      S3_BUCKET: ${S3_BUCKET_NAME:-uploads}
       AWS_REGION: ${AWS_REGION:-us-east-1}
-      S3_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env.prod}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env.prod}
-      S3_ACCESS_KEY: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env.prod}
-      S3_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env.prod}
       endpoint: ${endpoint:-http://minio:9000}
       publicEndpoint: ${publicEndpoint:-http://localhost:9000}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}

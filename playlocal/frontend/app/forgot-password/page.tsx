@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useGoogleReCaptcha } from '@/hooks/useGoogleReCaptcha';
+import { RecaptchaProvider } from '@/components/RecaptchaProvider';
 
 const ForgotPasswordPage: React.FC = () => {
   const router = useRouter();
@@ -105,4 +106,10 @@ const ForgotPasswordPage: React.FC = () => {
   );
 };
 
-export default ForgotPasswordPage;
+export default function ForgotPasswordRoute() {
+  return (
+    <RecaptchaProvider>
+      <ForgotPasswordPage />
+    </RecaptchaProvider>
+  );
+}

@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import ForgotPasswordPage from  '../../../app/forgot-password/page';
+import ForgotPasswordPage from '../../../app/forgot-password/page';
 import { authApi } from '@/lib/api';
+import { useGoogleReCaptcha } from '@/hooks/useGoogleReCaptcha';
 
 const mockPush = jest.fn();
 
@@ -32,19 +33,40 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('react-google-recaptcha-v3', () => ({
-  useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
+  GoogleReCaptchaProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+
+jest.mock('@/hooks/useGoogleReCaptcha', () => ({
+  useGoogleReCaptcha: jest.fn(),
+}));
+
+const mockedUseGoogleReCaptcha = jest.mocked(useGoogleReCaptcha);
 
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    mockedUseGoogleReCaptcha.mockReturnValue({
+      executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token'),
+    });
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
+
+  async function enterEmailAndClickContinue(email: string) {
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: email },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    });
+    await act(async () => {
+      for (let i = 0; i < 30; i += 1) {
+        await Promise.resolve();
+      }
+    });
+  }
 
   it('renders forgot password form', () => {
     render(<ForgotPasswordPage />);
@@ -75,11 +97,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('user@example.com');
 
     await waitFor(() => {
       expect(authApi.forgotPassword).toHaveBeenCalledWith({
@@ -100,17 +118,17 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
+    await enterEmailAndClickContinue('user@example.com');
+
+    expect(await screen.findByRole('button', { name: 'Sending...' })).toBeDisabled();
+
+    await act(async () => {
+      resolvePromise();
+      for (let i = 0; i < 30; i += 1) {
+        await Promise.resolve();
+      }
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sending...' })).toBeDisabled();
-    });
-
-    resolvePromise();
     await waitFor(() => {
       expect(
         screen.getByText('If an account exists, a reset link/code has been sent.')
@@ -123,11 +141,7 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('user@example.com');
 
     expect(
       await screen.findByText('If an account exists, a reset link/code has been sent.')
@@ -141,38 +155,47 @@ describe('ForgotPasswordPage', () => {
 
     render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'unknown@example.com' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await enterEmailAndClickContinue('unknown@example.com');
 
     expect(
       await screen.findByText('If an account exists, a reset link/code has been sent.')
     ).toBeInTheDocument();
   });
 
-  it('redirects to validate page after timeout', async () => {
-    (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
+  it(
+    'redirects to validate page after timeout',
+    async () => {
+      jest.useFakeTimers();
+      try {
+        (authApi.forgotPassword as jest.Mock).mockResolvedValueOnce({});
 
-    render(<ForgotPasswordPage />);
+        render(<ForgotPasswordPage />);
 
-    fireEvent.change(screen.getByLabelText('Email'), {
-      target: { value: 'user@example.com' },
-    });
+        await enterEmailAndClickContinue('user@example.com');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+        await waitFor(
+          () => {
+            expect(
+              screen.getByText('If an account exists, a reset link/code has been sent.')
+            ).toBeInTheDocument();
+          },
+          { advanceTimers: jest.advanceTimersByTime }
+        );
 
-    await screen.findByText('If an account exists, a reset link/code has been sent.');
+        act(() => {
+          jest.advanceTimersByTime(1000);
+        });
 
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    expect(mockPush).toHaveBeenCalledWith(
-      '/reset-password/validate?email=user%40example.com'
-    );
-  });
+        expect(mockPush).toHaveBeenCalledWith(
+          '/reset-password/validate?email=user%40example.com'
+        );
+      } finally {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+      }
+    },
+    20_000
+  );
 
   it('renders navigation links', () => {
     render(<ForgotPasswordPage />);

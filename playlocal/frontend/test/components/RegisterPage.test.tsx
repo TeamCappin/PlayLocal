@@ -28,7 +28,7 @@ jest.mock('@/context/AuthContext', () => ({
 
 jest.mock('react-google-recaptcha-v3', () => ({
   useGoogleReCaptcha: () => ({ executeRecaptcha: jest.fn().mockResolvedValue('mock-captcha-token') }),
-}));
+}), { virtual: true });
 
 jest.mock('@/lib/constants', () => {
   const Icon =

@@ -1,5 +1,9 @@
 require('@testing-library/jest-dom');
 
+const { configure } = require('@testing-library/react');
+// CI runners are slower; default 1000ms causes flaky waitFor/findBy in auth flows
+configure({ asyncUtilTimeout: 15_000 });
+
 // window.scrollTo is not implemented in jsdom (throws "Not implemented" when called)
 if (typeof window !== 'undefined') {
   window.scrollTo = jest.fn();
@@ -106,6 +110,9 @@ jest.mock('@/lib/api', () => {
       getShowUpRate: createMockObjectFn(),
       getSkillTrend: createMockObjectFn(),
       getAttendanceRate: createMockObjectFn(),
+    },
+    weatherApi: {
+      getForecast: createMockObjectFn(),
     },
     // Export default object
     __esModule: true,

@@ -98,7 +98,7 @@ jest.mock('@vis.gl/react-google-maps', () => ({
       </button>
     </div>
   ),
-}));
+}), { virtual: true });
 
 // --------------------
 // Fixtures
