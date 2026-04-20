@@ -53,7 +53,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com/TeamCappin/PlayLocal/issues"
+                  href="mailto:playlocal.mgdfd@simplelogin.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors"

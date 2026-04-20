@@ -8,6 +8,7 @@ import { MobileBottomPadding } from '@/components/MobileBottomPadding';
 import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/ui/sonner';
 import { GoogleAdsenseClient } from '@/components/ads/GoogleAdsenseClient';
+import { PrivacyPolicyBanner } from '@/components/legal/PrivacyPolicyBanner';
 import Script from 'next/script';
 
 // Use system font stack so Docker build does not require network (Google Fonts fetch)
@@ -50,8 +51,9 @@ export default function RootLayout({
       <body className={`${fontClass} bg-gray-50`}>
         <Providers>
           <Navigation />
-          <GoogleAdsenseClient />
+          <GoogleAdsenseClient developerAdsReady={adsEnabled} pubId={pubId} />
           <main>
+            <PrivacyPolicyBanner />
             {children}
             <Footer />
             <MobileBottomPadding />

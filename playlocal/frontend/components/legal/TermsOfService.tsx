@@ -4,7 +4,7 @@ export function TermsOfService() {
       <div className="max-w-4xl mx-auto rounded-xl border border-gray-200 bg-white p-6 sm:p-8 lg:p-10">
         <header className="mb-8 border-b border-gray-100 pb-6">
           <h1 className="text-3xl text-gray-900">PlayLocal Service Terms and End User License Agreement</h1>
-          <p className="mt-2 text-sm text-gray-600">Last updated: 2026-03-27</p>
+          <p className="mt-2 text-sm text-gray-600">Date effective: 2026-03-27</p>
         </header>
 
         <div className="space-y-6 text-gray-800">

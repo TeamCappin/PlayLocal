@@ -13,6 +13,7 @@ import { privacyApi, usersApi, authApi } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
 const mockPerformLogoutRedirect = jest.fn();
+const mockUseAuth = jest.fn();
 
 jest.mock('next/link', () => ({
   __esModule: true,
@@ -33,14 +34,7 @@ jest.mock('next/link', () => ({
 }));
 
 jest.mock('@/context/AuthContext', () => ({
-  useAuth: () => ({
-    user: {
-      userId: 'user-1',
-      displayName: 'Test User',
-      email: 'test@example.com',
-    },
-    logout: jest.fn(),
-  }),
+  useAuth: () => mockUseAuth(),
 }));
 
 jest.mock('next/navigation', () => ({
@@ -107,6 +101,14 @@ const defaultSettings = {
 describe('SettingsPage - Privacy Tab', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      user: {
+        userId: 'user-1',
+        displayName: 'Test User',
+        email: 'test@example.com',
+      },
+      logout: jest.fn(),
+    });
     mockGetSettings.mockResolvedValue(defaultSettings);
     mockUpdateSettings.mockResolvedValue(defaultSettings);
   });
@@ -148,6 +150,60 @@ describe('SettingsPage - Privacy Tab', () => {
     expect(selects[2]).toHaveValue('Friends Only');
     expect(selects[3]).toHaveValue('Participants');
     expect(selects[4]).toHaveValue('After Accepted');
+  });
+
+  it('toggles ad personalization boundary from disabled to enabled payload', async () => {
+    mockGetSettings.mockResolvedValue({
+      ...defaultSettings,
+      adPersonalizationEnabled: false,
+    });
+    mockUpdateSettings.mockResolvedValue({
+      ...defaultSettings,
+      adPersonalizationEnabled: true,
+    });
+
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByText('Privacy'));
+
+    const toggle = await screen.findByRole('button', {
+      name: 'Disable Ad Personalization',
+    });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith({
+        adPersonalizationEnabled: true,
+      });
+    });
+  });
+
+  it('builds DSAR mailto with boundary missing optional user fields', () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        userId: 'user-1',
+        email: 'test@example.com',
+      },
+      logout: jest.fn(),
+    });
+
+    render(
+      <PrivacySettings
+        initialSettings={defaultSettings as any}
+        initialLoading={false}
+      />
+    );
+
+    const dsarLink = screen.getByRole('link', { name: /Request My Data/i });
+    const href = dsarLink.getAttribute('href') || '';
+    const bodyParam = href.split('&body=')[1] || '';
+    const decodedBody = decodeURIComponent(bodyParam);
+
+    expect(href.startsWith('mailto:playlocal.mgdfd@simplelogin.com?subject=')).toBe(true);
+    expect(decodedBody).toContain('Account email: test@example.com');
+    expect(decodedBody).toContain('User ID: user-1');
+    expect(decodedBody).not.toContain('Display name:');
   });
 
   it('calls updateSettings when a privacy setting is changed', async () => {
