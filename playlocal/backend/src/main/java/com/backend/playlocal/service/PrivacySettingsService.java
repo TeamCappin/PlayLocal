@@ -72,6 +72,9 @@ public class PrivacySettingsService {
         if (request.getAllowProfileSearch() != null) {
             settings.setAllowProfileSearch(request.getAllowProfileSearch());
         }
+        if (request.getAdPersonalizationEnabled() != null) {
+            settings.setAdPersonalizationEnabled(request.getAdPersonalizationEnabled());
+        }
 
         settings = privacySettingsRepository.save(settings);
         return mapToResponse(settings);
@@ -90,6 +93,7 @@ public class PrivacySettingsService {
                 .mediaDefaultVisibility(resolveContentVisibility(VISIBILITY_PARTICIPANTS))
                 .locationVisibilityRule(resolveLocationRule(LOCATION_RULE_CONFIRMED_ONLY))
                 .allowProfileSearch(true)
+                .adPersonalizationEnabled(true)
                 .build();
         return privacySettingsRepository.save(settings);
     }
@@ -168,6 +172,7 @@ public class PrivacySettingsService {
                         settings.getLocationVisibilityRule() != null
                                 ? settings.getLocationVisibilityRule().getCode() : LOCATION_RULE_CONFIRMED_ONLY)
                 .allowProfileSearch(Boolean.TRUE.equals(settings.getAllowProfileSearch()))
+                .adPersonalizationEnabled(Boolean.TRUE.equals(settings.getAdPersonalizationEnabled()))
                 .build();
     }
 }

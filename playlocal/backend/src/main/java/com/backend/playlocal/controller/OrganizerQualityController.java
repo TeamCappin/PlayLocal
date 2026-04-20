@@ -14,14 +14,14 @@ import java.util.stream.Collectors;
  * REST Controller for Organizer Quality Score (OQS).
  * Implements: US-6.1 - Organizer Quality Score
  * 
- * Endpoints:
+ * Endpoints (available under both /api/v1 and /api/v2):
  * - GET /api/v2/organizers/{userId}/oqs - Get OQS for a specific organizer user
  * - GET /api/v2/organizers/me/oqs - Get OQS for current authenticated organizer
  * - GET /api/v2/organizers/{userId}/oqs/info - Get OQS info card with explanations
  * - GET /api/v2/organizers/{userId}/oqs/history - Get OQS change history
  */
 @RestController
-@RequestMapping("/api/v2/organizers")
+@RequestMapping({ "/api/v1/organizers", "/api/v2/organizers" })
 public class OrganizerQualityController {
 
     private final OrganizerQualityService oqsService;

@@ -35,6 +35,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.status = 'ACTIVE'")
     Page<User> findAllActive(Pageable pageable);
 
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.status = 'ACTIVE'")
+    List<User> findAllActiveUsers();
+
     // Slug-based profile lookup (US 1.3 + US 1.4 merge)
     @Query("SELECT u FROM User u WHERE u.slug = :slug AND u.deletedAt IS NULL AND u.status = 'ACTIVE'")
     Optional<User> findBySlugAndDeletedAtIsNull(String slug);

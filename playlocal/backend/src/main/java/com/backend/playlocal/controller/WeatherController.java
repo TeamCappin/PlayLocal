@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/games/{gameId}/weather")
+@RequestMapping({ "/api/v1/games/{gameId}/weather", "/api/v2/games/{gameId}/weather" })
 public class WeatherController {
 
     private final WeatherService weatherService;

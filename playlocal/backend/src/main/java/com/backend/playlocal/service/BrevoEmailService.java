@@ -134,6 +134,22 @@ public class BrevoEmailService implements EmailService {
     return sendTypedEmail(to, subject, content, footer, "WELCOME");
   }
 
+  @Override
+  public boolean sendPrivacyPolicyUpdateEmail(String to,
+                          String effectiveDate,
+                                              String notice) {
+    String subject = "PlayLocal Privacy Policy Updated";
+    String content = "<h2>Privacy Policy Updated</h2>"
+      + "<p>The updated Privacy Policy takes effect on <strong>"
+      + effectiveDate + "</strong>.</p>"
+        + "<p>" + notice + "</p>"
+        + "<p>Please review the updated policy in the Service.</p>";
+    String footer = "You received this because you have a PlayLocal account.";
+
+    return sendTypedEmail(to, subject, content, footer,
+        "PRIVACY_POLICY_UPDATE");
+  }
+
   private boolean sendTypedEmail(String to, String subject,
                                  String content, String footer,
                                  String emailType) {

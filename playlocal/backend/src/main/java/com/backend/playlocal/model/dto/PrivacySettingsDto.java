@@ -21,6 +21,7 @@ public class PrivacySettingsDto {
         private String mediaDefaultVisibility; // public, friends, participants, private
         private String locationVisibilityRule; // always_visible, confirmed_only, approximate, hidden
         private boolean allowProfileSearch;
+        private boolean adPersonalizationEnabled;
     }
 
     @Data
@@ -34,5 +35,6 @@ public class PrivacySettingsDto {
         private String mediaDefaultVisibility;
         private String locationVisibilityRule;
         private Boolean allowProfileSearch;
+        private Boolean adPersonalizationEnabled;
     }
 }
