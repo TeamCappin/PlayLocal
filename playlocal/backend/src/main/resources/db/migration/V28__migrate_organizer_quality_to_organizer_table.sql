@@ -1,4 +1,4 @@
--- PlayLocal Database Schema V26: Migrate Organizer Tables to Use Organizer Entity
+-- PlayLocal Database Schema V27: Migrate Organizer Tables to Use Organizer Entity
 -- Implements: US-6.2 Task-6.2.1
 -- 
 -- Migrates organizer_quality_score and organizer_verification to reference

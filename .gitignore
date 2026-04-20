@@ -1,6 +1,7 @@
 data/
 tfplan-*
 plan-*.txt
+plan.md
 
 # ===============================
 # Global/Repository-Level .gitignore

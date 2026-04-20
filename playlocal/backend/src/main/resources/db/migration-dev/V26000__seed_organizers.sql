@@ -1,4 +1,4 @@
--- PlayLocal Database Migration Dev: V26 - Seed 3 Organizers
+-- PlayLocal Database Migration Dev: V260 - Seed 3 Organizers
 -- Creates 3 real organizer users with complete onboarding state
 
 -- =============================================
