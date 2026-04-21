@@ -1,4 +1,4 @@
-# Build Stage
+# docker Build Stage
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 COPY pom.xml .
@@ -22,5 +22,5 @@ RUN chown spring:spring app.jar && chmod 444 app.jar
 
 USER spring
 
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -83,12 +83,16 @@ npm --version
 Run the full stack (Frontend + Backend + Database) with a single command:
 
 ```sh
+#normal run
 docker compose up --build
+
+# hard reset
+docker compose down -v && docker compose build --no-cache && docker compose up
 ```
 
 - **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:8080
-- **Database**: localhost:5439
+- **Backend**: http://localhost:8081/swagger-ui/index.html
+- **Database**: http://localhost:5439
 
 To stop the services:
 ```sh
@@ -147,7 +151,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod
 ```
 3. Confirm backend health:
 ```sh
-curl http://localhost:8080/api/v1/health
+curl http://localhost:8081/api/v1/health
 ```
 4. Stop the stack:
 ```sh
@@ -190,7 +194,7 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-the go to `http://localhost:8080/`
+the go to `http://localhost:8081/`
 
 ```sh
 cd frontend/playlocal/
@@ -224,9 +228,3 @@ npm run format:write
 ```
 
 
-
-
-## Wiki Table of Contents
-
-
-```

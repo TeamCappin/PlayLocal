@@ -195,7 +195,7 @@ export function useGameChat({
       const isLocalhost =
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1';
-      if (isLocalhost) return 'http://localhost:8080/ws';
+      if (isLocalhost) return 'http://localhost:8081/ws';
     }
 
     return 'https://playlocalcapstone.onrender.com/ws';
@@ -206,11 +206,11 @@ export function useGameChat({
       historyBaseUrl ??
       process.env.NEXT_PUBLIC_CHAT_API_BASE ??
       process.env.NEXT_PUBLIC_API_URL ??
-      'http://localhost:8080/api/v1';
+      'http://localhost:8081/api/v1';
     if (env) return env;
-    if (typeof window === 'undefined') return 'http://localhost:8080/api/v1';
+    if (typeof window === 'undefined') return 'http://localhost:8081/api/v1';
     const url = new URL(window.location.href);
-    url.port = '8080';
+    url.port = '8081';
     url.pathname = '/api/v1';
     url.search = '';
     url.hash = '';

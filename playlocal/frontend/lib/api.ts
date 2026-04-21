@@ -4,7 +4,7 @@
 import { ChangePasswordRequest, ForgotPasswordRequest, ResetPasswordRequest, VerifyResetCodeRequest } from "./constants";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v2';
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api/v2';
 
 // Token management
 let authToken: string | null =
@@ -338,6 +338,7 @@ export interface PrivacySettingsResponse {
   mediaDefaultVisibility: string;
   locationVisibilityRule: string;
   allowProfileSearch: boolean;
+  adPersonalizationEnabled: boolean;
 }
 
 export interface UpdatePrivacySettingsRequest {
@@ -347,6 +348,7 @@ export interface UpdatePrivacySettingsRequest {
   mediaDefaultVisibility?: string;
   locationVisibilityRule?: string;
   allowProfileSearch?: boolean;
+  adPersonalizationEnabled?: boolean;
 }
 
 export const privacyApi = {
@@ -355,6 +357,69 @@ export const privacyApi = {
 
   updateSettings: (data: UpdatePrivacySettingsRequest) =>
     apiFetch<PrivacySettingsResponse>('/users/privacy-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
+// PRIVACY POLICY UPDATE API
+// ============================================
+
+export interface PrivacyPolicyStatusResponse {
+  lastUpdated: string;
+  effectiveDate: string;
+  updatedByEmail: string | null;
+  bannerVisible: boolean;
+  notice: string;
+}
+
+export interface PrivacyPolicyUpdateRequest {
+  triggeredByEmail?: string;
+}
+
+export interface PrivacyPolicyUpdateResponse {
+  lastUpdated: string;
+  effectiveDate: string;
+  updatedByEmail: string | null;
+  bannerVisible: boolean;
+  notice: string;
+  recipientsTargeted: number;
+  emailsSent: number;
+  emailsFailed: number;
+}
+
+export const privacyPolicyApi = {
+  getStatus: () =>
+    apiFetch<PrivacyPolicyStatusResponse>('/privacy-policy/status'),
+
+  triggerUpdate: (data: PrivacyPolicyUpdateRequest) =>
+    apiFetch<PrivacyPolicyUpdateResponse>('/privacy-policy/update', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ============================================
+// FEATURE FLAGS API
+// ============================================
+
+export interface AdsSwitchResponse {
+  adminAdsSwitchOn: boolean;
+  updatedAt: string | null;
+  updatedByEmail: string | null;
+}
+
+export interface UpdateAdsSwitchRequest {
+  adminAdsSwitchOn: boolean;
+}
+
+export const featureFlagsApi = {
+  getAdsSwitch: () =>
+    apiFetch<AdsSwitchResponse>('/feature-flags/ads-switch'),
+
+  updateAdsSwitch: (data: UpdateAdsSwitchRequest) =>
+    apiFetch<AdsSwitchResponse>('/feature-flags/ads-switch', {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
