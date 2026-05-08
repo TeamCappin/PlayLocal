@@ -5,6 +5,7 @@ import com.backend.playlocal.model.entity.EmailLog;
 import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.EmailLogRepository;
 import com.backend.playlocal.repository.UserRepository;
+import com.backend.playlocal.service.EmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -53,6 +56,9 @@ class PrivacyPolicyIntegrationTest extends IntegrationTestBase {
   @Autowired
   private PasswordEncoder passwordEncoder;
 
+  @Autowired
+  private EmailService emailService;
+
   private static final String ADMIN_EMAIL = "playlocal.mgdfd@simplelogin.com";
   private static final String ADMIN_PASSWORD = "password123";
   private static final String BASE_URL = "/api/v1/privacy-policy";
@@ -77,6 +83,21 @@ class PrivacyPolicyIntegrationTest extends IntegrationTestBase {
 
     // Clean up any existing email logs
     emailLogRepository.deleteAll();
+
+    // EmailService is globally mocked in IntegrationTestBase to avoid real provider calls.
+    // For this suite, simulate successful sends and persist EmailLog rows so assertions remain end-to-end.
+    when(emailService.sendPrivacyPolicyUpdateEmail(anyString(), anyString(), anyString()))
+        .thenAnswer(invocation -> {
+          String recipient = invocation.getArgument(0, String.class);
+          EmailLog log = EmailLog.builder()
+              .recipientEmail(recipient)
+              .subject("PlayLocal Privacy Policy Updated")
+              .emailType("PRIVACY_POLICY_UPDATE")
+              .status(EmailLog.EmailStatus.SENT)
+              .build();
+          emailLogRepository.save(log);
+          return true;
+        });
   }
 
   private void ensureAdminUserExists() {

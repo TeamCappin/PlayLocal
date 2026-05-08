@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 
 export function OrganizerAgreement() {
+  // UI implementation was out of scope, only backend rotues implemented
   const [accepted, setAccepted] = useState(false);
   const [confirmedIdentity, setConfirmedIdentity] = useState(false);
 

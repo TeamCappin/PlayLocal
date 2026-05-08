@@ -166,9 +166,9 @@ describe('SettingsPage - Privacy Tab', () => {
     fireEvent.click(screen.getByText('Privacy'));
 
     const toggle = await screen.findByRole('button', {
-      name: 'Disable Ad Personalization',
+      name: 'Enable Ad Personalization',
     });
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(toggle);
 

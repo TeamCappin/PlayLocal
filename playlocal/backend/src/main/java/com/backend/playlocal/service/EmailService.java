@@ -39,11 +39,6 @@ public interface EmailService {
 
   /**
    * Send a privacy policy update notice email.
-   *
-   * Default implementation keeps compatibility for any alternate providers
-   * by routing through the generic transactional email method.
    */
-boolean sendPrivacyPolicyUpdateEmail(String to,
-                           String effectiveDate,
-                                               String notice);
+boolean sendPrivacyPolicyUpdateEmail(String to, String effectiveDate, String notice);
 }

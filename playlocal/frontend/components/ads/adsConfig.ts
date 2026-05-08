@@ -51,7 +51,6 @@ export function isAdsAllowedForPathname(
   if (includeSensitive) return true;
 
   return AD_ALLOWED_ROUTES.some((allowed) => {
-    if (allowed === '/') return pathname === '/';
     return (
       pathname === allowed ||
       pathname.startsWith(allowed + '/') ||

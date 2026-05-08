@@ -82,7 +82,7 @@ public class UsernameService {
 
             // Truncate to 32 characters
             String slug = truncate(normalizedDisplayName + "-" + slice, User.MAX_SLUG_LENGTH);
-            slug = slug.replaceAll("-+$", "");
+            slug = trimTrailingHyphens(slug);
 
             // Check uniqueness
             if (!userRepository.existsBySlugAndDeletedAtIsNull(slug)) {
@@ -121,7 +121,7 @@ public class UsernameService {
 
         // Truncate to max length
         normalizedSlug = truncate(normalizedSlug, User.MAX_SLUG_LENGTH);
-        normalizedSlug = normalizedSlug.replaceAll("-+$", "");
+        normalizedSlug = trimTrailingHyphens(normalizedSlug);
 
         // Check if the slug is already in use by another user
         if (userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(normalizedSlug, userId)) {
@@ -189,7 +189,7 @@ public class UsernameService {
         String digest = computeSha256Digest(userId.toString(), 0);
         String slice = sliceWithWraparound(digest, 0, SLICE_LENGTH);
         String candidate = truncate("deleted-" + normalized + "-" + slice, User.MAX_SLUG_LENGTH);
-        candidate = candidate.replaceAll("-+$", "");
+        candidate = trimTrailingHyphens(candidate);
         return candidate;
     }
 
@@ -259,5 +259,20 @@ public class UsernameService {
             return str;
         }
         return str.substring(0, maxLength);
+    }
+
+    /**
+     * Remove trailing '-' characters in linear time without regex backtracking.
+     */
+    private String trimTrailingHyphens(String value) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '-') {
+            end--;
+        }
+        return end == value.length() ? value : value.substring(0, end);
     }
 }

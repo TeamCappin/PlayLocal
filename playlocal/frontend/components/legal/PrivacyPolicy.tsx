@@ -167,7 +167,7 @@ export function PrivacyPolicy() {
 					<section className="space-y-2">
 						<h3 className="font-bold text-gray-900">3. CONSENT AND OPT-OUT</h3>
 						<p>3.1. <strong>Explicit Consent:</strong> By registering an account and using the Service, you consent to the collection, use, and disclosure of your personal information as outlined in this policy, including for Targeted Advertising.</p>
-						<p>3.2. <strong>Default Enrollment & Opt-Out:</strong> To support the Service, Targeted Advertising based on non-sensitive telemetry and IP-derived general location is enabled by default. You may withdraw your consent for this personalization at any time by toggling the 'Targeted Advertising' switch to OFF in your Account Settings.</p>
+						<p>3.2. <strong>Default Enrollment & Opt-Out:</strong> To support the Service, Targeted Advertising based on non-sensitive telemetry and IP-derived general location is enabled by default. You may withdraw your consent for this personalization at any time by toggling the &apos;Targeted Advertising&apos; switch to OFF in your Account Settings.</p>
 						<p>3.3. <strong>Withdrawal Limitations:</strong> You cannot opt out of data collection necessary for the basic operation of the Service or the processing of active Subscriptions without terminating your account.</p>
 					</section>
 

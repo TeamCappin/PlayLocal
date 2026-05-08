@@ -58,7 +58,6 @@ export function parseInline(text: string): React.ReactNode {
       continue;
     }
 
-    const searchFrom = pos + 1;
     let nextPos = text.length;
     const candidates = [
       text.indexOf("**", pos),

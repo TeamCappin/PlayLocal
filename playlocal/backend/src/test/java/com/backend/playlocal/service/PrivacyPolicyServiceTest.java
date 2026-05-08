@@ -100,6 +100,44 @@ class PrivacyPolicyServiceTest {
   }
 
   @Test
+  void triggerUpdateAllowsMismatchedTriggeredByEmailAndContinues() {
+    when(userRepository.findActiveById(actor.getUserId())).thenReturn(Optional.of(actor));
+    when(userRepository.findAllActiveUsers()).thenReturn(List.of(recipient));
+    when(privacyPolicyNoticeRepository.findById((short) 1)).thenReturn(Optional.empty());
+    when(emailService.sendPrivacyPolicyUpdateEmail(anyString(), anyString(), anyString()))
+        .thenReturn(true);
+
+    PrivacyPolicyDto.UpdateResponse response = privacyPolicyService.triggerUpdate(
+        actor.getUserId().toString(),
+        "different-requester@example.com"
+    );
+
+    assertThat(response.getUpdatedByEmail()).isEqualTo(actor.getEmail());
+    assertThat(response.getRecipientsTargeted()).isEqualTo(1);
+    assertThat(response.getEmailsSent()).isEqualTo(1);
+    assertThat(response.getEmailsFailed()).isEqualTo(0);
+    verify(emailService, times(1)).sendPrivacyPolicyUpdateEmail(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void triggerUpdateIgnoresBlankTriggeredByEmail() {
+    when(userRepository.findActiveById(actor.getUserId())).thenReturn(Optional.of(actor));
+    when(userRepository.findAllActiveUsers()).thenReturn(List.of(recipient));
+    when(privacyPolicyNoticeRepository.findById((short) 1)).thenReturn(Optional.empty());
+    when(emailService.sendPrivacyPolicyUpdateEmail(anyString(), anyString(), anyString()))
+        .thenReturn(true);
+
+    PrivacyPolicyDto.UpdateResponse response = privacyPolicyService.triggerUpdate(
+        actor.getUserId().toString(),
+        "   "
+    );
+
+    assertThat(response.getUpdatedByEmail()).isEqualTo(actor.getEmail());
+    assertThat(response.getRecipientsTargeted()).isEqualTo(1);
+    verify(emailService, times(1)).sendPrivacyPolicyUpdateEmail(anyString(), anyString(), anyString());
+  }
+
+  @Test
   void getStatusReturnsHiddenBannerWhenNoPersistedNoticeExists() {
     when(privacyPolicyNoticeRepository.findById((short) 1)).thenReturn(Optional.empty());
 
@@ -191,4 +229,25 @@ class PrivacyPolicyServiceTest {
         verifyNoInteractions(privacyPolicyNoticeRepository);
         verifyNoInteractions(emailService);
     }
+
+      @Test
+      void triggerUpdateRejectsNonAdminUserWhenTriggeredByEmailDiffers() {
+        User nonAdmin = User.builder()
+            .userId(UUID.randomUUID())
+            .email("not-admin@example.com")
+            .displayName("Not Admin")
+            .slug("not-admin")
+            .build();
+
+        when(userRepository.findActiveById(nonAdmin.getUserId())).thenReturn(Optional.of(nonAdmin));
+
+        assertThatThrownBy(() -> privacyPolicyService.triggerUpdate(
+            nonAdmin.getUserId().toString(),
+            "someone-else@example.com"))
+            .isInstanceOf(AccessDeniedException.class)
+            .hasMessageContaining("Access denied");
+
+        verifyNoInteractions(privacyPolicyNoticeRepository);
+        verifyNoInteractions(emailService);
+      }
 }

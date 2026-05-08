@@ -66,6 +66,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/v*/games/*/roster").permitAll()
                     .requestMatchers("/api/v*/games/**").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/v*/feature-flags/ads-switch").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v*/privacy-policy/status").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // For attendance confirmation testing [US-3.3]
                     .requestMatchers(HttpMethod.POST, "/api/v*/games/*/attendance").authenticated()

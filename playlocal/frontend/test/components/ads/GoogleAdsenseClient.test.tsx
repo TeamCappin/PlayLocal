@@ -302,7 +302,7 @@ describe('GoogleAdsenseClient', () => {
       await waitFor(() => document.body.textContent?.includes('This is a personalized ad.'))
     ).toBe(true);
 
-    mockGetAuthToken.mockReturnValue('jwt-token');
+    mockGetAuthToken.mockReturnValue(null);
     mockPrivacyGetSettings.mockResolvedValue({ adPersonalizationEnabled: false });
     rerender(<GoogleAdsenseClient developerAdsReady={true} pubId="ca-pub-test" />);
 

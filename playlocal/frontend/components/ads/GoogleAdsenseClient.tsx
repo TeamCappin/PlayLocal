@@ -24,7 +24,7 @@ function parseBooleanEnv(value: string | undefined): boolean {
   return ['true', '1', 'yes', 'y', 'on'].includes(value.toLowerCase());
 }
 
-function ensureAdsenseScript(pubId: string): Promise<boolean> {
+function ensureAdsenseScript(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       resolve(false);
@@ -79,23 +79,26 @@ export function GoogleAdsenseClient({
   const isDevFakeAds = parseBooleanEnv(process.env.NEXT_PUBLIC_GOOGLE_ADS_DEV);
   const routeAllowed = isAdsAllowedForPathname(pathname || '/', cfg.includeSensitive);
   const [adminAdsSwitchOn, setAdminAdsSwitchOn] = useState<boolean>(false);
-  const allowed = developerAdsReady && adminAdsSwitchOn && routeAllowed;
 
   // Reserve UI space / load client script only when something will render or request ads.
   const hasActiveAdMode = Boolean(cfg.adSlotId || cfg.enablePageLevelAds);
   const shouldFetchAdminSwitch =
     developerAdsReady && routeAllowed && !!pubId && hasActiveAdMode;
+  const effectiveAdminAdsSwitchOn = shouldFetchAdminSwitch ? adminAdsSwitchOn : false;
+  const allowed = developerAdsReady && effectiveAdminAdsSwitchOn && routeAllowed;
+  const canRenderDevPlaceholder =
+    isDevFakeAds && developerAdsReady && routeAllowed && !!pubId;
 
   // Logged-out users must remain non-personalized.
   const [adPersonalizationEnabled, setAdPersonalizationEnabled] = useState(
     () => !!getAuthToken()
   );
+  const effectiveAdPersonalizationEnabled = !!getAuthToken() && adPersonalizationEnabled;
   const [scriptReady, setScriptReady] = useState(false);
   const lastAdRequestPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!shouldFetchAdminSwitch) {
-      setAdminAdsSwitchOn(false);
       return;
     }
 
@@ -121,7 +124,6 @@ export function GoogleAdsenseClient({
   useEffect(() => {
     const token = getAuthToken();
     if (!token) {
-      setAdPersonalizationEnabled(false);
       return;
     }
 
@@ -149,7 +151,7 @@ export function GoogleAdsenseClient({
       if (isDevFakeAds) return;
       if (!allowed || !pubId || !hasActiveAdMode) return;
 
-      const loaded = await ensureAdsenseScript(pubId);
+      const loaded = await ensureAdsenseScript();
       if (!cancelled) setScriptReady(loaded);
     }
 
@@ -169,7 +171,7 @@ export function GoogleAdsenseClient({
     if (lastAdRequestPathRef.current === pathname) return;
 
     (window.adsbygoogle as any).requestNonPersonalizedAds =
-      adPersonalizationEnabled ? 0 : 1;
+      effectiveAdPersonalizationEnabled ? 0 : 1;
 
     if (cfg.adSlotId) {
       pushAdIns();
@@ -191,23 +193,23 @@ export function GoogleAdsenseClient({
     pathname,
     hasActiveAdMode,
     isDevFakeAds,
-    adPersonalizationEnabled,
+    effectiveAdPersonalizationEnabled,
   ]);
 
-  if (!allowed) return null;
-
   // Dev mode: render fake ad only; never call AdSense script/request flows.
-  if (isDevFakeAds) {
+  if (canRenderDevPlaceholder) {
     return (
       <div className="w-full flex justify-center px-4" aria-live="polite">
         <div className="w-full max-w-4xl rounded-lg bg-purple-700 px-4 py-3 text-white">
-          {adPersonalizationEnabled
+          {effectiveAdPersonalizationEnabled
             ? 'This is a personalized ad.'
             : 'This is a non-personalized ad.'}
         </div>
       </div>
     );
   }
+
+  if (!allowed) return null;
 
   if (!pubId || !hasActiveAdMode) return null;
   if (!cfg.adSlotId) return null;

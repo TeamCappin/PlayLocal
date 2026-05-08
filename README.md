@@ -194,7 +194,7 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-the go to `http://localhost:8081/`
+then go to `http://localhost:8081/`
 
 ```sh
 cd frontend/playlocal/

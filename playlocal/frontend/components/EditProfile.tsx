@@ -57,7 +57,7 @@ export function EditProfile() {
       }
 
       toast.success('Profile updated');
-  navigate.replace(`/profile/${profileSlug}`);
+      navigate.replace(`/profile/${profileSlug}`);
     } catch (err: any) {
       const errorMessage = getActionableErrorMessage(err, 'update profile');
       setSaveError(errorMessage);

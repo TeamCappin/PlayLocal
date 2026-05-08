@@ -448,7 +448,11 @@ export function PrivacySettings({
   onSettingsChange?: (settings: PrivacySettingsResponse | null) => void;
 } = {}) {
   const { user } = useAuth();
-  const controlled = onSettingsChange !== undefined;
+  const controlled =
+    onSettingsChange !== undefined ||
+    initialSettings !== undefined ||
+    initialLoading !== undefined ||
+    initialError !== undefined;
 
   const dsarSubject = 'Data Subject Access Request';
   const dsarBody = [
@@ -550,8 +554,8 @@ export function PrivacySettings({
     );
   }
 
-  const isAdPersonalizationDisabled =
-    !(settings?.adPersonalizationEnabled ?? true);
+  const isAdPersonalizationEnabled =
+    settings?.adPersonalizationEnabled ?? true;
 
   return (
     <>
@@ -705,26 +709,31 @@ export function PrivacySettings({
           <div className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
             <ShieldCheck className="w-5 h-5 text-gray-400" />
             <div className="flex-1">
-              <div>Disable Ad Personalization</div>
+              <div>Ad Personalization</div>
               <div className="text-sm text-gray-600">
                 You will still see ads, but they may be less relevant to you.
               </div>
             </div>
             <button
               type="button"
-              aria-pressed={isAdPersonalizationDisabled}
+              aria-pressed={isAdPersonalizationEnabled}
+              aria-label={
+                isAdPersonalizationEnabled
+                  ? 'Disable Ad Personalization'
+                  : 'Enable Ad Personalization'
+              }
               onClick={() =>
                 handleUpdate({
-                  adPersonalizationEnabled: isAdPersonalizationDisabled,
+                  adPersonalizationEnabled: !isAdPersonalizationEnabled,
                 })
               }
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 ${
-                isAdPersonalizationDisabled ? 'bg-emerald-600' : 'bg-gray-200'
+                isAdPersonalizationEnabled ? 'bg-emerald-600' : 'bg-gray-200'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  isAdPersonalizationDisabled ? 'translate-x-6' : 'translate-x-1'
+                  isAdPersonalizationEnabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
