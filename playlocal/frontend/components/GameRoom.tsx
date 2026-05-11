@@ -1417,10 +1417,10 @@ export function GameRoom() {
               </div>
 
               {/* US-6.1: Organizer Quality Score (always visible — community trust metric) */}
-              {game.organizer?.userId && (
+              {(game.organizer?.organizerId || game.organizer?.userId) && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <OrganizerQualityBadge
-                    userId={game.organizer.userId}
+                    userId={game.organizer.organizerId || game.organizer.userId}
                     variant="compact"
                     showInfoCard={true}
                   />

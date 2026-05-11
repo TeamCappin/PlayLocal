@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping({ "/api/v1/notifications", "/api/v2/notifications" })
 public class NotificationController {
 
     private final NotificationService notificationService;

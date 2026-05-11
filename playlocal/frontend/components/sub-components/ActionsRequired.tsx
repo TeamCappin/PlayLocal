@@ -9,7 +9,7 @@ import { format } from 'date-fns/format';
 
 export function ActionsRequired() {
   const navigate = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated} = useAuth();
   const { games } = usePastGamesByUserNeedingAttendanceUpdate();
   const actionsRequired = games.length;
 

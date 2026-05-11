@@ -497,7 +497,7 @@ describe('useGameChat', () => {
     //   // In jsdom, window.location.hostname is "localhost", so we get localhost WS; otherwise we'd get production URL.
     //   const url = SockJS.mock.calls[0][0];
     //   expect(
-    //     url === 'https://localhost:8080/ws' ||
+    //     url === 'https://localhost:8081/ws' ||
     //       url === 'https://playlocalcapstone.onrender.com/ws'
     //   ).toBe(true);
     // });

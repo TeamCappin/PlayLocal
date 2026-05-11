@@ -140,7 +140,7 @@ export function UserProfile() {
     if (isOwnProfile) {
       refreshUser();
     }
-  }, [isOwnProfile]);
+  }, [isOwnProfile, refreshUser]);
 
   // TODO: Implement friendship check via API
   const isFriend = false; // Placeholder for friendship status

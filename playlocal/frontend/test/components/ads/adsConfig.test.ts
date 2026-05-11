@@ -73,12 +73,21 @@ describe('adsConfig', () => {
 
     it('allows discover and public browsing routes', () => {
       expect(isAdsAllowedForPathname('/discover', false)).toBe(true);
-      expect(isAdsAllowedForPathname('/', false)).toBe(true);
       expect(isAdsAllowedForPathname('/calendar', false)).toBe(true);
     });
 
-    it('allows game detail paths that are not in restricted list', () => {
-      expect(isAdsAllowedForPathname('/games/xyz', false)).toBe(true);
+    it('does not allow game detail or other non-allow-listed paths', () => {
+      expect(isAdsAllowedForPathname('/games/xyz', false)).toBe(false);
+    });
+
+    it('allows allow-listed routes with query-string boundaries', () => {
+      expect(isAdsAllowedForPathname('/discover?radius=25', false)).toBe(true);
+      expect(isAdsAllowedForPathname('/discover?', false)).toBe(true);
+    });
+
+    it('blocks near-match prefixes that are not allow-listed routes', () => {
+      expect(isAdsAllowedForPathname('/discover-alt', false)).toBe(false);
+      expect(isAdsAllowedForPathname('/calendarized', false)).toBe(false);
     });
   });
 });

@@ -43,7 +43,7 @@ export function EditProfile() {
     setIsSaving(true);
 
     try {
-      const updatedUser = await usersApi.updateProfile({
+      await usersApi.updateProfile({
         displayName,
         defaultIntensity: intensity,
         availability: availability.join(','),
@@ -57,7 +57,7 @@ export function EditProfile() {
       }
 
       toast.success('Profile updated');
-      navigate.replace(`/profile/${updatedUser.slug || 'me'}`);
+      navigate.replace(`/profile/${profileSlug}`);
     } catch (err: any) {
       const errorMessage = getActionableErrorMessage(err, 'update profile');
       setSaveError(errorMessage);

@@ -8,6 +8,7 @@ import com.backend.playlocal.repository.EndorsementRepository;
 import com.backend.playlocal.repository.FriendshipRepository;
 import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
+import com.backend.playlocal.service.UsernameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,9 @@ class ProfileIntensityTest {
 
     @Mock
     private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+
+    @Mock
+    private UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;
@@ -186,7 +190,6 @@ class ProfileIntensityTest {
                 .bio("Bio")
                 .location("Montreal")
                 .availability("weekends")
-                .phone("+1234567890")
                 .build();
 
         // Verify we can build the request without a reliabilityScore field

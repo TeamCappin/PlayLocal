@@ -34,7 +34,7 @@ Closes #issue
 
 ## Requirements Reference [Mandatory for User Stories]
 
-View all requirements in the [Project Requirements](https://github.com/munera-intelligence/PermitParser/wiki/Project-Requirements)
+View all requirements in the [Project Requirements](https://github.com/TeamCappin/PlayLocal/wiki/Project-Requirements)
 
 **Requirement Reference:** [REQ-F-001, REQ-N-002, etc.]
 
@@ -42,7 +42,7 @@ View all requirements in the [Project Requirements](https://github.com/munera-in
 
 ## Risk Mitigation [Mandatory for User Stories]
 
-**Associated Risks:** [List risks from the User Story, and associated risks](https://github.com/munera-intelligence/PermitParser/wiki/Risks-and-Mitigation)
+**Associated Risks:** [List risks from the User Story, and associated risks](https://github.com/TeamCappin/PlayLocal/wiki/Risks-and-Mitigation)
 
 **Mitigation Strategy:** [Accept risk, Fix now, Fix later, etc.]
 
@@ -50,14 +50,14 @@ View all requirements in the [Project Requirements](https://github.com/munera-in
 
 ## Technical Requirements
 
-- Code must follow project standards and guidelines [see wiki](https://github.com/MuneraCappin/PermitParser/wiki/Code-Standards)
-- Architecture diagrams must be updated if needed [see wiki](https://github.com/MuneraCappin/PermitParser/wiki/System-Diagrams)
+- Code must follow project standards and guidelines [see wiki](https://github.com/TeamCappin/PlayLocal/wiki/Code-Standards)
+- Architecture diagrams must be updated if needed [see wiki](https://github.com/TeamCappin/PlayLocal/wiki/System-Architecture)
 
 ## Unit Tests
 
 **Unit Test Status:** [Not Started/In Progress/Completed]
 
-**Test Documentation:** [Link to test documentation in wiki](https://github.com/MuneraCappin/PermitParser/wiki/QA-Test-Results)
+**Test Documentation:** [Link to test documentation in wiki](https://github.com/TeamCappin/PlayLocal/wiki/QA-Test-Results)
 
 - [ ] Unit tests written
 - [ ] Code coverage >80%

@@ -4,7 +4,7 @@ export function TermsOfService() {
       <div className="max-w-4xl mx-auto rounded-xl border border-gray-200 bg-white p-6 sm:p-8 lg:p-10">
         <header className="mb-8 border-b border-gray-100 pb-6">
           <h1 className="text-3xl text-gray-900">PlayLocal Service Terms and End User License Agreement</h1>
-          <p className="mt-2 text-sm text-gray-600">Last updated: 2026-03-27</p>
+          <p className="mt-2 text-sm text-gray-600">Date effective: 2026-03-27</p>
         </header>
 
         <div className="space-y-6 text-gray-800">
@@ -48,7 +48,7 @@ export function TermsOfService() {
 
           <section className="space-y-3">
             <h3 className="text-lg text-gray-900">4. DISCRETIONARY ENFORCEMENT AND ACCOUNT ADMINISTRATION</h3>
-            <p>4.1. <strong>No Obligation to Monitor or Act:</strong> While we may provide features to report content or users, our decision to utilize any moderation tool or address any user report is strictly at our sole and absolute discretion.</p>
+            <p>4.1. <strong>No Obligation to Monitor or Act:</strong> While we may provide features to report content or users, our decision to utilize any moderation tool or address any user report is strictly at our sole and absolute discretion in compliance with Mandatory Law.</p>
             <p>4.2. <strong>Right to Terminate:</strong> We reserve the right to modify, suspend, or terminate the Service, or your specific access to it, at any time, for any reason, with or without notice.</p>
             <p>4.3. <strong>Finality of Decisions:</strong> All our administrative and moderation decisions are final and not subject to appeal or review.</p>
           </section>

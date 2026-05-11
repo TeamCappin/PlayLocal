@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/games")
+@RequestMapping({ "/api/v1/games", "/api/v2/games" })
 public class GameController {
 
     private final GameService gameService;
@@ -204,6 +204,15 @@ public class GameController {
             Authentication authentication) {
         UUID userId = requireAuthenticatedUserId(authentication);
         GameDto.GameResponse response = gameService.completeGame(gameId, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get organizer progression (provisional/full and eligible completed games) for a game.
+     */
+    @GetMapping("/{gameId}/organizer-progress")
+    public ResponseEntity<GameDto.OrganizerProgressResponse> getOrganizerProgress(@PathVariable UUID gameId) {
+        GameDto.OrganizerProgressResponse response = gameService.getOrganizerProgress(gameId);
         return ResponseEntity.ok(response);
     }
 

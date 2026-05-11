@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${PLAYLOCAL_BASE_URL:-http://localhost:8080/api/v1}"
+BASE_URL="${PLAYLOCAL_BASE_URL:-http://localhost:8081/api/v1}"
 EMAIL="${PLAYLOCAL_EMAIL:-alex.chen@demo.com}"
 PASSWORD="${PLAYLOCAL_PASSWORD:-password123}"
 LAT="${PLAYLOCAL_LAT:-45.5312}"

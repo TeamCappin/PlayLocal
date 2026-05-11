@@ -15,7 +15,7 @@ It validates three concrete implementation points from the performance plan:
 
 The script is designed to run against the local Docker stack and seeded demo data:
 
-- Base URL: `http://localhost:8080/api/v1`
+- Base URL: `http://localhost:8081/api/v1`
 - Demo account: `alex.chen@demo.com`
 - Demo password: `password123`
 - Discovery location: Montreal (`45.5312`, `-73.6205`) with `25 km` radius
@@ -27,7 +27,7 @@ Those defaults match seeded users and games created by the backend Flyway demo m
 1. Start the local stack:
    `docker compose up -d`
 2. Confirm the backend is healthy:
-   `curl http://localhost:8080/api/v1/health`
+   `curl http://localhost:8081/api/v1/health`
 3. Ensure `curl` and `python3` are available
 
 ## Run it
@@ -44,7 +44,7 @@ chmod +x performance/api_timing_check.sh
 You can point the check at another environment or use a different demo user:
 
 ```bash
-PLAYLOCAL_BASE_URL=http://localhost:8080/api/v1 \
+PLAYLOCAL_BASE_URL=http://localhost:8081/api/v1 \
 PLAYLOCAL_EMAIL=minh.h@demo.com \
 PLAYLOCAL_PASSWORD=password123 \
 PLAYLOCAL_LAT=45.5312 \

@@ -53,7 +53,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com/TeamCappin/PlayLocal/issues"
+                  href="mailto:playlocal.mgdfd@simplelogin.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-400 transition-colors"
@@ -74,6 +74,11 @@ export function Footer() {
               <li>
                 <Link href="/terms-of-service" className="hover:text-emerald-400 transition-colors">
                   Terms of Service
+                </Link>
+              </li>
+                <li>
+                <Link href="/organizer-agreement" className="hover:text-emerald-400 transition-colors">
+                  Organizer Agreement
                 </Link>
               </li>
             </ul>

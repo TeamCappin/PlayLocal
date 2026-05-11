@@ -32,18 +32,16 @@ export function getAdsRuntimeConfig(): AdsRuntimeConfig {
   };
 }
 
-// Restricted/sensitive pages where ads should not appear.
-// Keep this list strict by default; you can override via `NEXT_PUBLIC_ADS_INCLUDE_SENSITIVE=true`.
-const RESTRICTED_ROUTE_PREFIXES: string[] = [
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/games/create',
-  '/rsvpRoster/',
-  '/profile/edit',
-  '/notifications',
-  '/settings',
+// Allow-list of routes where ads are permitted by default.
+// Only paths matching these entries (exact root, or prefix for others) will show ads.
+// Everything else — auth flows, settings, legal pages, game rooms, profiles, etc. — is ad-free.
+// Set NEXT_PUBLIC_ADS_INCLUDE_SENSITIVE=true to bypass the allow-list entirely.
+const AD_ALLOWED_ROUTES: string[] = [
+  '/discover',
+  '/players',
+  '/stats',
+  '/friends',
+  '/calendar',
 ];
 
 export function isAdsAllowedForPathname(
@@ -52,9 +50,12 @@ export function isAdsAllowedForPathname(
 ): boolean {
   if (includeSensitive) return true;
 
-  return !RESTRICTED_ROUTE_PREFIXES.some((prefix) => {
-    if (prefix.endsWith('/')) return pathname.startsWith(prefix);
-    return pathname === prefix || pathname.startsWith(prefix);
+  return AD_ALLOWED_ROUTES.some((allowed) => {
+    return (
+      pathname === allowed ||
+      pathname.startsWith(allowed + '/') ||
+      pathname.startsWith(allowed + '?')
+    );
   });
 }
 

@@ -38,6 +38,7 @@ public class GameService {
         private final GameRepository gameRepository;
         private final GameParticipationRepository participationRepository;
         private final UserRepository userRepository;
+        private final OrganizerRepository organizerRepository;
         private final SportRepository sportRepository;
         private final GameVisibilityRepository gameVisibilityRepository;
         private final EndorsementRepository endorsementRepository;
@@ -49,9 +50,11 @@ public class GameService {
         private final LocationRepository locationRepository;
         private final PrivacySettingsService privacySettingsService;
         private final FriendshipRepository friendshipRepository;
+        private final OrganizerCompatibilityLayer organizerCompatibilityLayer;
+        private final PlayerHistoryService playerHistoryService;
 
         public GameService(GameRepository gameRepository, GameParticipationRepository participationRepository,
-                        UserRepository userRepository, SportRepository sportRepository,
+                        UserRepository userRepository, OrganizerRepository organizerRepository, SportRepository sportRepository,
                         GameVisibilityRepository gameVisibilityRepository,
                         EndorsementRepository endorsementRepository, GameTagRepository tagRepository,
                         GameTagAssignmentRepository tagAssignmentRepository,
@@ -60,10 +63,12 @@ public class GameService {
                         OrganizerQualityService oqsService,
                         LocationRepository locationRepository,
                         PrivacySettingsService privacySettingsService,
-                        FriendshipRepository friendshipRepository) {
+                        FriendshipRepository friendshipRepository,
+                        PlayerHistoryService playerHistoryService) {
                 this.gameRepository = gameRepository;
                 this.participationRepository = participationRepository;
                 this.userRepository = userRepository;
+                this.organizerRepository = organizerRepository;
                 this.sportRepository = sportRepository;
                 this.gameVisibilityRepository = gameVisibilityRepository;
                 this.endorsementRepository = endorsementRepository;
@@ -75,6 +80,8 @@ public class GameService {
                 this.locationRepository = locationRepository;
                 this.privacySettingsService = privacySettingsService;
                 this.friendshipRepository = friendshipRepository;
+                this.organizerCompatibilityLayer = new OrganizerCompatibilityLayer(organizerRepository);
+                this.playerHistoryService = playerHistoryService;
         }
 
 
@@ -242,6 +249,7 @@ public class GameService {
                 List<UUID> gameIds = games.stream()
                                 .map(Game::getGameId)
                                 .toList();
+                Map<UUID, String> organizerIdByUserId = loadOrganizerIdsByUserId(games);
                 Map<UUID, ParticipationSummary> participationSummaryByGameId = loadParticipationSummary(gameIds);
                 Map<UUID, List<GameDto.TagDto>> tagsByGameId = loadTagsByGameId(gameIds);
                 Set<UUID> confirmedGameIdsForUser = loadConfirmedGameIdsForUser(gameIds, requestingUserId);
@@ -254,8 +262,22 @@ public class GameService {
                                                                 game.getGameId(),
                                                                 ParticipationSummary.EMPTY),
                                                 tagsByGameId.getOrDefault(game.getGameId(), List.of()),
-                                                confirmedGameIdsForUser))
+                                                confirmedGameIdsForUser,
+                                                organizerIdByUserId))
                                 .collect(Collectors.toList());
+        }
+
+        private Map<UUID, String> loadOrganizerIdsByUserId(List<Game> games) {
+                List<UUID> organizerUserIds = games.stream()
+                                .map(Game::getCreatedBy)
+                                .filter(Objects::nonNull)
+                                .map(User::getUserId)
+                                .distinct()
+                                .toList();
+
+                return organizerCompatibilityLayer.resolveOrganizerIdsByUserIds(organizerUserIds)
+                                .entrySet().stream()
+                                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString()));
         }
 
         private Map<UUID, ParticipationSummary> loadParticipationSummary(List<UUID> gameIds) {
@@ -306,9 +328,8 @@ public class GameService {
          * US-2.6
          */
         public List<GameDto.GameResponse> getPastGames(UUID userId) {
-                return gameRepository.findPastGames(userId, Instant.now()).stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                List<Game> games = gameRepository.findPastGames(userId, Instant.now());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -316,9 +337,8 @@ public class GameService {
          * US-2.6
          */
         public List<GameDto.GameResponse> getPastGamesForUserNeedingAttendanceUpdate(UUID userId) {
-                return gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now()).stream()
-                                .map(game -> mapToGameResponse(game, userId))
-                                .collect(Collectors.toList());
+                List<Game> games = gameRepository.findPastGamesForUserNeedingAttendanceUpdate(userId, Instant.now());
+                return mapGamesToResponses(games, userId);
         }
 
         /**
@@ -832,7 +852,42 @@ public class GameService {
 
                 assertOrganizer(game, userId);
                 game = completeGameInternal(game);
-                return mapToGameResponse(game, userId);
+                GameDto.GameResponse response = mapToGameResponse(game, userId);
+                enrichOrganizerProgress(response, game.getCreatedBy().getUserId());
+                return response;
+        }
+
+        /**
+         * Get organizer provisional/full progression for a game.
+         */
+        @Transactional(readOnly = true)
+        public GameDto.OrganizerProgressResponse getOrganizerProgress(UUID gameId) {
+                Game game = gameRepository.findById(gameId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
+
+                UUID organizerUserId = game.getCreatedBy().getUserId();
+                Optional<Organizer> organizerOptional = organizerRepository != null
+                                ? organizerRepository.findByGameId(gameId)
+                                : Optional.empty();
+
+                String status = Organizer.OrganizerStatus.NONE.name();
+                int eligibleGamesCompleted = 0;
+                if (organizerOptional.isPresent()) {
+                        Organizer organizer = organizerOptional.get();
+                        status = organizer.getStatus() != null
+                                        ? organizer.getStatus().name()
+                                        : Organizer.OrganizerStatus.NONE.name();
+                        eligibleGamesCompleted = organizer.getProvisionalGamesCompleted() != null
+                                        ? organizer.getProvisionalGamesCompleted()
+                                        : 0;
+                }
+
+                return GameDto.OrganizerProgressResponse.builder()
+                                .gameId(gameId.toString())
+                                .organizerUserId(organizerUserId.toString())
+                                .organizerStatus(status)
+                                .eligibleGamesCompleted(eligibleGamesCompleted)
+                                .build();
         }
 
         /**
@@ -942,7 +997,8 @@ public class GameService {
                         UUID requestingUserId,
                         ParticipationSummary participationSummary,
                         List<GameDto.TagDto> tags,
-                        Set<UUID> confirmedGameIdsForUser) {
+                        Set<UUID> confirmedGameIdsForUser,
+                        Map<UUID, String> organizerIdByUserId) {
                 boolean showExactLocation = false;
                 if (requestingUserId != null) {
                         if (game.getCreatedBy().getUserId().equals(requestingUserId)) {
@@ -988,7 +1044,9 @@ public class GameService {
                                 .startTime(game.getStartTime())
                                 .endTime(game.getEndTime())
                                 .status(game.getStatus().name())
-                                .organizer(buildOrganizerDto(game.getCreatedBy()))
+                                .organizer(buildOrganizerDto(
+                                                game.getCreatedBy(),
+                                                organizerIdByUserId.get(game.getCreatedBy().getUserId())))
                                 .confirmedCount(participationSummary.confirmedCount())
                                 .waitlistCount(participationSummary.waitlistCount())
                                 .createdAt(game.getCreatedAt())
@@ -1035,7 +1093,22 @@ public class GameService {
 
         // US-7.12: Build organizer DTO — reliability is always visible (community trust metric)
         private GameDto.OrganizerDto buildOrganizerDto(User organizer) {
+                String organizerId = organizerCompatibilityLayer.findOrganizerIdByUserId(organizer.getUserId())
+                                .map(UUID::toString)
+                                .orElse(null);
+
+                // Delegate DTO construction to the overload that accepts a pre-resolved organizerId.
+                return buildOrganizerDto(organizer, organizerId);
+        }
+
+        /**
+         * Overload that builds the organizer DTO from a pre-resolved organizerId.
+         * Callers that already have organizerId (for example, from a join/projection
+         * or a batched lookup) can use this method to avoid additional repository calls.
+         */
+        private GameDto.OrganizerDto buildOrganizerDto(User organizer, String organizerId) {
                 return GameDto.OrganizerDto.builder()
+                                .organizerId(organizerId)
                                 .userId(organizer.getUserId().toString())
                                 .displayName(organizer.getDisplayName())
                                 .reliabilityScore(organizer.getReliabilityScore())
@@ -1189,11 +1262,68 @@ public class GameService {
                         return game;
                 }
 
+                maybePromoteProvisionalOrganizer(game);
+
                 game.setStatus(Game.GameStatus.COMPLETED);
                 Game saved = gameRepository.save(game);
                 if (notificationService != null) {
                         notificationService.notifyAttendanceConfirmationNeeded(saved);
                 }
                 return saved;
+        }
+
+        private void maybePromoteProvisionalOrganizer(Game game) {
+                UUID organizerUserId = game.getCreatedBy().getUserId();
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findByIdWithLock);
+
+                // Backward-compatible fallback for data that may not yet have organizerId populated.
+                if (organizerOptional.isEmpty()) {
+                        organizerOptional = organizerRepository.findByUser_UserId(organizerUserId);
+                }
+
+                if (organizerOptional.isEmpty()) {
+                        return;
+                }
+
+                Organizer organizer = organizerOptional.get();
+                if (organizer.getStatus() != Organizer.OrganizerStatus.PROVISIONAL) {
+                        return;
+                }
+
+                List<UUID> eligiblePlayers = playerHistoryService.getNonFirstTimePlayers(game.getGameId(), organizerUserId);
+                if (eligiblePlayers.size() < 2) {
+                        return;
+                }
+
+                int completed = organizer.getProvisionalGamesCompleted() != null
+                                ? organizer.getProvisionalGamesCompleted()
+                                : 0;
+                organizer.setProvisionalGamesCompleted(completed + 1);
+                if (organizer.getProvisionalGamesCompleted() >= 2) {
+                        organizer.setStatus(Organizer.OrganizerStatus.FULL);
+                }
+                organizerRepository.save(organizer);
+        }
+
+        private void enrichOrganizerProgress(GameDto.GameResponse response, UUID organizerUserId) {
+                if (response == null || response.getOrganizer() == null || organizerRepository == null) {
+                        return;
+                }
+
+                Optional<Organizer> organizerOptional = organizerCompatibilityLayer
+                                .findOrganizerIdByUserId(organizerUserId)
+                                .flatMap(organizerRepository::findById)
+                                .or(() -> organizerRepository.findByUser_UserId(organizerUserId));
+
+                organizerOptional.ifPresent(organizer -> {
+                        response.getOrganizer().setStatus(
+                                        organizer.getStatus() != null ? organizer.getStatus().name() : Organizer.OrganizerStatus.NONE.name());
+                        response.getOrganizer().setEligibleGamesCompleted(
+                                        organizer.getProvisionalGamesCompleted() != null
+                                                        ? organizer.getProvisionalGamesCompleted()
+                                                        : 0);
+                });
         }
 }

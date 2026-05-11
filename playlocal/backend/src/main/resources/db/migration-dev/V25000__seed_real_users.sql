@@ -1,5 +1,7 @@
 -- Dev seed (V25): two extra demo users, then participations and player_rating rows
 -- (requires V24 historical games + main V23 player_rating).
+-- Login password for both seeded users: password123
+-- Hash '$2a$12$MoUp.DfS/q8OOz4Hj26mTOvulgMVStv5sYOgEVP9etZToUfmLQDsi' maps to that password.
 
 INSERT INTO "user" (user_id, email, password_hash, display_name, slug, bio, location, default_intensity, availability, reliability_score, games_count, created_at)
 VALUES

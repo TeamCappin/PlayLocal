@@ -367,6 +367,7 @@ export function ProfileSettings({
           </button>
           <button
             type="button"
+            onClick={() => toast.error('Phone edit is not available at this time.')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Save Changes
@@ -446,7 +447,30 @@ export function PrivacySettings({
   initialError?: string | null;
   onSettingsChange?: (settings: PrivacySettingsResponse | null) => void;
 } = {}) {
-  const controlled = onSettingsChange !== undefined;
+  const { user } = useAuth();
+  const controlled =
+    onSettingsChange !== undefined ||
+    initialSettings !== undefined ||
+    initialLoading !== undefined ||
+    initialError !== undefined;
+
+  const dsarSubject = 'Data Subject Access Request';
+  const dsarBody = [
+    'Hello PlayLocal Support,',
+    '',
+    'I am requesting a copy of my personal data under PIPEDA.',
+    '',
+    ...(user?.email ? [`Account email: ${user.email}`] : []),
+    ...(user?.userId ? [`User ID: ${user.userId}`] : []),
+    ...(user?.displayName ? [`Display name: ${user.displayName}`] : []),
+    `Requested at (UTC): ${new Date().toISOString()}`,
+    '',
+    'Thank you.',
+  ].join('\n');
+
+  const dsarMailtoHref = `mailto:playlocal.mgdfd@simplelogin.com?subject=${encodeURIComponent(
+    dsarSubject
+  )}&body=${encodeURIComponent(dsarBody)}`;
 
   const [localSettings, setLocalSettings] =
     useState<PrivacySettingsResponse | null>(null);
@@ -529,6 +553,9 @@ export function PrivacySettings({
       </div>
     );
   }
+
+  const isAdPersonalizationEnabled =
+    settings?.adPersonalizationEnabled ?? true;
 
   return (
     <>
@@ -654,16 +681,22 @@ export function PrivacySettings({
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-xl text-gray-900 mb-6">Data & Privacy</h2>
         <div className="space-y-4">
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          <a
+            href={dsarMailtoHref}
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <Download className="w-5 h-5 text-gray-400" />
             <div>
-              <div>Download Your Data</div>
+              <div>Request My Data</div>
               <div className="text-sm text-gray-600">
-                Get a copy of your PlayLocal data
+                Email support to request a copy of your PlayLocal data
               </div>
             </div>
-          </button>
-          <button className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+          </a>
+          <a
+            href="/privacy-policy"
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
             <Shield className="w-5 h-5 text-gray-400" />
             <div>
               <div>Privacy Policy</div>
@@ -671,7 +704,40 @@ export function PrivacySettings({
                 Read our privacy policy
               </div>
             </div>
-          </button>
+          </a>
+
+          <div className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
+            <ShieldCheck className="w-5 h-5 text-gray-400" />
+            <div className="flex-1">
+              <div>Ad Personalization</div>
+              <div className="text-sm text-gray-600">
+                You will still see ads, but they may be less relevant to you.
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-pressed={isAdPersonalizationEnabled}
+              aria-label={
+                isAdPersonalizationEnabled
+                  ? 'Disable Ad Personalization'
+                  : 'Enable Ad Personalization'
+              }
+              onClick={() =>
+                handleUpdate({
+                  adPersonalizationEnabled: !isAdPersonalizationEnabled,
+                })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ml-4 ${
+                isAdPersonalizationEnabled ? 'bg-emerald-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isAdPersonalizationEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
     </>

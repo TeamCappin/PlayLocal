@@ -391,6 +391,43 @@ class GameControllerAuthTest {
             assertThat(response.getBody()).isEqualTo(archivedGame);
             verify(gameService).archiveGame(gameId, userId);
         }
+
+                @Test
+                @DisplayName("getOrganizerProgress should call service and return 200")
+                void getOrganizerProgress_ShouldCallServiceAndReturn200() {
+                        GameDto.OrganizerProgressResponse progress = GameDto.OrganizerProgressResponse.builder()
+                                        .gameId(gameId.toString())
+                                        .organizerUserId(UUID.randomUUID().toString())
+                                        .organizerStatus("PROVISIONAL")
+                                        .eligibleGamesCompleted(1)
+                                        .build();
+                        when(gameService.getOrganizerProgress(gameId)).thenReturn(progress);
+
+                        ResponseEntity<GameDto.OrganizerProgressResponse> response = gameController.getOrganizerProgress(gameId);
+
+                        assertThat(response.getStatusCode().value()).isEqualTo(200);
+                        assertThat(response.getBody()).isEqualTo(progress);
+                        verify(gameService).getOrganizerProgress(gameId);
+                }
+
+                @Test
+                @DisplayName("getOrganizerProgress should expose returned fields")
+                void getOrganizerProgress_ShouldExposeFields() {
+                        UUID organizerId = UUID.randomUUID();
+                        GameDto.OrganizerProgressResponse progress = GameDto.OrganizerProgressResponse.builder()
+                                        .gameId(gameId.toString())
+                                        .organizerUserId(organizerId.toString())
+                                        .organizerStatus("FULL")
+                                        .eligibleGamesCompleted(2)
+                                        .build();
+                        when(gameService.getOrganizerProgress(gameId)).thenReturn(progress);
+
+                        ResponseEntity<GameDto.OrganizerProgressResponse> response = gameController.getOrganizerProgress(gameId);
+
+                        assertThat(response.getBody()).isNotNull();
+                        assertThat(response.getBody().getOrganizerStatus()).isEqualTo("FULL");
+                        assertThat(response.getBody().getEligibleGamesCompleted()).isEqualTo(2);
+                }
     }
 
     @Nested

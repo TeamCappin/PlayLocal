@@ -7,8 +7,10 @@ import com.backend.playlocal.model.entity.User;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
 import com.backend.playlocal.repository.FriendshipRepository;
+import com.backend.playlocal.repository.PlayerRatingRepository;
 import com.backend.playlocal.service.PrivacySettingsService;
 import com.backend.playlocal.service.UserService;
+import com.backend.playlocal.service.UsernameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +53,10 @@ class UserServiceTest {
     private FriendshipRepository friendshipRepository;
 
     @Mock
-    private com.backend.playlocal.repository.PlayerRatingRepository playerRatingRepository;
+    private PlayerRatingRepository playerRatingRepository;
+
+    @Mock
+    private UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;
@@ -79,6 +84,7 @@ class UserServiceTest {
     @Test
     @DisplayName("US-1.1: updateProfile should update fields and return dto")
     void updateProfile_Success() {
+        String originalSlug = user.getSlug();
         when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -86,6 +92,11 @@ class UserServiceTest {
 
         assertThat(result.getDisplayName()).isEqualTo("Updated Name");
         assertThat(result.getBio()).isEqualTo("New Bio");
+        assertThat(result.getSlug()).isEqualTo(originalSlug);
+        assertThat(result.getEmail()).isEqualTo(user.getEmail());
+        assertThat(user.getSlug()).isEqualTo(originalSlug);
+        assertThat(user.getEmail()).isEqualTo("test@example.com");
+        assertThat(user.getPhoneE164()).isNull();
         verify(userRepository).save(user);
     }
 
@@ -156,6 +167,7 @@ class UserServiceTest {
     @Test
     @DisplayName("US-1.4: getProfileBySlug should return profile when found")
     void getProfileBySlug_Success() {
+        when(usernameService.normalizeUsernameOrThrow("test-user-slug")).thenReturn("test-user-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-user-slug")).thenReturn(Optional.of(user));
 
         AuthDto.UserDto result = userService.getProfileBySlug("test-user-slug");
@@ -166,11 +178,24 @@ class UserServiceTest {
     @Test
     @DisplayName("US-1.4: getProfileBySlug should throw exception when not found")
     void getProfileBySlug_NotFound() {
+        when(usernameService.normalizeUsernameOrThrow("unknown")).thenReturn("unknown");
         when(userRepository.findBySlugAndDeletedAtIsNull(anyString())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.getProfileBySlug("unknown"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("User not found");
+    }
+
+    @Test
+    @DisplayName("US-1.4: getProfileBySlug should normalize slug via UsernameService")
+    void getProfileBySlug_NormalizesViaUsernameService() {
+        when(usernameService.normalizeUsernameOrThrow("  Test User!  ")).thenReturn("test-user");
+        when(userRepository.findBySlugAndDeletedAtIsNull("test-user")).thenReturn(Optional.of(user));
+
+        userService.getProfileBySlug("  Test User!  ");
+
+        verify(usernameService).normalizeUsernameOrThrow("  Test User!  ");
+        verify(userRepository).findBySlugAndDeletedAtIsNull("test-user");
     }
 
     // ── US-7.12 Privacy: searchUsers ──────────────────────────────────────
@@ -215,6 +240,7 @@ class UserServiceTest {
         List<Object[]> batchCounts = new ArrayList<>();
         batchCounts.add(new Object[]{user.getUserId(), 5L});
         when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(batchCounts);
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
         when(privacySettingsService.isSearchable(any(UUID.class), anyBoolean())).thenReturn(true);
         when(privacySettingsService.canViewProfile(any(UUID.class), any(), anyBoolean())).thenReturn(false);
 
@@ -240,6 +266,7 @@ class UserServiceTest {
         Page<User> page = new PageImpl<>(List.of(user));
         when(userRepository.findAllActive(any(PageRequest.class))).thenReturn(page);
         when(endorsementRepository.countEndorsementsByUserIds(anyList())).thenReturn(new ArrayList<>());
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         // Viewer is the same user
         UserDto.SearchResponse response = userService.searchUsers(null, 0, 10, user.getUserId());
@@ -258,6 +285,7 @@ class UserServiceTest {
     void getUserProfile_OwnProfile_ReturnsFull() {
         user.setBio("My bio");
         when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         AuthDto.UserDto result = userService.getUserProfile(user.getUserId().toString(), user.getUserId());
 
@@ -277,6 +305,7 @@ class UserServiceTest {
         when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(false);
         when(privacySettingsService.canViewProfile(user.getUserId(), viewerId, false)).thenReturn(false);
         when(endorsementRepository.countByEndorsedUser_UserId(user.getUserId())).thenReturn(3L);
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         AuthDto.UserDto result = userService.getUserProfile(user.getUserId().toString(), viewerId);
 
@@ -293,6 +322,7 @@ class UserServiceTest {
     void getUserProfile_Friend_ReturnsFull() {
         user.setBio("Visible bio");
         when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         UUID viewerId = UUID.randomUUID();
         when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(true);
@@ -310,12 +340,14 @@ class UserServiceTest {
     @DisplayName("US-7.12: getProfileBySlug returns restricted profile for non-friend")
     void getProfileBySlug_PrivateProfile_ReturnsRestricted() {
         user.setBio("Secret bio");
+        when(usernameService.normalizeUsernameOrThrow("test-slug")).thenReturn("test-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
 
         UUID viewerId = UUID.randomUUID();
         when(friendshipRepository.areFriends(viewerId, user.getUserId())).thenReturn(false);
         when(privacySettingsService.canViewProfile(user.getUserId(), viewerId, false)).thenReturn(false);
         when(endorsementRepository.countByEndorsedUser_UserId(user.getUserId())).thenReturn(0L);
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         AuthDto.UserDto result = userService.getProfileBySlug("test-slug", viewerId);
 
@@ -327,7 +359,9 @@ class UserServiceTest {
     @DisplayName("US-7.12: getProfileBySlug returns full profile for own profile")
     void getProfileBySlug_OwnProfile_ReturnsFull() {
         user.setBio("My bio");
+        when(usernameService.normalizeUsernameOrThrow("test-slug")).thenReturn("test-slug");
         when(userRepository.findBySlugAndDeletedAtIsNull("test-slug")).thenReturn(Optional.of(user));
+        when(playerRatingRepository.getAverageRatingForUser(user.getUserId())).thenReturn(null);
 
         AuthDto.UserDto result = userService.getProfileBySlug("test-slug", user.getUserId());
 
@@ -336,41 +370,20 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("US-1.4: updateProfile should regenerate slug when display name changes")
-    void updateProfile_RegeneratesSlug() {
+        @DisplayName("US-1.4: updateProfile should update display name without changing slug")
+        void updateProfile_DisplayNameChanged_KeepsSlug() {
         when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull(anyString(), any(UUID.class))).thenReturn(false);
+
+        String originalSlug = user.getSlug();
 
         UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("New Display Name")
-                .build();
+            .displayName("New Display Name")
+            .build();
 
         AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
 
         assertThat(result.getDisplayName()).isEqualTo("New Display Name");
-        assertThat(result.getSlug()).isEqualTo("new-display-name");
-    }
-
-    @Test
-    @DisplayName("US-1.4: updateProfile handles slug collision by appending counter")
-    void updateProfile_HandlesSlugCollision() {
-        when(userRepository.findActiveById(user.getUserId())).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Mock collision for base slug "collision-user"
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user", user.getUserId()))
-                .thenReturn(true);
-        // Mock no collision for "collision-user-1"
-        when(userRepository.existsBySlugAndUserIdNotAndDeletedAtIsNull("collision-user-1", user.getUserId()))
-                .thenReturn(false);
-
-        UserDto.UpdateProfileRequest request = UserDto.UpdateProfileRequest.builder()
-                .displayName("Collision User")
-                .build();
-
-        AuthDto.UserDto result = userService.updateProfile(user.getUserId().toString(), request);
-
-        assertThat(result.getSlug()).isEqualTo("collision-user-1");
-    }
+        assertThat(result.getSlug()).isEqualTo(originalSlug);
+        }
 }

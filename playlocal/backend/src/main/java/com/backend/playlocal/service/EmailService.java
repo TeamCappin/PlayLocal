@@ -36,4 +36,9 @@ public interface EmailService {
    * Send a welcome email after successful registration.
    */
   boolean sendWelcomeEmail(String to, String displayName);
+
+  /**
+   * Send a privacy policy update notice email.
+   */
+boolean sendPrivacyPolicyUpdateEmail(String to, String effectiveDate, String notice);
 }

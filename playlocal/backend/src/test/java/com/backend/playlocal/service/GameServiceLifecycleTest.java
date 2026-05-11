@@ -4,8 +4,10 @@ import com.backend.playlocal.exception.ResourceNotFoundException;
 import com.backend.playlocal.model.entity.Game;
 import com.backend.playlocal.model.entity.GameParticipation;
 import com.backend.playlocal.model.entity.Location;
+import com.backend.playlocal.model.entity.Organizer;
 import com.backend.playlocal.model.entity.Sport;
 import com.backend.playlocal.model.entity.User;
+import com.backend.playlocal.model.dto.GameDto;
 import com.backend.playlocal.repository.GameParticipationRepository;
 import com.backend.playlocal.repository.GameRepository;
 import com.backend.playlocal.repository.GameTagAssignmentRepository;
@@ -13,6 +15,7 @@ import com.backend.playlocal.repository.GameTagConfirmationRepository;
 import com.backend.playlocal.repository.GameTagRepository;
 import com.backend.playlocal.repository.GameVisibilityRepository;
 import com.backend.playlocal.repository.LocationRepository;
+import com.backend.playlocal.repository.OrganizerRepository;
 import com.backend.playlocal.repository.SportRepository;
 import com.backend.playlocal.repository.UserRepository;
 import com.backend.playlocal.repository.EndorsementRepository;
@@ -36,7 +39,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,6 +53,8 @@ class GameServiceLifecycleTest {
     private GameParticipationRepository participationRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private OrganizerRepository organizerRepository;
     @Mock
     private SportRepository sportRepository;
     @Mock
@@ -73,6 +77,8 @@ class GameServiceLifecycleTest {
     private PrivacySettingsService privacySettingsService;
     @Mock
     private FriendshipRepository friendshipRepository;
+        @Mock
+        private PlayerHistoryService playerHistoryService;
 
     @InjectMocks
     private GameService gameService;
@@ -111,15 +117,26 @@ class GameServiceLifecycleTest {
                 .status(Game.GameStatus.SCHEDULED)
                 .startTime(Instant.now().plusSeconds(3600))
                 .build();
-
-        lenient().when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        lenient().when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
-        lenient().when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
-        lenient().when(tagAssignmentRepository.findAllByGame(game)).thenReturn(List.of());
     }
+
+        private void stubGameResponseDependencies() {
+                when(participationRepository.countConfirmedParticipants(gameId)).thenReturn(1);
+                when(participationRepository.findWaitlistedByGame(gameId)).thenReturn(List.of());
+                when(tagAssignmentRepository.findAllByGame(game)).thenReturn(List.of());
+        }
+
+        private void stubGameResponseDependenciesWithSave() {
+                stubGameResponseDependencies();
+                when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
+
+        private void stubGameSave() {
+                when(gameRepository.save(any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        }
 
     @Test
     void cancelGame_AsOrganizer_CancelsAndNotifiesParticipants() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerParticipation = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -166,7 +183,14 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGame_AsOrganizer_SetsCompleted() {
+                stubGameResponseDependenciesWithSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(
+                Organizer.builder()
+                        .user(organizer)
+                        .status(Organizer.OrganizerStatus.FULL)
+                        .provisionalGamesCompleted(2)
+                        .build()));
 
         gameService.completeGame(gameId, organizer.getUserId());
 
@@ -177,7 +201,92 @@ class GameServiceLifecycleTest {
     }
 
     @Test
+    void completeGame_ProvisionalOrganizer_WithTwoEligiblePlayers_IncrementsCounter() {
+                stubGameResponseDependenciesWithSave();
+        UUID organizerId = UUID.randomUUID();
+        Organizer organizerProfile = Organizer.builder()
+                .organizerId(organizerId)
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(0)
+                .build();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(organizerRepository.findByIdWithLock(organizerId)).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID()));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(organizerRepository).save(organizerProfile);
+                verify(organizerRepository).findByIdWithLock(organizerId);
+        assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(1);
+        assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.PROVISIONAL);
+    }
+
+        @Test
+        void completeGame_ProvisionalOrganizer_IneligibleGame_DoesNotIncrement() {
+                stubGameResponseDependenciesWithSave();
+                Organizer organizerProfile = Organizer.builder()
+                                .user(organizer)
+                                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                                .provisionalGamesCompleted(0)
+                                .build();
+                when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+                when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+                when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                                .thenReturn(List.of(UUID.randomUUID()));
+
+                gameService.completeGame(gameId, organizer.getUserId());
+
+                verify(organizerRepository, never()).save(any(Organizer.class));
+                assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(0);
+                assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.PROVISIONAL);
+        }
+
+    @Test
+    void completeGame_ProvisionalOrganizer_ReachingTwoPromotesToFull() {
+                stubGameResponseDependenciesWithSave();
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(1)
+                .build();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(organizerRepository).save(organizerProfile);
+        assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(2);
+        assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.FULL);
+    }
+
+    @Test
+    void completeGame_ResponseIncludesOrganizerProgress() {
+                stubGameResponseDependenciesWithSave();
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(1)
+                .build();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(UUID.randomUUID()));
+
+        GameDto.GameResponse response = gameService.completeGame(gameId, organizer.getUserId());
+
+        assertThat(response.getOrganizer()).isNotNull();
+        assertThat(response.getOrganizer().getStatus()).isEqualTo("PROVISIONAL");
+        assertThat(response.getOrganizer().getEligibleGamesCompleted()).isEqualTo(1);
+    }
+
+    @Test
     void completeGame_WhenAlreadyCompleted_DoesNotSaveAgain() {
+                stubGameResponseDependencies();
         game.setStatus(Game.GameStatus.COMPLETED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -189,6 +298,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGameByScheduler_CompletesAndNotifiesOrganizer() {
+                stubGameSave();
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
         gameService.completeGameByScheduler(gameId);
@@ -256,6 +366,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void archiveGame_WhenCompleted_Archives() {
+                stubGameResponseDependenciesWithSave();
         game.setStatus(Game.GameStatus.COMPLETED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -268,6 +379,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void archiveGame_WhenAlreadyArchived_DoesNotSave() {
+                stubGameResponseDependencies();
         game.setStatus(Game.GameStatus.ARCHIVED);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
@@ -335,6 +447,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenParticipantAppearsInBothLists_NotifiesOnlyOnce() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerParticipation = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -365,6 +478,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenOrganizerAppearsOnlyInWaitlist_DoesNotNotifyOrganizer() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation organizerWaitlisted = GameParticipation.builder()
                 .game(game)
                 .user(organizer)
@@ -383,6 +497,7 @@ class GameServiceLifecycleTest {
 
     @Test
     void cancelGame_WhenNotificationServiceIsNull_StillCancels() {
+                stubGameResponseDependenciesWithSave();
         GameParticipation confirmedParticipation = GameParticipation.builder()
                 .game(game)
                 .user(confirmedUser)
@@ -393,6 +508,7 @@ class GameServiceLifecycleTest {
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,
@@ -403,7 +519,8 @@ class GameServiceLifecycleTest {
                 oqsService,
                 locationRepository,
                 privacySettingsService,
-                friendshipRepository);
+                friendshipRepository,
+                playerHistoryService);
 
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
         when(participationRepository.findConfirmedByGame(gameId))
@@ -419,10 +536,12 @@ class GameServiceLifecycleTest {
 
     @Test
     void completeGameByScheduler_WhenNotificationServiceIsNull_CompletesWithoutReminder() {
+                stubGameSave();
         GameService gameServiceWithoutNotifications = new GameService(
                 gameRepository,
                 participationRepository,
                 userRepository,
+                organizerRepository,
                 sportRepository,
                 gameVisibilityRepository,
                 endorsementRepository,
@@ -433,7 +552,8 @@ class GameServiceLifecycleTest {
                 oqsService,
                 locationRepository,
                 privacySettingsService,
-                friendshipRepository);
+                friendshipRepository,
+                playerHistoryService);
         when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
 
         Game completed = gameServiceWithoutNotifications.completeGameByScheduler(gameId);
@@ -448,5 +568,154 @@ class GameServiceLifecycleTest {
 
         assertThatThrownBy(() -> gameService.cancelGame(gameId, organizer.getUserId()))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void completeGame_FullStatusOrganizer_SkipsPromotionLogic() {
+                stubGameResponseDependenciesWithSave();
+        Organizer fullOrganizer = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.FULL)
+                .provisionalGamesCompleted(2)
+                .build();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(fullOrganizer));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(playerHistoryService, never()).getNonFirstTimePlayers(gameId, organizer.getUserId());
+        assertThat(fullOrganizer.getProvisionalGamesCompleted()).isEqualTo(2);
+        assertThat(fullOrganizer.getStatus()).isEqualTo(Organizer.OrganizerStatus.FULL);
+    }
+
+    @Test
+    void completeGame_ProvisionalOrganizer_NoOrganizerRecord_DoesNotError() {
+                stubGameResponseDependenciesWithSave();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.empty());
+
+        GameDto.GameResponse response = gameService.completeGame(gameId, organizer.getUserId());
+
+        assertThat(response.getGameId()).isEqualTo(gameId.toString());
+        ArgumentCaptor<Game> gameCaptor = ArgumentCaptor.forClass(Game.class);
+        verify(gameRepository).save(gameCaptor.capture());
+        assertThat(gameCaptor.getValue().getStatus()).isEqualTo(Game.GameStatus.COMPLETED);
+    }
+
+    @Test
+    void completeGame_ProvisionalOrganizer_BoundaryExactlyTwoEligiblePlayers_Increments() {
+                stubGameResponseDependenciesWithSave();
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(0)
+                .build();
+        UUID player1 = UUID.randomUUID();
+        UUID player2 = UUID.randomUUID();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(player1, player2));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(organizerRepository).save(organizerProfile);
+        assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(1);
+        assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.PROVISIONAL);
+    }
+
+    @Test
+    void completeGame_ProvisionalOrganizer_BoundaryExactlyTwoEligibleGames_TransitionsToFull() {
+                stubGameResponseDependenciesWithSave();
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(1)
+                .build();
+        UUID player1 = UUID.randomUUID();
+        UUID player2 = UUID.randomUUID();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(player1, player2));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(organizerRepository).save(organizerProfile);
+        assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(2);
+        assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.FULL);
+    }
+
+    @Test
+    void getOrganizerProgress_ReturnsCorrectProgress() {
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(1)
+                .build();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByGameId(gameId)).thenReturn(Optional.of(organizerProfile));
+
+        GameDto.OrganizerProgressResponse progress = gameService.getOrganizerProgress(gameId);
+
+        assertThat(progress.getGameId()).isEqualTo(gameId.toString());
+        assertThat(progress.getOrganizerUserId()).isEqualTo(organizer.getUserId().toString());
+        assertThat(progress.getOrganizerStatus()).isEqualTo("PROVISIONAL");
+        assertThat(progress.getEligibleGamesCompleted()).isEqualTo(1);
+    }
+
+    @Test
+    void getOrganizerProgress_NoOrganizerRecord_ReturnsNoneStatus() {
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByGameId(gameId)).thenReturn(Optional.empty());
+
+        GameDto.OrganizerProgressResponse progress = gameService.getOrganizerProgress(gameId);
+
+        assertThat(progress.getGameId()).isEqualTo(gameId.toString());
+        assertThat(progress.getOrganizerUserId()).isEqualTo(organizer.getUserId().toString());
+        assertThat(progress.getOrganizerStatus()).isEqualTo("NONE");
+        assertThat(progress.getEligibleGamesCompleted()).isEqualTo(0);
+    }
+
+        @Test
+        void getOrganizerProgress_GameMissing_ThrowsNotFound() {
+                when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> gameService.getOrganizerProgress(gameId))
+                                .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+    @Test
+    void completeGame_ResponseWithNullOrganizerDto_DoesNotThrow() {
+                stubGameResponseDependenciesWithSave();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.empty());
+
+        GameDto.GameResponse response = gameService.completeGame(gameId, organizer.getUserId());
+
+        assertThat(response).isNotNull();
+        assertThat(response.getGameId()).isEqualTo(gameId.toString());
+    }
+
+    @Test
+    void completeGame_OrganizerWithNullProvisionalGamesCompleted_DefaultsToZero() {
+                stubGameResponseDependenciesWithSave();
+        Organizer organizerProfile = Organizer.builder()
+                .user(organizer)
+                .status(Organizer.OrganizerStatus.PROVISIONAL)
+                .provisionalGamesCompleted(null)
+                .build();
+        UUID player1 = UUID.randomUUID();
+        UUID player2 = UUID.randomUUID();
+        when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+        when(organizerRepository.findByUser_UserId(organizer.getUserId())).thenReturn(Optional.of(organizerProfile));
+        when(playerHistoryService.getNonFirstTimePlayers(gameId, organizer.getUserId()))
+                .thenReturn(List.of(player1, player2));
+
+        gameService.completeGame(gameId, organizer.getUserId());
+
+        verify(organizerRepository).save(organizerProfile);
+        assertThat(organizerProfile.getProvisionalGamesCompleted()).isEqualTo(1);
+        assertThat(organizerProfile.getStatus()).isEqualTo(Organizer.OrganizerStatus.PROVISIONAL);
     }
 }

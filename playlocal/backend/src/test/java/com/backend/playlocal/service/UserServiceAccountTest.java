@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -31,6 +32,9 @@ class UserServiceAccountTest {
 
     @Mock
     private GameParticipationRepository gameParticipationRepository;
+
+    @Mock
+    private com.backend.playlocal.service.UsernameService usernameService;
 
     @InjectMocks
     private UserService userService;
@@ -45,6 +49,7 @@ class UserServiceAccountTest {
         user.setUserId(userId);
         user.setEmail("test@example.com");
         user.setDisplayName("Test User");
+        user.setSlug("test-user");
     }
 
     @Test
@@ -59,11 +64,18 @@ class UserServiceAccountTest {
         when(gameParticipationRepository.findByUserIdAndGameStartTimeAfter(eq(userId), any(Instant.class)))
             .thenReturn(futureParticipations);
 
+        String originalSlug = user.getSlug();
+        when(usernameService.buildDeactivatedSlug(eq(userId), anyString()))
+            .thenReturn("deleted-aaaaaaaaaaaaaaaaaaaaaaaa");
+
         // Act
         userService.deactivateAccount(userId);
 
         // Assert
         assertNotNull(user.getDeletedAt());
+        assertThat(user.getSlug()).startsWith("deleted-");
+        assertThat(user.getSlug()).hasSize(32);
+        assertThat(user.getSlug()).isNotEqualTo(originalSlug);
         verify(userRepository).save(user);
         verify(gameParticipationRepository, times(2)).save(any(GameParticipation.class));
         assertNotNull(futureGame1.getLeftAt());
@@ -112,13 +124,20 @@ class UserServiceAccountTest {
         when(gameParticipationRepository.findByUserIdAndGameStartTimeAfter(eq(userId), any(Instant.class)))
             .thenReturn(futureParticipations);
 
-        // Act
+                String originalSlug = user.getSlug();
+                when(usernameService.buildDeactivatedSlug(eq(userId), anyString()))
+                                .thenReturn("deleted-bbbbbbbbbbbbbbbbbbbbbbbb");
+
+                // Act
         userService.deleteAccount(userId);
 
         // Assert
         assertNotNull(user.getDeletedAt());
         // Verify deletedAt is backdated for immediate purge
         assertTrue(user.getDeletedAt().isBefore(Instant.now()));
+        assertThat(user.getSlug()).startsWith("deleted-");
+        assertThat(user.getSlug()).hasSize(32);
+        assertThat(user.getSlug()).isNotEqualTo(originalSlug);
         verify(userRepository).save(user);
         verify(gameParticipationRepository).save(any(GameParticipation.class));
         assertNotNull(futureGame.getLeftAt());
@@ -145,6 +164,8 @@ class UserServiceAccountTest {
         when(userRepository.findActiveById(userId)).thenReturn(Optional.of(user));
         when(gameParticipationRepository.findByUserIdAndGameStartTimeAfter(eq(userId), any(Instant.class)))
             .thenReturn(new ArrayList<>());
+        when(usernameService.buildDeactivatedSlug(eq(userId), anyString()))
+            .thenReturn("deleted-dddddddddddddddddddddddd");
 
         Instant beforeDelete = Instant.now();
 
@@ -155,6 +176,8 @@ class UserServiceAccountTest {
         assertNotNull(user.getDeletedAt());
         // DeletedAt should be at least 1 day in the past
         assertTrue(user.getDeletedAt().isBefore(beforeDelete.minus(23, ChronoUnit.HOURS)));
+        assertThat(user.getSlug()).startsWith("deleted-");
+        assertThat(user.getSlug()).hasSize(32);
         verify(userRepository).save(user);
     }
 
@@ -170,6 +193,8 @@ class UserServiceAccountTest {
 
         when(gameParticipationRepository.findByUserIdAndGameStartTimeAfter(eq(userId), any(Instant.class)))
             .thenReturn(futureParticipations);
+        when(usernameService.buildDeactivatedSlug(eq(userId), anyString()))
+            .thenReturn("deleted-eeeeeeeeeeeeeeeeeeeeeeee");
 
         // Act
         userService.deleteAccount(userId);

@@ -16,7 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.backend.playlocal.service.OrganizerQualityService;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -43,17 +42,20 @@ public class ReliabilityService {
     private final UserRepository userRepository;
     private final ScoreHistoryRepository scoreHistoryRepository;
     private final OrganizerQualityService oqsService;
+    private final OrganizerCompatibilityLayer organizerCompatibilityLayer;
 
     public ReliabilityService(GameRepository gameRepository,
             GameParticipationRepository participationRepository,
             UserRepository userRepository,
             ScoreHistoryRepository scoreHistoryRepository,
-            OrganizerQualityService oqsService) {
+            OrganizerQualityService oqsService,
+            OrganizerCompatibilityLayer organizerCompatibilityLayer) {
         this.gameRepository = gameRepository;
         this.participationRepository = participationRepository;
         this.userRepository = userRepository;
         this.scoreHistoryRepository = scoreHistoryRepository;
         this.oqsService = oqsService;
+        this.organizerCompatibilityLayer = organizerCompatibilityLayer;
     }
 
     /**
@@ -65,14 +67,17 @@ public class ReliabilityService {
     @Transactional
     public AttendanceDto.AttendanceResponse confirmAttendance(
             UUID gameId,
-            UUID organizerId,
+            UUID requesterUserId,
             AttendanceDto.ConfirmRequest request) {
 
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
+        UUID requesterOrganizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(requesterUserId);
+        UUID gameOrganizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
+
         // Verify caller is the organizer
-        if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+        if (!gameOrganizerId.equals(requesterOrganizerId)) {
             throw new AccessDeniedException("Only the organizer can confirm attendance");
         }
 
@@ -264,11 +269,14 @@ public class ReliabilityService {
     /**
      * Get participants awaiting attendance confirmation. US-2.6
      */
-    public List<AttendanceDto.AttendanceEntry> getPendingAttendance(UUID gameId, UUID organizerId) {
+    public List<AttendanceDto.AttendanceEntry> getPendingAttendance(UUID gameId, UUID requesterUserId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game not found"));
 
-        if (!game.getCreatedBy().getUserId().equals(organizerId)) {
+        UUID requesterOrganizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(requesterUserId);
+        UUID gameOrganizerId = organizerCompatibilityLayer.requireOrganizerIdByUserId(game.getCreatedBy().getUserId());
+
+        if (!gameOrganizerId.equals(requesterOrganizerId)) {
             throw new AccessDeniedException("Only the organizer can view attendance");
         }
         if (game.getStatus() == Game.GameStatus.ARCHIVED) {

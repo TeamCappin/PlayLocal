@@ -22,7 +22,7 @@ public interface OrganizerScoreHistoryRepository extends JpaRepository<Organizer
      * Find history entries for an organizer, ordered by creation date descending.
      */
     @Query("SELECT h FROM OrganizerScoreHistory h " +
-           "WHERE h.organizer.userId = :organizerId " +
+           "WHERE h.organizer.organizerId = :organizerId " +
            "ORDER BY h.createdAt DESC")
     Page<OrganizerScoreHistory> findByOrganizerIdOrderByCreatedAtDesc(
             @Param("organizerId") UUID organizerId, 
@@ -32,7 +32,7 @@ public interface OrganizerScoreHistoryRepository extends JpaRepository<Organizer
      * Find recent history entries for an organizer.
      */
     @Query("SELECT h FROM OrganizerScoreHistory h " +
-           "WHERE h.organizer.userId = :organizerId " +
+           "WHERE h.organizer.organizerId = :organizerId " +
            "ORDER BY h.createdAt DESC")
     List<OrganizerScoreHistory> findRecentByOrganizerId(
             @Param("organizerId") UUID organizerId, 
@@ -49,12 +49,12 @@ public interface OrganizerScoreHistoryRepository extends JpaRepository<Organizer
     /**
      * Count history entries for an organizer.
      */
-    @Query("SELECT COUNT(h) FROM OrganizerScoreHistory h WHERE h.organizer.userId = :organizerId")
+       @Query("SELECT COUNT(h) FROM OrganizerScoreHistory h WHERE h.organizer.organizerId = :organizerId")
     long countByOrganizerId(@Param("organizerId") UUID organizerId);
 
     /**
      * Find by organizer ID (for backward compatibility).
      */
-    @Query("SELECT h FROM OrganizerScoreHistory h WHERE h.organizer.userId = :organizerId")
+       @Query("SELECT h FROM OrganizerScoreHistory h WHERE h.organizer.organizerId = :organizerId")
     List<OrganizerScoreHistory> findByOrganizerId(@Param("organizerId") UUID organizerId);
 }

@@ -47,6 +47,10 @@ public class UserPrivacySettings {
     @Builder.Default
     private Boolean allowProfileSearch = true;
 
+    @Column(name = "ad_personalization_enabled")
+    @Builder.Default
+    private Boolean adPersonalizationEnabled = true;
+
     @Column(name = "updated_at")
     @Builder.Default
     private Instant updatedAt = Instant.now();

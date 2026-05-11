@@ -51,6 +51,9 @@ class ReliabilityServiceTest {
     @Mock
     private OrganizerQualityService oqsService;
 
+        @Mock
+        private OrganizerCompatibilityLayer organizerCompatibilityLayer;
+
     @InjectMocks
     private ReliabilityService reliabilityService;
 
@@ -64,7 +67,7 @@ class ReliabilityServiceTest {
     private User participant;
     private Game game;
     private GameParticipation participation;
-    private Sport testSport;
+        private Sport testSport;
 
     @BeforeEach
     void setUp() {
@@ -121,12 +124,15 @@ class ReliabilityServiceTest {
         @DisplayName("Should return pending list for organizer")
         void getPendingAttendance_whenOrganizer_shouldReturnList() {
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                                        .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of(participation));
 
-            var result = reliabilityService.getPendingAttendance(gameId, organizerId);
+                        var result = reliabilityService.getPendingAttendance(gameId, organizerUserId);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).getParticipationId()).isEqualTo(participation.getParticipationId().toString());
@@ -141,12 +147,15 @@ class ReliabilityServiceTest {
         @DisplayName("Should return empty list when no pending participants")
         void getPendingAttendance_whenNone_shouldReturnEmpty() {
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                                        .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of());
 
-            var result = reliabilityService.getPendingAttendance(gameId, organizerId);
+                        var result = reliabilityService.getPendingAttendance(gameId, organizerUserId);
 
             assertThat(result).isEmpty();
             verify(gameRepository).findById(gameId);
@@ -157,10 +166,17 @@ class ReliabilityServiceTest {
         @DisplayName("Should throw when non-organizer requests pending attendance")
         void getPendingAttendance_whenNonOrganizer_shouldThrow() {
             UUID gameId = game.getGameId();
-            UUID nonOrganizerId = UUID.randomUUID();
+            UUID organizerUserId = organizer.getUserId();
+            UUID organizerProfileId = UUID.randomUUID();
+            UUID nonOrganizerUserId = UUID.randomUUID();
+            UUID nonOrganizerProfileId = UUID.randomUUID();
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(nonOrganizerUserId))
+                    .thenReturn(nonOrganizerProfileId);
 
-            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, nonOrganizerId))
+            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, nonOrganizerUserId))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Only the organizer can view attendance");
 
@@ -172,10 +188,10 @@ class ReliabilityServiceTest {
         @DisplayName("Should throw when game not found")
         void getPendingAttendance_whenGameNotFound_shouldThrow() {
             UUID gameId = UUID.randomUUID();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
             when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerId))
+                        assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerUserId))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("Game not found");
 
@@ -187,11 +203,14 @@ class ReliabilityServiceTest {
         @DisplayName("Should throw when game is archived")
         void getPendingAttendance_whenArchived_shouldThrow() {
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
             game.setStatus(Game.GameStatus.ARCHIVED);
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+                        when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                                        .thenReturn(organizerProfileId);
 
-            assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerId))
+                        assertThatThrownBy(() -> reliabilityService.getPendingAttendance(gameId, organizerUserId))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Archived games are read-only");
 
@@ -209,7 +228,8 @@ class ReliabilityServiceTest {
         void confirmAttendance_whenAttended_shouldLogScoreHistory() {
             // Arrange
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
 
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of(
@@ -221,6 +241,8 @@ class ReliabilityServiceTest {
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of(participation));
             when(userRepository.save(any(User.class))).thenReturn(participant);
@@ -230,7 +252,7 @@ class ReliabilityServiceTest {
 
             // Act
             AttendanceDto.AttendanceResponse response = reliabilityService.confirmAttendance(
-                    gameId, organizerId, request);
+                    gameId, organizerUserId, request);
 
             // Assert
             assertThat(response.getAttendedCount()).isEqualTo(1);
@@ -252,7 +274,8 @@ class ReliabilityServiceTest {
         void confirmAttendance_whenNoShow_shouldLogScoreHistory() {
             // Arrange
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
 
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of(
@@ -264,6 +287,8 @@ class ReliabilityServiceTest {
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of(participation));
             when(userRepository.save(any(User.class))).thenReturn(participant);
@@ -273,7 +298,7 @@ class ReliabilityServiceTest {
 
             // Act
             AttendanceDto.AttendanceResponse response = reliabilityService.confirmAttendance(
-                    gameId, organizerId, request);
+                    gameId, organizerUserId, request);
 
             // Assert
             assertThat(response.getAttendedCount()).isEqualTo(0);
@@ -294,7 +319,8 @@ class ReliabilityServiceTest {
             // Arrange - participant has 5 attended, 0 no-shows
             // After no-show: 5 attended, 1 no-show, 6 total → 5/6 * 100 = 83.33%
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+            UUID organizerUserId = organizer.getUserId();
+            UUID organizerProfileId = UUID.randomUUID();
 
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of(
@@ -306,6 +332,8 @@ class ReliabilityServiceTest {
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of(participation));
             when(userRepository.save(any(User.class))).thenReturn(participant);
@@ -314,7 +342,7 @@ class ReliabilityServiceTest {
             when(gameRepository.save(any(Game.class))).thenReturn(game);
 
             // Act
-            reliabilityService.confirmAttendance(gameId, organizerId, request);
+            reliabilityService.confirmAttendance(gameId, organizerUserId, request);
 
             // Assert - verify user was saved with correct score
             verify(userRepository).save(userCaptor.capture());
@@ -331,7 +359,7 @@ class ReliabilityServiceTest {
         void confirmAttendance_whenGameNotFound_shouldThrowException() {
             // Arrange
             UUID gameId = UUID.randomUUID();
-            UUID organizerId = organizer.getUserId();
+                        UUID organizerUserId = organizer.getUserId();
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of())
                     .build();
@@ -339,7 +367,7 @@ class ReliabilityServiceTest {
             when(gameRepository.findById(gameId)).thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerUserId, request))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("Game not found");
         }
@@ -349,15 +377,22 @@ class ReliabilityServiceTest {
         void confirmAttendance_whenNotOrganizer_shouldThrowException() {
             // Arrange
             UUID gameId = game.getGameId();
-            UUID nonOrganizerId = UUID.randomUUID(); // Not the organizer
+                        UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
+            UUID nonOrganizerUserId = UUID.randomUUID(); // Not the organizer user
+            UUID nonOrganizerProfileId = UUID.randomUUID();
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of())
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(nonOrganizerUserId))
+                    .thenReturn(nonOrganizerProfileId);
 
             // Act & Assert
-            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, nonOrganizerId, request))
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, nonOrganizerUserId, request))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Only the organizer");
         }
@@ -366,15 +401,18 @@ class ReliabilityServiceTest {
         @DisplayName("Should throw exception when game is cancelled")
         void confirmAttendance_whenGameCancelled_shouldThrowException() {
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+            UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
             game.setStatus(Game.GameStatus.CANCELLED);
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of())
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
 
-            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerUserId, request))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("cancelled game");
         }
@@ -383,15 +421,18 @@ class ReliabilityServiceTest {
         @DisplayName("Should throw exception when game is archived")
         void confirmAttendance_whenGameArchived_shouldThrowException() {
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+            UUID organizerUserId = organizer.getUserId();
+                        UUID organizerProfileId = UUID.randomUUID();
             game.setStatus(Game.GameStatus.ARCHIVED);
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of())
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
 
-            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerId, request))
+            assertThatThrownBy(() -> reliabilityService.confirmAttendance(gameId, organizerUserId, request))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("archived game");
         }
@@ -403,7 +444,8 @@ class ReliabilityServiceTest {
             participation.setAttendanceStatus(GameParticipation.AttendanceStatus.ATTENDED);
 
             UUID gameId = game.getGameId();
-            UUID organizerId = organizer.getUserId();
+            UUID organizerUserId = organizer.getUserId();
+            UUID organizerProfileId = UUID.randomUUID();
 
             AttendanceDto.ConfirmRequest request = AttendanceDto.ConfirmRequest.builder()
                     .attendances(List.of(
@@ -415,13 +457,15 @@ class ReliabilityServiceTest {
                     .build();
 
             when(gameRepository.findById(gameId)).thenReturn(Optional.of(game));
+            when(organizerCompatibilityLayer.requireOrganizerIdByUserId(organizerUserId))
+                    .thenReturn(organizerProfileId);
             when(participationRepository.findForAttendanceConfirmation(gameId))
                     .thenReturn(List.of(participation));
             when(gameRepository.save(any(Game.class))).thenReturn(game);
 
             // Act
             AttendanceDto.AttendanceResponse response = reliabilityService.confirmAttendance(
-                    gameId, organizerId, request);
+                    gameId, organizerUserId, request);
 
             // Assert - should not process already confirmed
             assertThat(response.getAttendedCount()).isEqualTo(0);

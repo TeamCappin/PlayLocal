@@ -28,6 +28,8 @@ import lombok.Setter;
 @Builder
 public class User {
 
+    public static final int MAX_SLUG_LENGTH = 32;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id")
@@ -39,11 +41,11 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
 
-    @Column(name = "display_name")
+    @Column(name = "display_name", nullable = false)
     private String displayName;
 
-    // URL-friendly slug derived from displayName (e.g., "john-doe")
-    @Column(nullable = false)
+    // Public username/handle used in profile URLs (e.g., "john-doe")
+    @Column(nullable = false, unique = true)
     private String slug;
 
     @Column(name = "avatar_url")
@@ -118,27 +120,10 @@ public class User {
             this.createdAt = Instant.now();
         }
         this.updatedAt = Instant.now();
-        updateSlugIfNeeded();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();
-        updateSlugIfNeeded();
-    }
-
-    private void updateSlugIfNeeded() {
-        if (this.slug == null && this.displayName != null) {
-            this.slug = generateSlug(this.displayName);
-        }
-    }
-
-    public static String generateSlug(String displayName) {
-        if (displayName == null)
-            return null;
-        return displayName.toLowerCase()
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-)|(-$)", "")
-                .replaceAll("-+", "-");
     }
 }

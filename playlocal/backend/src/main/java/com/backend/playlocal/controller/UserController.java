@@ -5,6 +5,7 @@ import com.backend.playlocal.model.dto.PrivacySettingsDto;
 import com.backend.playlocal.model.dto.UserDto;
 import com.backend.playlocal.service.ConnectionSignalsService;
 import com.backend.playlocal.service.PrivacySettingsService;
+import com.backend.playlocal.service.UsernameService;
 import com.backend.playlocal.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,16 +17,19 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping({ "/api/v1/users", "/api/v2/users" })
 public class UserController {
 
     private final UserService userService;
+    private final UsernameService usernameService;
     private final ConnectionSignalsService connectionSignalsService;
     private final PrivacySettingsService privacySettingsService;
 
-    public UserController(UserService userService, ConnectionSignalsService connectionSignalsService,
+    public UserController(UserService userService, UsernameService usernameService,
+            ConnectionSignalsService connectionSignalsService,
             PrivacySettingsService privacySettingsService) {
         this.userService = userService;
+        this.usernameService = usernameService;
         this.connectionSignalsService = connectionSignalsService;
         this.privacySettingsService = privacySettingsService;
     }
@@ -59,6 +63,31 @@ public class UserController {
     }
 
     /**
+     * Update the authenticated user's username/slug.
+     * PUT /api/v1/users/username
+     */
+    @PutMapping("/username")
+    public ResponseEntity<AuthDto.UserDto> updateUsername(
+            Authentication authentication,
+            @Valid @RequestBody UserDto.UpdateUsernameRequest request) {
+        String userId = authentication.getName();
+        UUID userUuid = UUID.fromString(userId);
+        AuthDto.UserDto updatedUser = usernameService.changeSlug(userUuid, request.getUsername());
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    /**
+     * Resolve a userId by username/slug.
+     * GET /api/v1/users/username/{username}
+     */
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserDto.UsernameLookupResponse> findUserIdByUsername(
+            @PathVariable String username) {
+        String userId = usernameService.findUserIdByUsername(username);
+        return ResponseEntity.ok(UserDto.UsernameLookupResponse.builder().userId(userId).build());
+    }
+
+    /**
      * Get a user's public profile by ID.
      * GET /api/v1/users/{userId}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]
@@ -74,7 +103,7 @@ public class UserController {
     }
 
     /**
-     * Get a user's public profile by slug (URL-friendly display name).
+     * Get a user's public profile by slug (URL-friendly username/handle).
      * GET /api/v1/users/slug/{slug}/profile
      * Secured: Requires authentication [US-1.3 Privacy Defaults]
      * US-7.12: Enforces privacy visibility toggles.
@@ -145,7 +174,7 @@ public class UserController {
     /**
      * US-7.15: Deactivate the authenticated user's account.
      * POST /api/v1/users/deactivate
-     * Account can be reactivated by logging in within 30 days.
+     * The account is tombstoned and the old slug is released.
      */
     @PostMapping("/deactivate")
     public ResponseEntity<Void> deactivateAccount(Authentication authentication) {

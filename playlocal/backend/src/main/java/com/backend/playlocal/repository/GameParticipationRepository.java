@@ -70,6 +70,32 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
     List<GameParticipation> findForAttendanceConfirmation(UUID gameId);
 
     /**
+     * US-6.2.2: Get confirmed attendees for a game, excluding the organizer.
+     * Only players who both confirmed and were marked as having attended are returned.
+     */
+    @Query("SELECT gp.user.userId FROM GameParticipation gp " +
+            "WHERE gp.game.gameId = :gameId " +
+            "AND gp.joinStatus = 'CONFIRMED' " +
+            "AND gp.attendanceStatus = 'ATTENDED' " +
+            "AND gp.user.userId <> :organizerUserId")
+    List<UUID> getConfirmedAttendees(@Param("gameId") UUID gameId, @Param("organizerUserId") UUID organizerUserId);
+
+    /**
+     * US-6.2.2: Get players who attended other completed games not hosted by this organizer.
+     */
+    @Query("SELECT DISTINCT gp.user.userId FROM GameParticipation gp " +
+            "WHERE gp.user.userId IN :playerIds " +
+            "AND gp.joinStatus = 'CONFIRMED' " +
+            "AND gp.attendanceStatus = 'ATTENDED' " +
+            "AND gp.game.status = 'COMPLETED' " +
+            "AND gp.game.gameId <> :gameId " +
+            "AND gp.game.createdBy.userId <> :organizerUserId")
+    List<UUID> getAttendanceHistoryForPlayers(
+            @Param("playerIds") List<UUID> playerIds,
+            @Param("gameId") UUID gameId,
+            @Param("organizerUserId") UUID organizerUserId);
+
+    /**
      * Decrease waitlist positions after a user leaves.
      */
     @Modifying
@@ -95,6 +121,13 @@ public interface GameParticipationRepository extends JpaRepository<GameParticipa
      */
     @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId = :gameId")
     List<GameParticipation> findByGameId(@Param("gameId") UUID gameId);
+
+        /**
+         * Find all participations for a list of games.
+         * Used for batched OQS repeat-player calculation.
+         */
+        @Query("SELECT gp FROM GameParticipation gp WHERE gp.game.gameId IN :gameIds")
+        List<GameParticipation> findByGameIdIn(@Param("gameIds") List<UUID> gameIds);
 
     /**
      * US-32: (userId, gameId) for completed games in the last 60 days where user attended.
